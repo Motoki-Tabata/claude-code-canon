@@ -1,0 +1,11 @@
+{
+  "case": "canon-vague-desc",
+  "note": "違反（委譲トリガー品質・明白）。description『Helps with the code. Use when you need help.』は、いつ委譲すべきかの具体性がゼロで、他のどの役割とも識別できない。広すぎて誤発火するか、抽象的すぎて発火しない（L3_AGENTS の委譲トリガー要件に反する）。正典の趣旨（description が委譲トリガーとして機能する具体性を持つ）への不適合。",
+  "expected": [
+    {
+      "target": ".claude/agents/helper/helper.md",
+      "condition": null,
+      "verdict": "violation"
+    }
+  ]
+}

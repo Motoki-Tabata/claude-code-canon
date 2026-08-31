@@ -1,0 +1,2 @@
+# 改行コードを LF に統一する。CI は ubuntu 実行のため CRLF 混入は差分ノイズ源になる。
+* text=auto eol=lf

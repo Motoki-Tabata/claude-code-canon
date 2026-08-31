@@ -1,0 +1,8 @@
+{
+  "case": "c2-semantic-overlap",
+  "note": "難ケース（recall の境界・語彙非一致）。既存 ship-checklist は『出荷/送り出す/版番号』の語で、新要件 R1 は『リリース/公開/バージョン』の語で、同一の責務（版を上げ・レジストリへ公開し・周知する手順）を指す。字面が一致しないため keyword 一致に頼る judge は clean と誤る。統合方針は『公開手順は CLAUDE.md に集約し他所に残さない』であり、無改変で維持すると同一責務の置き場が2箇所になる＝C2 抵触。C4 は advisory 同士で整合。",
+  "expected": [
+    { "target": ".claude/skills/ship-checklist/SKILL.md", "condition": "C2", "verdict": "violation" },
+    { "target": ".claude/skills/ship-checklist/SKILL.md", "condition": "C4", "verdict": "clean" }
+  ]
+}

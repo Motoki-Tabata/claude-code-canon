@@ -1,0 +1,436 @@
+{
+  "_generated_by": "gates/build-conformance-tables.js",
+  "_do_not_edit": true,
+  "canon_version": "v2.1.251",
+  "canon_version_sources": [
+    {
+      "file": "docs/00_INDEX.md",
+      "version": "v2.1.251",
+      "source": "docs/00_INDEX.md:13"
+    },
+    {
+      "file": "docs/L1_CONTEXT_MANAGEMENT.md",
+      "version": "v2.1.251",
+      "source": "docs/L1_CONTEXT_MANAGEMENT.md:9"
+    },
+    {
+      "file": "docs/L2_SKILLS.md",
+      "version": "v2.1.251",
+      "source": "docs/L2_SKILLS.md:9"
+    },
+    {
+      "file": "docs/L3_AGENTS.md",
+      "version": "v2.1.251",
+      "source": "docs/L3_AGENTS.md:9"
+    },
+    {
+      "file": "docs/L4_AUTOMATION.md",
+      "version": "v2.1.251",
+      "source": "docs/L4_AUTOMATION.md:9"
+    },
+    {
+      "file": "docs/L5_DISTRIBUTION.md",
+      "version": "v2.1.251",
+      "source": "docs/L5_DISTRIBUTION.md:9"
+    },
+    {
+      "file": "docs/TOOLS.md",
+      "version": "v2.1.251",
+      "source": "docs/TOOLS.md:8"
+    },
+    {
+      "file": "docs/BEST_PRACTICES.md",
+      "version": "v2.1.251",
+      "source": "docs/BEST_PRACTICES.md:10"
+    },
+    {
+      "file": "docs/ORCHESTRATION.md",
+      "version": "v2.1.251",
+      "source": "docs/ORCHESTRATION.md:9"
+    }
+  ],
+  "generated_at": "2026-08-31T12:40:16.289Z",
+  "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること（§11.4）。",
+  "_warning": [
+    "自動生成ファイル。手動編集禁止。",
+    "生成元: gates/build-conformance-tables.js / 出典: docs/（SSoT・正典）。",
+    "再生成: npm run build:tables",
+    "正典を変えたいときは docs/ を直し、本ファイルは再生成すること。",
+    "本ファイルを直接編集すると SSoT が壊れ、次回再生成で黙って失われる。"
+  ],
+  "_status": "OK",
+  "_headline": "正典 docs/TOOLS.md（2026-07-16 新設）から抽出した正規ツール名の集合。G5 の closed-world 検査（非実在ツール検出・旧称検出）はこの表を出典にできる。",
+  "canonical_tool_set": {
+    "available": true,
+    "total": 45,
+    "permission_required_count": 14,
+    "permission_not_required_count": 31,
+    "source": "docs/TOOLS.md:33",
+    "tools": [
+      {
+        "name": "Agent",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:39"
+      },
+      {
+        "name": "Artifact",
+        "permission_required": true,
+        "source": "docs/TOOLS.md:40"
+      },
+      {
+        "name": "AskUserQuestion",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:41"
+      },
+      {
+        "name": "Bash",
+        "permission_required": true,
+        "source": "docs/TOOLS.md:42"
+      },
+      {
+        "name": "CronCreate",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:43"
+      },
+      {
+        "name": "CronDelete",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:44"
+      },
+      {
+        "name": "CronList",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:45"
+      },
+      {
+        "name": "Edit",
+        "permission_required": true,
+        "source": "docs/TOOLS.md:46"
+      },
+      {
+        "name": "EndConversation",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:47"
+      },
+      {
+        "name": "EnterPlanMode",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:48"
+      },
+      {
+        "name": "EnterWorktree",
+        "permission_required": true,
+        "source": "docs/TOOLS.md:49"
+      },
+      {
+        "name": "ExitPlanMode",
+        "permission_required": true,
+        "source": "docs/TOOLS.md:50"
+      },
+      {
+        "name": "ExitWorktree",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:51"
+      },
+      {
+        "name": "Glob",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:52"
+      },
+      {
+        "name": "Grep",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:53"
+      },
+      {
+        "name": "ListAgents",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:54"
+      },
+      {
+        "name": "ListMcpResourcesTool",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:55"
+      },
+      {
+        "name": "LSP",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:56"
+      },
+      {
+        "name": "Monitor",
+        "permission_required": true,
+        "source": "docs/TOOLS.md:57"
+      },
+      {
+        "name": "NotebookEdit",
+        "permission_required": true,
+        "source": "docs/TOOLS.md:58"
+      },
+      {
+        "name": "PowerShell",
+        "permission_required": true,
+        "source": "docs/TOOLS.md:59"
+      },
+      {
+        "name": "PushNotification",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:60"
+      },
+      {
+        "name": "Read",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:61"
+      },
+      {
+        "name": "ReadMcpResourceTool",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:62"
+      },
+      {
+        "name": "RemoteTrigger",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:63"
+      },
+      {
+        "name": "ReportFindings",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:64"
+      },
+      {
+        "name": "ScheduleWakeup",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:65"
+      },
+      {
+        "name": "SendFeedback",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:66"
+      },
+      {
+        "name": "SendMessage",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:67"
+      },
+      {
+        "name": "SendUserFile",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:68"
+      },
+      {
+        "name": "ShareOnboardingGuide",
+        "permission_required": true,
+        "source": "docs/TOOLS.md:69"
+      },
+      {
+        "name": "Skill",
+        "permission_required": true,
+        "source": "docs/TOOLS.md:70"
+      },
+      {
+        "name": "TaskCreate",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:71"
+      },
+      {
+        "name": "TaskGet",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:72"
+      },
+      {
+        "name": "TaskList",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:73"
+      },
+      {
+        "name": "TaskOutput",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:74"
+      },
+      {
+        "name": "TaskStop",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:75"
+      },
+      {
+        "name": "TaskUpdate",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:76"
+      },
+      {
+        "name": "TodoWrite",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:77"
+      },
+      {
+        "name": "ToolSearch",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:78"
+      },
+      {
+        "name": "WaitForMcpServers",
+        "permission_required": false,
+        "source": "docs/TOOLS.md:79"
+      },
+      {
+        "name": "WebFetch",
+        "permission_required": true,
+        "source": "docs/TOOLS.md:80"
+      },
+      {
+        "name": "WebSearch",
+        "permission_required": true,
+        "source": "docs/TOOLS.md:81"
+      },
+      {
+        "name": "Workflow",
+        "permission_required": true,
+        "source": "docs/TOOLS.md:82"
+      },
+      {
+        "name": "Write",
+        "permission_required": true,
+        "source": "docs/TOOLS.md:83"
+      }
+    ]
+  },
+  "g5_capability": {
+    "_note": "G5 実装者への能力宣言。false のものを実装すると正典に無い判断を捏造することになる。",
+    "mcp_syntax_check": {
+      "supported": true,
+      "basis": "docs/TOOLS.md:107"
+    },
+    "canonical_name_allowlist_check": {
+      "supported": true,
+      "basis": "docs/TOOLS.md:33"
+    },
+    "deprecated_name_detection": {
+      "supported": true,
+      "basis": "docs/TOOLS.md:89",
+      "scope": "旧称（改名）のみ。非推奨・既定無効は実在する正規名であり違反にしてはならない。"
+    },
+    "nonexistent_tool_detection": {
+      "supported": true,
+      "basis": "docs/TOOLS.md:33",
+      "caveat": "「正規な名前か」は判定できるが「この環境で利用可能か」は判定できない。公式が \"Your exact tool set depends on your provider, platform, and settings.\" と留保しているため。"
+    },
+    "case_sensitivity_check": {
+      "supported": false,
+      "reason": "正典 §3 [要確認]: 公式は \"the exact strings\" と述べるのみで大文字小文字の厳密性を明示しない。"
+    }
+  },
+  "deprecated_tools": {
+    "_note": "kind が「旧称（改名）」のもののみ G5 で違反にしてよい。非推奨・既定無効は正規名として通す。",
+    "all": [
+      {
+        "name": "Task",
+        "kind": "旧称（改名）",
+        "note": "Agent に改名済み。Task(...) は現在もエイリアスとして機能する（＝エラーにはならない。ただし正規名は Agent）",
+        "source": "docs/TOOLS.md:91"
+      },
+      {
+        "name": "TaskOutput",
+        "kind": "非推奨",
+        "note": "ツール自体は現存（§2 の45種に含む）。公式は Read での代替を推奨",
+        "source": "docs/TOOLS.md:92"
+      },
+      {
+        "name": "TodoWrite",
+        "kind": "既定無効",
+        "note": "ツール自体は現存（§2 の45種に含む）。既定で無効",
+        "source": "docs/TOOLS.md:93"
+      },
+      {
+        "name": "EndConversation",
+        "kind": "permission rule の例外",
+        "note": "Claude が呼び出し可能な他のツールを1件以上保持している限り、EndConversation には deny/ask ルールが適用されない（誤って会話終了を封じられないための設計）",
+        "source": "docs/TOOLS.md:94"
+      }
+    ],
+    "renamed_only": [
+      "Task"
+    ]
+  },
+  "mcp_tool_syntax": {
+    "forms": [
+      {
+        "form": "mcp__<server>__<tool>",
+        "meaning": "特定サーバの特定ツール",
+        "source": "docs/TOOLS.md:116"
+      },
+      {
+        "form": "mcp__<server>",
+        "meaning": "当該サーバの全ツール",
+        "source": "docs/TOOLS.md:117"
+      },
+      {
+        "form": "mcp__<server>__*",
+        "meaning": "当該サーバの全ツール（glob 形）",
+        "source": "docs/TOOLS.md:118"
+      },
+      {
+        "form": "mcp__*",
+        "meaning": "全サーバの全 MCP ツール（deny / ask のみ）",
+        "source": "docs/TOOLS.md:119"
+      },
+      {
+        "form": "mcp__plugin_<plugin-name>_<server-name>__<tool-name>",
+        "meaning": "plugin 同梱の MCP サーバ（A-Z a-z 0-9 _ - 以外の文字は _ に置換される）",
+        "source": "docs/TOOLS.md:120"
+      }
+    ],
+    "regex": "^mcp__[A-Za-z0-9_-]+__[A-Za-z0-9_-]+$",
+    "regex_derivation": "テンプレート mcp__<server>__<tool> の <...> を識別子1個に対応させた。正典は server/tool 名に許される文字集合を定義していないため、この文字クラスは推定である。",
+    "regex_confidence": "medium"
+  },
+  "subagent_unavailable_tools": {
+    "_note": "これらは正規ツール名だが Subagent には提供されない。G5 は「正規名か」を見るゲートなので違反にしてはならない（tools: に書いても無視されるだけ）。",
+    "tools": [
+      {
+        "name": "Agent",
+        "condition": "Subagent nesting の深度上限に達した場合のみ不可（fork を除く。深度上限の fork では呼び出すとエラーを返す）",
+        "source": "docs/TOOLS.md:133"
+      },
+      {
+        "name": "AskUserQuestion",
+        "condition": "常に不可",
+        "source": "docs/TOOLS.md:134"
+      },
+      {
+        "name": "EndConversation",
+        "condition": "常に不可",
+        "source": "docs/TOOLS.md:135"
+      },
+      {
+        "name": "EnterPlanMode",
+        "condition": "常に不可",
+        "source": "docs/TOOLS.md:136"
+      },
+      {
+        "name": "ExitPlanMode",
+        "condition": "Subagent の permissionMode が plan の場合のみ可（それ以外は不可）",
+        "source": "docs/TOOLS.md:137"
+      },
+      {
+        "name": "ScheduleWakeup",
+        "condition": "常に不可",
+        "source": "docs/TOOLS.md:138"
+      },
+      {
+        "name": "TaskOutput",
+        "condition": "常に不可",
+        "source": "docs/TOOLS.md:139"
+      },
+      {
+        "name": "WaitForMcpServers",
+        "condition": "常に不可",
+        "source": "docs/TOOLS.md:140"
+      },
+      {
+        "name": "Workflow",
+        "condition": "常に不可",
+        "source": "docs/TOOLS.md:141"
+      }
+    ]
+  }
+}

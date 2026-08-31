@@ -1,0 +1,13 @@
+{
+  "case": "merge-partial-absorb",
+  "note": "難ケース（merge_target の境界・部分吸収）。統合先 db-migration-guide は作成・適用・適用状況の確認を扱うが、統合元 db-rollback-steps の中核責務（安全な巻き戻し手順＝down 確認・保守時間帯限定・巻き戻し後スモーク・失敗時ダンプ復元）を吸収していない。統合先が『マイグレーション』という近い領域である分、責務が全く無関係な merge-target-bad より見抜きにくい。統合先が元の責務を吸収できていない＝merge_target 抵触。",
+  "calibration_finding": {
+    "at": "2026-08-12",
+    "what": "B のライブ収録で、旧 judge プロンプトはこのケースを clean と誤判定した（唯一の見逃し・改訂前 recall=0.889）。judge は『統合先に巻き戻し手順が無い』ことを自ら認識しつつ、それを『生成の完成度＝correctness/context の別軸の問題』として振り分け merge_target を clean とした。",
+    "adjudication": "ラベル（violation）が契約と先例に整合。quality-checklist §47 は merge_target を『統合先が元の責務を実際に吸収できているか』（内容ベース）と定義し、既存正例 merge-target-ok も『全文吸収』を根拠に clean としている。部分吸収の内容欠落を merge_target で見なければ、merge で内容が半分落ちても検査する軸が他に無い。ゆえに judge の読み（merge_target=寄せ先の topical 妥当性のみ）は契約の意図を取りこぼしている。",
+    "fix": "測定器をコーパスに合わせず、judge 側を契約の元の意図へ寄せた（§16.6）。quality-checklist §47 と eval-keep-review の merge_target を『統合先の実体が統合元の中核責務を実際に内包しているか／トピック近接や統合の名指しだけでは吸収でない／部分吸収で中核内容を落とすなら違反・別軸へ見送らない』と明確化。改訂後に3 merge ケースを再収録し、merge-target-ok=clean（退行なし）・merge-target-bad=violation・merge-partial-absorb=violation で recall=1.0 を回復。ラベルは変更していない（judge/契約側の改訂）。"
+  },
+  "expected": [
+    { "target": ".claude/skills/db-rollback-steps/SKILL.md", "condition": "merge_target", "verdict": "violation" }
+  ]
+}

@@ -1,0 +1,36 @@
+# 基本設計書 §14「output/work は gitignore（実行結果は対象プロジェクト側で版管理）。システム本体は git 管理」
+# ディレクトリ自体は .gitkeep で追跡し、中身のみ除外する（除外ディレクトリの中に git は降りないため
+# `/output/` 形式ではなく `/output/*` 形式にする）。
+
+# 【実行結果】run ごとの成果物ステージング（対象プロジェクトで版管理する）
+/output/*
+!/output/.gitkeep
+
+# 【調査中間成果物】work/<ts>/ と SessionStart が採番する .session-ts
+/work/*
+!/work/.gitkeep
+
+# 配置時の退避先（§10.2 退避スワップ・対象リポジトリ側に生成されるが念のため）
+.claude-canon.bak.*/
+
+# 【機能Y・世代管理】§13.2。generations/ 配下は全て実行結果（2026-08-28 に README.md・CURRENT
+# の git 管理も廃止し一本化。レイアウト契約は詳細設計書 §13.2 が権威）。
+/generations/
+
+# node
+/node_modules/
+npm-debug.log*
+
+# 注: gates/conformance_tables/ は【除外しない】。docs/ からの生成物だが §14 は gates/ 全体を
+# 「git 管理」と規定する。除外すると新規クローンで照合表が不在となりゲートが沈黙＝vacuous pass
+# （配線の生存検証 と同種の失敗様式）を招く。「手動編集しない」（§14.2）は編集の規律であって除外の理由ではなく、
+# コミットすることで正典更新に伴う照合表の差分が追える（§3.3 運用トレーサビリティ）。
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# tasks（本リポジトリ側では不採用。ユーザー環境のグローバル CLAUDE.md が
+# tasks/todo.md への書き出しを指示し続けるため、保険として除外行を残す）
+/tasks/

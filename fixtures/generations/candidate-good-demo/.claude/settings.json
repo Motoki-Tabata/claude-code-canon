@@ -1,0 +1,4 @@
+{
+  "$comment": "tests/promote_rollback.test.js 専用の最小フィクスチャ。tools/promote.js の settings.json 必須検査（§13.2.1）を満たすためだけに存在し、実 hooks 配線は持たない。",
+  "hooks": {}
+}

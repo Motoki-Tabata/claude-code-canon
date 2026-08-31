@@ -1,0 +1,10 @@
+{
+  "name": "constrained-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "代表シナリオ(3)『制約強め』の対象リポジトリ雛形。hooks/mcp/plugins/experimental がすべて禁止された環境。",
+  "scripts": {
+    "test": "node --test tests/"
+  }
+}

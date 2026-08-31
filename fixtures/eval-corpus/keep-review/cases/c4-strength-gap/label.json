@@ -1,0 +1,8 @@
+{
+  "case": "c4-strength-gap",
+  "note": "要件は deterministic（機械的阻止）だが、この既存は advisory の手順書であり要求強度を担えない＝C4 抵触。統合方針が『既存は背景説明として残す』と明示しているため役割の重複は無く C2 は clean（何でも違反と言う judge を弾く正例を兼ねる）。",
+  "expected": [
+    { "target": ".claude/skills/secret-hygiene/SKILL.md", "condition": "C2", "verdict": "clean" },
+    { "target": ".claude/skills/secret-hygiene/SKILL.md", "condition": "C4", "verdict": "violation" }
+  ]
+}

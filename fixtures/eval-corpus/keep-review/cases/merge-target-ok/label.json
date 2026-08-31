@@ -1,0 +1,7 @@
+{
+  "case": "merge-target-ok",
+  "note": "統合先 contribution-rules はコミット規約を全文吸収しており、統合先として妥当。",
+  "expected": [
+    { "target": ".claude/skills/commit-message-rules/SKILL.md", "condition": "merge_target", "verdict": "clean" }
+  ]
+}

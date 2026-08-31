@@ -1,0 +1,153 @@
+{
+  "$comment": [
+    "claude-canon の決定論ゲート発火配線（詳細設計書 §11.1・基本設計書 §14.2）。",
+    "判定ロジックは gates/（不変土台・機能Y 不可侵）に置き、本ファイルは発火のみを担う。",
+    "本ファイルが壊れると全ゲートが沈黙して vacuous pass する（§11.5）。settings.json の",
+    "自己検証は原理的に不可能なため、帯域外の2段（npm test の配線テスト ＋ /canon の",
+    "ランタイム・カナリア）で担保する。本ファイルを編集したら必ず npm test を通すこと。"
+  ],
+
+  "$comment_skill_shell": [
+    "disableSkillShellExecution はシェル経路の封鎖の第3の経路を塞ぐ。正典 L2_SKILLS.md:219 は",
+    "「SKILL.md 内で !`command` 構文を用いると Skill 注入前にシェルでコマンドを実行し",
+    "出力を inline 置換する」と規定する。これは Bash ツール呼出ではないため PreToolUse が",
+    "発火せず、write-scope-guard が原理的に見えない。ワーカーから Bash/PowerShell/Monitor を",
+    "剥奪しても（G13）、Skill 本文経由でシェルが動く経路が残る。正典 L2_SKILLS.md:240 が",
+    "示す全体禁止スイッチで塞ぐ。claude-canon 自身は Skill 本文でシェルを使わない設計。"
+  ],
+  "disableSkillShellExecution": true,
+
+  "$comment_hooks": [
+    "イベントのブロック可否は正典 docs/L4_AUTOMATION.md §2.1 が唯一の出典",
+    "（照合表 gates/conformance_tables/hooks.json に機械抽出済み）:",
+    "  UserPromptExpansion=Block可 / PreToolUse=Block可 / SubagentStop=Block可 / Stop=Block可",
+    "  PostToolUse=Block不可 → per-file 検査は助言に留め、権威判定は停止時の G12 が担う",
+    "  SessionStart=Block不可 → session-init は足場作りのみ（採番はしない・§11.3 注）"
+  ],
+
+  "hooks": {
+    "UserPromptExpansion": [
+      {
+        "$comment": "G13（preflight・§11.1）。/canon・/update-docs・/self-optimize 展開時に claude-canon 自身のワーカー定義（.claude/agents/** 全体・canon-updater を含む）を検査し、コマンド実行系ツールを持つワーカーが居れば exit 2 で run の開始自体をブロックする。対象が『run の成果物』でなく『run を実行する主体』なので、発火は run の外側に置く。",
+        "matcher": "canon|update-docs|self-optimize",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/g13_worker_privilege.js\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+
+    "PreToolUse": [
+      {
+        "$comment": "3ガード（§11.3）＋機能X 専用ガード（canon-update-scope-guard・§13.1）＋機能Y 自己再生成専用ガード（self-optimize-scope-guard・§13.2.1・§11.3「ガードの3系統」）。matcher にコマンド実行系（Bash|PowerShell|Monitor）を含めるのが要点。Bash のみだと PowerShell/Monitor で全ガードを迂回できる（実測済み）。各ガードは run in-flight のときのみ deny する（ガードの有効条件）ので、run 外・他系統の run 中は素通りする。write-scope-guard は `/canon` run（.session-ts）用、canon-update-scope-guard は機能X run（.canon-update-ts）用、self-optimize-scope-guard は自己最適化 run（.self-optim）用で判定材料・保護対象の極性が入れ替わる（3系統は相互排他・§13.1・§13.2.1）。self-optimize-scope-guard だけは終端マーカー後も sentinel が在る限り保護を解かない。",
+        "matcher": "Write|Edit|NotebookEdit|Bash|PowerShell|Monitor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/write-scope-guard.js\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/canon-update-scope-guard.js\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/self-optimize-scope-guard.js\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/approval-guard.js\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/advance-guard.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+
+    "PostToolUse": [
+      {
+        "$comment": "per-file 系統（G3〜G6）は助言。PostToolUse はブロック不可（正典 §2.1）なので違反はブロックラッチへ転写し、advance-guard（PreToolUse）が次の書込を deny する。権威判定は停止時の G12 が再実行する（§11.2）。",
+        "matcher": "Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/advance-guard.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+
+    "SubagentStop": [
+      {
+        "$comment": "stage 系統／snapshot 系統のディスパッチ（§4.3・§4.5）。ワーカーが work/<ts>/.requests/<stage> に書いた完了リクエストを走査し、種類に応じてバッチを選ぶ。消費は鋳造→削除の順・マーカー存在でキー付けした冪等演算。canon-guard.js は機能X（正典更新・work/.canon-update-ts）専用の別名前空間ディスパッチで、/canon の stage-guard/gen-guard とは競合しない（§13.1）。",
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/stage-guard.js\"",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/gen-guard.js\"",
+            "timeout": 120
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/canon-guard.js\"",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+
+    "Stop": [
+      {
+        "$comment": "SubagentStop の取りこぼし（オーケストレータ自身が inline で完了リクエストを書いた場合等）を拾う。Stop は連続8回 block でターン強制終了（正典 §2.1・CLAUDE_CODE_STOP_HOOK_BLOCK_CAP で変更可）。冪等演算なので二重発火しても無害。",
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/stage-guard.js\"",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/gen-guard.js\"",
+            "timeout": 120
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/canon-guard.js\"",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+
+    "SessionStart": [
+      {
+        "$comment": "足場作りのみ。<ts> は採番しない（§11.3 注）。SessionStart は無条件発火するため、ここで採番すると保守セッションが即座に run in-flight と誤判定され、ガードの有効条件（run in-flight 限定）が保守作業を巻き込む事故が再発する。採番の契機は『セッションの開始』でなく『run の開始』であり tools/new-ts.js が担う。",
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/session-init.js\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "case": "c2-subtle-violation",
+  "note": "難ケース（recall の境界）。名前も description も『新規参加者の案内』で新要件と無関係に見えるが、本文の『## テストの回し方』節が新要件の対象そのもの。統合方針は『テスト手順は他所に残さない』と明示しており、無改変で維持すると重複が残る＝C2 抵触。本文を読まない judge は clean と答える。C4 は advisory 同士で整合。",
+  "expected": [
+    { "target": ".claude/skills/onboarding-guide/SKILL.md", "condition": "C2", "verdict": "violation" },
+    { "target": ".claude/skills/onboarding-guide/SKILL.md", "condition": "C4", "verdict": "clean" }
+  ]
+}

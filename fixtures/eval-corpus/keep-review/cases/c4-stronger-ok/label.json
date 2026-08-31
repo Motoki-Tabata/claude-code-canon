@@ -1,0 +1,8 @@
+{
+  "case": "c4-stronger-ok",
+  "note": "正例（precision の境界・C4 の『強い分には無害』が本当に無害な側）。既存 strength は deterministic、R1 の strength_needed は advisory＝既存が要求より強い。constraints は hooks allowed=true で、強い強度（hook 阻止）を禁じる制約は無い。ゆえに強度不整合ではなく C4 clean。c4-constraint-conflict（強いが constraints が禁じる→violation）・c4-strength-gap（弱すぎる→violation）と対になる正例で、『強度が違えば即 violation』と読む judge を弾く。C2 も clean（統合方針が既存の包含を明言し新規生成物を作らない＝重複が生じない）。",
+  "expected": [
+    { "target": ".claude/skills/secret-block-runbook/SKILL.md", "condition": "C2", "verdict": "clean" },
+    { "target": ".claude/skills/secret-block-runbook/SKILL.md", "condition": "C4", "verdict": "clean" }
+  ]
+}

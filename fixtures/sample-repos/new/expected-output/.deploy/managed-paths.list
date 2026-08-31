@@ -1,0 +1,4 @@
+# 管理パス集合（§10.1）。1行1パス・対象リポジトリルートからの相対。
+# greenfield: 既存管理ファイルは無く、下記が新規配置される。
+CLAUDE.md
+.claude/skills/todo-helper/SKILL.md

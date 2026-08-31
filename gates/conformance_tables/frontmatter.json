@@ -1,0 +1,557 @@
+{
+  "_generated_by": "gates/build-conformance-tables.js",
+  "_do_not_edit": true,
+  "canon_version": "v2.1.251",
+  "canon_version_sources": [
+    {
+      "file": "docs/00_INDEX.md",
+      "version": "v2.1.251",
+      "source": "docs/00_INDEX.md:13"
+    },
+    {
+      "file": "docs/L1_CONTEXT_MANAGEMENT.md",
+      "version": "v2.1.251",
+      "source": "docs/L1_CONTEXT_MANAGEMENT.md:9"
+    },
+    {
+      "file": "docs/L2_SKILLS.md",
+      "version": "v2.1.251",
+      "source": "docs/L2_SKILLS.md:9"
+    },
+    {
+      "file": "docs/L3_AGENTS.md",
+      "version": "v2.1.251",
+      "source": "docs/L3_AGENTS.md:9"
+    },
+    {
+      "file": "docs/L4_AUTOMATION.md",
+      "version": "v2.1.251",
+      "source": "docs/L4_AUTOMATION.md:9"
+    },
+    {
+      "file": "docs/L5_DISTRIBUTION.md",
+      "version": "v2.1.251",
+      "source": "docs/L5_DISTRIBUTION.md:9"
+    },
+    {
+      "file": "docs/TOOLS.md",
+      "version": "v2.1.251",
+      "source": "docs/TOOLS.md:8"
+    },
+    {
+      "file": "docs/BEST_PRACTICES.md",
+      "version": "v2.1.251",
+      "source": "docs/BEST_PRACTICES.md:10"
+    },
+    {
+      "file": "docs/ORCHESTRATION.md",
+      "version": "v2.1.251",
+      "source": "docs/ORCHESTRATION.md:9"
+    }
+  ],
+  "generated_at": "2026-08-31T12:40:16.289Z",
+  "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること（§11.4）。",
+  "_warning": [
+    "自動生成ファイル。手動編集禁止。",
+    "生成元: gates/build-conformance-tables.js / 出典: docs/（SSoT・正典）。",
+    "再生成: npm run build:tables",
+    "正典を変えたいときは docs/ を直し、本ファイルは再生成すること。",
+    "本ファイルを直接編集すると SSoT が壊れ、次回再生成で黙って失われる。"
+  ],
+  "kinds": {
+    "agent": {
+      "canon_section": "docs/L3_AGENTS.md:134 (§2.1 frontmatter 完全リファレンス)",
+      "required_keys": [
+        {
+          "key": "name",
+          "source": "docs/L3_AGENTS.md:139"
+        },
+        {
+          "key": "description",
+          "source": "docs/L3_AGENTS.md:141"
+        }
+      ],
+      "required_keys_corroboration": {
+        "statement": "**必須**: `name` + `description` フィールド + Markdown body（system prompt）。それ以外は任意。",
+        "source": "docs/L3_AGENTS.md:194",
+        "note": "YAML ブロックの `# === 必須 ===` グループと散文の двух経路で一致を確認済み。"
+      },
+      "known_keys": [
+        {
+          "key": "name",
+          "group": "必須",
+          "optional": false,
+          "source": "docs/L3_AGENTS.md:139"
+        },
+        {
+          "key": "description",
+          "group": "必須",
+          "optional": false,
+          "source": "docs/L3_AGENTS.md:141"
+        },
+        {
+          "key": "tools",
+          "group": "ツール制御",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:144"
+        },
+        {
+          "key": "disallowedTools",
+          "group": "ツール制御",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:146"
+        },
+        {
+          "key": "model",
+          "group": "モデル",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:149"
+        },
+        {
+          "key": "effort",
+          "group": "モデル",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:152"
+        },
+        {
+          "key": "maxTurns",
+          "group": "モデル",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:153"
+        },
+        {
+          "key": "experimental",
+          "group": "実験オプション",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:157"
+        },
+        {
+          "key": "permissionMode",
+          "group": "権限・隔離",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:162"
+        },
+        {
+          "key": "isolation",
+          "group": "権限・隔離",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:164"
+        },
+        {
+          "key": "background",
+          "group": "権限・隔離",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:165"
+        },
+        {
+          "key": "skills",
+          "group": "コンポーネント preload",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:168"
+        },
+        {
+          "key": "mcpServers",
+          "group": "コンポーネント preload",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:169"
+        },
+        {
+          "key": "hooks",
+          "group": "コンポーネント preload",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:170"
+        },
+        {
+          "key": "memory",
+          "group": "永続メモリ・UI",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:173"
+        },
+        {
+          "key": "color",
+          "group": "永続メモリ・UI",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:174"
+        },
+        {
+          "key": "initialPrompt",
+          "group": "永続メモリ・UI",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:175"
+        },
+        {
+          "key": "version",
+          "group": "メタデータ",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:178"
+        },
+        {
+          "key": "license",
+          "group": "メタデータ",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:179"
+        },
+        {
+          "key": "author",
+          "group": "メタデータ",
+          "optional": true,
+          "source": "docs/L3_AGENTS.md:180"
+        }
+      ],
+      "unknown_key_detection": {
+        "supported": true,
+        "basis": "known_keys は「frontmatter 完全リファレンス」= 正典が完全性を主張するブロックに由来する。"
+      },
+      "vocabularies": {
+        "model": {
+          "values": [
+            "sonnet",
+            "opus",
+            "haiku",
+            "fable",
+            "claude-opus-5",
+            "inherit",
+            "ANTHROPIC_DEFAULT_MODEL",
+            "ANTHROPIC_MODEL",
+            "env-vars",
+            "CLAUDE_CODE_SUBAGENT_MODEL"
+          ],
+          "closed": false,
+          "open_reason": "full model ID（例 claude-opus-4-8 / claude-sonnet-5）も可。正典は例のみ示し ID の構文規則を定義していないため、閉じた語彙照合はできない。",
+          "source": "docs/L3_AGENTS.md:200"
+        },
+        "effort": {
+          "values": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ],
+          "closed": true,
+          "source": "docs/L3_AGENTS.md:152"
+        },
+        "permissionMode": {
+          "values": [
+            "default",
+            "acceptEdits",
+            "auto",
+            "dontAsk",
+            "bypassPermissions",
+            "plan"
+          ],
+          "closed": true,
+          "source": "docs/L3_AGENTS.md:162",
+          "alias": {
+            "value": "manual",
+            "of": "default",
+            "source": "docs/L3_AGENTS.md:163"
+          },
+          "extraction_confidence": "low",
+          "extraction_note": "`manual` エイリアスは YAML の継続コメント（散文）由来。文面が変わると黙って落ちる。"
+        },
+        "memory": {
+          "values": [
+            "user",
+            "project",
+            "local"
+          ],
+          "closed": true,
+          "source": "docs/L3_AGENTS.md:173"
+        },
+        "color": {
+          "values": [
+            "red",
+            "blue",
+            "green",
+            "yellow",
+            "purple",
+            "orange",
+            "pink",
+            "cyan"
+          ],
+          "closed": true,
+          "source": "docs/L3_AGENTS.md:211"
+        }
+      },
+      "types": {
+        "available": false,
+        "reason": "L3 の「主要フィールド」表には型の列が無い（L2 の Skill 表には「値」列がある）。型は YAML の例示値から推測するしかなく、決定論的に抽出できない。G4 の「型照合」は agent については正典由来で実装できない。"
+      }
+    },
+    "skill": {
+      "canon_section": "docs/L2_SKILLS.md:154 (§2.1 SKILL.md frontmatter 完全リファレンス)",
+      "required_keys": [],
+      "required_keys_basis": {
+        "statement": "**必須フィールド**: 実質なし（`description` 推奨だが技術的には任意）。",
+        "source": "docs/L2_SKILLS.md:207",
+        "note": "0 件は抽出失敗ではなく正典の明示的な帰結。根拠行の存在を検査して初めて 0 件を正当化している。"
+      },
+      "known_keys": [
+        {
+          "key": "name",
+          "group": "識別",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:159"
+        },
+        {
+          "key": "description",
+          "group": "識別",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:160"
+        },
+        {
+          "key": "when_to_use",
+          "group": "識別",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:161"
+        },
+        {
+          "key": "disable-model-invocation",
+          "group": "トリガー制御",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:164"
+        },
+        {
+          "key": "user-invocable",
+          "group": "トリガー制御",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:165"
+        },
+        {
+          "key": "argument-hint",
+          "group": "引数",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:168"
+        },
+        {
+          "key": "arguments",
+          "group": "引数",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:169"
+        },
+        {
+          "key": "allowed-tools",
+          "group": "権限・ツール",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:172"
+        },
+        {
+          "key": "disallowed-tools",
+          "group": "権限・ツール",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:173"
+        },
+        {
+          "key": "model",
+          "group": "モデル・コンテキスト",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:176"
+        },
+        {
+          "key": "effort",
+          "group": "モデル・コンテキスト",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:177"
+        },
+        {
+          "key": "context",
+          "group": "モデル・コンテキスト",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:178"
+        },
+        {
+          "key": "agent",
+          "group": "モデル・コンテキスト",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:179"
+        },
+        {
+          "key": "background",
+          "group": "モデル・コンテキスト",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:180"
+        },
+        {
+          "key": "shell",
+          "group": "シェル設定",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:184"
+        },
+        {
+          "key": "paths",
+          "group": "パス制限",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:187"
+        },
+        {
+          "key": "hooks",
+          "group": "ライフサイクル",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:192"
+        },
+        {
+          "key": "version",
+          "group": "メタデータ",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:196"
+        },
+        {
+          "key": "license",
+          "group": "メタデータ",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:197"
+        },
+        {
+          "key": "author",
+          "group": "メタデータ",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:198"
+        },
+        {
+          "key": "compatibility",
+          "group": "メタデータ",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:199"
+        },
+        {
+          "key": "metadata",
+          "group": "メタデータ",
+          "optional": true,
+          "source": "docs/L2_SKILLS.md:200"
+        }
+      ],
+      "unknown_key_detection": {
+        "supported": true,
+        "basis": "「完全リファレンス」ブロック由来。"
+      },
+      "types": {
+        "name": {
+          "type": "string",
+          "source": "docs/L2_SKILLS.md:215"
+        },
+        "description": {
+          "type": "string",
+          "source": "docs/L2_SKILLS.md:216"
+        },
+        "when_to_use": {
+          "type": "string",
+          "source": "docs/L2_SKILLS.md:217"
+        },
+        "disable-model-invocation": {
+          "type": "bool",
+          "source": "docs/L2_SKILLS.md:218"
+        },
+        "user-invocable": {
+          "type": "bool",
+          "source": "docs/L2_SKILLS.md:219"
+        },
+        "allowed-tools": {
+          "type": "list/string",
+          "source": "docs/L2_SKILLS.md:220"
+        },
+        "disallowed-tools": {
+          "type": "list/string",
+          "source": "docs/L2_SKILLS.md:221"
+        },
+        "model": {
+          "type": "string",
+          "source": "docs/L2_SKILLS.md:222"
+        },
+        "effort": {
+          "type": "string",
+          "source": "docs/L2_SKILLS.md:223"
+        },
+        "context": {
+          "type": "fork",
+          "source": "docs/L2_SKILLS.md:224"
+        },
+        "agent": {
+          "type": "string",
+          "source": "docs/L2_SKILLS.md:225"
+        },
+        "background": {
+          "type": "bool",
+          "source": "docs/L2_SKILLS.md:226"
+        },
+        "shell": {
+          "type": "bash/powershell",
+          "source": "docs/L2_SKILLS.md:227"
+        },
+        "paths": {
+          "type": "glob list",
+          "source": "docs/L2_SKILLS.md:228"
+        },
+        "hooks": {
+          "type": "object",
+          "source": "docs/L2_SKILLS.md:229"
+        },
+        "arguments": {
+          "type": "list",
+          "source": "docs/L2_SKILLS.md:230"
+        },
+        "argument-hint": {
+          "type": "string",
+          "source": "docs/L2_SKILLS.md:231"
+        },
+        "compatibility": {
+          "type": "string（≤500文字）",
+          "source": "docs/L2_SKILLS.md:232"
+        },
+        "metadata": {
+          "type": "map",
+          "source": "docs/L2_SKILLS.md:233"
+        }
+      },
+      "vocabularies": {
+        "model": {
+          "values": [
+            "sonnet",
+            "opus",
+            "haiku",
+            "fable",
+            "inherit",
+            "availableModels"
+          ],
+          "closed": false,
+          "open_reason": "full ID 可。agent と同じ理由で閉じない。",
+          "source": "docs/L2_SKILLS.md:222"
+        },
+        "shell": {
+          "values": [
+            "bash",
+            "powershell"
+          ],
+          "closed": true,
+          "source": "docs/L2_SKILLS.md:227"
+        },
+        "context": {
+          "values": [
+            "fork"
+          ],
+          "closed": true,
+          "source": "docs/L2_SKILLS.md:224"
+        }
+      }
+    },
+    "rule": {
+      "canon_section": "docs/L1_CONTEXT_MANAGEMENT.md:216 (§2.2 Path-Specific Rules)",
+      "required_keys": [],
+      "required_keys_basis": {
+        "statement": "frontmatter なし → 無条件ロード。`paths` あり → 該当ファイル読取時のみロード。",
+        "source": "docs/L1_CONTEXT_MANAGEMENT.md:216"
+      },
+      "known_keys": [
+        {
+          "key": "paths",
+          "optional": true,
+          "source": "docs/L1_CONTEXT_MANAGEMENT.md:230"
+        }
+      ],
+      "unknown_key_detection": {
+        "supported": false,
+        "reason": "rules には「frontmatter 完全リファレンス」が存在せず、根拠は実装例1件のみ（L1 §2.2）。例に現れたキー集合を「既知キーの全集合」と見なすと、正当なキーを未知キーとして誤検出する。G4 の未知キー検出は rule には適用してはならない。"
+      }
+    }
+  }
+}

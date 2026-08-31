@@ -1,0 +1,4 @@
+# 対象から意図的に消えるファイル（disposition:retire ＋ merge 被統合元）。§9.3/§10.2。
+.claude/skills/legacy-skill/SKILL.md
+.claude/skills/merge-a/SKILL.md
+.claude/skills/merge-b/SKILL.md

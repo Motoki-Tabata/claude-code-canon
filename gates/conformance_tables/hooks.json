@@ -1,0 +1,417 @@
+{
+  "_generated_by": "gates/build-conformance-tables.js",
+  "_do_not_edit": true,
+  "canon_version": "v2.1.251",
+  "canon_version_sources": [
+    {
+      "file": "docs/00_INDEX.md",
+      "version": "v2.1.251",
+      "source": "docs/00_INDEX.md:13"
+    },
+    {
+      "file": "docs/L1_CONTEXT_MANAGEMENT.md",
+      "version": "v2.1.251",
+      "source": "docs/L1_CONTEXT_MANAGEMENT.md:9"
+    },
+    {
+      "file": "docs/L2_SKILLS.md",
+      "version": "v2.1.251",
+      "source": "docs/L2_SKILLS.md:9"
+    },
+    {
+      "file": "docs/L3_AGENTS.md",
+      "version": "v2.1.251",
+      "source": "docs/L3_AGENTS.md:9"
+    },
+    {
+      "file": "docs/L4_AUTOMATION.md",
+      "version": "v2.1.251",
+      "source": "docs/L4_AUTOMATION.md:9"
+    },
+    {
+      "file": "docs/L5_DISTRIBUTION.md",
+      "version": "v2.1.251",
+      "source": "docs/L5_DISTRIBUTION.md:9"
+    },
+    {
+      "file": "docs/TOOLS.md",
+      "version": "v2.1.251",
+      "source": "docs/TOOLS.md:8"
+    },
+    {
+      "file": "docs/BEST_PRACTICES.md",
+      "version": "v2.1.251",
+      "source": "docs/BEST_PRACTICES.md:10"
+    },
+    {
+      "file": "docs/ORCHESTRATION.md",
+      "version": "v2.1.251",
+      "source": "docs/ORCHESTRATION.md:9"
+    }
+  ],
+  "generated_at": "2026-08-31T12:40:16.289Z",
+  "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること（§11.4）。",
+  "_warning": [
+    "自動生成ファイル。手動編集禁止。",
+    "生成元: gates/build-conformance-tables.js / 出典: docs/（SSoT・正典）。",
+    "再生成: npm run build:tables",
+    "正典を変えたいときは docs/ を直し、本ファイルは再生成すること。",
+    "本ファイルを直接編集すると SSoT が壊れ、次回再生成で黙って失われる。"
+  ],
+  "canon_section": "docs/L4_AUTOMATION.md:70 (§2.1 全 Hook イベント)",
+  "declared_total": {
+    "value": 31,
+    "source": "docs/L4_AUTOMATION.md:70"
+  },
+  "extracted_total": 31,
+  "groups": [
+    {
+      "group": "セッション層",
+      "declared": 2,
+      "extracted": 2
+    },
+    {
+      "group": "セットアップ層",
+      "declared": 2,
+      "extracted": 2
+    },
+    {
+      "group": "ターン層",
+      "declared": 4,
+      "extracted": 4
+    },
+    {
+      "group": "エージェンティックループ層",
+      "declared": 9,
+      "extracted": 9
+    },
+    {
+      "group": "その他エージェント関連",
+      "declared": 3,
+      "extracted": 3
+    },
+    {
+      "group": "ファイル・環境監視層",
+      "declared": 6,
+      "extracted": 6
+    },
+    {
+      "group": "UI・コンテキスト層",
+      "declared": 5,
+      "extracted": 5
+    }
+  ],
+  "events": [
+    {
+      "event": "SessionStart",
+      "group": "セッション層",
+      "timing": "セッション開始・再開",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:78"
+    },
+    {
+      "event": "SessionEnd",
+      "group": "セッション層",
+      "timing": "セッション終了時",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:79"
+    },
+    {
+      "event": "Setup",
+      "group": "セットアップ層",
+      "timing": "--init-only/--init/--maintenance 起動時",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:87"
+    },
+    {
+      "event": "InstructionsLoaded",
+      "group": "セットアップ層",
+      "timing": "CLAUDE.md/.claude/rules/*.md ロード時",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:88"
+    },
+    {
+      "event": "UserPromptSubmit",
+      "group": "ターン層",
+      "timing": "ユーザープロンプト送信時",
+      "blockable": true,
+      "blockable_raw": "✅",
+      "source": "docs/L4_AUTOMATION.md:94"
+    },
+    {
+      "event": "UserPromptExpansion",
+      "group": "ターン層",
+      "timing": "スラッシュコマンド展開時",
+      "blockable": true,
+      "blockable_raw": "✅",
+      "source": "docs/L4_AUTOMATION.md:95"
+    },
+    {
+      "event": "Stop",
+      "group": "ターン層",
+      "timing": "Claude応答完了時",
+      "blockable": true,
+      "blockable_raw": "✅（連続8回 block でターン強制終了。`CLAUDE_CODE_STOP_HOOK_BLOCK_CAP` で変更可）",
+      "source": "docs/L4_AUTOMATION.md:96"
+    },
+    {
+      "event": "StopFailure",
+      "group": "ターン層",
+      "timing": "APIエラーでturn終了時",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:97"
+    },
+    {
+      "event": "PreToolUse",
+      "group": "エージェンティックループ層",
+      "timing": "ツール呼び出し前",
+      "blockable": true,
+      "blockable_raw": "✅",
+      "source": "docs/L4_AUTOMATION.md:103"
+    },
+    {
+      "event": "PostToolUse",
+      "group": "エージェンティックループ層",
+      "timing": "ツール呼び出し成功後",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:104"
+    },
+    {
+      "event": "PostToolUseFailure",
+      "group": "エージェンティックループ層",
+      "timing": "ツール呼び出し失敗後",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:105"
+    },
+    {
+      "event": "PostToolBatch",
+      "group": "エージェンティックループ層",
+      "timing": "並列ツール呼び出し全体完了後",
+      "blockable": true,
+      "blockable_raw": "✅",
+      "source": "docs/L4_AUTOMATION.md:106"
+    },
+    {
+      "event": "PermissionRequest",
+      "group": "エージェンティックループ層",
+      "timing": "パーミッションダイアログ時",
+      "blockable": false,
+      "blockable_raw": "❌（exit code 2 は honored されず、パーミッションフローはそのまま進行する。deny するには `decision` オブジェクトを使う）",
+      "source": "docs/L4_AUTOMATION.md:107"
+    },
+    {
+      "event": "PermissionDenied",
+      "group": "エージェンティックループ層",
+      "timing": "auto modeで拒否時",
+      "blockable": false,
+      "blockable_raw": "❌（retry可）",
+      "source": "docs/L4_AUTOMATION.md:108"
+    },
+    {
+      "event": "SubagentStart",
+      "group": "エージェンティックループ層",
+      "timing": "サブエージェント起動時",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:109"
+    },
+    {
+      "event": "SubagentStop",
+      "group": "エージェンティックループ層",
+      "timing": "サブエージェント終了時",
+      "blockable": true,
+      "blockable_raw": "✅",
+      "source": "docs/L4_AUTOMATION.md:110"
+    },
+    {
+      "event": "TaskCreated",
+      "group": "エージェンティックループ層",
+      "timing": "TaskCreate でタスク作成時",
+      "blockable": true,
+      "blockable_raw": "✅",
+      "source": "docs/L4_AUTOMATION.md:111"
+    },
+    {
+      "event": "TaskCompleted",
+      "group": "その他エージェント関連",
+      "timing": "タスク完了マーク時",
+      "blockable": true,
+      "blockable_raw": "✅",
+      "source": "docs/L4_AUTOMATION.md:117"
+    },
+    {
+      "event": "TeammateIdle",
+      "group": "その他エージェント関連",
+      "timing": "Agent Teams teammate idle直前",
+      "blockable": true,
+      "blockable_raw": "✅",
+      "source": "docs/L4_AUTOMATION.md:118"
+    },
+    {
+      "event": "Notification",
+      "group": "その他エージェント関連",
+      "timing": "通知送信時",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:119"
+    },
+    {
+      "event": "FileChanged",
+      "group": "ファイル・環境監視層",
+      "timing": "監視ファイル変更時",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:125"
+    },
+    {
+      "event": "CwdChanged",
+      "group": "ファイル・環境監視層",
+      "timing": "作業ディレクトリ変更時",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:126"
+    },
+    {
+      "event": "DirectoryAdded",
+      "group": "ファイル・環境監視層",
+      "timing": "/add-dir や SDK register_repo_root でmid-session時にディレクトリが追加されたときに発火",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:127"
+    },
+    {
+      "event": "ConfigChange",
+      "group": "ファイル・環境監視層",
+      "timing": "設定ファイル変更時",
+      "blockable": true,
+      "blockable_raw": "✅",
+      "source": "docs/L4_AUTOMATION.md:128"
+    },
+    {
+      "event": "WorktreeCreate",
+      "group": "ファイル・環境監視層",
+      "timing": "--worktree で worktree 作成時",
+      "blockable": true,
+      "blockable_raw": "✅",
+      "source": "docs/L4_AUTOMATION.md:129"
+    },
+    {
+      "event": "WorktreeRemove",
+      "group": "ファイル・環境監視層",
+      "timing": "worktree 削除時",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:130"
+    },
+    {
+      "event": "MessageDisplay",
+      "group": "UI・コンテキスト層",
+      "timing": "アシスタントメッセージ表示中",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:136"
+    },
+    {
+      "event": "PreCompact",
+      "group": "UI・コンテキスト層",
+      "timing": "コンテキスト圧縮前",
+      "blockable": true,
+      "blockable_raw": "✅",
+      "source": "docs/L4_AUTOMATION.md:137"
+    },
+    {
+      "event": "PostCompact",
+      "group": "UI・コンテキスト層",
+      "timing": "コンテキスト圧縮後",
+      "blockable": false,
+      "blockable_raw": "❌",
+      "source": "docs/L4_AUTOMATION.md:138"
+    },
+    {
+      "event": "Elicitation",
+      "group": "UI・コンテキスト層",
+      "timing": "MCP serverがユーザー入力要求時",
+      "blockable": true,
+      "blockable_raw": "✅",
+      "source": "docs/L4_AUTOMATION.md:139"
+    },
+    {
+      "event": "ElicitationResult",
+      "group": "UI・コンテキスト層",
+      "timing": "ユーザー応答後",
+      "blockable": true,
+      "blockable_raw": "✅",
+      "source": "docs/L4_AUTOMATION.md:140"
+    }
+  ],
+  "blockable_events": [
+    "UserPromptSubmit",
+    "UserPromptExpansion",
+    "Stop",
+    "PreToolUse",
+    "PostToolBatch",
+    "SubagentStop",
+    "TaskCreated",
+    "TaskCompleted",
+    "TeammateIdle",
+    "ConfigChange",
+    "WorktreeCreate",
+    "PreCompact",
+    "Elicitation",
+    "ElicitationResult"
+  ],
+  "non_blockable_events": [
+    "SessionStart",
+    "SessionEnd",
+    "Setup",
+    "InstructionsLoaded",
+    "StopFailure",
+    "PostToolUse",
+    "PostToolUseFailure",
+    "PermissionRequest",
+    "PermissionDenied",
+    "SubagentStart",
+    "Notification",
+    "FileChanged",
+    "CwdChanged",
+    "DirectoryAdded",
+    "WorktreeRemove",
+    "MessageDisplay",
+    "PostCompact"
+  ],
+  "unspecified_blockable_events": {
+    "_note": "正典が「-」とした＝ブロック可否 未記載。設計でブロックを当てにしてはならない。",
+    "events": []
+  },
+  "exit_code_semantics": {
+    "canon_section": "docs/L4_AUTOMATION.md:244",
+    "codes": [
+      {
+        "code": "0",
+        "behavior": "成功。stdout を JSON としてパース",
+        "blocking": false,
+        "source": "docs/L4_AUTOMATION.md:248"
+      },
+      {
+        "code": "2",
+        "behavior": "Blockingエラー。stderr が Claude へフィードバックされる。効果はイベント依存",
+        "blocking": true,
+        "source": "docs/L4_AUTOMATION.md:249"
+      },
+      {
+        "code": "1/その他",
+        "behavior": "Non-blocking error。stderr は transcript 表示のみ",
+        "blocking": false,
+        "source": "docs/L4_AUTOMATION.md:250"
+      }
+    ],
+    "blocking_code": 2
+  }
+}

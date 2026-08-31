@@ -1,0 +1,11 @@
+{
+  "case": "corr-ungrounded",
+  "note": "違反（非接地・明白）。project_profile は lint 未導入（npm run lint 未定義・eslint 設定ファイル無し）と明記しているのに、生成 Skill は npm run lint・--fix・.eslintrc.json・CI での lint を既存であるかのように手順化している。実在しないコマンド・設定を書く MVP-1 の事故型（README 鵜呑み）そのもの。A1 の接地要件に反する。",
+  "expected": [
+    {
+      "target": ".claude/skills/lint-fix/SKILL.md",
+      "condition": null,
+      "verdict": "violation"
+    }
+  ]
+}

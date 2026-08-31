@@ -1,0 +1,16 @@
+{
+  "case": "c4-constraint-conflict",
+  "note": "難ケース（recall の境界）。strength_needed(advisory) だけを見ると『既存が強い分には問題ない』と読めるが、C4 は constraints との矛盾も見る条件。この既存は deterministic で禁止された Hook と対でしか成立せず、hooks: allowed=false の環境では担う強度そのものが成立しない＝C4 抵触。",
+  "label_revised": {
+    "at": "2026-07-23",
+    "condition": "C2",
+    "from": "clean",
+    "to": "violation",
+    "why": "初版ラベルは C2 を clean としたが根拠が薄かった（『統合方針が文書での案内を求めており本 Skill も案内役だから重複しない』という論法は、同じ責務の置き場が二つになるという C2 の重複の定義そのものを見落としている）。R1 は『生成物の扱い（再生成手順・手編集しない約束）を文書として整える』ことを求め、この既存はまさに手編集禁止と codegen 誘導を記述しているため責務が重なる。加えて既存は禁止された Hook が deny した後の誘導文として書かれており、Hook 非採用の統合方針の下では発動前提を失った案内が残る。よって violation が正しい。",
+    "surfaced_by": "ライブ収録（2026-07-23）で judge が violation(medium) を返し、ラベルとの不一致として現れた。事後のラベル修正は較正証拠として最も弱い形式であり、この1件は『judge がラベルの誤りを突いた』事例として扱う。judge の性能の証拠には数えない（訂正前・訂正後の両方の実測値を記録する）。"
+  },
+  "expected": [
+    { "target": ".claude/skills/schema-guard/SKILL.md", "condition": "C2", "verdict": "violation" },
+    { "target": ".claude/skills/schema-guard/SKILL.md", "condition": "C4", "verdict": "violation" }
+  ]
+}

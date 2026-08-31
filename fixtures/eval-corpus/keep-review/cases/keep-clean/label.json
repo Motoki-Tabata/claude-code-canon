@@ -1,0 +1,8 @@
+{
+  "case": "keep-clean",
+  "note": "新要件(CLAUDE.md へのテスト手順追記)と既存(リリースノート下書き)は責務が交わらない。強度も advisory 同士で整合。keep は妥当。",
+  "expected": [
+    { "target": ".claude/skills/release-notes/SKILL.md", "condition": "C2", "verdict": "clean" },
+    { "target": ".claude/skills/release-notes/SKILL.md", "condition": "C4", "verdict": "clean" }
+  ]
+}

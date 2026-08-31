@@ -1,0 +1,8 @@
+{
+  "case": "keep-clean-adjacent",
+  "note": "新要件(エンドポイント追加手順)と既存(エラーコード表)は同じ API 領域だが責務が異なり重複しない。領域の近さだけで違反と言う judge を弾く正例。強度も advisory 同士で整合。",
+  "expected": [
+    { "target": ".claude/skills/api-error-catalog/SKILL.md", "condition": "C2", "verdict": "clean" },
+    { "target": ".claude/skills/api-error-catalog/SKILL.md", "condition": "C4", "verdict": "clean" }
+  ]
+}

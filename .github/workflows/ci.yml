@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ["22", "24"]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        # windows-latest の既定シェルは pwsh。以下のステップは POSIX（git diff | grep・if [ -n ... ]）
+        # なので、Windows ランナー同梱の git-bash を明示的に使う。
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # 依存ゼロ設計（package.json の comments.deps 参照）: npm install/ci は不要。
+
+      - name: 照合表の鮮度検査（docs/ からの再生成と working tree の一致）
+        run: |
+          npm run build:tables
+          DIFF="$(git diff --unified=0 -- gates/conformance_tables/ | grep -E '^[+-]' | grep -v '^[+-][+-][+-]' | grep -v '"generated_at"' || true)"
+          if [ -n "$DIFF" ]; then
+            echo "gates/conformance_tables/ が docs/ から再生成した内容と一致しません。"
+            echo "docs/ を変更したら npm run build:tables を実行してコミットしてください（§11.4）。"
+            echo "$DIFF"
+            exit 1
+          fi
+
+      - name: npm test（配線テスト・必須の帯域外検証・§11.5）
+        run: npm test

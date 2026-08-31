@@ -1,0 +1,8 @@
+# 管理パス集合【外】の不可侵ファイル（§10.1）。deploy は一切触れてはならない。
+name: ci
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "canon の退避スワップはこのファイルを破壊しないこと"

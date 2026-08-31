@@ -1,0 +1,11 @@
+{
+  "case": "corr-grounded",
+  "note": "正例（接地・素直な clean）。生成 Skill の手順（npm test の docker 前提・logs/test.log）は project_profile の実態と一致し、実在しないコマンドを書いていない。過検出を弾く正例。calibration_finding: 初版は `npm test -- --grep <名前>` を含んでいたが、project_profile が『docker compose 経由』とだけ述べ引数転送を裏取りできず、judge が violation(medium) を返した。judge の指摘は妥当（未検証コマンドを断定的に書いていた＝私のケース著作の欠陥）と裁定し、該当行を削除して再収録。clean を回復。",
+  "expected": [
+    {
+      "target": ".claude/skills/run-tests/SKILL.md",
+      "condition": null,
+      "verdict": "clean"
+    }
+  ]
+}

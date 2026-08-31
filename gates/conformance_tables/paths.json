@@ -1,0 +1,181 @@
+{
+  "_generated_by": "gates/build-conformance-tables.js",
+  "_do_not_edit": true,
+  "canon_version": "v2.1.251",
+  "canon_version_sources": [
+    {
+      "file": "docs/00_INDEX.md",
+      "version": "v2.1.251",
+      "source": "docs/00_INDEX.md:13"
+    },
+    {
+      "file": "docs/L1_CONTEXT_MANAGEMENT.md",
+      "version": "v2.1.251",
+      "source": "docs/L1_CONTEXT_MANAGEMENT.md:9"
+    },
+    {
+      "file": "docs/L2_SKILLS.md",
+      "version": "v2.1.251",
+      "source": "docs/L2_SKILLS.md:9"
+    },
+    {
+      "file": "docs/L3_AGENTS.md",
+      "version": "v2.1.251",
+      "source": "docs/L3_AGENTS.md:9"
+    },
+    {
+      "file": "docs/L4_AUTOMATION.md",
+      "version": "v2.1.251",
+      "source": "docs/L4_AUTOMATION.md:9"
+    },
+    {
+      "file": "docs/L5_DISTRIBUTION.md",
+      "version": "v2.1.251",
+      "source": "docs/L5_DISTRIBUTION.md:9"
+    },
+    {
+      "file": "docs/TOOLS.md",
+      "version": "v2.1.251",
+      "source": "docs/TOOLS.md:8"
+    },
+    {
+      "file": "docs/BEST_PRACTICES.md",
+      "version": "v2.1.251",
+      "source": "docs/BEST_PRACTICES.md:10"
+    },
+    {
+      "file": "docs/ORCHESTRATION.md",
+      "version": "v2.1.251",
+      "source": "docs/ORCHESTRATION.md:9"
+    }
+  ],
+  "generated_at": "2026-08-31T12:40:16.289Z",
+  "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること（§11.4）。",
+  "_warning": [
+    "自動生成ファイル。手動編集禁止。",
+    "生成元: gates/build-conformance-tables.js / 出典: docs/（SSoT・正典）。",
+    "再生成: npm run build:tables",
+    "正典を変えたいときは docs/ を直し、本ファイルは再生成すること。",
+    "本ファイルを直接編集すると SSoT が壊れ、次回再生成で黙って失われる。"
+  ],
+  "kinds": {
+    "agent": {
+      "canon_section": "docs/L3_AGENTS.md §2.1 配置場所とスコープ（4階層）",
+      "placements": [
+        {
+          "scope": "Project",
+          "paths": [
+            ".claude/agents/<name>/<name>.md",
+            ".claude/agents/<name>.md"
+          ],
+          "source": "docs/L3_AGENTS.md:87",
+          "deprecated": false
+        },
+        {
+          "scope": "User",
+          "paths": [
+            "~/.claude/agents/<name>/<name>.md"
+          ],
+          "source": "docs/L3_AGENTS.md:88",
+          "deprecated": false
+        },
+        {
+          "scope": "Plugin",
+          "paths": [
+            "<plugin>/agents/<name>.md"
+          ],
+          "source": "docs/L3_AGENTS.md:89",
+          "deprecated": false
+        }
+      ],
+      "project_patterns": [
+        ".claude/agents/<name>/<name>.md",
+        ".claude/agents/<name>.md"
+      ],
+      "dirname_must_match_name": {
+        "value": false,
+        "source": "docs/L3_AGENTS.md:140",
+        "corroboration": "docs/L3_AGENTS.md:116",
+        "note": "正典は「ファイル名・ディレクトリ名と一致する必要はない（識別は name のみ）」と明言する。G3 が agent に対しディレクトリ名＝name を要求すると正典に反する誤検出になる。"
+      },
+      "extension": ".md"
+    },
+    "skill": {
+      "canon_section": "docs/L2_SKILLS.md §2.1 配置場所とスコープ階層",
+      "placements": [
+        {
+          "scope": "Personal",
+          "paths": [
+            "~/.claude/skills/<skill-name>/SKILL.md"
+          ],
+          "source": "docs/L2_SKILLS.md:86",
+          "deprecated": false
+        },
+        {
+          "scope": "Project",
+          "paths": [
+            ".claude/skills/<skill-name>/SKILL.md"
+          ],
+          "source": "docs/L2_SKILLS.md:87",
+          "deprecated": false
+        },
+        {
+          "scope": "Plugin",
+          "paths": [
+            "<plugin>/skills/<skill-name>/SKILL.md"
+          ],
+          "source": "docs/L2_SKILLS.md:88",
+          "deprecated": false
+        },
+        {
+          "scope": "⚠ Custom Commands（廃止予定）",
+          "paths": [
+            ".claude/commands/<name>.md"
+          ],
+          "source": "docs/L2_SKILLS.md:89",
+          "deprecated": true
+        }
+      ],
+      "project_patterns": [
+        ".claude/skills/<skill-name>/SKILL.md"
+      ],
+      "filename_fixed": "SKILL.md",
+      "dirname_must_match_name": {
+        "value": null,
+        "canon_says": "name の既定値がディレクトリ名（＝未指定ならディレクトリ名が採用される）",
+        "source": "docs/L2_SKILLS.md:159",
+        "note": "正典は「既定: ディレクトリ名」と述べるのみで、name を明示した場合にディレクトリ名と一致せねばならないとは述べていない。詳細設計書 §11.2 の G3「skill ディレクトリ名＝name 一致」は正典由来ではなく設計由来の追加規律である（§11.4 の「例外は2つ」に該当しない第3の例外）。本表は正典に無い要件を捏造しないため null を返す。G3 実装者は design_derived_requirements を見よ。"
+      }
+    },
+    "rule": {
+      "canon_section": "docs/L1_CONTEXT_MANAGEMENT.md §2.2 Rules",
+      "placements": [
+        {
+          "scope": "Project",
+          "path": ".claude/rules/",
+          "source": "docs/L1_CONTEXT_MANAGEMENT.md:213"
+        },
+        {
+          "scope": "User",
+          "path": "~/.claude/rules/",
+          "source": "docs/L1_CONTEXT_MANAGEMENT.md:214"
+        }
+      ],
+      "extension": ".md",
+      "frontmatter_key_for_scoping": "paths"
+    }
+  },
+  "design_derived_requirements": {
+    "_note": "以下は docs/（正典）に根拠が無く、設計書由来の規律。§11.4 は「判定の出典は必ず正典 docs／例外は G11 と G13 の2つ」と述べるが、G3 にも正典外の要件が混入している。本表は出典を偽らないため別枠に隔離する。G3 実装者はこれを正典由来と誤認してはならない。人間の裁定済みの項目でも、正典の根拠が無いという事実そのものは変わらないため、G3 実装時は違反メッセージに「正典由来でなく設計由来」と明示すること。",
+    "items": [
+      {
+        "requirement": "skill ディレクトリ名 = frontmatter name の一致",
+        "source": "design/detailed-design.md §11.2 G3",
+        "canon_support": "なし（L2_SKILLS.md は「既定: ディレクトリ名」と述べるのみ）",
+        "status": "accepted_by_human",
+        "decided_at": "2026-07-16",
+        "decision_basis": "ユーザー裁定。G3 実装タスクの一部として決定。設計由来要件として明示したうえで検査対象に含める（要件そのものを削除するのではなく、出典が正典でないことをコード・照合表の双方に残す）。根拠: (1) 移植元の旧 `.claude/skills`（2026-07 実測・17件）は全ての skill でディレクトリ名と frontmatter name が一致しており、一致させることが実運用上の保守性を高める慣行として既に定着している。(2) §11.4 の「例外は2つ（G11・G13）」という記述と矛盾しないよう、この要件は design/detailed-design.md §11.4 に「第3の例外」として追記されている（G3 の skill dirname 要件のみが正典由来でない）。"
+      }
+    ]
+  }
+}

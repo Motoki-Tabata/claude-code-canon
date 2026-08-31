@@ -1,0 +1,11 @@
+{
+  "case": "corr-a1-met",
+  "note": "正例（A1 充足・接地）。生成 Skill が A1 の3手順（ルータ登録・バリデーション・テスト）を、project_profile の実体（src/routes/index.js・src/validate/・npm test）に即して具体的に示す。過検出を誘わない素直な clean。",
+  "expected": [
+    {
+      "target": ".claude/skills/add-endpoint/SKILL.md",
+      "condition": null,
+      "verdict": "clean"
+    }
+  ]
+}

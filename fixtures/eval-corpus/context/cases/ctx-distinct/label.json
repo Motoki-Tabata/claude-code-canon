@@ -1,0 +1,16 @@
+{
+  "case": "ctx-distinct",
+  "note": "正例（重複なし・別責務）。git-hooks-setup と env-vars-guide は責務が別で内容の重複が無く、いずれも簡潔。2 Skill が近い『セットアップ』文脈にあるだけで重複と言う judge を弾く精度境界。両方 clean をラベルして過検出を測る。",
+  "expected": [
+    {
+      "target": ".claude/skills/git-hooks-setup/SKILL.md",
+      "condition": null,
+      "verdict": "clean"
+    },
+    {
+      "target": ".claude/skills/env-vars-guide/SKILL.md",
+      "condition": null,
+      "verdict": "clean"
+    }
+  ]
+}

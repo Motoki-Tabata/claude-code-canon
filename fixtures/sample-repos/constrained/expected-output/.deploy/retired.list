@@ -1,0 +1,4 @@
+# 対象から意図的に消えるファイル（disposition:retire ＋ merge 被統合元）。§9.3/§10.2。
+# 制約強め: hooks / experimental が禁止されたことで維持できなくなった既存2件。
+.claude/settings.json
+.claude/skills/fork-runner/SKILL.md

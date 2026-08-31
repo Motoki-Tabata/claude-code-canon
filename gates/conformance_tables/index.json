@@ -1,0 +1,90 @@
+{
+  "_generated_by": "gates/build-conformance-tables.js",
+  "_do_not_edit": true,
+  "canon_version": "v2.1.251",
+  "canon_version_sources": [
+    {
+      "file": "docs/00_INDEX.md",
+      "version": "v2.1.251",
+      "source": "docs/00_INDEX.md:13"
+    },
+    {
+      "file": "docs/L1_CONTEXT_MANAGEMENT.md",
+      "version": "v2.1.251",
+      "source": "docs/L1_CONTEXT_MANAGEMENT.md:9"
+    },
+    {
+      "file": "docs/L2_SKILLS.md",
+      "version": "v2.1.251",
+      "source": "docs/L2_SKILLS.md:9"
+    },
+    {
+      "file": "docs/L3_AGENTS.md",
+      "version": "v2.1.251",
+      "source": "docs/L3_AGENTS.md:9"
+    },
+    {
+      "file": "docs/L4_AUTOMATION.md",
+      "version": "v2.1.251",
+      "source": "docs/L4_AUTOMATION.md:9"
+    },
+    {
+      "file": "docs/L5_DISTRIBUTION.md",
+      "version": "v2.1.251",
+      "source": "docs/L5_DISTRIBUTION.md:9"
+    },
+    {
+      "file": "docs/TOOLS.md",
+      "version": "v2.1.251",
+      "source": "docs/TOOLS.md:8"
+    },
+    {
+      "file": "docs/BEST_PRACTICES.md",
+      "version": "v2.1.251",
+      "source": "docs/BEST_PRACTICES.md:10"
+    },
+    {
+      "file": "docs/ORCHESTRATION.md",
+      "version": "v2.1.251",
+      "source": "docs/ORCHESTRATION.md:9"
+    }
+  ],
+  "generated_at": "2026-08-31T12:40:16.289Z",
+  "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること（§11.4）。",
+  "_warning": [
+    "自動生成ファイル。手動編集禁止。",
+    "生成元: gates/build-conformance-tables.js / 出典: docs/（SSoT・正典）。",
+    "再生成: npm run build:tables",
+    "正典を変えたいときは docs/ を直し、本ファイルは再生成すること。",
+    "本ファイルを直接編集すると SSoT が壊れ、次回再生成で黙って失われる。"
+  ],
+  "tables": [
+    "paths.json",
+    "frontmatter.json",
+    "tools.json",
+    "hooks.json"
+  ],
+  "consumed_by": {
+    "paths.json": "G3",
+    "frontmatter.json": "G4",
+    "tools.json": "G5（能力制限あり。tools.json の g5_capability を必ず読むこと）",
+    "hooks.json": "G11（hooks 禁止制約の照合）/ §11.1 の発火系統設計 / 全ゲートの exit code 規約"
+  },
+  "not_yet_built": {
+    "G6（セキュリティ）": {
+      "note": "G6 の照合表は未構築。hooks.json は G6 の材料ではない（G6 は secret 検出・${VAR} 展開遵守・experimental 依存フラグであり、Hook イベント一覧とは無関係）。別タスクで要検討。",
+      "canon_availability": {
+        "${VAR} 展開規約": "抽出可（docs/L4_AUTOMATION.md:555-556 に箇条書きで規則あり）",
+        "secret ハードコード検出パターン": "正典に無い（BEST_PRACTICES.md §7.2 は方針を述べるがパターン定義は無い）",
+        "experimental 機能の一覧": "構造化された一覧が正典に無い。「実験機能」の語が散文に散在するのみ（要 docs 側の構造化）"
+      }
+    }
+  },
+  "known_limitations": [
+    "tools.json: 正典に正規ツール名の列挙が無いため closed-world 検査は不可（§11.2 G5 の一部は実装不能）。",
+    "frontmatter.json: agent の型情報は正典に無い（L3 の表に型列が無い）。G4 の型照合は agent には適用できない。",
+    "frontmatter.json: rule の未知キー検出は不可（正典に完全リファレンスが無く、根拠が実装例1件のみ）。",
+    "frontmatter.json: model 語彙は full ID を許すため閉じない。`model: gpt-4o` のような明白な誤りも G4 は棄却できない。",
+    "paths.json: G3 の「skill ディレクトリ名＝name 一致」は正典に根拠が無い（design_derived_requirements 参照）。"
+  ]
+}

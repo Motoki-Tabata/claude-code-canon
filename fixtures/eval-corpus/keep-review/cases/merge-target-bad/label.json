@@ -1,0 +1,7 @@
+{
+  "case": "merge-target-bad",
+  "note": "DB マイグレーション手順を『コミット・PR 規約』へ寄せるのは責務が全く重ならない不当な統合先。統合先は元の責務を吸収していない＝merge_target 抵触。",
+  "expected": [
+    { "target": ".claude/skills/db-migration/SKILL.md", "condition": "merge_target", "verdict": "violation" }
+  ]
+}

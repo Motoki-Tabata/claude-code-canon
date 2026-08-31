@@ -1,0 +1,4 @@
+{
+  "$comment": "tests/promote_rollback.test.js 専用の最小フィクスチャ。settings.json 必須検査（§13.2.1）より前に G13（自己欺瞞封鎖）が本命の拒否理由として先に発火することを固定するために存在する。実 hooks 配線は持たない。",
+  "hooks": {}
+}

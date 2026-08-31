@@ -1,0 +1,8 @@
+{
+  "case": "c2-domain-keyword-clean",
+  "note": "正例（precision の境界・キーワード重複のみ）。既存 cache-invalidation-faq と新要件 R1（Redis 接続設定の手順）は『Redis』『キャッシュ』の語を多く共有するが、責務は別（無効化の FAQ/切り分け vs 接続設定の手順）。既存本文は『接続設定そのものは扱わない』と明記し、統合方針も別責務として維持と述べる。語の重なりの多さに引きずられて違反と言う judge を弾く。C4 は advisory 同士で整合。",
+  "expected": [
+    { "target": ".claude/skills/cache-invalidation-faq/SKILL.md", "condition": "C2", "verdict": "clean" },
+    { "target": ".claude/skills/cache-invalidation-faq/SKILL.md", "condition": "C4", "verdict": "clean" }
+  ]
+}

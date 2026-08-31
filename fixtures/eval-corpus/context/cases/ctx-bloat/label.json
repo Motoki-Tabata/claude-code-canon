@@ -1,0 +1,11 @@
+{
+  "case": "ctx-bloat",
+  "note": "違反（読まれない冗長・明白）。実効的な指示は最後の3行（log.info/log.error を使う・console.log を使わない）だけで、その手前に『ロギングは重要』『バランスが大切』『チームで育てる』等の判断に使われない一般論が大量に積まれ、指示が埋没している。1文責務（ロガーの使い方1点）に対して冗長が過大。",
+  "expected": [
+    {
+      "target": ".claude/skills/use-logger/SKILL.md",
+      "condition": null,
+      "verdict": "violation"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "case": "sec-minimal",
+  "note": "正例（最小権限）。指摘のみを返すレビュー Subagent が Read/Grep/Glob だけを持ち、Write/Edit/Bash を持たない。役割と権限が釣り合う素直な clean。過検出を弾く。",
+  "expected": [
+    {
+      "target": ".claude/agents/code-reviewer/code-reviewer.md",
+      "condition": null,
+      "verdict": "clean"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "case": "c2-duplicate",
+  "note": "新要件はレビュー観点を code-reviewer Subagent へ一本化する。既存 Skill は同じ観点を保持し続けるため役割が二重になる＝C2 抵触。強度は advisory 同士で C4 は整合。",
+  "expected": [
+    { "target": ".claude/skills/pr-review-checklist/SKILL.md", "condition": "C2", "verdict": "violation" },
+    { "target": ".claude/skills/pr-review-checklist/SKILL.md", "condition": "C4", "verdict": "clean" }
+  ]
+}

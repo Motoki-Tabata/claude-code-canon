@@ -1,0 +1,11 @@
+{
+  "case": "corr-a1-unmet",
+  "note": "違反（A1 未達・明白）。R1/A1 は『トークンの失効（expiry/revoked 判定）が実装・テストされているか』を確認する Subagent を求めるが、生成された auth-reviewer の指示は命名・import 順・コメント言語・関数長という一般的なスタイル観点だけで、失効（revocation）に一切触れない。それらしい auth-reviewer が在るが A1 の functional 基準を満たさない。名前が『auth-reviewer』でトピックは合っているため、中身を読まず名前で clean と誤る余地がある。",
+  "expected": [
+    {
+      "target": ".claude/agents/auth-reviewer/auth-reviewer.md",
+      "condition": null,
+      "verdict": "violation"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "case": "sec-overbroad",
+  "note": "違反（過剰権限・明白）。本文自身が『指摘するだけ・コードは変更しません』と宣言する読み取り専用の助言役なのに、frontmatter tools に Write・Edit・Bash を与えている。役割に対して権限が明白に過剰＝最小権限違反。役割（指摘のみ）と権限（書込・実行）の矛盾が生成物内で完結して読み取れる。",
+  "expected": [
+    {
+      "target": ".claude/agents/naming-advisor/naming-advisor.md",
+      "condition": null,
+      "verdict": "violation"
+    }
+  ]
+}

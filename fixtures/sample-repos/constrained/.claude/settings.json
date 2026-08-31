@@ -1,0 +1,11 @@
+{
+  "_comment": "既存の Hooks 設定。組織ポリシーで Hooks が禁止されたため canon では retire される（生成物に持ち越さない）。",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{ "type": "command", "command": "node scripts/check-schema.js" }]
+      }
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+# 管理パス集合（§10.1）。既存改修(2): keep/modify/新規の配置対象。
+CLAUDE.md
+.claude/skills/kept-skill/SKILL.md
+.claude/skills/new-skill/SKILL.md
+.claude/skills/merged/SKILL.md

@@ -1,0 +1,11 @@
+{
+  "case": "canon-monolith",
+  "note": "違反（段階的開示の無視・明白）。環境構築・規約・テスト・リリース・トラブルシュートという別々の責務を1つの SKILL.md 本文にすべて詰め込み、入口＋必要時に開く構成になっていない（reference 分割も無い）。description『The development handbook. Use for development.』も広すぎて委譲トリガーにならない。L2_SKILLS の段階的開示の趣旨に反する。",
+  "expected": [
+    {
+      "target": ".claude/skills/dev-handbook/SKILL.md",
+      "condition": null,
+      "verdict": "violation"
+    }
+  ]
+}

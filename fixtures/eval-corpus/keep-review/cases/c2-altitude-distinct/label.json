@@ -1,0 +1,8 @@
+{
+  "case": "c2-altitude-distinct",
+  "note": "正例（precision の境界・同一ドメイン異 altitude）。既存 style-rationale は『なぜこの規約か』の背景（判断の拠り所）、新要件 R1 は『lint エラーの直し方』の手順。同じ lint/style ドメインの語が重なるが、背景説明と修正手順は altitude が違い責務が重ならない。統合方針も別責務として維持と明言。ドメインの近さだけで違反と言う judge を弾く。C4 は advisory 同士で整合。",
+  "expected": [
+    { "target": ".claude/skills/style-rationale/SKILL.md", "condition": "C2", "verdict": "clean" },
+    { "target": ".claude/skills/style-rationale/SKILL.md", "condition": "C4", "verdict": "clean" }
+  ]
+}

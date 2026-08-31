@@ -1,0 +1,11 @@
+{
+  "case": "canon-good-desc",
+  "note": "正例（委譲トリガー品質）。description が『いつ委譲するか』を具体的に述べ（migrations/ 配下を編集する PR）、何を見るか（down スクリプト・データ喪失防止・保守時間帯）で他の役割と識別可能。抽象的でも広すぎもしない。過検出を弾く正例。",
+  "expected": [
+    {
+      "target": ".claude/agents/migration-rollback-reviewer/migration-rollback-reviewer.md",
+      "condition": null,
+      "verdict": "clean"
+    }
+  ]
+}

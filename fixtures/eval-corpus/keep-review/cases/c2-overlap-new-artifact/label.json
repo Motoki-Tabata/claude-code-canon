@@ -1,0 +1,8 @@
+{
+  "case": "c2-overlap-new-artifact",
+  "note": "難ケース（recall の境界・重複相手が既存でなく生成物）。既存 pr-size-guide の責務（差分の大きさの目安・分割）は、R1 で新規生成する pr-self-check が『差分の大きさの目安を含む』と統合方針が明言しており吸収対象。統合方針は『準備手順の置き場は新 Skill ただ一つ』とも述べる。既存を無改変で keep すると新規生成物と責務が二重化する＝C2 抵触。重複相手が『これから作る Skill』なので、対象原本だけを見て既存ファイル間の重複を探す judge は見落とす（spec 新要件・統合方針を読む必要がある）。C4 は advisory 同士で整合。",
+  "expected": [
+    { "target": ".claude/skills/pr-size-guide/SKILL.md", "condition": "C2", "verdict": "violation" },
+    { "target": ".claude/skills/pr-size-guide/SKILL.md", "condition": "C4", "verdict": "clean" }
+  ]
+}

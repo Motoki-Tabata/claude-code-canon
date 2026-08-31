@@ -1,0 +1,17 @@
+{
+  "name": "todo-api",
+  "version": "0.1.0",
+  "description": "A small REST API for managing todos. Fixture target project for claude-canon scenario (1): greenfield, no existing .claude/ customization.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "lint": "eslint src",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0"
+  }
+}

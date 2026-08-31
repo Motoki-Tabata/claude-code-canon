@@ -1,0 +1,11 @@
+{
+  "case": "ctx-tight",
+  "note": "正例（簡潔・適切）。hotfix-flow は4手順を過不足なく示し、冗長も重複も責務肥大も無い。『短い＝情報不足』でも『何か書いてある＝冗長』でもなく、効率的な記述を clean と正しく読めるかの精度境界。",
+  "expected": [
+    {
+      "target": ".claude/skills/hotfix-flow/SKILL.md",
+      "condition": null,
+      "verdict": "clean"
+    }
+  ]
+}

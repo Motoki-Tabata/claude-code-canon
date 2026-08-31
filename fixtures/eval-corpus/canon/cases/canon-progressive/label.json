@@ -1,0 +1,26 @@
+{
+  "case": "canon-progressive",
+  "note": "正例（段階的開示）。SKILL.md が入口として3段の全体像だけを示し、各段の詳細は reference/ 配下（prepare/deploy/verify）に分けて『必要時に開く』構成。参照はクリッカブルリンク（[prepare](./reference/prepare.md) 形式）で、L2_SKILLS.md:476『手動で Read してください、は Claude が忘れる→[xxx.md](./xxx.md) 形式で参照』に適合。description も具体的で、副作用ある操作（deploy）に disable-model-invocation: true も付与。過検出を弾く正例。calibration_finding: 初版は参照がバッククォート＋散文（`reference/prepare.md`）でクリッカブルリンクでなく、disable-model-invocation も欠落していた。ライブ収録で judge が両方を正しく violation として検出（L016 型・自分のケース著作の欠陥を judge が発見）。ケース側を修正して再収録し clean を回復。",
+  "expected": [
+    {
+      "target": ".claude/skills/release-deploy/SKILL.md",
+      "condition": null,
+      "verdict": "clean"
+    },
+    {
+      "target": ".claude/skills/release-deploy/reference/prepare.md",
+      "condition": null,
+      "verdict": "clean"
+    },
+    {
+      "target": ".claude/skills/release-deploy/reference/deploy.md",
+      "condition": null,
+      "verdict": "clean"
+    },
+    {
+      "target": ".claude/skills/release-deploy/reference/verify.md",
+      "condition": null,
+      "verdict": "clean"
+    }
+  ]
+}

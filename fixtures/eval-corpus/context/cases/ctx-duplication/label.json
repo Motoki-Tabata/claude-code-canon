@@ -1,0 +1,11 @@
+{
+  "case": "ctx-duplication",
+  "note": "違反（重複・明白）。pr-guide の『## テストの回し方』節は test-guide の同名節を一字一句複製している（npm test の docker 前提・logs/test.log・--grep・cov）。テスト手順は test-guide の責務であり、pr-guide に複製が残ると更新時に片方が腐る。責務の置き場は test-guide であるべきで、pr-guide 側の複製が context 違反。違反は複製を抱える pr-guide 側に帰属させる。",
+  "expected": [
+    {
+      "target": ".claude/skills/pr-guide/SKILL.md",
+      "condition": null,
+      "verdict": "violation"
+    }
+  ]
+}
