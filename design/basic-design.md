@@ -2,12 +2,23 @@
 title: claude-canon 基本設計書
 purpose: Claude Code のカスタマイズを「調査 → 要件定義 → 設計 → 生成 → 検証 → 品質検査 → デプロイ」の一連の工程で半自律に構築するメタジェネレータの全体設計（骨格）。成果物フォーマット・ゲート実装契約は詳細設計書を参照。
 audience: [ai, human]
-canon_version: v2.1.241
+canon_version: v2.1.251
 ---
 
 # claude-canon 基本設計書
 
 > **正典の位置づけ**: 本設計書は `docs/` 配下の正典リファレンス10ファイル（`00_INDEX` / `L1_CONTEXT_MANAGEMENT` / `L2_SKILLS` / `L3_AGENTS` / `L4_AUTOMATION` / `L5_DISTRIBUTION` / `ORCHESTRATION` / `TOOLS` / `BEST_PRACTICES` の9ファイル ＋ 一次ソース URL 一覧 `SOURCES.md`）を Single Source of Truth（SSoT）とする。本システムのあらゆる設計判断と生成物の合否基準は、この正典に根拠を持つ。
+>
+> **frontmatter `canon_version` の意味と保守経路**: 両設計書の frontmatter `canon_version` は、
+> **本書が書かれた時点で参照していた正典のバージョン**——すなわち `docs/` 9ファイルのメタ情報表
+> 「確認したClaude Codeバージョン」の値——を指す。独立した設計書自身のバージョンではない
+> （claude-canon 自身のリリース版数は `CHANGELOG.md` が持つ）。`gates/conformance_tables/*.json` の
+> `canon_version` と同じ値を指し、抽出の SSoT は `gates/lib/canon.js` の `extractCanonVersion()` である。
+>
+> この値は **機能X（`/update-docs`）が更新しない**。機能X は `docs/` 更新の波及として両設計書の旧値残存を
+> G15 が `work/<ts>/impact-report.md` へ**検出するのみ**で、両設計書への書込自体は
+> `gates/canon-update-scope-guard.js` が常時 deny する（詳細設計書 §13.1）。ゆえに正典バージョンが上がった
+> ときの本フィールドの追従は、impact-report を読んだ**人間が手で行う**のが契約である。
 
 **本書の構成**: claude-canon の設計は本書（基本設計書）と [詳細設計書](detailed-design.md) の2冊で完結する。この2冊だけを入力に、システムを再現できることを目標とする。
 

@@ -2,7 +2,7 @@
 title: claude-canon 詳細設計書
 purpose: claude-canon の成果物フォーマット・決定論ゲートの実装契約・機能X（正典更新）／機能Y（自己最適化）の実装契約・自己検証と eval の実装契約を定める。システム全体像・工程順・オーケストレーション構造・調査工程・既存カスタマイズの全体最適化・ディレクトリ構成は基本設計書を参照。
 audience: [ai, human]
-canon_version: v2.1.241
+canon_version: v2.1.251
 ---
 
 # claude-canon 詳細設計書
@@ -147,7 +147,7 @@ conflicts:
 `output/<ts>/spec.md`。plan がこれだけで design-map を引け、検証／品質検査が受け入れ基準の出典にできる2条件を満たす。
 
 主要セクション:
-- **§0 メタ**: spec_id / canon_version / inputs（系統A・B 成果物のパス）。承認状態は spec.md 内に持たせず、サイドカー `output/<ts>/.gate/approvals/spec.approved`（存在マーカー）で表す（§11）。このサイドカーは **`npm run approve -- <ts> spec` が鋳造する**（エージェントは `.gate/**` を書けない・基本設計書 §4.4）。
+- **§0 メタ**: spec_id / canon_version / inputs（系統A・B 成果物のパス）。**`canon_version` の出典は正典 `docs/` のメタ情報表「確認したClaude Codeバージョン」のみ**とし、`gates/conformance_tables/*.json` の `canon_version` フィールドから読む（`extractCanonVersion()` が生成した値・§11.4）。**両設計書の frontmatter から複写してはならない**——設計書側の値は人手保守であり正典に対して遅れうる（§13.1）。承認状態は spec.md 内に持たせず、サイドカー `output/<ts>/.gate/approvals/spec.approved`（存在マーカー）で表す（§11）。このサイドカーは **`npm run approve -- <ts> spec` が鋳造する**（エージェントは `.gate/**` を書けない・基本設計書 §4.4）。
 - **§1 目的とあるべき全体像**: purpose / strength 内訳 / scope_layer。
 - **§2 新要件**: id / want / rationale / project_grounding（系統B focused から接地・evidence 付き）。
 - **§3 既存資産の棚卸し**: 系統A 全レコードを参照。**維持/改修は決めない**（事実のみ）。
@@ -613,6 +613,7 @@ experimental 禁止プロジェクトなら該当フラグを使う設計は G11
   `## メタ`（調査日・確認バージョン・`[要確認]` 実マーカー総数）／`## 差分候補`（採否は人間・列挙のみ）／`## 旧表現→新表現`（表・G15 の走査対象）／`## 一次ソースとの矛盾`（判定せず明示するのみ）。
 - **`work/<ts>/impact-report.md`**: G15 が生成する波及 stale の検出結果（`.claude/**`・`gates/**`・`tests/**`・両設計書中の旧値残存）と、影響のある過去 `output/*/` への通知を集約する。**機能X は検出のみ**——修正するか・過去成果物を再生成するかは人間が判断する（するなら通常の工程パイプラインを新規実行）。
 - **安全制約**: edit 範囲を `docs/`・`work/<ts>/` に限定（`.claude/`・`gates/`・`tests/`・両設計書を絶対に書き換えない・PreToolUse で deny）／差分抽出は読むだけ／食い違いは矛盾として明示するのみ。
+- **両設計書の frontmatter `canon_version` は機能X が更新しない**（上の安全制約の帰結）。この値は正典 `docs/` の「確認したClaude Codeバージョン」を指す（基本設計書 冒頭「正典の位置づけ」）。正典バージョンが上がったとき、両設計書に残る旧値は G15 が `impact-report.md` へ**検出するのみ**であり、追従は impact-report を読んだ**人間が手で行う**。機能X 側にこれを自動化する余地は無い——自動化すれば `canon-update-scope-guard.js` が deny する設計であり、それが意図である。
 - **ガードとの関係**: 専用の逆極性ガード **`gates/canon-update-scope-guard.js`** が機構的に強制する（§11.3「ガードの3系統」）。write-scope-guard（`/canon` 用）とは判定材料・保護対象が入れ替わっており、`docs/` への書込自体は更新ゲート承認まで deny、`.claude/`・`gates/`・`tests/`・両設計書は常時 deny（機能X run 中は「システム本体」がそのまま保護対象になる）。**「判定しない・人間ゲート必須」は規律だけでなくガードと G14〜G16 で機械強制される**。
 - **調査手順の実測知見（`docs/SOURCES.md` へ反映必須）**: WebFetch は長大な公式ページの網羅列挙で不安定（実在しないコマンド名の混入を複数回観測済み）。単発の WebFetch 結果を鵜呑みにせず、複数回の突合または公式が総数を明記するページを優先する。ツール総数・Hook イベント数などの**数え値**は毎回再計数する（`docs/TOOLS.md` が既に明記する規律を全数え値へ拡張）。
 
@@ -676,6 +677,7 @@ G1〜G12 は**生成物**の検証であり、claude-canon 自身の正しさは
   - **ワーカー定義に `tools: Bash` を混入させた fixture → G13 が run 開始をブロックすること**、かつ **`output/<ts>/generated/.claude/agents/**` 側に `Bash` を持つ生成物を置いても G13 が発火しないこと**（機械強制と適用範囲・§11.2）
 - **ランタイム・カナリア（各 run 内）**: `npm test` は run の前の検証であり、**その後に settings.json が壊れた場合を救えない**。各 run の工程1直前に `/canon` がカナリアを撃ち、deny されなければ中断する（§11.5）。配線テストとカナリアは**代替でなく補完**であり両方要る。
 - **自己適用の回帰スイート化**: G1〜G12 を claude-canon 自身の `.claude/` に適用し、初版 agent/skill/settings の改変時にパス規約・frontmatter・ツール名を再検証する。**G13 はここに常設する**（`npm test` に含める）: ワーカー定義の改変で `tools: Bash` が混入していないかを、run を起こさずとも検出できるようにする。G13 は run 開始時（`UserPromptExpansion`）にも発火する（§11.2）が、**run 前に落とせるものは run 前に落とす**（`/canon` を叩いて初めて弾かれるより、保守作業の直後に気づける方が早い）。**ただし `npm test` は run 外で走るため G13 の唯一の門にはできない**（テスト後にワーカー定義が改変されうる）。カナリアと配線テストの関係（§11.5）と同型で、run 内の門（`UserPromptExpansion`）と run 外の門（`npm test`）は補完関係にある。
+- **両設計書 frontmatter `canon_version` の正典追従（`npm test`・stale 検出）**: 両設計書の `canon_version` が `extractCanonVersion(CANON_FILES)`（G14・`build:tables` と同一 SSoT）の値と一致することを検査する。**機能X はこの値を直せない**（`canon-update-scope-guard.js` が `design/` を常時 deny・§13.1）ため追従は人手であり、G15 は非ブロッキングかつ旧値抽出を照合表の git 差分と proposal 申告に依存する。正典 bump が機能X を経由しなかった場合は G15 に検出機会が無く、乖離は §7 経由で `spec.md` の `canon_version` へ静かに伝播する。run の外で落とせるものは run の外で落とす（本節の G13 と同型）。キー欠落も違反扱いとする（vacuous pass 防止・§11.5）。
 - **代表シナリオ最低3本**: (1) 既存なしの新規、(2) 既存あり（維持/改修/統廃合/廃止が混在＝5条件・G2・G8 を通す）、(3) 制約強め（`requirements.md` constraints で hooks 禁止・experimental 禁止＝G11 と縮退設計を通す）。
 - **テストハーネスの構成契約**: パス解決（`ROOT`／`outputDir`／`workDir` 等）・sentinel 退避復元（`withRun`／`withCanonUpdateRun`／`withSelfOptim`）・fixture 生成（agent/skill frontmatter・サンプルリポ配置）・ts 発行は `tests/helpers/*` に集約し、各テストファイルはここから import する（`gates/lib/*.js` を個別に再導出しない・`.claude/rules/gates-and-tests.md` 「同じ判定ロジックを複数箇所へ複製しない」の適用）。**ただしガード自体の呼出しは子プロセス起動**（`tests/helpers/hook.js` の `hookRun`/`decide`）**のまま保つ**——in-process import に変えると「ロジックが正しい」と「hook として発火する」の区別が消える（§11.5 の趣旨と同型）。3ガード（write-scope-guard／canon-update-scope-guard／self-optimize-scope-guard）が共有する `gates/lib/shell-write.js` 由来の振る舞い（fd 複製の誤検知回避・コマンド実行系3ツールの網羅性等）は `tests/shell_guard_ssot.test.js` にテーブル駆動で集約し、極性固有の検証のみ各ガードの専用テストに残す。
 

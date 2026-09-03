@@ -12,9 +12,10 @@ model: sonnet
 - `work/<ts>/project_profile.md`（系統B・`profile`＋`focused`）
 - `work/<ts>/requirements.md`（確定要件・制約）
 - `<ts>` と `output/<ts>/` の絶対パス
+- `gates/conformance_tables/index.json`（`canon_version` の唯一の出典。**参照のみで inputs には数えない**・読取専用）
 
 ## 出力: `output/<ts>/spec.md`（詳細設計書 §7 の主要セクション）
-- **§0 メタ**: spec_id / canon_version / inputs（上記3ファイルのパス）。承認状態はここに書かない（`output/<ts>/.gate/approvals/spec.approved` がサイドカーとして持つ・書き込みは `npm run approve` のみでありあなたは書かない）。
+- **§0 メタ**: spec_id / canon_version / inputs（系統A・系統B・`requirements.md` の3ファイルのパス）。**`canon_version` は `gates/conformance_tables/index.json` の `canon_version` フィールドを Read してそのまま書き写す**——正典 `docs/` の「確認したClaude Codeバージョン」から生成された値である（詳細設計書 §7・§11.4）。**`design/basic-design.md`・`design/detailed-design.md` の frontmatter から複写してはならない**（設計書側は人手保守であり正典に対して遅れうる・詳細設計書 §13.1）。推測で書かない。承認状態はここに書かない（`output/<ts>/.gate/approvals/spec.approved` がサイドカーとして持つ・書き込みは `npm run approve` のみでありあなたは書かない）。
 - **§1 目的とあるべき全体像**: purpose / strength 内訳 / scope_layer
 - **§2 新要件**: id / want / rationale / project_grounding（系統B focused から接地・evidence 付き）
 - **§3 既存資産の棚卸し**: 系統A 全レコードを参照。**維持/改修は決めない**（事実のみ）

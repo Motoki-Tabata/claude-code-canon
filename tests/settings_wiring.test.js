@@ -22,7 +22,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { ROOT } from './helpers/paths.js';
+import { ROOT, DESIGN_DOCS } from './helpers/paths.js';
+import { extractCanonVersion } from '../gates/lib/canon.js';
+import { CANON_FILES } from '../gates/build-conformance-tables.js';
+import { parseFrontmatter } from '../gates/lib/artifact.js';
 
 const SETTINGS_PATH = path.join(ROOT, '.claude', 'settings.json');
 const HOOKS_TABLE = path.join(ROOT, 'gates', 'conformance_tables', 'hooks.json');
@@ -215,4 +218,44 @@ test('照合表の canon_version が正典と一致していること（stale �
   // 全正典ファイルでバージョンが揃っていることは build:tables が強制するが、
   // 照合表が古いまま放置されていないかをここでも見る。
   assert.ok(table.events.length > 0, '照合表が空でないこと');
+});
+
+/**
+ * 両設計書 frontmatter の `canon_version` は「本書が参照している正典のバージョン」であり、
+ * `docs/` メタ情報表の「確認したClaude Codeバージョン」と一致しなければならない
+ * （基本設計書 冒頭「正典の位置づけ」・詳細設計書 §13.1）。
+ *
+ * ## なぜ帯域外（npm test）に要るか
+ *
+ * 機能X（`/update-docs`）は設計上・機構上この値を直せない——`canon-update-scope-guard.js` が
+ * `design/` を常時 deny する（§13.1）。追従は「G15 が検出 → 人間が手で直す」契約だが、
+ * G15 は (a) 非ブロッキング（レポート生成のみが判定条件）で、(b) 旧値の抽出を照合表の
+ * `git show HEAD:` 差分と proposal の自己申告に依存する。ゆえに正典 bump が機能X を
+ * 経由しなかった場合（実際、初期コミット時点で docs=v2.1.251／両設計書=v2.1.241 という
+ * 乖離が丸ごと見逃されていた）、G15 には検出の機会そのものが無い。
+ *
+ * この乖離は静かに伝播する: 詳細設計書 §7 の spec テンプレートは `canon_version` を持ち、
+ * ワーカーが出典を持たないと設計書 frontmatter から複写して `spec.md` へ陳腐化を持ち込む。
+ * run の外で落とせるものは run の外で落とす（§15.3 の G13 と同型）。
+ */
+test('両設計書の canon_version が正典 docs/ と一致していること（stale 検出）', () => {
+  // 期待値は再導出せず、G14・build:tables と同一の SSoT から取る（§11.4・L005）。
+  const { version: canonVersion } = extractCanonVersion(CANON_FILES);
+  assert.match(canonVersion, /^v\d+\.\d+\.\d+$/, '正典バージョンが取れていること');
+
+  for (const rel of DESIGN_DOCS) {
+    const abs = path.join(ROOT, rel);
+    assert.ok(existsSync(abs), `${rel} が存在すること`);
+    const { present, frontmatter } = parseFrontmatter(readFileSync(abs, 'utf8'));
+    assert.ok(present, `${rel}: frontmatter ブロックがあること`);
+    const entry = frontmatter.canon_version;
+    // 「キーが無いから素通り」は vacuous pass。欠落そのものを違反にする（§11.5）。
+    assert.ok(entry, `${rel}: frontmatter に canon_version が無い（§13.1 の保守経路が成立しない）`);
+    assert.equal(
+      entry.raw,
+      canonVersion,
+      `${rel}:${entry.line} の canon_version（${entry.raw}）が docs/ の現行値（${canonVersion}）と不一致。` +
+        `機能X はこの値を直せない（canon-update-scope-guard が design/ を deny）ため、手で追従させること。`
+    );
+  }
 });
