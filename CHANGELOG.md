@@ -7,6 +7,32 @@
 > `docs/SOURCES.md` が権威であり、本ファイルには書きません。本ファイルが記録するのは
 > claude-canon 自身（本リポジトリ）の変更のみです。
 
+## [Unreleased]
+
+### Fixed
+
+- **G3 が正典の許可する skill supporting files を弾いていた**（`gates/g3_path_convention.js`）:
+  `.claude/skills/<name>/template.md`・`examples/*.md` を「ファイル名は固定 `SKILL.md`」として
+  一律違反にしていたが、正典 `docs/L2_SKILLS.md §2.1`「ディレクトリ構造」はこれらを明示的に
+  許可しており、G7 の判定④は逆に**その実在を要求**していた（ゲート間の正面衝突）。
+  許可の出典を `gates/conformance_tables/paths.json` の `kinds.skill.package_layout` として
+  正典から抽出し（`build-conformance-tables.js`）、G3 を定義ファイルのみに狭めた。
+  併せて `.claude/skills/skill-generation/SKILL.md` の誤った出典（§2.3 → §2.1）を訂正。
+- **旧規則が副作用で担っていた保証を明示化**（`gates/g7_ref_integrity.js`）: G7 に判定⑥
+  「skill パッケージに定義ファイル `SKILL.md` が実在する」を新設。綴り違い（`Skill.md`）による
+  サイレント不発火を検出する。実在判定は大小無視 FS（Windows）を避けてディレクトリエントリ名の
+  完全一致で行う。
+
+### Changed
+
+- **管理パス集合に `.claude/hooks/**` を追加**（`gates/lib/managed-paths.js`・詳細設計書 §10.1）:
+  正典 `docs/L4_AUTOMATION.md §2.1` の公式例が hook ハンドラ実体をこの位置に置くため、集合外の
+  ままでは正典どおりの生成物が G9 で弾かれ、`settings.json` だけが配置されて参照先スクリプトが
+  配置されない壊れた配線を deploy が作っていた。**退避スワップの管理範囲が広がる**点は
+  `deploy/pre-deploy-check.js` の uncaptured 判定（exit 2・P8）が引き受ける。
+- 非スキーマ判定の SSoT（`gates/lib/non-schema.js`）が、固定名3件に加えて skill supporting files と
+  `.claude/hooks/**` をパターンで持つようになった（判定の複製を増やさないため）。
+
 ## [1.0.0] - 2026-08-31
 
 ### Added

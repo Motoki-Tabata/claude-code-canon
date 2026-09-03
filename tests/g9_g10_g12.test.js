@@ -186,3 +186,91 @@ test('G12: agents/ 直下の想定外 .md（誤配置）は逆に flag する（
   assert.equal(r.ok, false, '定義でない .md を黙って飛ばさない');
   assert.ok(r.violations.some((v) => v.includes('notes.md')));
 });
+
+// ---------------------------------------------------------------------------
+// skill supporting files（正典 docs/L2_SKILLS.md §2.1）と hook ハンドラ実体（§2.1 L4）が
+// 生成物として通ること。どちらも「正典が示す形なのにゲートが弾く」内部矛盾の修正であり、
+// 実測は /canon run 20260903_091044（設計者が supporting file を諦め、hook スクリプトを
+// .claude/skills/<name>/scripts/ へ退避させた）。
+//
+// 緩和側だけを固定すると「検出しないこと」しかテストしないので、各テストで**故意の違反**を
+// 併せて注入し、狭めていない側が現に発火することまで固定する（.claude/rules/gates-and-tests.md）。
+// ---------------------------------------------------------------------------
+
+test('G9/G12: skill パッケージの supporting files は通り、skills ルート直下の孤児 .md は依然違反', (t) => {
+  const ts = tsFor(import.meta.url, 12);
+  cleanupTs(t, ts);
+  const G = gen(ts);
+  const skillDir = path.join(G, '.claude', 'skills', 'demo');
+  mkdirSync(path.join(skillDir, 'examples'), { recursive: true });
+  mkdirSync(path.join(skillDir, 'scripts'), { recursive: true });
+  mkdirSync(path.join(out(ts), '.deploy'), { recursive: true });
+  writeFileSync(
+    path.join(skillDir, 'SKILL.md'),
+    '---\nname: demo\ndescription: Demo skill.\n---\nテンプレートは [template.md](./template.md)。\n'
+  );
+  writeFileSync(path.join(skillDir, 'template.md'), '# テンプレート\nfrontmatter を持たない supporting file。\n');
+  writeFileSync(path.join(skillDir, 'examples', 'sample.md'), '# 出力例\n');
+  writeFileSync(path.join(skillDir, 'scripts', 'validate.mjs'), 'process.exit(0);\n');
+  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeFileSync(
+    path.join(out(ts), '.deploy', 'managed-paths.list'),
+    '.claude/skills/demo/SKILL.md\n.claude/skills/demo/template.md\n' +
+      '.claude/skills/demo/examples/sample.md\n.claude/skills/demo/scripts/validate.mjs\n'
+  );
+
+  const before = checkG12({ ts });
+  assert.equal(before.ok, true, `supporting files は per-file スキーマ検査の対象外: ${before.violations.join(' / ')}`);
+  assert.equal(checkG9({ ts }).ok, true, 'supporting files は管理パス集合の内側');
+
+  // 故意の違反注入: skills ルート直下（パッケージ無し）の .md は配置逸脱のまま。
+  writeFileSync(path.join(G, '.claude', 'skills', 'orphan.md'), '---\nname: orphan\ndescription: x\n---\n本文\n');
+  const after = checkG12({ ts });
+  assert.equal(after.ok, false, '緩和が「skills 配下は何でも通る」に化けていないこと');
+  assert.ok(
+    after.violations.some((v) => v.includes('orphan.md') && v.includes('SKILL.md')),
+    `孤児 .md が G3 で検出されること: ${after.violations.join(' / ')}`
+  );
+});
+
+test('G9: .claude/hooks/ の hook ハンドラ実体は管理パス集合内、.claude 外の hooks/ は依然違反', (t) => {
+  const ts = tsFor(import.meta.url, 13);
+  cleanupTs(t, ts);
+  const G = gen(ts);
+  skill(ts, 's');
+  mkdirSync(path.join(G, '.claude', 'hooks'), { recursive: true });
+  mkdirSync(path.join(out(ts), '.deploy'), { recursive: true });
+  // 正典 docs/L4_AUTOMATION.md §2.1 の公式例と同じ配置。
+  writeFileSync(path.join(G, '.claude', 'hooks', 'block-rm.sh'), '#!/bin/bash\nexit 0\n');
+  writeFileSync(
+    path.join(G, '.claude', 'settings.json'),
+    JSON.stringify(
+      {
+        hooks: {
+          PreToolUse: [
+            {
+              matcher: 'Bash',
+              hooks: [{ type: 'command', command: '${CLAUDE_PROJECT_DIR}/.claude/hooks/block-rm.sh', timeout: 10 }],
+            },
+          ],
+        },
+      },
+      null,
+      2
+    )
+  );
+  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeFileSync(
+    path.join(out(ts), '.deploy', 'managed-paths.list'),
+    '.claude/skills/s/SKILL.md\n.claude/settings.json\n.claude/hooks/block-rm.sh\n'
+  );
+
+  assert.equal(checkG9({ ts }).ok, true, '正典の公式例どおりの hook 配置が集合内であること');
+
+  // 故意の違反注入: `.claude/` の外の hooks/ は管理パス集合外のまま（集合を広げすぎていない証明）。
+  mkdirSync(path.join(G, 'hooks'), { recursive: true });
+  writeFileSync(path.join(G, 'hooks', 'stray.sh'), '#!/bin/bash\nexit 0\n');
+  const r = checkG9({ ts });
+  assert.equal(r.ok, false, '.claude/ 外の hooks/ まで管理対象にしてはならない');
+  assert.ok(r.violations.some((v) => v.includes('hooks/stray.sh')), r.violations.join(' / '));
+});

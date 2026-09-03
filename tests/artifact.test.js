@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { detectKind, parseFrontmatter, splitListValue, artifactFromText } from '../gates/lib/artifact.js';
+import { detectKind, skillPathRole, parseFrontmatter, splitListValue, artifactFromText } from '../gates/lib/artifact.js';
 
 describe('detectKind', () => {
   test('SKILL.md はどこにあっても skill', () => {
@@ -103,5 +103,39 @@ describe('artifactFromText', () => {
     assert.equal(a.body, 'body text');
     assert.ok(a.rawText.includes('body text'));
     assert.deepEqual(a.errors, []);
+  });
+});
+
+/**
+ * skillPathRole: skill パッケージ内の役割判定（G3・G7・non-schema.js が共有する SSoT）。
+ * 正典 docs/L2_SKILLS.md §2.1「ディレクトリ構造」が SKILL.md（必須）＋supporting files（任意）を
+ * 許可することの機械的表現。
+ */
+describe('skillPathRole', () => {
+  test('パッケージ直下の SKILL.md は definition', () => {
+    assert.equal(skillPathRole('.claude/skills/foo/SKILL.md'), 'definition');
+    assert.equal(skillPathRole('output/29990101_000001/generated/.claude/skills/foo/SKILL.md'), 'definition');
+  });
+
+  test('パッケージ配下のそれ以外は supporting（正典 §2.1 が明示的に許可）', () => {
+    assert.equal(skillPathRole('.claude/skills/foo/template.md'), 'supporting');
+    assert.equal(skillPathRole('.claude/skills/foo/examples/sample.md'), 'supporting');
+    assert.equal(skillPathRole('.claude/skills/foo/scripts/validate.sh'), 'supporting');
+    // supporting として置かれた例示 SKILL.md は定義ファイルではない（G7 の registry も拾わない）。
+    assert.equal(skillPathRole('.claude/skills/foo/examples/SKILL.md'), 'supporting');
+  });
+
+  test('skills ルート直下のファイルは orphan（パッケージディレクトリが無い＝配置逸脱）', () => {
+    assert.equal(skillPathRole('.claude/skills/foo.md'), 'orphan');
+  });
+
+  test('.claude/skills/ 配下でなければ null（plugin スコープは G3 の既知の対象外）', () => {
+    assert.equal(skillPathRole('plugin/skills/foo/SKILL.md'), null);
+    assert.equal(skillPathRole('.claude/agents/a/a.md'), null);
+  });
+
+  test('Windows のバックスラッシュ区切りも判定できる', () => {
+    const B = String.fromCharCode(92);
+    assert.equal(skillPathRole(['C:', 'w', '.claude', 'skills', 'foo', 'template.md'].join(B)), 'supporting');
   });
 });

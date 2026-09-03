@@ -9,11 +9,18 @@
  *   - 拡張子・種別整合
  *   - skill ディレクトリ名＝name 一致 ※これだけは正典由来でなく設計由来（第3の例外・§11.4 追記参照）
  *
+ * skill パッケージの supporting files（`template.md`・`examples/*.md`・`scripts/*`）は違反ではない。
+ * 正典 docs/L2_SKILLS.md §2.1「ディレクトリ構造」が SKILL.md（必須）＋任意の supporting files を
+ * 明示的に許可しており（paths.json の kinds.skill.package_layout が SSoT）、G7 は逆にその実在を
+ * 要求する。`filename_fixed: SKILL.md` は**スキル定義ファイルの名前**が固定であることのみを述べ、
+ * 同ディレクトリの他ファイルを禁じてはいない——かつての一律違反はこの読み違いだった
+ * （設計由来の第3の例外に属する話ではなく、正典由来ルールの適用範囲の誤りである）。
+ *
  * 純関数。副作用（fs 書込・process.exit）なし。
  */
 
 import pathsTable from './conformance_tables/paths.json' with { type: 'json' };
-import { loadArtifact, violation } from './lib/artifact.js';
+import { loadArtifact, skillPathRole, violation } from './lib/artifact.js';
 import { DESIGN_DOC_DETAIL } from './lib/canon.js';
 
 const AGENT_SOURCE = pathsTable.kinds.agent.canon_section;
@@ -22,6 +29,11 @@ const RULE_SOURCE = pathsTable.kinds.rule.canon_section;
 const SKILL_DIRNAME_ITEM = pathsTable.design_derived_requirements.items.find(
   (i) => i.requirement === 'skill ディレクトリ名 = frontmatter name の一致'
 );
+
+// skill パッケージ配下に supporting files を置いてよいか。正典 docs/L2_SKILLS.md §2.1
+// 「ディレクトリ構造」から build-conformance-tables.js が抽出した値（正典由来・捏造しない）。
+// 表が許可を述べていなければ従来どおり "SKILL.md 以外は違反" へ縮退する（fail-closed）。
+const SUPPORTING_FILES_ALLOWED = pathsTable.kinds.skill.package_layout?.supporting_files_allowed === true;
 
 // 配置パターンは `.claude/<family>/...` という接頭辞が Project/User 両スコープに共通して
 // 現れる（paths.json の placements を参照）。plugin スコープ（`<plugin>/agents/<name>.md` 等、
@@ -67,7 +79,13 @@ export function checkG3(artifact) {
     }
   } else if (family === 'skill') {
     const base = p.split('/').pop();
-    if (base !== 'SKILL.md') {
+    const role = skillPathRole(p);
+
+    if (role === 'supporting' && SUPPORTING_FILES_ALLOWED) {
+      // supporting file（`template.md`・`examples/*.md`・`scripts/*` 等）。正典が明示的に
+      // 許可する Progressive Disclosure の参照先であり、配置違反ではない（§2.1 ディレクトリ構造）。
+      // 「skill パッケージに SKILL.md が実在するか」は per-file では判定できないため G7 が持つ。
+    } else if (base !== 'SKILL.md') {
       violations.push(
         violation(
           'G3',
@@ -87,8 +105,10 @@ export function checkG3(artifact) {
       );
     }
 
-    // skill ディレクトリ名 = frontmatter name 一致（設計由来。正典由来ではない・第3の例外）
-    if (base === 'SKILL.md' && artifact.frontmatter?.name) {
+    // skill ディレクトリ名 = frontmatter name 一致（設計由来。正典由来ではない・第3の例外）。
+    // 対象はスキル定義ファイル（role: definition）のみ。supporting file の `examples/SKILL.md`
+    // のような例示ファイルへ適用すると、正典が許可した配置を設計由来の規律で塞ぐことになる。
+    if (role === 'definition' && artifact.frontmatter?.name) {
       const dirName = p.split('/').slice(-2, -1)[0];
       const nameValue = artifact.frontmatter.name.value;
       if (typeof nameValue === 'string' && nameValue !== '' && nameValue !== dirName) {

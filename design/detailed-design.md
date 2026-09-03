@@ -274,10 +274,13 @@ CLAUDE.md
 .claude/skills/**
 .claude/agents/**
 .claude/settings.json          ← Hooks 配線を生成する場合のみ
+.claude/hooks/**               ← Hook ハンドラ実体を生成する場合のみ（L4）
 .claude/README.md              ← 成果物の使用説明書（§12）
 .mcp.json
 plugin/**                      ← L5 化する場合のみ
 ```
+
+- **`.claude/hooks/**` を集合に含める理由**: 正典 `L4_AUTOMATION.md §2.1` の公式例は hook ハンドラ実体を `${CLAUDE_PROJECT_DIR}/.claude/hooks/block-rm.sh` に置く（`:350`・`:363`・`:375`・`:401`・`:445`。`ORCHESTRATION.md:455-479` も同じ）。§11.2 の G11 検出経路③も「hook スクリプトの実体配置（`.claude/hooks/**`）」を前提にしている。集合外のままだと (1) 正典の公式例どおりの生成物が G9 の集合内包検査で弾かれ、canon は**自分の正典が示す形を生成できない**、(2) `.claude/settings.json` だけが配置され参照先スクリプトが配置されない**壊れた配線**を deploy が作る。代償として `.claude/hooks/**` は退避スワップの管理下（＝廃止もできる）に入るが、対象側の canon 管理外 hook を消す危険は §10.2① の uncaptured 判定（exit 2）が引き受ける——集合外の現状は**取りこぼしを検出する機会そのものが無い**ため、加えたほうが安全側でもある。
 
 - **集合外は不可侵**: CI ワークフロー（`.github/workflows/`）・`CODEOWNERS`・その他プロジェクト固有ファイルは削除も上書きもしない。
 - **検出パスの加算**: 系統A が対象側の追加カスタマイズパスを検出した場合のみ、その検出パスを集合に加える（`.claude/` 全体を一括削除しない）。
@@ -342,11 +345,11 @@ pre-deploy-check / deploy は `deploy/` 正本（基本設計書 §14）の**ス
 |---|---|---|---|---|
 | **G1** 工程順・状態 | focused 空欄違反／evidence_paths 実在／open_questions 残存／requirements の enum（strength_needed・priority）／承認サイドカーの存在＋approved_by | 規律 | stage | SubagentStop@各リクエスト |
 | **G2** 維持判定妥当性 | keep 全レコードで keep_conditions C1〜C5 が true／**実照合**: C1（対象原本が正典 frontmatter/tools 適合）・C3（keep の依存先が同 design-map で retire/modify されない）・C5（対象原本の project 参照が対象リポジトリで解決）／**形式検査のみ**: C2・C4 が true 宣言（意味判断は eval へ回付・基本設計書 §8.4）／廃止の manifest_note | A2 | stage | SubagentStop@design |
-| **G3** パス規約準拠 | 許可パス合致／拡張子・種別整合／skill ディレクトリ名＝name 一致※ | A3 | per-file | PostToolUse |
+| **G3** パス規約準拠 | 許可パス合致／拡張子・種別整合／skill ディレクトリ名＝name 一致※／**skill パッケージ配下の supporting files は違反にしない**（正典 `L2_SKILLS.md §2.1` ディレクトリ構造の明示的許可） | A3 | per-file | PostToolUse |
 | **G4** frontmatter スキーマ | 必須キー存在（Subagent: name＋description）／未知キー検出／型・語彙照合 | A3 | per-file | PostToolUse |
 | **G5** tools/ツール名 | Claude Code の正規ツール名（Read/Write/Edit/Bash/Grep/Glob/WebFetch 等）照合／旧称・非実在ツール検出／MCP `mcp__server__tool` 構文 | A3 | per-file | PostToolUse |
 | **G6** セキュリティ | secret ハードコード検出／`.mcp.json` の `${VAR}` 展開遵守／experimental 依存フラグ明示 | §7 | per-file | PostToolUse |
-| **G7** 参照整合 | preload skill（`skills:`）実在／`disable-model-invocation:true` skill を preload していない／description による委譲トリガーの妥当／supporting files 実在／plugin 参照実在 | A2 | snapshot | SubagentStop@generation |
+| **G7** 参照整合 | preload skill（`skills:`）実在／`disable-model-invocation:true` skill を preload していない／description による委譲トリガーの妥当／supporting files 実在／**skill パッケージに定義ファイル `SKILL.md` 実在**／plugin 参照実在 | A2 | snapshot | SubagentStop@generation |
 | **G8** 非退行 | 維持ファイル全量が output に存在／**対象原本と output コピーが sha256 バイト同一**（ゲートが両者を Bash で算出）／廃止の明示照合 | A2 | snapshot | SubagentStop@generation |
 | **G9** スナップショット完全性 | design-map ⇔ output 双方向突合／MANIFEST ⇔ output／空でない出力／managed-paths.list が base ＋検出 `.claude/*`＋(L5)plugin のみ（集合外を排除・§10.1） | A4 | snapshot | SubagentStop@generation |
 | **G10** README 整合 | 網羅性／起動方式の正典整合（§12.4 導出ルール一致）／セットアップ完全性／内部専用の非露出 | README 機能 | snapshot | SubagentStop@generation |
@@ -358,6 +361,10 @@ pre-deploy-check / deploy は `deploy/` 正本（基本設計書 §14）の**ス
 | **G16** `[要確認]` 台帳整合（機能X） | `docs/00_INDEX.md §10` の各行が「未解決」／「取り消し線＋解決済＋日付」のいずれかにパース可能（形式検査）／docs 全体の `[要確認]` 実マーカー総数と `canon-diff-proposal.md` の申告値が一致／乖離は `impact-report.md` へ報告（判定はしない） | §13.1 | snapshot（機能X） | SubagentStop@canon-update |
 
 - **G3「skill ディレクトリ名＝name 一致」（※）は正典由来ではない第3の例外**: §11.4 は「判定の出典は必ず正典 docs／例外は G11 と G13 の2つ」と述べるが、G3 のこの1項目だけは正典に根拠が無い（`L2_SKILLS.md` は「既定: ディレクトリ名」と述べるのみで、`name` を明示した場合の一致まで要求していない）。設計由来の追加規律として`gates/conformance_tables/paths.json` の `design_derived_requirements`（`status: accepted_by_human`）に隔離したうえで検査対象に含める。G3 の他2項目（許可パス合致・拡張子種別整合）は通常どおり正典由来。詳細は §11.4 を参照。
+- **G3 の skill supporting files 許容（2026-09-03 裁定）**: G3 はかつて「skill ディレクトリ配下のファイル名は固定 `SKILL.md`」として `.claude/skills/<name>/template.md`・`examples/*.md` を一律違反にしていたが、これは**正典に反する誤検出**である。`L2_SKILLS.md §2.1`「ディレクトリ構造」は `SKILL.md`（必須）に加えて `template.md`／`examples/`／`scripts/`（任意）を明示的に許可し、§4.1 は「長大な参考資料は supporting files に分離」を推奨、§4.2 は本文からの `[xxx.md](./xxx.md)` 参照を求める。G7 の判定④は逆に**その実在を要求**しており、G3 と G7 が正面から矛盾していた（実測: 2026-09-03 の `/canon` run `20260903_091044` で設計者が回避を強いられた）。`filename_fixed: SKILL.md` は**スキル定義ファイルの名前**が固定であることを述べるのみで同ディレクトリの他ファイルを禁じてはいない——ゆえにこれは※の「設計由来の第3の例外」に属する話ではなく、**正典由来ルールの適用範囲の誤り**であり、`design_derived_requirements` へ移すのではなく G3 を狭めて解決する。許可の出典は `gates/conformance_tables/paths.json` の `kinds.skill.package_layout`（`build-conformance-tables.js` が §2.1 のツリー図から抽出。抽出できなければ `ExtractionError` で落ちる）。
+  - **副作用で塞がっていた穴の塞ぎ直し**: 旧規則は副次的に「skill パッケージに `SKILL.md` が実在する」ことも保証していた（他の名前を置けなかったため）。規則を狭めた以上この保証は明示的に持ち直す必要があり、G7 に判定⑥（skill パッケージの定義ファイル実在）を新設した。無いとサイレント不発火（`Skill.md` のような綴り違いでスキルがロードされず、エラーも出ない）が全ゲートを素通りする（§11.5）。
+  - **per-file 非対象**: supporting files はワーカー定義ではないため G3/G4 のスキーマ検査対象から外す。除外判定は `gates/lib/non-schema.js`（SSoT）が `skillPathRole()`（`gates/lib/artifact.js`）へ委譲する形で持ち、`.claude/hooks/**`（hook ハンドラ実体・§10.1）も同じ経路で除外する。
+
 - **G11 と G6 の区別**: G6 は普遍的な安全性（secret・experimental 依存の明示）、G11 はこのプロジェクト固有の環境制約（`requirements.md` 由来）。designer が良かれと Hooks/context:fork を使う設計を出しても、制約違反なら生成前に弾ける。
 - **G13 と G5／G4 の区別（置き場の根拠）**: G13 の対象であるコマンド実行系ツールは**正規のツール名であり、G5 は正しく pass させる**。「正規ツール名だが特定ロールには許さない」は**権限ポリシー**であって名前照合（G5）でも frontmatter スキーマの型・語彙照合（G4）でもない。責務が異なるため相乗りさせず新ゲートを立てる。
 - **G13 が per-file 系統でない理由（決定的）**: G3〜G6 は **`output/` 配下への書込1件ごと**に発火する（§11.1）。しかし G13 の対象である claude-canon 自身の `.claude/agents/**` は、**write-scope-guard が `.claude/` を保護しているため run 中に一度も書かれない**（§11.3）。ゆえに G5 に相乗りしても、あるいは G13 を per-file 系統に置いても、**発火機会が構造的にゼロ＝検査が沈黙する**（§11.5 が警告する vacuous pass そのもの）。対象が「run の成果物」でなく「run を実行する主体」である以上、発火も run の**外側＝開始前**に置かねばならない。これが preflight 系統を新設した理由である。
@@ -503,7 +510,7 @@ G14〜G16 は機能X（§13.1）の run が消費する完了リクエスト `wo
 - **判定の出典は必ず正典 docs**: 照合表（frontmatter 必須キー・正規ツール名・パス規約）はハードコードせず `gates/conformance_tables/` として `docs/` から生成する（正典更新に追従）。**例外は3つ**: G11 は `requirements.md` 由来、**G13 は本設計書 §11.3 由来の自己規律**（正典は「ワーカーにコマンド実行系ツールを与えるな」とは言っていない。claude-canon 固有のガード設計から導かれる制約である）、**G3 の「skill ディレクトリ名＝name 一致」1項目のみが本設計書由来の自己規律**（正典 `L2_SKILLS.md` は「既定: ディレクトリ名」と述べるのみで、`name` 明示時の一致までは要求していない。`gates/conformance_tables/paths.json` の `design_derived_requirements` に `status: accepted_by_human` として記録済み。G3 の他の判定項目は通常どおり正典由来）。
 - **自己適用可能**: G1〜G12 は claude-canon 自身の `.claude/`（agents/skills/settings.json）にも適用でき、ブートストラップの橋になる（§15）。
 - **G13 だけは向きが逆**: G1〜G12 は**生成物の検証**が本務で、claude-canon 自身への適用は「できる」という副次的性質（自己適用）である。対して **G13 は claude-canon 自身の検証が本務であり、生成物へ適用してはならない**（対象プロジェクトの Subagent がコマンド実行系ツールを持つのは正当・§11.2）。ゆえに G13 は「自己適用可能」の枠でなく **preflight 系統という別枠**に置く。**ゲートの二面性（生成物検証 ⇔ 自己検証）が交差する唯一の箇所**なので、適用範囲をパスで截然と分ける（§11.2 の表）。
-- **非スキーマ `.md` の判定は `gates/lib/non-schema.js` を唯一の SSoT とする**: `CLAUDE.md`／`.claude/README.md`／`.claude/settings.json` はワーカー定義（agent/skill/rule）ではなく G10（README 整合）の担当であり、G3（配置ファミリー）・G4（種別スキーマ）の対象外である。この除外判定を複数箇所へ独立に複製すると、新しい生成物が実在した際に波及漏れが発火する。`gates/lib/non-schema.js` へ集約し、`gates/g12_output_perfile.js` の `KNOWN_NON_SCHEMA`・`gates/g10_readme.js` のインライン比較・`tools/promote.js` の `KNOWN_NON_SCHEMA`・自己適用テストはすべてここから import する（`gates/lib/shell-write.js` が3ガードの重複を解消した前例と同型）。
+- **非スキーマ `.md` の判定は `gates/lib/non-schema.js` を唯一の SSoT とする**: `CLAUDE.md`／`.claude/README.md`／`.claude/settings.json` はワーカー定義（agent/skill/rule）ではなく G10（README 整合）の担当であり、G3（配置ファミリー）・G4（種別スキーマ）の対象外である。この除外判定を複数箇所へ独立に複製すると、新しい生成物が実在した際に波及漏れが発火する。`gates/lib/non-schema.js` へ集約し、`gates/g12_output_perfile.js` の `KNOWN_NON_SCHEMA`・`gates/g10_readme.js` のインライン比較・`tools/promote.js` の `KNOWN_NON_SCHEMA`・自己適用テストはすべてここから import する（`gates/lib/shell-write.js` が3ガードの重複を解消した前例と同型）。**固定名3件のほかに、パターンでしか書けない非スキーマ領域も同モジュールが持つ**（2026-09-03 追加）: (a) **skill パッケージの supporting files**（`.claude/skills/<name>/template.md`・`examples/*.md` 等。正典 `L2_SKILLS.md §2.1` の明示的許可。形状判定は `gates/lib/artifact.js` の `skillPathRole()` へ委譲し複製しない）、(b) **`.claude/hooks/**`**（hook ハンドラ実体。`settings.json` と同じく「配線・実行体」でありワーカー定義ではない・§10.1）。除外集合を呼び出し側へ散らさないという本 bullet の趣旨は、固定名かパターンかによらず同じである。
 
 ### 11.5 ランタイム・カナリア（配線生存の証明）
 

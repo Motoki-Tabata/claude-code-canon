@@ -9,14 +9,14 @@ user-invocable: false
 Skills（SKILL.md）/ Slash Commands スキーマ準拠の生成を担う。`skill-builder` に preload されるため `context: fork` は付与しない。`disable-model-invocation` も付与しない（preload 対象のため）。
 
 ## 参照正典
-- `L2_SKILLS.md §2.1`（SKILL.md frontmatter 完全リファレンス）
+- `L2_SKILLS.md §2.1`（SKILL.md frontmatter 完全リファレンス／Progressive Disclosure Loading／ディレクトリ構造・supporting files）
 - `L2_SKILLS.md §2.2`（context:fork）
-- `L2_SKILLS.md §2.3`（Progressive Disclosure / supporting files）
 - `TOOLS.md`（`allowed-tools`/`disallowed-tools` に書けるツール名の正規リファレンス）
 
 ## ディレクトリ・配置（§2.1）
 - 新規は必ず `.claude/skills/<name>/SKILL.md` 形式（`.claude/commands/*.md` は廃止予定）。
-- ディレクトリ名と `name:` を一致させる（silent failure 防止）。supporting files（`template.md`/`examples/`/`scripts/`）は必要時に Read される。
+- ディレクトリ名と `name:` を一致させる（silent failure 防止）。
+- supporting files（`template.md`／`examples/`／`scripts/`）はパッケージ直下に置いてよく、必要時に Read される（Progressive Disclosure Loading・§2.1 ディレクトリ構造）。**`SKILL.md` は必須**——supporting files だけのディレクトリはスキルとして発動しない（G7 が実在照合する）。本文からは `[xxx.md](./xxx.md)` 形式で参照すること（§4.2。「手動で Read してください」と書くと Claude は忘れる）。
 
 ## frontmatter 規約（§2.1）
 - `description` はトリガー判定に使われる。最重要キーワードを冒頭に。

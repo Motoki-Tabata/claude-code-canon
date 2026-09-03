@@ -397,6 +397,69 @@ function placementTable(doc, headingText) {
   return out;
 }
 
+/**
+ * `#### ディレクトリ構造` 直下のツリー図から skill パッケージの許容レイアウトを抽出する。
+ *
+ * これが G3 の「skill ディレクトリ配下に SKILL.md 以外を置いてよいか」の唯一の出典になる。
+ * 正典は SKILL.md を「必須」、`template.md`／`examples/`／`scripts/` を「任意」と明記しており
+ * （Progressive Disclosure Loading の参照先＝supporting files）、G3 がスキルディレクトリ配下の
+ * 非 SKILL.md を一律違反にすると正典に反する。ここで抽出できなければ落とす（silent empty は
+ * vacuous pass の温床であると同時に、逆向きの「正典の許可を黙って失う」事故も生む）。
+ */
+function parseSkillPackageLayout(l2) {
+  const h = findHeading(l2.lines, 'ディレクトリ構造', 4);
+  if (h < 0) {
+    throw new ExtractionError(
+      `${l2.ref}: 見出し「ディレクトリ構造」が見つからない。skill パッケージに supporting files を` +
+        `置いてよいことの出典（G3 の判定根拠）が消えている。`
+    );
+  }
+  const { start, end } = sectionSlice(l2.lines, h);
+  const block = firstFencedBlock(l2.lines, start, end);
+  if (!block) {
+    throw new ExtractionError(`${l2.ref}:${h + 1} 「ディレクトリ構造」直下にコードブロックが無い。`);
+  }
+
+  const entries = [];
+  for (let i = 0; i < block.body.length; i++) {
+    // ツリー図の枝（`├── ` / `└── `）を持つ行だけがエントリ。ルート行（`my-skill/`）は枝を持たない。
+    const m = block.body[i].match(/^[\s│]*[├└]──\s*(\S+)\s*(?:#\s*(.*))?$/);
+    if (!m) continue;
+    entries.push({ entry: m[1], note: m[2] ? m[2].trim() : null, source: `${l2.ref}:${block.start + i + 1}` });
+  }
+  requireNonEmpty(entries, `${l2.ref} の skill ディレクトリ構造エントリ`, `${l2.ref}:${block.start}`);
+
+  const required = entries.find((e) => e.entry === 'SKILL.md');
+  if (!required || !/必須/.test(required.note ?? '')) {
+    throw new ExtractionError(
+      `${l2.ref}:${block.start} ディレクトリ構造に「SKILL.md（必須）」が見つからない。` +
+        `skill パッケージの定義ファイル名が固定であることの根拠が消えている。`
+    );
+  }
+  const supporting = entries.filter((e) => e.entry !== 'SKILL.md');
+  const optional = supporting.filter((e) => /任意/.test(e.note ?? ''));
+  if (optional.length === 0) {
+    throw new ExtractionError(
+      `${l2.ref}:${block.start} ディレクトリ構造に「任意」と注記されたエントリが1件も無い。` +
+        `supporting files を置いてよいという正典の許可が読み取れないため、G3 の緩和根拠を捏造しない。`
+    );
+  }
+
+  return {
+    source: `${l2.ref}:${block.start}`,
+    required_entry: { entry: required.entry, note: required.note, source: required.source },
+    supporting_files_allowed: true,
+    supporting_entries: supporting,
+    note:
+      'skill パッケージのディレクトリには SKILL.md（必須）のほかに supporting files（任意）を' +
+      '置いてよい。Progressive Disclosure Loading の参照先であり、正典が明示的に許可している' +
+      '（G7 は逆に「本文が参照する supporting file の実在」を要求する）。ゆえに G3 は' +
+      '「skill ディレクトリ配下の非 SKILL.md」を一律違反にしてはならない。filename_fixed は' +
+      '**スキル定義ファイルの名前**が固定であることを述べるのみで、ディレクトリ内の他ファイルを' +
+      '禁じてはいない。',
+  };
+}
+
 function buildPaths() {
   const l3 = loadDoc('L3_AGENTS.md');
   const l2 = loadDoc('L2_SKILLS.md');
@@ -404,6 +467,7 @@ function buildPaths() {
 
   const agentPlacements = placementTable(l3, '配置場所とスコープ（4階層）');
   const skillPlacements = placementTable(l2, '配置場所とスコープ階層（4階層 + 廃止予定）');
+  const skillPackageLayout = parseSkillPackageLayout(l2);
 
   // agent: 「ファイル名・ディレクトリ名は識別に無関係」という正典の明示を機械で確認する。
   const agentNameIndep = l3.lines.findIndex((l) =>
@@ -456,6 +520,10 @@ function buildPaths() {
         placements: skillPlacements,
         project_patterns: skillPlacements.find((p) => p.scope === 'Project').paths,
         filename_fixed: 'SKILL.md',
+        filename_fixed_scope:
+          'スキル定義ファイル（パッケージ直下の1件）の名前のみ。同ディレクトリ内の supporting files を' +
+          '禁じる意味は持たない（package_layout を見よ）。',
+        package_layout: skillPackageLayout,
         dirname_must_match_name: {
           value: null,
           canon_says: 'name の既定値がディレクトリ名（＝未指定ならディレクトリ名が採用される）',

@@ -70,3 +70,25 @@ test('呼び出し側4ファイルが SSoT（gates/lib/non-schema.js）を impor
     );
   }
 });
+
+/**
+ * 固定名3件のほかに、パターンでしか書けない非スキーマ領域（2026-09-03 追加）。
+ * どちらも「正典が示す形なのにゲートが弾く」内部矛盾の修正に伴う（詳細設計書 §11.2・§11.4）。
+ */
+test('skill パッケージの supporting files は非スキーマ（正典 L2_SKILLS.md §2.1 の明示的許可）', () => {
+  assert.equal(isNonSchemaRel('.claude/skills/y/template.md', 'generated'), true);
+  assert.equal(isNonSchemaRel('.claude/skills/y/examples/sample.md', 'generated'), true);
+  assert.equal(isNonSchemaRel('skills/y/template.md', 'claude'), true);
+  // 定義ファイル本体は非スキーマではない（G3/G4 の対象であり続ける）。
+  assert.equal(isNonSchemaRel('.claude/skills/y/SKILL.md', 'generated'), false);
+  // skills ルート直下の孤児は非スキーマではない（G3 が配置逸脱として弾く対象）。
+  assert.equal(isNonSchemaRel('.claude/skills/orphan.md', 'generated'), false);
+});
+
+test('.claude/hooks/ 配下は非スキーマ（hook ハンドラ実体・docs/L4_AUTOMATION.md §2.1）', () => {
+  assert.equal(isNonSchemaRel('.claude/hooks/block-rm.sh', 'generated'), true);
+  assert.equal(isNonSchemaRel('.claude/hooks/notes.md', 'generated'), true);
+  assert.equal(isNonSchemaRel('hooks/block-rm.sh', 'claude'), true);
+  // `.claude/` の外の hooks/ は対象外（除外を広げすぎていないこと）。
+  assert.equal(isNonSchemaRel('hooks/stray.sh', 'generated'), false);
+});

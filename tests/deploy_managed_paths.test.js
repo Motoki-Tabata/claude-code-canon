@@ -16,8 +16,11 @@ import {
 } from '../gates/lib/managed-paths.js';
 import { sampleRepoDir as fixtureCase } from './helpers/fixtures.js';
 
-test('MANAGED_PATTERNS: base 集合の9パターン（§10.1）', () => {
-  assert.equal(MANAGED_PATTERNS.length, 9);
+test('MANAGED_PATTERNS: base 集合の10パターン（§10.1）', () => {
+  // 9 → 10: `.claude/hooks/**`（hook ハンドラ実体）を追加（2026-09-03・§10.1）。
+  // 件数を固定するのは、集合の拡大が「気づかれずに」起きないようにするため——集合が
+  // 広がることは退避スワップが破壊しうる範囲が広がることと同義である（§10.1 の単一障害点）。
+  assert.equal(MANAGED_PATTERNS.length, 10);
 });
 
 test('isManaged: 集合内は true', () => {
@@ -29,6 +32,8 @@ test('isManaged: 集合内は true', () => {
     '.claude/settings.json',
     '.claude/README.md',
     '.claude/EXTRA.md',
+    '.claude/hooks/block-rm.sh',
+    '.claude/hooks/nested/format.mjs',
     '.mcp.json',
     'plugin/x.js',
   ]) {
@@ -40,6 +45,9 @@ test('isManaged: 集合外（不可侵）は false', () => {
   for (const rel of [
     '.github/workflows/ci.yml',
     'CODEOWNERS',
+    'hooks/stray.sh', // `.claude/` の外の hooks/ は集合外のまま（拡張しすぎていないこと）
+    '.claude/hooks', // ディレクトリ自身は対象外（`.+` が要る）
+    'src/.claude/hooks/x.sh', // 集合パターンは先頭アンカー。サブツリーの同名は拾わない
     'src/app.js',
     'package.json',
     '.claude-canon.bak.20260722_000000/CLAUDE.md',

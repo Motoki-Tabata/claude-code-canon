@@ -7,7 +7,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { checkG1 } from '../gates/g1_stage_order.js';
@@ -268,5 +268,57 @@ test('G7 Tier B: リポジトリ相対の地の文参照（gates/lib/run.js 等�
     warnings.some((v) => v.message.includes('gates/lib/run.js')) &&
       warnings.some((v) => v.message.includes('template.md')),
     '未解決トークンは warning として報告される（黙って捨てない）'
+  );
+});
+
+// ---------------------------------------------------------------------------
+// G7 判定⑥: skill パッケージの定義ファイル（SKILL.md）実在。
+//
+// G3 が supporting files を許すように狭まる前は、「skill ディレクトリ配下は SKILL.md のみ」
+// という誤った一律規則が**副作用として**この保証を担っていた。規則を正しく狭めた以上、
+// 副作用で塞がっていた穴は明示的に塞ぎ直す必要がある——さもないと `Skill.md` のような
+// 綴り違いが全ゲートを素通りし、スキルがロードされないのにエラーも出ない（§11.5）。
+// ---------------------------------------------------------------------------
+
+test('G7: supporting files だけで SKILL.md が無い skill パッケージは違反（サイレント不発火の検出）', (t) => {
+  const ts = tsFor(import.meta.url, 15);
+  setup(t, ts);
+  const skills = path.join(out(ts), 'generated', '.claude', 'skills');
+  const skillDir = path.join(skills, 'broken');
+  mkdirSync(path.join(skillDir, 'examples'), { recursive: true });
+  // 故意の違反注入: 定義ファイルの綴り違い（Skill.md）＋ supporting files のみ。
+  writeFileSync(path.join(skillDir, 'Skill.md'), '---\nname: broken\ndescription: x\n---\n本文\n');
+  writeFileSync(path.join(skillDir, 'template.md'), '# テンプレート\n');
+  writeFileSync(path.join(skillDir, 'examples', 'sample.md'), '# 例\n');
+
+  const r = checkG7({ ts });
+  assert.equal(r.ok, false, 'SKILL.md 不在のパッケージを合格にしてはならない');
+  assert.ok(
+    r.blocking.some((v) => v.message.includes('SKILL.md') && v.path.includes('broken')),
+    `broken/ の定義ファイル不在が検出されること: ${JSON.stringify(r.blocking)}`
+  );
+  assert.equal(r.scanned.skillPackages, 1, '検査したパッケージ数が見えること（0件を合格と誤認しない）');
+
+  // 綴りを正せば通る。Windows の FS は大小無視のため、上書きでなく削除してから書く
+  // （同じ実体のまま残るとディレクトリエントリ名が Skill.md のままになる）。
+  rmSync(path.join(skillDir, 'Skill.md'));
+  writeFileSync(path.join(skillDir, 'SKILL.md'), '---\nname: broken\ndescription: x\n---\n本文\n');
+  assert.equal(checkG7({ ts }).ok, true, '正しい綴りの SKILL.md を置けば通ること');
+});
+
+test('G7: ネストした examples/SKILL.md はパッケージの定義ファイルに数えない（skillPathRole 委譲の確認）', (t) => {
+  const ts = tsFor(import.meta.url, 16);
+  setup(t, ts);
+  const skills = path.join(out(ts), 'generated', '.claude', 'skills');
+  const skillDir = path.join(skills, 'nested');
+  mkdirSync(path.join(skillDir, 'examples'), { recursive: true });
+  // supporting file として置かれた例示 SKILL.md。名前だけで拾うと定義ファイル有りに見える。
+  writeFileSync(path.join(skillDir, 'examples', 'SKILL.md'), '---\nname: sample\ndescription: 例\n---\n例\n');
+
+  const r = checkG7({ ts });
+  assert.equal(r.ok, false, '例示ファイルを定義ファイルと誤認してはならない');
+  assert.ok(
+    r.blocking.some((v) => v.message.includes('SKILL.md') && v.path.includes('nested')),
+    JSON.stringify(r.blocking)
   );
 });

@@ -30,6 +30,31 @@ export function violation(gate, path, message, source, severity = 'error') {
 // ---------------------------------------------------------------------------
 
 /**
+ * `.claude/skills/` 配下のパスがパッケージ内で果たす役割を返す（純関数・パス形状のみで判定）。
+ *
+ * 正典 `docs/L2_SKILLS.md §2.1`「ディレクトリ構造」は、skill パッケージが **SKILL.md（必須）**
+ * のほかに supporting files（`template.md`・`examples/sample.md`・`scripts/validate.sh` 等・任意）
+ * を持つと明記する。`gates/conformance_tables/paths.json` の `kinds.skill.package_layout` が
+ * この許可の SSoT。ゆえに「skill ディレクトリ配下の非 SKILL.md」は違反ではなく supporting file
+ * であり、スキーマ系ゲート（G3/G4）の対象でもない。
+ *
+ * @returns {'definition'|'supporting'|'orphan'|null}
+ *   - `definition` … `.claude/skills/<name>/SKILL.md`（スキル定義ファイル）
+ *   - `supporting` … 同パッケージ配下のそれ以外（`template.md`・`examples/x.md`・`scripts/x.mjs`）
+ *   - `orphan`     … `.claude/skills/` 直下のファイル（パッケージディレクトリが無い＝配置逸脱）
+ *   - `null`       … `.claude/skills/` 配下ではない（plugin スコープ `<plugin>/skills/**` を含む。
+ *                    plugin スコープは G3 の既知の対象外・g3_path_convention.js 冒頭の注記参照）
+ */
+export function skillPathRole(p) {
+  const m = /(^|\/)\.claude\/skills\/(.+)$/.exec(posix(p));
+  if (!m) return null;
+  const rest = m[2].split('/');
+  if (rest.length < 2) return 'orphan';
+  if (rest.length === 2 && rest[1] === 'SKILL.md') return 'definition';
+  return 'supporting';
+}
+
+/**
  * パスから種別を推定する。paths.json の既知配置形（agents/ skills/ rules/、
  * および廃止予定の commands/）に現れるディレクトリ慣用句のみで判定する。
  * G3 側で「配置パスとして正しいか」はさらに厳密照合するので、ここでの判定は
@@ -40,7 +65,10 @@ export function detectKind(p) {
   const base = posixPath.split('/').pop() ?? '';
   const segs = posixPath.split('/');
   if (base === 'SKILL.md') return 'skill';
-  if (segs.includes('skills') && base.endsWith('.md')) return 'skill'; // 例: SKILL.md 以外の誤命名も skill 扱いにして G3 に違反させる
+  // skills 配下の .md はスキル系として一次分類する。supporting file（`examples/x.md` 等）も
+  // ここでは skill になるが、スキーマ検査の対象から外す判定は gates/lib/non-schema.js が持つ
+  // （skillPathRole が SSoT）。`.claude/skills/foo.md` のようなパッケージ無し配置は G3 が弾く。
+  if (segs.includes('skills') && base.endsWith('.md')) return 'skill';
   if (segs.includes('commands') && base.endsWith('.md')) return 'skill'; // 廃止予定の Custom Commands 配置。スキーマは skill と同じ。
   if (segs.includes('rules') && base.endsWith('.md')) return 'rule';
   if (segs.includes('agents') && base.endsWith('.md')) return 'agent';

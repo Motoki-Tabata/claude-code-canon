@@ -21,6 +21,27 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
  */
 export const L5_PLUGIN_PATTERN = /^plugin\/.+/;
 
+/**
+ * L4（Hooks）のハンドラ実体。正典 docs/L4_AUTOMATION.md §2.1 の公式例が
+ * `${CLAUDE_PROJECT_DIR}/.claude/hooks/block-rm.sh`（同 :363・実体は :401）・
+ * `load-context.sh`（:350,:445）・`format.sh`（:375）をこの位置に置く。
+ * 詳細設計書 §11.2 の G11 検出経路③も「hook スクリプトの実体配置（`.claude/hooks/**`）」を
+ * 前提にしている。
+ *
+ * ここに含めないと、正典の公式例どおりに hook スクリプトを生成した瞬間 G9 が
+ * 「管理パス集合外のファイル」として弾き、canon は自分の正典が示す形を生成できない。
+ * さらに `.claude/settings.json` だけが管理対象だと、hook を宣言した settings.json は
+ * 配置されるのに参照先スクリプトは配置されないという壊れた配線を deploy が作る。
+ *
+ * トレードオフ（§10.1「列挙の網羅性が単一障害点」の裏面）: 集合へ加えることは、
+ * 退避スワップが `.claude/hooks/**` を **管理（＝廃止もできる）** ようになることを意味する。
+ * 対象側に canon 管理外の hook スクリプトが既にあれば、退避後に output が持たない分は
+ * 復元されない。この危険は §10.2① pre-deploy-check が引き受ける——調査で捕捉していない
+ * ファイルは uncaptured として exit 2 で配置を止める（P8 の最終防波堤）。集合に入っていない
+ * 現状はそもそも走査対象外＝取りこぼしを検出する機会すら無い、という点も併せて weigh した。
+ */
+export const L4_HOOKS_PATTERN = /^\.claude\/hooks\/.+/;
+
 export const MANAGED_PATTERNS = [
   /^CLAUDE\.md$/,
   /^\.claude\/rules\/.+/,
@@ -28,6 +49,7 @@ export const MANAGED_PATTERNS = [
   /^\.claude\/agents\/.+/,
   /^\.claude\/settings\.json$/,
   /^\.claude\/README\.md$/,
+  L4_HOOKS_PATTERN, // L4（hook ハンドラ実体・docs/L4_AUTOMATION.md §2.1）
   /^\.claude\/[^/]+\.md$/, // 検出された .claude 直下の追加ドキュメント
   /^\.mcp\.json$/,
   L5_PLUGIN_PATTERN, // L5

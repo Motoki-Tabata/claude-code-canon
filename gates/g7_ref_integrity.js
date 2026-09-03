@@ -23,6 +23,10 @@
  *      等）をスキルディレクトリ相対で実在照合する。誤検出源: バッククォートで囲まれた汎用コード語も
  *      拾いうるため、パスらしい構文（拡張子付き or ディレクトリ区切りを含む・空白/`$`/URL を含まない）
  *      に絞るヒューリスティック（正典はパターンを構造化していないため設計判断・§11.4 と同型の明示）。
+ *   6. skill パッケージに定義ファイル SKILL.md が実在
+ *      出典: docs/L2_SKILLS.md §2.1「ディレクトリ構造」（`SKILL.md # メイン指示（必須）`）。
+ *      G3 が supporting files を許すように狭まった以上（正典 §2.1 の明示的許可）、
+ *      「定義ファイルが無いパッケージ」の検出はここで明示的に持つ必要がある。
  *   5. plugin 参照実在
  *      出典: docs/L5_DISTRIBUTION.md:140-200（Plugin Manifest 完全スキーマ・Path挙動規則）。
  *      plugin.json の `skills` / `commands` / `agents` / `hooks` / `mcpServers` / `outputStyles` /
@@ -34,13 +38,17 @@
 
 import { existsSync, readdirSync, statSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import pathsTable from './conformance_tables/paths.json' with { type: 'json' };
 import { CANON_ROOT, posix } from './lib/canon.js';
-import { loadArtifact, violation, splitListValue } from './lib/artifact.js';
+import { loadArtifact, skillPathRole, violation, splitListValue } from './lib/artifact.js';
 import { outputDir, resolveTargetRoot } from './lib/run.js';
 
 const GATE = 'G7';
 const PLACEHOLDER_DESCRIPTION = 'What this agent does and when Claude should delegate to it';
 const DELEGATE_TRIGGER_RE = /Delegate (when|for)/i;
+// skill パッケージの必須エントリ（SKILL.md）の出典。正典 docs/L2_SKILLS.md §2.1 から
+// build-conformance-tables.js が抽出した値を使う（出典を手書きせず表から引く・§11.4）。
+const SKILL_PACKAGE_SOURCE = `${pathsTable.kinds.skill.package_layout.required_entry.source}（ディレクトリ構造: SKILL.md は必須）`;
 
 function rel(absPath) {
   return posix(path.relative(CANON_ROOT, absPath));
@@ -79,10 +87,22 @@ function pluginRoot(ts) {
   return path.join(generatedRoot(ts), 'plugin');
 }
 
+/**
+ * skill 定義ファイル（`.claude/skills/<name>/SKILL.md`）だけを列挙する。
+ *
+ * `walkFiles` は再帰するため、supporting file として置かれた `examples/SKILL.md` のような
+ * 例示ファイルも名前だけでは拾ってしまう。「どれが定義でどれが supporting か」の形状判定は
+ * `skillPathRole()`（gates/lib/artifact.js）が SSoT なので、ここで再導出せず委譲する。
+ */
+function listSkillDefinitions(ts) {
+  return walkFiles(skillsRoot(ts), (name) => name === 'SKILL.md').filter(
+    (f) => skillPathRole(f) === 'definition'
+  );
+}
+
 /** skills/<dir>/SKILL.md を全て集めて識別子（frontmatter name優先・既定ディレクトリ名）で索引化する。 */
 function buildSkillRegistry(ts) {
-  const root = skillsRoot(ts);
-  const files = walkFiles(root, (name) => name === 'SKILL.md');
+  const files = listSkillDefinitions(ts);
   const registry = new Map(); // identifier -> artifact
   for (const f of files) {
     const artifact = loadArtifact(f);
@@ -204,7 +224,7 @@ function isTierAToken(tok, skillDir) {
 
 function checkSupportingFiles(ts) {
   const violations = [];
-  const files = walkFiles(skillsRoot(ts), (name) => name === 'SKILL.md');
+  const files = listSkillDefinitions(ts);
   let checked = 0;
   const generated = generatedRoot(ts);
   const targetRoot = resolveTargetRoot(ts); // 不在なら null（対象プロジェクト未確定でも Tier B は縮退して機能する）
@@ -309,6 +329,50 @@ function checkPluginReferences(ts) {
 }
 
 // ---------------------------------------------------------------------------
+// 6: skill パッケージに定義ファイル（SKILL.md）が実在する
+// ---------------------------------------------------------------------------
+
+/**
+ * `.claude/skills/<name>/` の各パッケージディレクトリに `SKILL.md` が実在することを照合する。
+ *
+ * 出典: docs/L2_SKILLS.md §2.1「ディレクトリ構造」——`SKILL.md # メイン指示（必須）`。
+ * paths.json の `kinds.skill.package_layout.required_entry` が SSoT。
+ *
+ * なぜ G7 に置くか: G3（per-file・純関数）は1ファイルしか見ないため「パッケージに定義ファイルが
+ * 無い」を構造的に判定できない。かつては G3 の「skill ディレクトリ配下は SKILL.md のみ」という
+ * 一律規則が副作用としてこの穴を塞いでいたが、その規則は正典が許可する supporting files まで
+ * 弾く誤りだった。規則を正しく狭めるなら、副作用で塞がっていた穴は明示的に塞ぎ直さねばならない
+ * （さもなくば `Skill.md` のような綴り違い＝サイレント不発火が全ゲートを素通りする・§11.5）。
+ */
+function checkSkillPackages(ts) {
+  const violations = [];
+  const root = skillsRoot(ts);
+  if (!existsSync(root)) return { violations, checked: 0 };
+
+  const dirs = readdirSync(root).filter((name) => statSync(path.join(root, name)).isDirectory());
+  for (const name of dirs) {
+    // 実在判定に existsSync を使わない: Windows の FS は大小無視のため `Skill.md` を
+    // `SKILL.md` として true にしてしまい、配置先が Linux/macOS のときだけ壊れる綴り違いを
+    // 検出できない（ローカルでしか踏まない組み合わせ・.claude/rules/gates-and-tests.md）。
+    // ディレクトリエントリ名との完全一致で判定する（G7 の SKILL.md 走査と同じ厳密さ）。
+    const entries = readdirSync(path.join(root, name));
+    if (!entries.includes('SKILL.md')) {
+      violations.push(
+        violation(
+          GATE,
+          posix(path.join('.claude', 'skills', name)),
+          `skill パッケージ "${name}/" に定義ファイル SKILL.md が実在しない（正典は「SKILL.md: メイン指示（必須）」と明記）。` +
+            `supporting files だけを置いてもスキルは発動しない（エラーも出ないサイレント不発火）。`,
+          SKILL_PACKAGE_SOURCE
+        )
+      );
+    }
+  }
+  // 集合外（skills ルート直下のファイル）は G3 が orphan として弾くため、ここでは扱わない。
+  return { violations, checked: dirs.length };
+}
+
+// ---------------------------------------------------------------------------
 // エントリポイント
 // ---------------------------------------------------------------------------
 
@@ -317,9 +381,15 @@ export function checkG7({ ts }) {
   const skillRegistry = buildSkillRegistry(ts);
   const agentResult = checkAgentReferences(ts, skillRegistry);
   const supportingResult = checkSupportingFiles(ts);
+  const packageResult = checkSkillPackages(ts);
   const pluginResult = checkPluginReferences(ts);
 
-  const violations = [...agentResult.violations, ...supportingResult.violations, ...pluginResult.violations];
+  const violations = [
+    ...agentResult.violations,
+    ...supportingResult.violations,
+    ...packageResult.violations,
+    ...pluginResult.violations,
+  ];
   const blocking = violations.filter(isBlocking);
 
   return {
@@ -330,6 +400,7 @@ export function checkG7({ ts }) {
       agents: agentResult.scanned,
       skills: skillRegistry.size,
       supportingFileRefsChecked: supportingResult.checked,
+      skillPackages: packageResult.checked,
       pluginRefsChecked: pluginResult.checked,
     },
   };

@@ -49,7 +49,7 @@
       "source": "docs/ORCHESTRATION.md:9"
     }
   ],
-  "generated_at": "2026-08-31T12:40:16.289Z",
+  "generated_at": "2026-09-03T10:56:33.314Z",
   "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること（§11.4）。",
   "_warning": [
     "自動生成ファイル。手動編集禁止。",
@@ -140,6 +140,44 @@
         ".claude/skills/<skill-name>/SKILL.md"
       ],
       "filename_fixed": "SKILL.md",
+      "filename_fixed_scope": "スキル定義ファイル（パッケージ直下の1件）の名前のみ。同ディレクトリ内の supporting files を禁じる意味は持たない（package_layout を見よ）。",
+      "package_layout": {
+        "source": "docs/L2_SKILLS.md:130",
+        "required_entry": {
+          "entry": "SKILL.md",
+          "note": "メイン指示（必須）",
+          "source": "docs/L2_SKILLS.md:132"
+        },
+        "supporting_files_allowed": true,
+        "supporting_entries": [
+          {
+            "entry": "template.md",
+            "note": "テンプレート（任意）",
+            "source": "docs/L2_SKILLS.md:133"
+          },
+          {
+            "entry": "examples/",
+            "note": null,
+            "source": "docs/L2_SKILLS.md:134"
+          },
+          {
+            "entry": "sample.md",
+            "note": "期待形式の出力例（任意）",
+            "source": "docs/L2_SKILLS.md:135"
+          },
+          {
+            "entry": "scripts/",
+            "note": null,
+            "source": "docs/L2_SKILLS.md:136"
+          },
+          {
+            "entry": "validate.sh",
+            "note": "実行可能スクリプト（任意）",
+            "source": "docs/L2_SKILLS.md:137"
+          }
+        ],
+        "note": "skill パッケージのディレクトリには SKILL.md（必須）のほかに supporting files（任意）を置いてよい。Progressive Disclosure Loading の参照先であり、正典が明示的に許可している（G7 は逆に「本文が参照する supporting file の実在」を要求する）。ゆえに G3 は「skill ディレクトリ配下の非 SKILL.md」を一律違反にしてはならない。filename_fixed は**スキル定義ファイルの名前**が固定であることを述べるのみで、ディレクトリ内の他ファイルを禁じてはいない。"
+      },
       "dirname_must_match_name": {
         "value": null,
         "canon_says": "name の既定値がディレクトリ名（＝未指定ならディレクトリ名が採用される）",
