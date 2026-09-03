@@ -147,7 +147,7 @@ canon_version: v2.1.251
 
 1. **inline 会話履歴の継承**: 工程2のヒアリングは `requirement-elicitation` Skill を inline ロードし、メイン Claude の会話履歴を保ったままユーザーと往復対話する必要がある。オーケストレータを Subagent 化すると会話履歴が非継承となり（`L2_SKILLS.md §2.2`）往復ヒアリングが成立しない。
 2. **人間ゲートの自然な表現**: 各工程の停止と承認待ちは、inline のメイン Claude が結果を提示してユーザーの応答を待つ形で、セッション内で完結できる（再起動不要）。
-3. **harness の起動事情**: 本システムの SDK/harness 環境では `.claude/agents/` 配下の canon agent が `subagent_type` として未登録のため、`Agent(subagent_type="general-purpose", …)` 起動＋「`.claude/agents/<name>/<name>.md` を Read して定義に従え」のプロンプト注入で各ワーカーを起動する（`00_INDEX.md §9`・`ORCHESTRATION.md §2.3`）。この起動主体はメイン Claude に一元化する。
+3. **Subagent 起動方式**: 配下ワーカーは環境に登録されているネイティブの `subagent_type` を優先して起動する。環境によっては `.claude/agents/` 配下の canon agent が `subagent_type` として未登録のことがあり（`00_INDEX.md §9`・`ORCHESTRATION.md §2.3`）、その場合に限り `Agent(subagent_type="general-purpose", …)` 起動＋「`.claude/agents/<name>/<name>.md` を Read して定義に従え」のプロンプト注入へフォールバックする。**`general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13（§5.3）が強制するワーカーのコマンド実行系ツール剥奪を無効化する**ため、フォールバックは §4.4 の承認捏造不能の前提を崩す——常用せず、ネイティブ起動を優先する。この起動主体はメイン Claude に一元化する。
 
 オーケストレータ Skill 本文には `context: fork` を**付与しない**（fork すると会話履歴が非継承になりヒアリングが破綻する・`L2_SKILLS.md §2.2`）。
 
@@ -161,7 +161,7 @@ canon_version: v2.1.251
 
 ### 4.3 ステージ・ディスパッチ（完了リクエストとゲート発火）
 
-決定論ゲート（詳細設計書 §11）は Hooks で発火するが、`SubagentStop` の matcher に渡る agent type は、harness で全ワーカーが `general-purpose` 経由起動されるため**どの工程が停止したかを名前で判別できない**。そこで:
+決定論ゲート（詳細設計書 §11）は Hooks で発火するが、`SubagentStop` の matcher に渡る agent type だけでは判別を環境非依存にできない——ワーカーがネイティブの `subagent_type` で起動される環境と `general-purpose` へフォールバックする環境が混在しうるため、**どの工程が停止したかを名前だけで判別する設計にしない**。そこで:
 
 - 各工程ワーカーは**最終アクションとして「完了リクエスト」ファイル** `work/<ts>/.requests/<stage>` を書く（例: `investigation` / `requirements` / `spec` / `design` / `generation`）。
 - `SubagentStop`（または `Stop`）で発火するゲート配線が `.requests/` を走査し、**リクエストの種類に応じてゲートバッチを選ぶ**。通過時のみ権威マーカー `output/<ts>/.gate/markers/<stage>.done` を鋳造し、処理したリクエストを消費（削除）する。違反時はブロックラッチ `output/<ts>/.gate/blocks/<stage>.blocked` を残す。消費の順序と冪等性は §4.5 の消費規約に従う。
@@ -471,7 +471,7 @@ claude-canon/
 | 生成物 | 対象プロジェクト用の実運用カスタマイズ一式 |
 | 工程順 | 調査1→ヒアリング→調査2→spec→選定→設計→生成→検証→品質検査→照合付き配置（10工程） |
 | オーケストレーション | メイン Claude の Slash Command Skill（`/canon`）＋ Subagent 委譲＋ファイル駆動。handoffs 不採用 |
-| 起動方式 | canon agent は `subagent_type` 未登録のため general-purpose 経由＋定義ファイル Read 注入（harness 事情） |
+| 起動方式 | ネイティブ `subagent_type` を優先。未登録環境に限り general-purpose 経由＋定義ファイル Read 注入へフォールバック（`docs/L3_AGENTS.md §2.1`） |
 | 工程2 | ワーカー化せずオーケストレータ直接対話。合意記録は requirements-recorder が直列化 |
 | 使用不可制約 | `requirements.md` constraints に保持。機能選定の分岐を事前刈り込み。調査検出＋ヒアリング確認 |
 | 成果物出力 | 全量スナップショット（output 配下・gitignore） |

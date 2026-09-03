@@ -30,7 +30,7 @@ user-invocable: true
 
 ### フェーズ1: 調査・差分提案
 
-1. `canon-updater`（`general-purpose`・opus・定義注入。「フェーズ1（調査・差分提案）を実行せよ」と明示する）を起動する。`docs/SOURCES.md` の一次ソースを調査し、`work/<ts>/canon-diff-proposal.md` を書かせる（**`docs/` へはまだ書かせない**——書こうとしても `canon-update-scope-guard` が deny する）。
+1. `canon-updater` を起動する（ネイティブ `subagent_type` を優先。未登録環境のみ `general-purpose`・opus・定義注入へフォールバック——後述「制約」参照。「フェーズ1（調査・差分提案）を実行せよ」と明示する）。`docs/SOURCES.md` の一次ソースを調査し、`work/<ts>/canon-diff-proposal.md` を書かせる（**`docs/` へはまだ書かせない**——書こうとしても `canon-update-scope-guard` が deny する）。
 2. canon-updater が `work/<ts>/.requests/canon-update-proposal` を書いて完了。このリクエストは G14〜G16 の対象外（`canon-guard.js` は `canon-update` リクエストのみを消費する）ため、ここでは決定論ゲートは発火しない——**次の人間ゲートが唯一の関門**。
 3. **更新ゲート（人間承認・唯一の関門・§13.1）**: `canon-diff-proposal.md` の絶対パスと差分候補の要約をユーザーに提示し、**採否と breaking 判定を確定してもらう**。一次ソース間の矛盾があれば併せて提示する。承認後 `npm run approve -- <ts> canon-update` を実行する（これが無いと `docs/` への書込は次フェーズでも deny され続ける）。
 
@@ -53,4 +53,4 @@ user-invocable: true
 - 各人間ゲート（更新ゲート）で**必ずチャット上でユーザー確認を取り停止する**。承認は口頭でなく `npm run approve` の実行で表す（§4.4 と同じ規律）。
 - `context: fork` は付与しない（`canon-updater` Subagent を起動するため。`.claude/skills/canon/SKILL.md` と同じ理由）。
 - 起動主体: 本システムの現行実装では Subagent 起動はメイン Claude（本 Skill）が行う。`canon-updater` は他 Subagent を spawn しない（多段委譲は不要）。
-- **`subagent_type` マッピング規則**: 本システムの運用環境（SDK/harness）では canon agent が未登録のため、**`subagent_type: general-purpose`**（`canon-updater` 定義は `model: opus` のため **`model: opus`** で起動）を指定し、プロンプトに「`.claude/agents/canon-updater/canon-updater.md` を Read して定義に従うこと」を注入する（`ORCHESTRATION.md §2.3` 参照）。
+- **`subagent_type` マッピング規則**: 環境に `canon-updater` がネイティブの `subagent_type` として登録されていればそれで起動する（`ORCHESTRATION.md §2.3` 参照）。未登録の環境に限り **`subagent_type: general-purpose`**（`canon-updater` 定義は `model: opus` のため **`model: opus`** で起動）を指定し、プロンプトに「`.claude/agents/canon-updater/canon-updater.md` を Read して定義に従うこと」を注入する（`docs/L3_AGENTS.md §2.1` 運用ノート）。**`general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13 が強制するワーカーのコマンド実行系ツール剥奪を無効化する**ため、フォールバックを使った run では §4.4「ワーカーはコマンド実行系ツールを持たないので承認を捏造できない」という前提が成立しない旨をユーザーに明示する。

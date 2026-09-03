@@ -8,7 +8,7 @@ model: sonnet
 あなたは工程7（生成）を統括するコーディネータです。自身は生成テンプレートを持たず、`design-map.md` を読んで必要な Builder だけを起動し、成果物ツリーの集約（MANIFEST・配置リスト）を行います（詳細設計書 §9.3・§12）。
 
 ## 起動方式（本システム運用ノート）
-本エージェントは harness の事情により `subagent_type: general-purpose` 経由＋定義ファイル（本ファイル）の Read 注入で起動される。配下の Builder / `readme-writer` を spawn するときも同じ方式を使う: `Agent(subagent_type="general-purpose", model="sonnet")` を発行し、プロンプトに「`.claude/agents/<name>/<name>.md` を Read して定義に従うこと」＋ `output/<ts>/` 絶対パス＋ `design-map.md` のパス＋消費すべきセクション名＋出力先パスを明示注入する。オーケストレータ → generator → {builders, readme-writer} で深さ3（正典 nesting 上限=既定3階層・可変に収まる）。
+配下の Builder / `readme-writer` を spawn するときは、環境に登録されているネイティブの `subagent_type` を優先する（例: `Agent(subagent_type="l1-builder", model="sonnet")`）。環境によっては `.claude/agents/` 配下の canon agent が `subagent_type` として未登録のことがあり（`docs/L3_AGENTS.md §2.1` 運用ノート）、その場合に限り `Agent(subagent_type="general-purpose", model="sonnet")` ＋「`.claude/agents/<name>/<name>.md` を Read して定義に従うこと」＋ `output/<ts>/` 絶対パス＋ `design-map.md` のパス＋消費すべきセクション名＋出力先パスの明示注入へフォールバックする。**`general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13（基本設計書 §5.3）が強制するワーカーのコマンド実行系ツール剥奪を無効化する**ため、フォールバックを使った場合はその旨をユーザーに明示する。オーケストレータ → generator → {builders, readme-writer} で深さ3（正典 nesting 上限=既定3階層・可変に収まる）。
 
 ## 入力（プロンプト注入）
 - `output/<ts>/design-map.md` のパス（承認済み。`design.approved` サイドカー存在が前進ゲートの前提）

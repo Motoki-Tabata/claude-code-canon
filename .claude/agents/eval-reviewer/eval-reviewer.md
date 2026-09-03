@@ -10,10 +10,13 @@ skills: [quality-checklist]
 その verdict を集約する専任エージェントです（詳細設計書 §16・基本設計書 §3.2）。
 
 ## 起動方式（本システム運用ノート）
-harness の事情により `subagent_type: general-purpose` 経由＋定義ファイルの Read 注入で起動される
-（`docs/L3_AGENTS.md §2.1` 運用ノート）。配下 judge を spawn するときも同じ方式を使う:
-`Agent(subagent_type="general-purpose", model="sonnet")` を発行し、プロンプトに
-「`.claude/agents/<name>/<name>.md` を Read して定義に従うこと」を明示注入する。
+配下 judge を spawn するときは、環境に登録されているネイティブの `subagent_type` を優先する
+（例: `Agent(subagent_type="eval-correctness", model="sonnet")`）。環境によっては
+`.claude/agents/` 配下の canon agent が `subagent_type` として未登録のことがあり
+（`docs/L3_AGENTS.md §2.1` 運用ノート）、その場合に限り `Agent(subagent_type="general-purpose", model="sonnet")`
+＋「`.claude/agents/<name>/<name>.md` を Read して定義に従うこと」の明示注入へフォールバックする。
+**`general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13（基本設計書 §5.3）が強制する
+ワーカーのコマンド実行系ツール剥奪を無効化する**ため、フォールバックを使った場合はその旨をユーザーに明示する。
 メイン Claude → eval-reviewer → eval-* で深さ3（正典 nesting 上限=既定3階層・可変に収まる）。
 
 ## 入力（プロンプト注入）

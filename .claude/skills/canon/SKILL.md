@@ -25,9 +25,9 @@ argument-hint: "<target_project_path>"
 3. **承認は CLI が唯一の鋳造経路**（§4.4・承認鋳造経路の一本化）。`.gate/**` はエージェント書込 deny-all。人間ゲート通過後、オーケストレータ（＝本 Skill を実行するメイン Claude）が `npm run approve -- <ts> <kind>` を **Bash で実行**する。ワーカーはコマンド実行系ツールを持たないので承認を捏造できない。
 4. **工程間の状態はファイルが持つ**（§4.2）。各ワーカーは入力ファイルを読み、出力ファイルを書き、最後に `work/<ts>/.requests/<stage>` を書いて完了を告げる。`SubagentStop` で `stage-guard`/`gen-guard` が発火し、通過時のみ `output/<ts>/.gate/markers/<stage>.done` を鋳造する。
 
-## `subagent_type` マッピング（§4.1・harness 事情）
+## `subagent_type` マッピング（§4.1）
 
-本 SDK/harness では canon agent が `subagent_type` に未登録。全ワーカーを **`Agent(subagent_type="general-purpose", model=<各 agent の model>)`** で起動し、プロンプトに「`.claude/agents/<name>/<name>.md` を Read して定義に従うこと」＋ `<ts>`・入出力の絶対パス・前段の結果を明示注入する。この起動主体はメイン Claude に一元化し、ワーカーに多段委譲を指示しない（investigator の系統A/B spawn を除く）。
+全ワーカーは、環境に登録されているネイティブの `subagent_type`（例: `Agent(subagent_type="spec-writer", model=<各 agent の model>)`）を優先して起動する。環境によっては `.claude/agents/` 配下の canon agent が `subagent_type` として未登録のことがあり（`docs/L3_AGENTS.md §2.1` 運用ノート）、その場合に限り **`Agent(subagent_type="general-purpose", model=<各 agent の model>)`** ＋「`.claude/agents/<name>/<name>.md` を Read して定義に従うこと」＋ `<ts>`・入出力の絶対パス・前段の結果の明示注入へフォールバックする。**`general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13（基本設計書 §5.3）が強制するワーカーのコマンド実行系ツール剥奪を無効化する**——フォールバックを使った run では §4.4「ワーカーはコマンド実行系ツールを持たないので承認を捏造できない」という前提が成立しないため、使った場合はユーザーに明示する。この起動主体はメイン Claude に一元化し、ワーカーに多段委譲を指示しない（investigator の系統A/B spawn を除く）。
 
 ---
 
@@ -48,7 +48,7 @@ argument-hint: "<target_project_path>"
 
 ### 工程1: プロジェクト調査1（浅く広く・2系統）→ P1
 
-1. `investigator` を起動（`general-purpose`・sonnet・定義注入）。investigator は系統A `existing-customization-analyzer` と系統B `project-profiler` を**並列 spawn**し（深さ3・§4.4）、`work/<ts>/existing_customizations.md`（系統A）と `work/<ts>/project_profile.md`（系統B の profile 節）を書く。読取専用。
+1. `investigator` を起動（ネイティブ `subagent_type`。未登録環境のみ `general-purpose` フォールバック・sonnet）。investigator は系統A `existing-customization-analyzer` と系統B `project-profiler` を**並列 spawn**し（深さ3・§4.4）、`work/<ts>/existing_customizations.md`（系統A）と `work/<ts>/project_profile.md`（系統B の profile 節）を書く。読取専用。
 2. investigator が `work/<ts>/.requests/investigation` を書いて完了。`SubagentStop` で `stage-guard` が G1（調査1）を検査しマーカー鋳造。
 3. **P1**: 調査サマリをユーザーに提示し、続行を確認して停止。
 
