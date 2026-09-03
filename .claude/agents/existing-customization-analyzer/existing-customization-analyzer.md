@@ -56,6 +56,10 @@ model: sonnet
    `` `src/**/*.js` `` のようにバッククォートで囲むと、G2 の照合器がそのまま文字列比較するため
    系統Bの `ref_resolution[].ref`（同じく裸パス）と一致せず「未解決」の誤検知になる。
    正: `value: "src/**/*.js"`。誤: `` value: `src/**/*.js` ``。
+   **`project_refs` は `- kind: <語> value: <値>` を必ずこの順で1行に書く箇条書き**
+   （`gates/lib/investigation.js` がこの1行だけを正規表現で読む）。インライン角括弧
+   `project_refs: [...]` にまとめたり、`kind`/`value` を別行に分けたりすると、その参照は
+   丸ごと読み飛ばされて C5 の照合対象から静かに消える（無ければ `project_refs: []`）。
 2. **`canon_conformance.deprecated_notation` は「無し」を表す唯一の正しい値が `[]`**。
    自然文（「なし」「無し」等）は厳密不一致で clean と判定されない。値が無ければ空配列を書く。
    同様に `tool_names_valid` は `tools:` フィールドを宣言しないレコードでも常に `true` と
@@ -63,7 +67,14 @@ model: sonnet
 3. **`project_refs` は1参照につき1エントリ**。節番号のまとめ書きや複数パスの圧縮表記
    （`"a.js, b.js, c.js"` 等）は避ける——系統Bの `ref_resolution` と文字列完全一致で結合される
    （C5・`gates/g2_keep_judgement.js`）ため、粒度がずれると解決可能な参照でも「未解決」扱いになる。
+   **`customization_refs` はインライン角括弧 `[a, b]` か次行以降の `- a` 箇条書きのみが有効**。
+   角括弧無しのカンマ列（`customization_refs: a.md, b.md`）は値が読まれず**空リスト**として
+   扱われ、C3 がその依存関係を何も検査しない黙った取りこぼしになる（無ければ `[]`）。
 4. **`kind: settings`（frontmatter を持たない JSON。`.claude/settings.json` 等）のレコードは
    `canon_conformance.unknown_frontmatter_keys` を常に `[]` とする**。JSON のトップレベルキー
    （`$comment` 系等）は frontmatter の概念が無く「未知の frontmatter キー」として報告するのは
    圏域錯誤である（機能Y ライブ e2e で `.claude/settings.json` の C1 が誤って違反になった実例）。
+5. **`canon_conformance` の4キーは1キー1行の `key: value`** で書く（上記フォーマット例の
+   `frontmatter_keys_valid / unknown_frontmatter_keys / ...` はキー名をスラッシュで列挙して
+   いるだけで、そのまま1行に詰め込む記法ではない）。パーサはインデント配下の各行を個別に
+   `key: value` として読むため、複数キーを1行にまとめると残りのキーが欠落する。

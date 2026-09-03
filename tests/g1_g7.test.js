@@ -155,6 +155,87 @@ test('L024 G1 investigation: バッククォート囲みの evidence_paths は�
   );
 });
 
+// --- L024追補: evidence_paths の角括弧有無（ライブ /canon run 20260903_091044 の再現・
+//     project-profiler.md／existing-customization-analyzer.md の値の語彙契約是正の根拠） ---
+
+test('L024 G1 investigation: 角括弧ありの複数 evidence_paths は各項目に分割され実在照合を通る', (t) => {
+  const ts = tsFor(import.meta.url, 17);
+  setup(t, ts);
+  writeFileSync(path.join(work(ts), 'requirements.md'), '## 確定要件\n- id: R1\n');
+  writeFileSync(
+    path.join(work(ts), 'project_profile.md'),
+    [
+      '## focused',
+      'requirement_ref: R1',
+      'findings:',
+      '  - topic: t1',
+      '    evidence_paths: [docs/L3_AGENTS.md:48, docs/L2_SKILLS.md:105]',
+      '    summary: s1',
+      '',
+    ].join('\n')
+  );
+  writeFileSync(path.join(work(ts), 'target.txt'), ROOT.replace(/\\/g, '/') + '\n');
+  const r = checkG1({ ts, stage: 'investigation' });
+  assert.equal(r.ok, true, JSON.stringify(r.violations));
+});
+
+test('L024 G1 investigation: 角括弧なしのカンマ区切り evidence_paths は分割されず行全体が1項目となり違反（ライブ事故の再現）', (t) => {
+  const ts = tsFor(import.meta.url, 18);
+  setup(t, ts);
+  writeFileSync(path.join(work(ts), 'requirements.md'), '## 確定要件\n- id: R1\n');
+  writeFileSync(
+    path.join(work(ts), 'project_profile.md'),
+    [
+      '## focused',
+      'requirement_ref: R1',
+      'findings:',
+      '  - topic: t1',
+      '    evidence_paths: docs/L3_AGENTS.md:48, docs/L2_SKILLS.md:105',
+      '    summary: s1',
+      '',
+    ].join('\n')
+  );
+  writeFileSync(path.join(work(ts), 'target.txt'), ROOT.replace(/\\/g, '/') + '\n');
+  const r = checkG1({ ts, stage: 'investigation' });
+  assert.equal(
+    r.ok,
+    false,
+    '各パス単体は実在するのに、角括弧が無いため分割されず行全体が1個の値として existsSync に' +
+      '渡り違反になる（「パスが無いから落ちた」との交絡を排除した検証）'
+  );
+  assert.ok(
+    r.violations.some((v) => v.message.includes('docs/L3_AGENTS.md:48, docs/L2_SKILLS.md:105')),
+    '違反メッセージが「1項目として」行全体を含むこと——分解されない実挙動の固定: ' +
+      JSON.stringify(r.violations)
+  );
+});
+
+test('L024 G1 investigation: 角括弧の内側ではカンマが項目区切りとして働き、行番号側だけが単独の存在しないパスとして違反になる', (t) => {
+  const ts = tsFor(import.meta.url, 19);
+  setup(t, ts);
+  writeFileSync(path.join(work(ts), 'requirements.md'), '## 確定要件\n- id: R1\n');
+  writeFileSync(
+    path.join(work(ts), 'project_profile.md'),
+    [
+      '## focused',
+      'requirement_ref: R1',
+      'findings:',
+      '  - topic: t1',
+      '    evidence_paths: [docs/L3_AGENTS.md:1,20]',
+      '    summary: s1',
+      '',
+    ].join('\n')
+  );
+  writeFileSync(path.join(work(ts), 'target.txt'), ROOT.replace(/\\/g, '/') + '\n');
+  const r = checkG1({ ts, stage: 'investigation' });
+  assert.equal(r.ok, false, JSON.stringify(r.violations));
+  assert.ok(
+    r.violations.some((v) => v.message.includes('"20"')),
+    '角括弧の内側では `path:1,20` が `path:1` と `20` の2項目に分解され、`20` が単独の' +
+      '存在しないパスとして違反になること: ' + JSON.stringify(r.violations)
+  );
+});
+
 test('G1 spec: spec.md が無ければ違反', (t) => {
   const ts = tsFor(import.meta.url, 4);
   setup(t, ts);

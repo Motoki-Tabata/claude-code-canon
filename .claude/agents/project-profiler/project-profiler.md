@@ -48,14 +48,30 @@ ref_resolution:                       # designer の C5 判定入力
 実例は `fixtures/sample-repos/existing/expected-work/project_profile.md` の `ref_resolution`
 ブロックを参照）:
 
-1. **`evidence_paths` は裸パスで書く（バッククォート囲みを使わない）**。末尾に行番号 suffix
-   `:N` や行範囲 `:N-M` は付けてよい（省略も可）が、カンマ区切りの複数行番号は書かない
-   （リスト構文と衝突して2項目に分解される）。複数行を示したいときは行範囲を使うか
-   `findings` エントリを分ける。
+1. **複数パスを書くときは `[a, b, c]` の角括弧が必須**（`gates/lib/markdown.js` の
+   `parseListLike`）。角括弧を付けなければカンマ区切りに見えても**分割されず、行全体が
+   1本のパス**として扱われ、G1 の実在検査で存在しないパスとして幻覚扱いの違反になる
+   （ライブ `/canon run` 実例: `evidence_paths: CLAUDE.md:48, CLAUDE.md:105, CLAUDE.md:112,
+   CLAUDE.md:144` と角括弧無しで書いたところ、この行全体が1個の値として `existsSync` に
+   渡り違反になった。`[CLAUDE.md:48, CLAUDE.md:105, CLAUDE.md:112, CLAUDE.md:144]` と角括弧を
+   付けて解消）。単一パスのみなら角括弧は無くてもよいが、常に付けるほうが安全。
+   **裸パスで書く**（バッククォート囲みを使わない——`` `foo.md` `` はバッククォートごと
+   1つの値として扱われ実在照合に失敗する）。末尾に行番号 suffix `:N` や行範囲 `:N-M` は
+   付けてよい（省略も可）が、**1項目の中にカンマを書かない**——角括弧の**内側**では
+   カンマは項目の区切りとして働くため、`[foo.md:12,40]` は `foo.md:12` と `40` の2項目に
+   分割され、`40` が単独の存在しないパスとして違反になる。複数行を示したいときは行範囲
+   （`:12-40`）を使うか `findings` エントリを分ける。
+   **ブロック（次行以降の箇条書き）形式で書かない**——`evidence_paths:` を読む正規表現は
+   同じ行の値しか捕捉しないため、次行以降に並べた項目は検査対象から静かに漏れる。
 2. **`ref_resolution[].ref` は系統A `depends_on.project_refs[].value` と文字列完全一致で結合
    される**（C5・`gates/g2_keep_judgement.js`）。系統Aが渡した `project_refs` を**そのままの
    文字列・そのままの粒度**で `ref` に転記すること——独自に正規化・要約・結合しない。
    1参照につき1エントリを維持する（複数参照をまとめて1行にしない）。
+   **各エントリは `- ref: <値>  kind: <語>  resolved: <true|false>` をこの順で1行に書く**
+   （`gates/lib/investigation.js` のパーサが正規表現でこの1行しか読まない）。キーを複数行へ
+   分けたり順序を入れ替えると、その行はエントリとして読まれず**存在しなかったこと**になり、
+   C5 が「未解決」として静かにブロックする（`match_count`/`sample`/`reason` は同じ行の
+   後続でよい）。
 3. `resolved` は**真偽値のみ**（`true`/`false`）。「たぶん」「要確認」等の曖昧値を書かない
    ——解決できない場合は `resolved: false` と `reason` に理由を書く。
 4. **run 種別の sentinel ファイル**（`<ts>` プレースホルダを含まない `work/.canon-update-ts`・
