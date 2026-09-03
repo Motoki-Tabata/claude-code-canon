@@ -38,6 +38,8 @@ function setup(t, ts) {
   mkdirSync(path.join(workDir(ts), '.requests'), { recursive: true });
   // target.txt は evidence_paths 実在照合用（本テストは evidence_paths を書かないため実害なし）。
   writeFileSync(path.join(workDir(ts), 'target.txt'), posix(ROOT) + '\n');
+  // 系統A成果物（investigator.md の集約・永続化契約）。
+  writeFileSync(path.join(workDir(ts), 'existing_customizations.md'), '## サマリ\n既存カスタマイズなし。\n');
 }
 function writeRequest(ts) {
   writeFileSync(requestPath(ts, 'investigation'), '');
@@ -95,5 +97,20 @@ test('F1 ③調査2 focused 欠落＝回帰ロック: phase1 マーカー在で�
   assert.equal(fixed[0].ok, false);
   assert.equal(hasBlockLatch(ts, 'investigation.focused'), true, '修正後: focused 欠落を検出しブロックラッチを鋳造する');
   assert.equal(hasMarker(ts, 'investigation'), true, 'phase1 の investigation.done は不変（意味を壊さない）');
+  assert.equal(existsSync(requestPath(ts, 'investigation')), true, 'fail 時はリクエストを残す（再判定の契機）');
+});
+
+test('F1 ④ existing_customizations.md 不在＝investigator が配下 spawn 直後に turn を終える failure mode の dispatch 層回帰ロック（実測 run 20260903_091044）', (t) => {
+  const ts = tsFor(import.meta.url, 4);
+  cleanupTs(t, ts);
+  mkdirSync(path.join(workDir(ts), '.requests'), { recursive: true });
+  writeFileSync(path.join(workDir(ts), 'target.txt'), posix(ROOT) + '\n');
+  // setup() は使わず existing_customizations.md を意図的に欠かせる（故意の違反注入）。
+  writeProfile(ts, { focused: false }); // requirements.md 無し＝調査1
+  writeRequest(ts);
+  const results = processStageRequests({ ts, stages: STAGES, runChecks, markerKey: investigationMarkerKey });
+  assert.equal(results[0].action, 'fail', JSON.stringify(results[0]));
+  assert.equal(hasBlockLatch(ts, 'investigation'), true, 'dispatch 層を経由しても existing_customizations.md 不在は検出される');
+  assert.equal(hasMarker(ts, 'investigation'), false, 'fail 時は marker を鋳造しない');
   assert.equal(existsSync(requestPath(ts, 'investigation')), true, 'fail 時はリクエストを残す（再判定の契機）');
 });

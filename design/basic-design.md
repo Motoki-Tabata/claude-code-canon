@@ -163,7 +163,7 @@ canon_version: v2.1.251
 
 決定論ゲート（詳細設計書 §11）は Hooks で発火するが、`SubagentStop` の matcher に渡る agent type だけでは判別を環境非依存にできない——ワーカーがネイティブの `subagent_type` で起動される環境と `general-purpose` へフォールバックする環境が混在しうるため、**どの工程が停止したかを名前だけで判別する設計にしない**。そこで:
 
-- 各工程ワーカーは**最終アクションとして「完了リクエスト」ファイル** `work/<ts>/.requests/<stage>` を書く（例: `investigation` / `requirements` / `spec` / `design` / `generation`）。
+- 各工程ワーカーは**最終アクションとして「完了リクエスト」ファイル** `work/<ts>/.requests/<stage>` を書く（例: `investigation` / `requirements` / `spec` / `design` / `generation`）。**書く前に、そのステージの成果物ファイルが実在し空でないことを自分で確認する。確認できない場合は完了リクエストを書かず、欠落を親へ報告する**（成果物なきリクエストはゲートに空の検査対象を渡し vacuous pass を招く・詳細設計書 §11.5）。
 - `SubagentStop`（または `Stop`）で発火するゲート配線が `.requests/` を走査し、**リクエストの種類に応じてゲートバッチを選ぶ**。通過時のみ権威マーカー `output/<ts>/.gate/markers/<stage>.done` を鋳造し、処理したリクエストを消費（削除）する。違反時はブロックラッチ `output/<ts>/.gate/blocks/<stage>.blocked` を残す。消費の順序と冪等性は §4.5 の消費規約に従う。
 - 承認は人間ゲート通過後に、オーケストレータが `npm run approve -- <ts> <kind>` を実行し、**`tools/approve.js` が承認サイドカー `output/<ts>/.gate/approvals/<kind>.approved` を鋳造する**。承認サイドカーは前進ゲートと凍結の根拠になる（詳細設計書 §11.3）。**エージェント（オーケストレータ含む）は `.gate/**` を Write/Edit で書かない**（§4.4）。
 

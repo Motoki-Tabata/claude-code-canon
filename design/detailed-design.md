@@ -349,7 +349,7 @@ pre-deploy-check / deploy は `deploy/` 正本（基本設計書 §14）の**ス
 
 | ゲート | 内容 | spec 対応 | 系統 | 発火契機 |
 |---|---|---|---|---|
-| **G1** 工程順・状態 | focused 空欄違反／evidence_paths 実在／open_questions 残存／requirements の enum（strength_needed・priority）／承認サイドカーの存在＋approved_by | 規律 | stage | SubagentStop@各リクエスト |
+| **G1** 工程順・状態 | focused 空欄違反／evidence_paths 実在／open_questions 残存／requirements の enum（strength_needed・priority）／承認サイドカーの存在＋approved_by／work/<ts>/existing_customizations.md 実在（系統A成果物・§6.1） | 規律 | stage | SubagentStop@各リクエスト |
 | **G2** 維持判定妥当性 | keep 全レコードで keep_conditions C1〜C5 が true／**実照合**: C1（対象原本が正典 frontmatter/tools 適合）・C3（keep の依存先が同 design-map で retire/modify されない）・C5（対象原本の project 参照が対象リポジトリで解決）／**形式検査のみ**: C2・C4 が true 宣言（意味判断は eval へ回付・基本設計書 §8.4）／廃止の manifest_note | A2 | stage | SubagentStop@design |
 | **G3** パス規約準拠 | 許可パス合致／拡張子・種別整合／skill ディレクトリ名＝name 一致※／**skill パッケージ配下の supporting files は違反にしない**（正典 `L2_SKILLS.md §2.1` ディレクトリ構造の明示的許可） | A3 | per-file | PostToolUse |
 | **G4** frontmatter スキーマ | 必須キー存在（Subagent: name＋description）／未知キー検出／型・語彙照合 | A3 | per-file | PostToolUse |
@@ -550,6 +550,8 @@ G14〜G16 は機能X（§13.1）の run が消費する完了リクエスト `wo
 | **カナリア** | 工程1直前（`<ts>` 採番後） | **ガードが現に発火する**こと | ワーカーはコマンド実行系ツールを持たないが、ガード自体が沈黙している |
 
 順序は **G13 →（`<ts>` 採番）→ カナリア → 工程1**。G13 が先なのは、`UserPromptExpansion` が `/canon` の展開時＝採番より前に発火する自然な帰結であり、かつ**カナリアはガードの生存しか見ない**ため、ワーカーの権限逸脱を先に潰しておく必要があるからである。逆にカナリアが G13 より前に来ることはできない（採番前は run 外と判定されガードが素通りする・§11.3）。
+
+**コーディネータの turn 中断（vacuous pass の送り側）**: G13 との2重の門（本節上記）は「ガードが生きているか」を守るが、**ガードの前段——完了リクエストと成果物そのものが書かれるか——は別の脆弱点である**。`investigator`／`eval-reviewer`／`generator`（唯一 `Agent` ツールを持つ3コーディネータ）が配下ワーカーを spawn した直後、結果を回収せずに turn を終えると、`.requests/<stage>` が書かれないまま SubagentStop が発火し、stage-guard/gen-guard は「対象リクエストなし」として exit 0 で通過する（実測: run 20260903_091044 で investigator・eval-reviewer が各1回）。G13 が「ワーカーの外側からガードを迂回する経路」を塞ぐのと対称に、この経路は「ガードの内側（判定ロジック）に判定対象を渡さない」ことで検査を沈黙させる——G13 と同様に**発火機会が構造的にゼロ**になる帰結だが、成因は逆（G13は権限の逸脱・本件はコーディネータの turn 完走義務の欠如）である。ゲートは呼ばれて初めて判定できるため、この経路をゲート自身では検出できない。ゆえに帯域外の契約（`.claude/agents/{investigator,eval-reviewer,generator}/*.md` の完走義務・`.claude/rules/worker-definitions.md`）とオーケストレータ側の実在確認（`.claude/skills/canon/SKILL.md` の各工程末尾）で塞ぐ。G1 の investigation 段（`existing_customizations.md` 実在検査）は「リクエストは書かれたが成果物が無い」場合を機械的に捕らえるが、「リクエストも成果物も書かれない」場合は機械検査の射程外であり、オーケストレータの確認と人間ゲート P1・P6・P7 が最終防波堤となる。
 
 ---
 
@@ -806,6 +808,7 @@ judge に「何を見るか」を**決定論的に確定**させる。judge が�
 - eval-\* の完了で **SubagentStop は発火する**が、`.requests/` に残留があっても基本設計書 §4.5 ① の冪等演算（マーカー有 → 判定を再実行せず削除のみ）により**ブロックラッチの偽陽性は生じない**。この性質は配線テストで固定する（残留 request を置いて stage-guard / gen-guard を起動し、マーカー鋳造0・ラッチ0 を確認）。
 - **P7 の表現**: `npm run approve -- <ts> eval`（承認の唯一の鋳造経路・基本設計書 §4.4）。eval 承認は前進ゲート（approval-guard）の条件には使わない（工程10 は run 外の CLI 工程・§10.2）。
 - **eval ハーネス（`eval/`）は hooks から発火しない**。`gates/` が「hooks が発火させる不変土台」であるのに対し、`eval/` は CLI と `npm test` から回る別系統であり、ゆえに別ツリーに置く（基本設計書 §14）。
+- **eval ハーネスの起動経路**: `output/<ts>/eval-report.md` の集約検証（`eval/report.js` `checkEvalReport`）は `npm run eval:report -- <ts>` として CLI 起動できる（`main()` を持つ）。違反があれば exit 2。オーケストレータは工程9 の手順3（`.claude/skills/canon/SKILL.md`）でこれを実行し、5軸ファイルの欠落・`eval-report.md` の不在／空／集約漏れを検出する。
 
 ### 16.8 スクリプト構成
 

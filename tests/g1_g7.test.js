@@ -25,6 +25,9 @@ function setup(t, ts) {
   mkdirSync(path.join(out(ts), '.gate', 'approvals'), { recursive: true });
   mkdirSync(path.join(out(ts), 'generated', '.claude', 'agents'), { recursive: true });
   mkdirSync(path.join(out(ts), 'generated', '.claude', 'skills'), { recursive: true });
+  // 系統A成果物（investigator.md の集約・永続化契約）。investigation ステージ以外のテストにも
+  // 無害に存在させ、既存の投入手順を崩さない。
+  writeFileSync(path.join(work(ts), 'existing_customizations.md'), '## サマリ\n既存カスタマイズなし。\n');
 }
 
 test('G1 design ステージ: spec.approved が無ければ違反、有れば通過', (t) => {
@@ -47,6 +50,39 @@ test('G1 investigation: requirements.md が無ければ focused 空欄でも正�
   writeFileSync(path.join(work(ts), 'target.txt'), ROOT.replace(/\\/g, '/') + '\n');
   const r = checkG1({ ts, stage: 'investigation' });
   assert.equal(r.ok, true, '要件確定前は focused 空でも通る');
+});
+
+test('G1 investigation: existing_customizations.md が無ければ調査1段目でも違反（investigator が配下 spawn 直後に turn を終える failure mode の検出・実測 run 20260903_091044）', (t) => {
+  const ts = tsFor(import.meta.url, 20);
+  cleanupTs(t, ts);
+  mkdirSync(path.join(work(ts), '.requests'), { recursive: true });
+  // setup() は使わず existing_customizations.md を意図的に欠かせる（故意の違反注入）。
+  writeFileSync(path.join(work(ts), 'project_profile.md'), '## profile\nlanguages: js\n');
+  writeFileSync(path.join(work(ts), 'target.txt'), ROOT.replace(/\\/g, '/') + '\n');
+  const r = checkG1({ ts, stage: 'investigation' });
+  assert.equal(r.ok, false, 'existing_customizations.md 不在は project_profile.md の有無に関わらず違反');
+  assert.ok(
+    r.violations.some((v) => v.message.includes('existing_customizations.md')),
+    JSON.stringify(r.violations)
+  );
+});
+
+test('G1 investigation: existing_customizations.md と project_profile.md が両方無ければ両方が違反として報告される（片方しか報告されない事態の回帰ロック）', (t) => {
+  const ts = tsFor(import.meta.url, 21);
+  cleanupTs(t, ts);
+  mkdirSync(path.join(work(ts), '.requests'), { recursive: true });
+  // 何も書かない（両方欠落）。
+  const r = checkG1({ ts, stage: 'investigation' });
+  assert.equal(r.ok, false);
+  assert.ok(
+    r.violations.some((v) => v.message.includes('existing_customizations.md')),
+    'existing_customizations.md の違反が project_profile.md の早期 return に隠されない: ' +
+      JSON.stringify(r.violations)
+  );
+  assert.ok(
+    r.violations.some((v) => v.message.includes('project_profile.md')),
+    JSON.stringify(r.violations)
+  );
 });
 
 test('G1 investigation: requirements.md が有るのに focused 節が無ければ違反（調査3段目）', (t) => {

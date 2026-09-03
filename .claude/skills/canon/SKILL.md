@@ -49,7 +49,7 @@ argument-hint: "<target_project_path>"
 ### 工程1: プロジェクト調査1（浅く広く・2系統）→ P1
 
 1. `investigator` を起動（ネイティブ `subagent_type`。未登録環境のみ `general-purpose` フォールバック・sonnet）。investigator は系統A `existing-customization-analyzer` と系統B `project-profiler` を**並列 spawn**し（深さ3・§4.4）、`work/<ts>/existing_customizations.md`（系統A）と `work/<ts>/project_profile.md`（系統B の profile 節）を書く。読取専用。
-2. investigator が `work/<ts>/.requests/investigation` を書いて完了。`SubagentStop` で `stage-guard` が G1（調査1）を検査しマーカー鋳造。
+2. investigator が `work/<ts>/.requests/investigation` を書いて完了。`SubagentStop` で `stage-guard` が G1（調査1・両ファイルの実在を含む）を検査しマーカー鋳造。**investigator が完了リクエストを書かずに turn を終えた場合**（配下 spawn 直後に中断する failure mode・詳細設計書 §11.5）、`work/<ts>/existing_customizations.md`・`project_profile.md`・`.requests/investigation` の実在を確認し、欠けていれば investigator を再開させて完走させる。
 3. **P1**: 調査サマリをユーザーに提示し、続行を確認して停止。
 
 ### 工程2: 要件ヒアリング（inline・ワーカー化しない）→ P2
@@ -81,7 +81,7 @@ argument-hint: "<target_project_path>"
 ### 工程7: 生成（全量・README/MANIFEST を最終ステップ）→ P6
 
 1. `generator` を起動し、design-map を唯一の設計入力に `output/<ts>/generated/**` を生成させる。generator は必要な builder（`l1-builder`/`skill-builder`/`agent-builder`）と、最終ステップで `readme-writer`（README.md・MANIFEST.md・`.deploy/managed-paths.list`）を統括する（深さ: orchestrator→generator→builder・5以内）。
-2. 書込ごとに **PostToolUse で G3〜G6 が助言**（違反はラッチへ転写）。generator が `.requests/generation` を書いて完了 → `SubagentStop` で `gen-guard` が **snapshot ゲート G7〜G12** を検査（G12 が全 output に G3〜G6 を権威再検証）。
+2. 書込ごとに **PostToolUse で G3〜G6 が助言**（違反はラッチへ転写）。generator が `.requests/generation` を書いて完了 → `SubagentStop` で `gen-guard` が **snapshot ゲート G7〜G12** を検査（G12 が全 output に G3〜G6 を権威再検証）。**generator が完了リクエストを書かずに turn を終えた場合**（詳細設計書 §11.5）、`output/<ts>/generated/`・`MANIFEST.md`・`.deploy/managed-paths.list`・`.deploy/retired.list` の実在を確認し、欠けていれば generator を再開させて完走させる。
 3. **P6**: 生成物一式（generated/・MANIFEST・README）をユーザーに提示。承認後 `npm run approve -- <ts> generation` を実行。
    - 補足: generator が書くのは `.deploy/managed-paths.list`・`retired.list`（配置スクリプトの入力）まで。配置手順書 `.deploy/RUN.md` は工程10でオーケストレータが `emit-run-manifest.js` から出力する（配置先 `<target>` が定まるのが工程10のため）。
 
@@ -94,8 +94,8 @@ argument-hint: "<target_project_path>"
 決定論ゲート（工程8）と分離した**意味判断**の工程（§16）。**eval はマーカーを鋳造せず G バッチも発火させない**（§2・§16.7）。
 
 1. **判定入力バンドルを先に生成する**: `npm run eval:bundle -- <ts>`。design-map の keep/merge から `work/<ts>/eval-bundle/keep-review/` を決定論的に作る。**designer の `keep_conditions` 宣言と rationale はバンドルに入らない**（judge が判定対象自身の主張に自己一致して常に clean と答える恒真バグを構造的に防ぐ・§16.3）。
-2. `eval-reviewer` を起動し、5軸（correctness / security / canon / context / keep-review）の judge を並列 spawn させる。各 judge は `output/<ts>/eval/<axis>.md` に本文＋json フェンス1個の verdict を書き、`eval-reviewer` が `output/<ts>/eval-report.md` へ集約する。
-3. **ハーネスで集約を機械検証する**: `node eval/report.js` 相当の検査（スキーマ・カバレッジ・集約漏れ）。回付対象（keep×C2/C4・merge×統合先）に未判定があれば eval の失敗として扱う。**判定対象0件は「品質を確認した」ではない**（§16.5）。
+2. `eval-reviewer` を起動し、5軸（correctness / security / canon / context / keep-review）の judge を並列 spawn させる。各 judge は `output/<ts>/eval/<axis>.md` に本文＋json フェンス1個の verdict を書き、`eval-reviewer` が `output/<ts>/eval-report.md` へ集約する。**eval-reviewer が集約せずに turn を終えた場合**（詳細設計書 §11.5。工程9 は完了リクエストを持たないため他の工程より検出が遅れやすい）、`output/<ts>/eval/<axis>.md` 5軸と `eval-report.md` の実在を確認し、欠けていれば eval-reviewer を再開させて完走させる。
+3. **ハーネスで集約を機械検証する**: `npm run eval:report -- <ts>`（`eval/report.js` `checkEvalReport` の CLI 起動・違反があれば exit 2）。スキーマ・カバレッジ・集約漏れを検査する。回付対象（keep×C2/C4・merge×統合先）に未判定があれば eval の失敗として扱う。**判定対象0件は「品質を確認した」ではない**（§16.5）。
 4. **P7**: `eval-report.md` を提示する。`verdict: violation` は**1件残らず提示**する（§8.4 の強制表示）。とくに **C2 の violation は P5 の再確認事項**として扱う。承認後 `npm run approve -- <ts> eval`。
 
 **eval は決定論ゲートの代替ではない**。eval が clean でも決定論ゲートのブロックラッチが立っていれば前進しない。逆に eval の指摘で生成物を書き換える場合は工程7へ戻る（自己修復はデータプレーン限定・§3.3）。judge が verdict を書けなかった／形式が壊れていた場合は、**「違反なし」と読まずに「judge が判定できなかった」と報告する**（§16.4）。

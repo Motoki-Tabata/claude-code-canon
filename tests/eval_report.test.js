@@ -9,9 +9,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { checkEvalReport, referredTargets } from '../eval/report.js';
 import { AXES } from '../eval/verdict.js';
+import { outputDir } from '../gates/lib/run.js';
 import { scratchDir } from './helpers/fixtures.js';
+import { runNodeScript } from './helpers/hook.js';
+import { cleanupTs } from './helpers/run-state.js';
+import { ROOT } from './helpers/paths.js';
 import { tsFor } from './helpers/ts.js';
 
 // 合成 verdict のスキーマが要求する飾りの ts（filesystem には一切触れない）。
@@ -52,9 +57,17 @@ const fullFindings = [
   { target: MERGE_SRC, condition: 'merge_target', verdict: 'clean', confidence: 'high', rationale: 'r', evidence: [] },
 ];
 
-/** 完全な output/<ts>/ 相当を作る。overrides で個別に壊せる。 */
+/**
+ * 完全な output/<ts>/ 相当を作る。overrides で個別に壊せる。
+ * `overrides.ts` を渡すと scratch ではなく実 output/<ts>/ に書く（CLI 子プロセステスト用。
+ * `t.after()` で後始末する）。
+ */
 function setup(t, overrides = {}) {
-  const dir = scratchDir(t, 'canon-eval-report-');
+  const dir = overrides.ts ? outputDir(overrides.ts) : scratchDir(t, 'canon-eval-report-');
+  if (overrides.ts) {
+    cleanupTs(t, overrides.ts);
+    mkdirSync(dir, { recursive: true });
+  }
   mkdirSync(path.join(dir, 'eval'), { recursive: true });
   if (overrides.designMap !== null) writeFileSync(path.join(dir, 'design-map.md'), overrides.designMap ?? DESIGN_MAP);
 
@@ -161,4 +174,33 @@ test('回付0件（keep/merge なし）は違反ではないが「eval 実施済
   const r = checkEvalReport({ ts: 'x', roots: { outputDir: c.dir } });
   assert.equal(r.referred.length, 0);
   assert.ok(r.notes.some((n) => n.includes('意味しない')), r.notes.join(' / '));
+});
+
+// --- CLI（npm run eval:report -- <ts>）: eval-reviewer が集約せずに turn を終える failure mode
+//     （詳細設計書 §16.7・§16.8）を子プロセスで検出する。実 output/<ts>/ を使う。 ---
+
+test('CLI: 軸ファイルが1つ欠けていれば exit 2 で欠落軸を報告する（故意の違反注入）', (t) => {
+  const ts = tsFor(import.meta.url, 1);
+  setup(t, { ts, skipAxis: 'security' });
+  const r = runNodeScript(path.join(ROOT, 'eval', 'report.js'), [ts]);
+  assert.equal(r.code, 2, r.stdout + r.stderr);
+  assert.ok(r.stdout.includes('security'), r.stdout);
+});
+
+test('CLI: import だけでは実行されない（isMainModule ガード配下・規律(g)）', () => {
+  const scriptUrl = path.join(ROOT, 'eval', 'report.js').replace(/\\/g, '/');
+  const out = execFileSync(
+    process.execPath,
+    ['-e', `import('file://${scriptUrl}').then(m => process.stdout.write('IMPORTED:' + Object.keys(m).sort().join(',')))`],
+    { encoding: 'utf8' }
+  );
+  assert.equal(out, 'IMPORTED:checkEvalReport,main,referredTargets', 'import だけで副作用(exit 2 等)が起きないこと');
+});
+
+test('CLI: 全軸・eval-report.md がそろっていれば exit 0', (t) => {
+  const ts = tsFor(import.meta.url, 2);
+  setup(t, { ts });
+  const r = runNodeScript(path.join(ROOT, 'eval', 'report.js'), [ts]);
+  assert.equal(r.code, 0, r.stdout + r.stderr);
+  assert.ok(r.stdout.includes('OK'), r.stdout);
 });

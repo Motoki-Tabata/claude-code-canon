@@ -7,8 +7,11 @@
  * どのステージの成果物を検査対象にするかは、成果物が実際にそのステージで書かれる
  * タイミング（§6.1〜§6.3・§7・§4.4）から一意に決まる:
  *
- *   - stage=investigation: focused 空欄違反／evidence_paths 実在
- *       （work/<ts>/project_profile.md ## focused・§6.2。調査は1段目と2段目の両方が
+ *   - stage=investigation: existing_customizations.md 実在／focused 空欄違反／evidence_paths 実在
+ *       （work/<ts>/existing_customizations.md 実在・§6.1。系統A（existing-customization-analyzer）
+ *        の成果物を investigator が集約・永続化してから完了リクエストを書く契約（investigator.md）
+ *        の実照合であり、調査1・調査2の両 phase で要求する（早期 return の対象にしない）。
+ *        work/<ts>/project_profile.md ## focused・§6.2。調査は1段目と2段目の両方が
  *        同じ 'investigation' 完了リクエストを書く（§4.3 の既知の語彙に "investigation2"
  *        は無い）ため、"要件確定後か" を work/<ts>/requirements.md の有無で判別する。
  *        requirements.md が無い＝調査1＝focused が空でも正当。requirements.md が有る＝
@@ -69,6 +72,22 @@ function formatViolation(v) {
 
 function checkInvestigationStage(ts) {
   const violations = [];
+
+  // 系統A成果物の実在（investigator.md の集約・永続化契約の実照合）。project_profile.md の
+  // 早期 return より前に置き、両方が欠けているときに一方しか報告されない事態を避ける
+  // （investigator が配下 spawn 直後に turn を終える failure mode・詳細設計書 §11.5）。
+  const existingCustomizationsPath = path.join(workDir(ts), 'existing_customizations.md');
+  if (!existsSync(existingCustomizationsPath)) {
+    violations.push(
+      violation(
+        GATE,
+        rel(existingCustomizationsPath),
+        'work/<ts>/existing_customizations.md が存在しない（系統A成果物欠落。investigator が集約・永続化せずに完了リクエストを書いた疑い）。',
+        '§6.1'
+      )
+    );
+  }
+
   const profilePath = path.join(workDir(ts), 'project_profile.md');
   if (!existsSync(profilePath)) {
     violations.push(

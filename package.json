@@ -33,6 +33,7 @@
     "unblock": "node tools/unblock.js",
     "eval:bundle": "node eval/bundle.js",
     "eval:meta": "node eval/meta-eval.js",
+    "eval:report": "node eval/report.js",
     "smoke:arm": "node tools/smoke-wiring.js arm",
     "smoke:check": "node tools/smoke-wiring.js check",
     "promote": "node tools/promote.js",

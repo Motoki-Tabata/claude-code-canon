@@ -15,7 +15,7 @@
 
 import path from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
-import { outputDir } from '../gates/lib/run.js';
+import { outputDir, isMainModule, readSessionTs } from '../gates/lib/run.js';
 import { parseExistingDisposition, DesignMapError } from '../gates/lib/design-map.js';
 import { AXES, loadVerdict, violationFindings } from './verdict.js';
 
@@ -128,4 +128,37 @@ export function checkEvalReport({ ts, roots = {}, axes = AXES }) {
   }
 
   return { ok: violations.length === 0, violations, notes, referred, perAxis, forcedReview };
+}
+
+// ---------------------------------------------------------------------------
+// CLI: npm run eval:report -- <ts>（省略時は work/.session-ts）
+//
+// 詳細設計書 §16.7・§16.8「eval ハーネスは CLI と npm test から回る」の実体。
+// オーケストレータが工程9 の手順3（.claude/skills/canon/SKILL.md）でこれを実行し、
+// eval-reviewer が集約せずに turn を終えた場合（§11.5 の vacuous pass）を検出する。
+// ---------------------------------------------------------------------------
+
+export function main(argv = process.argv.slice(2)) {
+  const ts = argv[0] || readSessionTs();
+  if (!ts) {
+    process.stderr.write('使い方: npm run eval:report -- <ts>（work/.session-ts があれば省略可）\n');
+    process.exitCode = 2;
+    return;
+  }
+  const { ok, violations, notes } = checkEvalReport({ ts });
+  process.stdout.write(`[eval:report] ts=${ts} ${ok ? 'OK' : 'NG'}\n`);
+  for (const n of notes) process.stdout.write(`  注意: ${n}\n`);
+  if (!ok) {
+    for (const v of violations) process.stdout.write(`  違反: ${v}\n`);
+    process.exitCode = 2;
+  }
+}
+
+if (isMainModule(import.meta.url)) {
+  try {
+    main();
+  } catch (err) {
+    process.stderr.write(`eval:report: ${err.message}\n`);
+    process.exit(2);
+  }
 }
