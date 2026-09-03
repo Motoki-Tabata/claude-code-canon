@@ -21,20 +21,22 @@
 import path from 'node:path';
 import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { walkManaged, readList } from '../gates/lib/managed-paths.js';
+import { walkManagedDetailed, readList } from '../gates/lib/managed-paths.js';
 import { isCanonSelfTarget, SELF_TARGET_MESSAGE } from '../gates/lib/self-target-guard.js';
 
 /**
  * 消失予定（対象に在って output に無い管理ファイル）を retired/uncaptured に区分する。
  * @param {string} outputDir  output/<ts>/（generated/ ＋ .deploy/ を含む）
  * @param {string} targetDir  対象リポジトリのルート
- * @returns {{ vanishing: {rel:string,category:string}[], retired: string[], uncaptured: string[], targetManaged: string[] }}
+ * @returns {{ vanishing: {rel:string,category:string}[], retired: string[], uncaptured: string[], targetManaged: string[], unreadable: {rel:string,code:string}[] }}
  */
 export function computeVanishing(outputDir, targetDir) {
   const genRoot = path.join(outputDir, 'generated');
   const retiredSet = new Set(readList(path.join(outputDir, '.deploy', 'retired.list')) ?? []);
   // 「対象の【実】管理パス集合 全ファイル」＝ §10.1 のパターンを対象へ適用した実在ファイル（§10.2 実装契約）。
-  const targetManaged = walkManaged(targetDir);
+  // unreadable（走査根の内側で種別判定できなかったエントリ）は「列挙できなかった範囲」＝
+  // 本防波堤の盲点なので、握りつぶさず report に載せて P8 の人間に見せる。
+  const { files: targetManaged, unreadable } = walkManagedDetailed(targetDir);
   const vanishing = [];
   const retired = [];
   const uncaptured = [];
@@ -48,7 +50,7 @@ export function computeVanishing(outputDir, targetDir) {
       uncaptured.push(rel);
     }
   }
-  return { vanishing, retired, uncaptured, targetManaged };
+  return { vanishing, retired, uncaptured, targetManaged, unreadable };
 }
 
 /** pre-deploy-report の本文を組み立てる（§10.2 実装契約: retired/uncaptured の区分と件数）。 */
@@ -68,6 +70,11 @@ export function renderReport(outputDir, targetDir, r) {
   if (r.uncaptured.length > 0) {
     lines.push('');
     lines.push('⚠ uncaptured を検出。調査取りこぼしの疑いがあるため配置を止め、調査 or design-map へ差し戻すこと（§10.2）。');
+  }
+  if (r.unreadable?.length > 0) {
+    lines.push('');
+    lines.push(`⚠ 走査不能: ${r.unreadable.length} 件（管理パス集合の一部を列挙できていない＝本照合の盲点）。`);
+    for (const u of r.unreadable) lines.push(`  [unreadable:${u.code}] ${u.rel}`);
   }
   return lines.join('\n') + '\n';
 }

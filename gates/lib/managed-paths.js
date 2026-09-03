@@ -87,24 +87,138 @@ export function readList(abs) {
 }
 
 /**
- * root 配下で管理パス集合に属する実ファイルの相対パス（posix・ソート済み）を全列挙する。
- * §10.2① の「対象の【実】管理パス集合 全ファイル」の走査に使う。集合外は拾わない。
+ * 管理パス集合の【走査根】＝リポジトリ直下で降りてよいエントリ名の集合
+ * （`CLAUDE.md` / `.claude` / `.mcp.json` / `plugin`）。
+ *
+ * ハードコードせず MANAGED_PATTERNS から機械導出する。走査根を第二の手書きリストとして
+ * 持つと、パターンを1本足したのに走査根を足し忘れた瞬間 walkManaged が黙って列挙漏れを
+ * 起こす——それは §10.1 が言う「列挙の網羅性が単一障害点」そのもの（L005: 代表例で仕様を
+ * 書くと列挙漏れが単一障害点）。導出は「先頭アンカー ^ の直後から最初の `/` まで」を取り、
+ * `\.` `\/` のエスケープだけを解く。リテラルでない先頭セグメント（`^(a|b)/` 等）は
+ * 機械導出できないので静かに握りつぶさず throw する。
  */
-export function walkManaged(root) {
-  const out = [];
-  if (!existsSync(root)) return out;
-  const walk = (dir) => {
-    for (const name of readdirSync(dir)) {
-      const abs = path.join(dir, name);
-      if (statSync(abs).isDirectory()) walk(abs);
-      else {
-        const rel = path.relative(root, abs).replace(/\\/g, '/');
-        if (isManaged(rel)) out.push(rel);
+let managedRootsCache = null;
+export function managedRoots() {
+  if (managedRootsCache) return managedRootsCache;
+  const roots = new Set();
+  for (const re of MANAGED_PATTERNS) {
+    if (!re.source.startsWith('^')) {
+      throw new Error(`managed-paths: 先頭アンカー ^ の無いパターンからは走査根を導出できない: ${re.source}`);
+    }
+    const head = re.source
+      .replace(/^\^/, '')
+      .replace(/\$$/, '')
+      .replace(/\\([./])/g, '$1')
+      .split('/')[0];
+    if (!/^[A-Za-z0-9._-]+$/.test(head)) {
+      throw new Error(
+        `managed-paths: 走査根を機械導出できないパターン: ${re.source}（先頭セグメントがリテラルでない）`
+      );
+    }
+    roots.add(head);
+  }
+  managedRootsCache = roots;
+  return roots;
+}
+
+/**
+ * root 配下で管理パス集合に属する実ファイルを列挙し、走査中に種別判定できなかった
+ * エントリも併せて返す。§10.2① の「対象の【実】管理パス集合 全ファイル」の走査。
+ *
+ * 【真実の源をどれに置いたか】ディスクの物理実在（走査根の直下のみ）を採る。git は採らない。
+ *   - 詳細設計 §10.2① の入力定義が「パターンを <target> に適用して**実在するファイル全部**」で
+ *     あり、この列挙は破壊操作（deploy step1 の退避 mv・step2 の全置換）の入力そのものだから。
+ *     `git ls-files` に切り替えると【過少報告】になる: 配置直後でまだ commit されていない
+ *     `.claude/` は untracked なので消え、pre-deploy-check は uncaptured を見落とし（P8 の
+ *     最終防波堤が黙って素通り）、deploy step1 は退避しないまま step2 で上書きする＝.bak の
+ *     無いデータ消失。対象が git リポジトリでない場合も同様に全滅する。過少報告は
+ *     過剰報告より高くつく。
+ *   - では .claude/rules/gates-and-tests.md の「readdirSync 手書き再帰でなく git ls-files」に
+ *     反するのか——あの規律の狙いは「追跡外の物理実在物（git worktree・退避ディレクトリ・
+ *     gitignore 済みのゴミ）を誤って拾わない」ことで、手段としての git はその代理でしかない。
+ *     ここでは同じ狙いを【走査根を管理パス集合の根に絞る】ことで満たす。実際、今回の事故で
+ *     踏んだ `backend/socket_*` 14件は .gitignore 済みだったが、走査根の外なので git に
+ *     頼らずとも最初から視界に入らない。node_modules/・build/・docker/volumes/ も同様。
+ *
+ * 【なぜ statSync を止めたか】旧実装は「ディレクトリか否か」を知るためだけに全エントリへ
+ * statSync していた。readdir の Dirent が既に種別を持っているので、その stat は不要であり、
+ * かつ socket・FIFO・権限拒否・走査中に消えたファイルで例外を投げて【走査全体】を落とす。
+ * 現に対象リポジトリの socket 1件で P8 の防波堤が起動不能になった。stat が要るのは
+ * シンボリックリンクの解決時だけで、そこは try/catch で当該エントリのみ捨てる。
+ *
+ * 【落としたものは黙殺しない】種別判定に失敗したエントリは unreadable に積んで返す。
+ * 走査根の内側で読めないものが在るということは、管理パス集合の一部を列挙できていない＝
+ * 防波堤に盲点があるということなので、pre-deploy-report で人間（P8）に見せる。
+ *
+ * 【G9 との一貫性】集合の【所属判定】は従来どおり isManaged/MANAGED_PATTERNS 一本で、
+ * G9（gates/g9_snapshot_completeness.js）と共有したまま変えていない。ここで変えたのは
+ * 走査の【範囲と手段】だけ。G9 が output/<ts>/generated/ を全ファイル走査するのは
+ * 「集合外を生成していないか」を検出するのが目的で、走査根に絞ると検出できなくなるため
+ * そちらは全走査のままが正しい（同じ関数にしてはいけない対）。
+ *
+ * @param {string} root 走査の起点（対象リポジトリのルート）
+ * @param {{readdir?:Function, stat?:Function}} [io] fs 注入口（テストで stat/readdir を
+ *   意図的に失敗させ、走査が生き残ることを示すための seam。本番は既定の node:fs）
+ * @returns {{files: string[], unreadable: {rel:string, code:string}[]}}
+ *   files は posix 相対パス・ソート済み。
+ */
+export function walkManagedDetailed(root, { readdir = readdirSync, stat = statSync } = {}) {
+  const files = [];
+  const unreadable = [];
+  if (!existsSync(root)) return { files, unreadable };
+
+  const roots = managedRoots();
+
+  const visit = (dirent, parentAbs, rel) => {
+    const abs = path.join(parentAbs, dirent.name);
+    let isDir = dirent.isDirectory();
+    if (dirent.isSymbolicLink()) {
+      // 旧実装の statSync はリンクを辿っていた。その挙動は保つが、
+      // 切れたリンク・権限拒否は当該エントリだけを捨てる。
+      try {
+        isDir = stat(abs).isDirectory();
+      } catch (err) {
+        unreadable.push({ rel, code: err?.code ?? 'EUNKNOWN' });
+        return;
       }
     }
+    if (isDir) {
+      let entries;
+      try {
+        entries = readdir(abs, { withFileTypes: true });
+      } catch (err) {
+        unreadable.push({ rel, code: err?.code ?? 'EUNKNOWN' });
+        return;
+      }
+      for (const e of entries) visit(e, abs, `${rel}/${e.name}`);
+      return;
+    }
+    // ディレクトリ以外（通常ファイル・socket・FIFO 等）は集合の所属判定にかける。
+    // socket が管理パスの位置に在れば退避スワップで実際に壊れるので、隠さず載せる。
+    if (isManaged(rel)) files.push(rel);
   };
-  walk(root);
-  return out.sort();
+
+  // リポジトリ直下の readdir 1回で走査根の実在と種別が分かる（走査根ごとの stat が要らない）。
+  let top;
+  try {
+    top = readdir(root, { withFileTypes: true });
+  } catch (err) {
+    unreadable.push({ rel: '.', code: err?.code ?? 'EUNKNOWN' });
+    return { files, unreadable };
+  }
+  for (const d of top) {
+    if (roots.has(d.name)) visit(d, root, d.name);
+  }
+
+  return { files: files.sort(), unreadable };
+}
+
+/**
+ * root 配下で管理パス集合に属する実ファイルの相対パス（posix・ソート済み）を全列挙する。
+ * walkManagedDetailed の薄いラッパ（判定ロジックは複製しない）。
+ */
+export function walkManaged(root, io) {
+  return walkManagedDetailed(root, io).files;
 }
 
 /** ファイルの sha256（hex）。§9.3 keep（G8）・§10.2 post-check のバイト同一照合に使う。 */

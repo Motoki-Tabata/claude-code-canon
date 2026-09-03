@@ -22,6 +22,16 @@
   「skill パッケージに定義ファイル `SKILL.md` が実在する」を新設。綴り違い（`Skill.md`）による
   サイレント不発火を検出する。実在判定は大小無視 FS（Windows）を避けてディレクトリエントリ名の
   完全一致で行う。
+- **`walkManaged` が stat 不能なエントリ1件で配置を完全にブロックしていた**
+  （`gates/lib/managed-paths.js`・`deploy/pre-deploy-check.js`）: 走査が全エントリへ
+  `statSync` を try/catch 無しで呼んでいたため、ソケット・FIFO・権限拒否・走査中に消えた
+  ファイルが1つあるだけで走査全体が中断していた。`deploy/deploy.js` も同じ走査を共有するため
+  **迂回経路が無く**、P8 の uncaptured 安全網ごと配置が実行不能になる。実測は
+  `/canon run 20260903_091044`——対象リポジトリの socket 様エントリ14件（全て `EACCES`）で
+  `pre-deploy-check` が `EACCES: permission denied, stat` を投げて落ちた。
+  走査根を `managedRoots()`（`MANAGED_PATTERNS` から機械導出・走査根を二重管理しない）へ限定し、
+  ツリー全体の再帰をやめた。読めないエントリは走査を止めず `unreadable` として記録し、
+  `pre-deploy-report` が**本照合の盲点として明示**する（黙って 0 件と報告しない）。
 
 ### Changed
 

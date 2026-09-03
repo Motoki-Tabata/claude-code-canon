@@ -11,6 +11,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { setupTmpCase } from './helpers/fixtures.js';
 import { runDeployCli } from './helpers/hook.js';
+import { renderReport } from '../deploy/pre-deploy-check.js';
 
 test('pre-deploy-check: greenfield は消失0件で exit 0', (t) => {
   const c = setupTmpCase(t, 'new');
@@ -35,4 +36,17 @@ test('pre-deploy-check: 未捕捉ファイルは uncaptured 検出で exit 2（�
   const r = runDeployCli('pre-deploy-check.js', [c.output, c.target]);
   assert.equal(r.code, 2, 'uncaptured は配置中断でなければならない');
   assert.match(r.stdout, /\[uncaptured\] \.claude\/skills\/surprise\/SKILL\.md/);
+});
+
+test('pre-deploy-report: 走査不能エントリを本照合の盲点として明示する', () => {
+  // walkManaged が種別判定に失敗したエントリは「管理パス集合の一部を列挙できていない」
+  // ことを意味する。落ちずに続行する代わりに黙殺すると、防波堤が静かに素通りになる。
+  const body = renderReport('/o/20260903_091044', '/t', {
+    vanishing: [],
+    retired: [],
+    uncaptured: [],
+    unreadable: [{ rel: '.claude/skills', code: 'EACCES' }],
+  });
+  assert.match(body, /走査不能: 1 件/);
+  assert.match(body, /\[unreadable:EACCES\] \.claude\/skills/);
 });
