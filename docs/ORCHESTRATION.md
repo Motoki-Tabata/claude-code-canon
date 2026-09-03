@@ -160,11 +160,11 @@
 - Project / User / Plugin スコープで再利用
 - `description` の精度が delegation の的中率を決める
 
-#### Custom Subagent の起動方式（`subagent_type` と本システムのワークアラウンド）
+#### Custom Subagent の起動方式（`subagent_type` と本システムのフォールバック）
 
 カスタム Subagent は、公式 Claude Code CLI では `Agent` tool の `subagent_type` に**カスタム agent 名**（frontmatter の必須 `name`）を直接指定して起動できる（自動 delegation / @メンション / `--agent` も同じ識別子を使う。詳細は [L3_AGENTS.md §2.1](./L3_AGENTS.md)）。`subagent_type` がビルトイン型に限定されるわけではない。
 
-ただし**本システムの運用環境（Claude Agent SDK / harness）では、`.claude/agents/` 配下のファイル定義 agent が `subagent_type` として登録されない**（ビルトイン型のみ露出）。そのため canon の orchestrator・メンテナンス Skill は、各専門 agent を次の方式で起動して同等動作を得る:
+本システムの orchestrator・メンテナンス Skill は、**登録済みのネイティブ `subagent_type` を優先**して各専門 agent を起動する。`.claude/agents/` 配下のファイル定義 agent が `subagent_type` として登録されない環境（Agent SDK で `settingSources` から `project` を外した構成など）に限り、次の方式で同等動作を得る:
 
 ```
 Agent(subagent_type="general-purpose", model=<タスクに応じて opus/sonnet>)
@@ -173,14 +173,14 @@ Agent(subagent_type="general-purpose", model=<タスクに応じて opus/sonnet>
   + 定義が preload する Skill があれば Skill 内容も読ませる
 ```
 
-| 観点 | 公式 CLI ネイティブ | 本システム（SDK/harness） |
+| 観点 | ネイティブ登録あり（既定） | フォールバック（未登録環境） |
 |---|---|---|
 | 呼び出し | `subagent_type: design-architect` | `subagent_type: general-purpose` + 定義ファイル Read 注入 |
 | 識別子 | frontmatter 必須 `name` | ディレクトリ名（`<name>/<name>.md`）を注入パスで指定 |
 | Skill preload | frontmatter `skills:` で自動 | プロンプトで明示的に読ませる |
 | model | frontmatter `model:` | Agent 起動時の `model` 引数で指定 |
 
-⚠ この方式は「`subagent_type` がビルトイン型しか受け付けない」ためではなく、**当該環境で canon agent が `subagent_type` 未登録**であるための回避策。CLI ネイティブで `subagent_type` 起動するには frontmatter 必須 `name:` の付与が要る（`.claude/agents/**` は人間の実装作業で直す。機能X の `canon-updater` は `docs/` のみを更新し `.claude/` は書き換えない——波及の**検出**は G15 が担うが、修正の実行は人間の仕事のまま・`/update-system` 相当の自動反映は実装しない）。
+⚠ このフォールバックは「`subagent_type` がビルトイン型しか受け付けない」ためでも SDK/harness であることが理由でもなく、**当該環境で canon agent が `subagent_type` 未登録**である場合の代替である。加えて `general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13（基本設計書 §5.3）が強制するワーカーのコマンド実行系ツール剥奪を無効化するため、フォールバックを使った run ではその旨をユーザーへ明示する。CLI ネイティブで `subagent_type` 起動するには frontmatter 必須 `name:` の付与が要る（`.claude/agents/**` は人間の実装作業で直す。機能X の `canon-updater` は `docs/` のみを更新し `.claude/` は書き換えない——波及の**検出**は G15 が担うが、修正の実行は人間の仕事のまま・`/update-system` 相当の自動反映は実装しない）。
 
 ### 2.4 完全な実装例
 

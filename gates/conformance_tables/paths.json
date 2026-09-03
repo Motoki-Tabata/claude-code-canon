@@ -49,7 +49,7 @@
       "source": "docs/ORCHESTRATION.md:9"
     }
   ],
-  "generated_at": "2026-09-03T10:56:33.314Z",
+  "generated_at": "2026-09-03T16:23:13.251Z",
   "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること（§11.4）。",
   "_warning": [
     "自動生成ファイル。手動編集禁止。",
@@ -94,7 +94,7 @@
       ],
       "dirname_must_match_name": {
         "value": false,
-        "source": "docs/L3_AGENTS.md:140",
+        "source": "docs/L3_AGENTS.md:143",
         "corroboration": "docs/L3_AGENTS.md:116",
         "note": "正典は「ファイル名・ディレクトリ名と一致する必要はない（識別は name のみ）」と明言する。G3 が agent に対しディレクトリ名＝name を要求すると正典に反する誤検出になる。"
       },

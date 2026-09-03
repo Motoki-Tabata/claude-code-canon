@@ -183,3 +183,4 @@ maintained_by: canon-updater（/update-docs 実行時に自動更新）
 | 日付 | 内容 |
 |---|---|
 | 2026-08-29 | 初版（v2.1.251 時点の一次ソース調査） |
+| 2026-09-04 | `subagent_type` の登録可否に関する論点のみを調査（部分更新）。ファイル定義 agent が `subagent_type` として登録されるかは実行環境の種別ではなく `settingSources` の指定・ディレクトリ監視の状態・frontmatter の妥当性・programmatic 定義との名前衝突で決まる、という一次ソースの記述を確認。これに伴い `L3_AGENTS.md §2.1`（運用ノート2箇所）・`00_INDEX.md §9`（用語集 `subagent_type` 行）・`ORCHESTRATION.md §2.3` の「SDK/harness 環境では未登録」という環境種別による断定を、ネイティブ `subagent_type` 優先＋未登録環境に限るフォールバックの両対応表現へ改めた。あわせてフォールバック時に `general-purpose` の `tools: *` が G13 のコマンド実行系ツール剥奪を無効化する旨の明示を4箇所へ追加。調査した一次ソース: https://code.claude.com/docs/en/agent-sdk/claude-code-features ／ https://code.claude.com/docs/en/agent-sdk/subagents ／ https://code.claude.com/docs/en/agent-sdk/typescript ／ https://code.claude.com/docs/en/sub-agents ／ https://code.claude.com/docs/en/changelog 。**確認バージョンは v2.1.251 のまま据え置き**（本 run は本論点に限定した部分調査であり、v2.1.252〜259 の全変更を突合していないため） |

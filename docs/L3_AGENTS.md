@@ -118,18 +118,21 @@ Built-in は Skill の `context: fork` でも、Subagent delegation でも参照
 - Plugin agent は **スコープ付き識別子** `plugin:subfolder:name`（例: `agents/review/security.md` を含む `my-plugin` → `my-plugin:review:security`）。
 - Hook（`SubagentStart` / `SubagentStop`）には `name` の値が `agent_type` として渡る（matcher で対象 agent を絞れる）。
 
-> **⚠ 本システム運用ノート（環境依存のワークアラウンド）**
+> **⚠ 本システム運用ノート（未登録環境でのフォールバック）**
 >
-> 一部の実行環境（**Claude Agent SDK / harness 構成**など）では、`.claude/agents/` 配下のファイル定義 agent が `Agent` tool の `subagent_type` として**登録されない**ことがある（ビルトイン型のみが `subagent_type` に露出する）。この場合、canon の agent（例: `design-architect`）を `subagent_type: design-architect` で直接起動することは**できない**。
+> 一部の実行環境では、`.claude/agents/` 配下のファイル定義 agent が `Agent` tool の `subagent_type` として**登録されない**ことがある（ビルトイン型のみが `subagent_type` に露出する）。この場合、canon の agent（例: `design-architect`）を `subagent_type: design-architect` で直接起動することは**できない**。
 >
-> 回避策として、本システムの orchestrator（`/canon`）およびメンテナンス Skill（`/update-docs`。機能X 実装契約により `canon-updater` を起動する。`/update-system` は実装されておらず本システムには存在しない）は、次の方式で**同等動作**を実現する:
+> 可否を決めるのは実行環境の種別ではなく設定と状態である。Agent SDK では `settingSources` の指定がこれを決め、**省略時は CLI と同じく user / project / local を読み `.claude/` の skills・agents・commands をロードする**（＝canon agent は登録される）。`settingSources: []` や `project` を外した構成では project の `.claude/agents/` がロードされない。ほかに、セッション開始後に新設した `agents` ディレクトリ（watcher 対象外・再起動が要る）・frontmatter 不備・`name` 重複・同名の programmatic 定義による上書きでもロードされない（出典: `agent-sdk/claude-code-features`・`agent-sdk/subagents`）。
+>
+> 本システムの orchestrator（`/canon`）およびメンテナンス Skill（`/update-docs`。機能X 実装契約により `canon-updater` を起動する。`/update-system` は実装されておらず本システムには存在しない）は、**登録済みのネイティブ `subagent_type` を優先して起動する**。未登録の環境に限り、次の方式で同等動作を得る（フォールバック）:
 > 1. `subagent_type: general-purpose` で起動する（`model` はタスク性質で選択。設計判断は `opus`、生成/レビューは `sonnet`）。
 > 2. プロンプトに「`.claude/agents/<name>/<name>.md` を Read し、その定義（手順・制約・返却形式）に従うこと」を**明示注入**する。
 > 3. その定義が preload する Skill があれば、Skill 内容も明示的に読ませる（frontmatter `skills:` preload と同等の効果を手動で得る）。
+> 4. フォールバック時は、`general-purpose` が `tools: *` で Bash/PowerShell/Monitor を含み、ワーカーからコマンド実行系ツールを剥奪する前提（基本設計書 §5.3 の G13）を無効化する旨をユーザーへ明示する。
 >
-> これは「`subagent_type` がビルトイン型しか受け付けない」からではなく、**当該環境で canon agent が `subagent_type` として登録されていない**ための回避策である。公式 Claude Code CLI 上では、`name` 必須フィールドを満たせばカスタム名を `subagent_type` に直接指定できる。
+> これは「`subagent_type` がビルトイン型しか受け付けない」からではなく、**当該環境で canon agent が `subagent_type` として登録されていない**ための代替（フォールバック）である。公式 Claude Code CLI 上では、`name` 必須フィールドを満たせばカスタム名を `subagent_type` に直接指定できる。
 >
-> **補足**: canon の agent 定義には必須の `name:` frontmatter が付与済みで、識別子は `name` で解決される。したがって公式 Claude Code CLI 上ではカスタム名での `subagent_type` 起動が可能であり、上記ワークアラウンドが必要なのは canon agent が `subagent_type` として登録されない SDK/harness 環境に限られる。詳細は [ORCHESTRATION.md §2.3 Custom Subagent の起動方式](./ORCHESTRATION.md) を参照。
+> **補足**: canon の agent 定義には必須の `name:` frontmatter が付与済みで、識別子は `name` で解決される。したがって公式 Claude Code CLI 上ではカスタム名での `subagent_type` 起動が可能であり、上記フォールバックが必要なのは canon agent が `subagent_type` として登録されていない環境に限られる（SDK/harness であること自体が理由ではなく、当該環境の設定次第である）。詳細は [ORCHESTRATION.md §2.3 Custom Subagent の起動方式](./ORCHESTRATION.md) を参照。
 
 #### frontmatter 完全リファレンス
 
@@ -298,7 +301,7 @@ Subagent は自身の subagent を spawn できる。委譲タスクがさらに
 | 抑止 | `tools` から `Agent` を外す、または `disallowedTools` に追加すると当該 subagent は spawn 不可 |
 | fork の特例 | fork は別の fork を spawn できない（named subagent は spawn 可で深さに数える） |
 
-> ⚠ **本システム運用ノート**: nesting が解禁されても、本システムの SDK/harness 環境では canon agent が `subagent_type` 未登録のため、依然 general-purpose 経由 + 定義ファイル Read 注入で起動する方式を採る（後述の運用ノート参照）。多段委譲が必要なら、起動した general-purpose subagent のプロンプト内でさらなる subagent 起動を指示する設計が可能になった。ただし既定の深度上限は3階層である点に注意。
+> ⚠ **本システム運用ノート**: nesting が解禁されても、本システムのワーカー起動は**ネイティブの `subagent_type` を優先**する（canon agent が `subagent_type` として登録されている環境ではそれで起動する）。未登録の環境に限り general-purpose 経由 + 定義ファイル Read 注入へフォールバックする（前掲の運用ノート参照）。フォールバック時は `general-purpose` が `tools: *` で Bash/PowerShell/Monitor を含み、G13（基本設計書 §5.3）が強制するワーカーのコマンド実行系ツール剥奪を無効化するため、その旨をユーザーへ明示する。多段委譲が必要なら、起動した subagent のプロンプト内でさらなる subagent 起動を指示する設計が可能になった。ただし既定の深度上限は3階層である点に注意。
 
 ---
 

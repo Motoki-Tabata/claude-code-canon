@@ -49,7 +49,7 @@
       "source": "docs/ORCHESTRATION.md:9"
     }
   ],
-  "generated_at": "2026-09-03T10:56:33.314Z",
+  "generated_at": "2026-09-03T16:23:13.251Z",
   "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること（§11.4）。",
   "_warning": [
     "自動生成ファイル。手動編集禁止。",

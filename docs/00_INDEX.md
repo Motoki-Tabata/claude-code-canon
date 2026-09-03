@@ -358,7 +358,7 @@ Enforced 行の根拠は `permissions` ページの tiered permission system（�
 | context:fork | Skill `isolation: subagent` frontmatter / "Skill isolation" | 公式は frontmatter キーで表現 |
 | Subagent | Subagent（公式同名）"Single session delegation" | - |
 | fork | fork（公式同名）"A special subagent type that inherits the entire parent conversation" | `subagent_type: "fork"`。対話セッション既定ON。手動起動は `/subtask`。詳細は [L3_AGENTS.md §2.1a](./L3_AGENTS.md) |
-| subagent_type | `Agent` tool の `subagent_type` パラメータ | **ビルトイン型に限らずカスタム agent 名（必須 `name`）も受付**（大文字小文字・区切り文字非依存）。ただし本システムの SDK/harness 環境では canon agent が未登録のため `general-purpose` + 定義ファイル Read 注入で起動（[L3_AGENTS.md §2.1](./L3_AGENTS.md) / [ORCHESTRATION.md §2.3 Custom Subagent の起動方式](./ORCHESTRATION.md)） |
+| subagent_type | `Agent` tool の `subagent_type` パラメータ | **ビルトイン型に限らずカスタム agent 名（必須 `name`）も受付**（大文字小文字・区切り文字非依存）。本システムはネイティブの `subagent_type` を優先し、canon agent が未登録の環境に限り `general-purpose` + 定義ファイル Read 注入へフォールバックする（フォールバック時は `general-purpose` の `tools: *` が G13 のツール剥奪を無効化する旨をユーザーへ明示する。[L3_AGENTS.md §2.1](./L3_AGENTS.md) / [ORCHESTRATION.md §2.3 Custom Subagent の起動方式](./ORCHESTRATION.md)） |
 | Agent Team | Agent Team（公式同名）"Coordinate multiple Claude Code instances" | 実験機能 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`。`TeamCreate`/`TeamDelete` ツールは無く、セッションごとに**暗黙の1チーム**。teammate は Agent tool で直接 spawn する（`team_name` 入力は無視される）。nested team 不可（teammate は teammate を spawn できない） |
 | Fable（モデルティア） | Claude Fable 5（Mythos クラス） | `model: fable` で指定可。従来 GA モデルを超える能力。Subagent/Skill の `model` フィールドのエイリアス `sonnet`/`opus`/`haiku`/`fable` の1つ |
 | Worktree | Worktree（公式同名）"Git worktree isolation" | `.claude/worktrees/` に自動配置 |

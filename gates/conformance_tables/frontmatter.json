@@ -49,7 +49,7 @@
       "source": "docs/ORCHESTRATION.md:9"
     }
   ],
-  "generated_at": "2026-09-03T10:56:33.314Z",
+  "generated_at": "2026-09-03T16:23:13.251Z",
   "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること（§11.4）。",
   "_warning": [
     "自動生成ファイル。手動編集禁止。",
@@ -60,15 +60,15 @@
   ],
   "kinds": {
     "agent": {
-      "canon_section": "docs/L3_AGENTS.md:134 (§2.1 frontmatter 完全リファレンス)",
+      "canon_section": "docs/L3_AGENTS.md:137 (§2.1 frontmatter 完全リファレンス)",
       "required_keys": [
         {
           "key": "name",
-          "source": "docs/L3_AGENTS.md:139"
+          "source": "docs/L3_AGENTS.md:142"
         },
         {
           "key": "description",
-          "source": "docs/L3_AGENTS.md:141"
+          "source": "docs/L3_AGENTS.md:144"
         }
       ],
       "required_keys_corroboration": {
@@ -81,121 +81,121 @@
           "key": "name",
           "group": "必須",
           "optional": false,
-          "source": "docs/L3_AGENTS.md:139"
+          "source": "docs/L3_AGENTS.md:142"
         },
         {
           "key": "description",
           "group": "必須",
           "optional": false,
-          "source": "docs/L3_AGENTS.md:141"
+          "source": "docs/L3_AGENTS.md:144"
         },
         {
           "key": "tools",
           "group": "ツール制御",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:144"
+          "source": "docs/L3_AGENTS.md:147"
         },
         {
           "key": "disallowedTools",
           "group": "ツール制御",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:146"
+          "source": "docs/L3_AGENTS.md:149"
         },
         {
           "key": "model",
           "group": "モデル",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:149"
+          "source": "docs/L3_AGENTS.md:152"
         },
         {
           "key": "effort",
           "group": "モデル",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:152"
+          "source": "docs/L3_AGENTS.md:155"
         },
         {
           "key": "maxTurns",
           "group": "モデル",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:153"
+          "source": "docs/L3_AGENTS.md:156"
         },
         {
           "key": "experimental",
           "group": "実験オプション",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:157"
+          "source": "docs/L3_AGENTS.md:160"
         },
         {
           "key": "permissionMode",
           "group": "権限・隔離",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:162"
+          "source": "docs/L3_AGENTS.md:165"
         },
         {
           "key": "isolation",
           "group": "権限・隔離",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:164"
+          "source": "docs/L3_AGENTS.md:167"
         },
         {
           "key": "background",
           "group": "権限・隔離",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:165"
+          "source": "docs/L3_AGENTS.md:168"
         },
         {
           "key": "skills",
           "group": "コンポーネント preload",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:168"
+          "source": "docs/L3_AGENTS.md:171"
         },
         {
           "key": "mcpServers",
           "group": "コンポーネント preload",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:169"
+          "source": "docs/L3_AGENTS.md:172"
         },
         {
           "key": "hooks",
           "group": "コンポーネント preload",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:170"
+          "source": "docs/L3_AGENTS.md:173"
         },
         {
           "key": "memory",
           "group": "永続メモリ・UI",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:173"
+          "source": "docs/L3_AGENTS.md:176"
         },
         {
           "key": "color",
           "group": "永続メモリ・UI",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:174"
+          "source": "docs/L3_AGENTS.md:177"
         },
         {
           "key": "initialPrompt",
           "group": "永続メモリ・UI",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:175"
+          "source": "docs/L3_AGENTS.md:178"
         },
         {
           "key": "version",
           "group": "メタデータ",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:178"
+          "source": "docs/L3_AGENTS.md:181"
         },
         {
           "key": "license",
           "group": "メタデータ",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:179"
+          "source": "docs/L3_AGENTS.md:182"
         },
         {
           "key": "author",
           "group": "メタデータ",
           "optional": true,
-          "source": "docs/L3_AGENTS.md:180"
+          "source": "docs/L3_AGENTS.md:183"
         }
       ],
       "unknown_key_detection": {
@@ -218,7 +218,7 @@
           ],
           "closed": false,
           "open_reason": "full model ID（例 claude-opus-4-8 / claude-sonnet-5）も可。正典は例のみ示し ID の構文規則を定義していないため、閉じた語彙照合はできない。",
-          "source": "docs/L3_AGENTS.md:200"
+          "source": "docs/L3_AGENTS.md:203"
         },
         "effort": {
           "values": [
@@ -229,7 +229,7 @@
             "max"
           ],
           "closed": true,
-          "source": "docs/L3_AGENTS.md:152"
+          "source": "docs/L3_AGENTS.md:155"
         },
         "permissionMode": {
           "values": [
@@ -241,11 +241,11 @@
             "plan"
           ],
           "closed": true,
-          "source": "docs/L3_AGENTS.md:162",
+          "source": "docs/L3_AGENTS.md:165",
           "alias": {
             "value": "manual",
             "of": "default",
-            "source": "docs/L3_AGENTS.md:163"
+            "source": "docs/L3_AGENTS.md:166"
           },
           "extraction_confidence": "low",
           "extraction_note": "`manual` エイリアスは YAML の継続コメント（散文）由来。文面が変わると黙って落ちる。"
@@ -257,7 +257,7 @@
             "local"
           ],
           "closed": true,
-          "source": "docs/L3_AGENTS.md:173"
+          "source": "docs/L3_AGENTS.md:176"
         },
         "color": {
           "values": [
@@ -271,7 +271,7 @@
             "cyan"
           ],
           "closed": true,
-          "source": "docs/L3_AGENTS.md:211"
+          "source": "docs/L3_AGENTS.md:214"
         }
       },
       "types": {
