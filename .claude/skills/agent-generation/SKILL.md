@@ -31,6 +31,7 @@ Subagents スキーマ準拠の生成を担う。`agent-builder` に preload さ
   機構的に強制できない——この自己チェックが唯一の advisory な担保になる。
 - `isolation: worktree`: ファイル衝突回避が必要な Builder に任意付与。
 - `mcpServers`: 外部連携が必要な場合のみ。
+- 本文で対象プロジェクトの非管理ファイル（`README.md`・`contracts/README.md` 等、canon の配置対象外）を出典として引用するときは**行番号でなく節見出しで参照する**（例:「README.md の『main への直接 push を防ぐ』節」）。行番号は対象側の編集で無言でずれ検知できない。G7 判定⑦がブロックする（詳細設計書 §11.2）。管理ファイル間（生成物同士）の行番号参照は対象外。
 
 ## 制約（§2.1・nesting）
 - **Subagent nesting は既定3階層**（`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` で調整可）。深度上限で Agent tool が外れ打ち止め。多段委譲が不要な Subagent には本文に spawn 指示を書かない。spawn を抑止するなら `tools` から `Agent` を外す。fork は別の fork を spawn 不可。

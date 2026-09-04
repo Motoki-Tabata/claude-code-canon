@@ -207,6 +207,14 @@ L3: <Subagents（責務・tools・model・skills preload）>
 L4: <MCP servers / Hooks（constraints 許可時のみ）>
 L5: <Plugin 化の有無（constraints 許可時のみ）>
 
+## Write Scopes
+<preload された `layer-design` の生成規約（役割ごとの常設書込スコープ・共有構成ファイルの扱い・
+強度・代替担保）に従って書く。役割へファイル所有権を割り当てる設計（L3 Subagent が複数存在し
+それぞれ担当ディレクトリを持つ構成）では省略不可。役割分担が無い設計（単一 Subagent／L2 Skill
+のみ等）では `N/A（役割分担なし）` と明記する。ビルド設定・構成ファイル（依存追加・実行時設定）の
+扱いを常設スコープと分けて明示すること——欠落は自己チェックの死角になる（実測: run
+`20260903_091044`・vehicle-intake-management。`.claude/rules/worker-definitions.md` 参照）>
+
 ## 既存判定（existing_disposition・基本設計書 §8）
 existing_disposition:
   - path: .claude/agents/reviewer/reviewer.md
@@ -233,6 +241,13 @@ existing_disposition:
 
 ## Interface Contracts
 <カスタマイズ間の入出力・依存方向（generator が preload/参照整合を保つ材料）>
+
+## 生成上の制約（canon の決定論ゲート由来・generator/builders への指示）
+- 対象プロジェクトの非管理ファイル（`README.md`・`contracts/README.md`・`specs/README.md` 等、
+  canon の配置対象外のファイル）への参照は**行番号でなく節見出しで書く**（例:「README.md の
+  『main への直接 push を防ぐ』節」）。行番号は対象プロジェクト側の編集で無言でずれ、生成物側には
+  ずれを検知する手段が無い。G7 判定⑦（§11.2）が違反として検出する。管理ファイル間（生成物同士）の
+  行番号参照はこの制約の対象外（正当な参照）。
 
 ## Experimental Dependencies
 <context:fork / Agent Teams / Channels / Monitors / Themes への依存箇所（constraints 許可時のみ・eval と G11 が見る）>
@@ -330,6 +345,33 @@ pre-deploy-check / deploy は `deploy/` 正本（基本設計書 §14）の**ス
 - **run-manifest 同梱**: pre-deploy-check.js / deploy.js は `gates/lib/managed-paths.js`（管理パス集合の SSoT）を相対 import しており素朴な複製では単体動作しない。さりとて `managed-paths.js` も複製すると管理パス集合のパターン定義が正本と output コピーの2箇所に分裂し、一方だけが仕様に追従する単一障害点になる。集合の網羅性が破れると退避スワップが不可侵領域を破壊しうる（§10.1）ため、この定義は**二重化しない**。ゆえにスクリプトは canon 正本のままとし、output には**実行手順書 `RUN.md` のみを同梱**する（`deploy/emit-run-manifest.js`）。RUN.md は固定テンプレートで、変数は `<ts>`・output/target/canon の絶対パスと、`managed-paths.list`/`retired.list` から読んだ配置集合・廃止集合の要約のみ（自由作文しない）。emit-run-manifest も pre-deploy-check / deploy と同じ run 外 CLI（`.session-ts` に触れない）で、引数は `emit-run-manifest.js <output-dir> <target-repo-dir>`。オーケストレータが工程10 の冒頭で実行し、以降の手順（pre-deploy-check → P8 → deploy --confirm）は RUN.md と同一。
 - **自己指定の拒否**: `pre-deploy-check.js`・`deploy.js`・`emit-run-manifest.js` の3本は、`<target-repo-dir>` を `path.resolve` した結果が `CANON_ROOT`（claude-canon 自身）と一致する場合、**exit 1 で拒否**する。工程10（退避スワップ配置）は対象プロジェクトの `.claude/` に人間が回す運用を前提としており、対象に claude-canon 自身を指定すると**稼働中の実行体を、機能Y の昇格前検証（G13・G3〜G6・`npm test`・自動ロールバック・§13.2）を一切通さずに置換できてしまう**。自己再生成の唯一の正しい経路は世代ステージング（`tools/stage-candidate.js`）→ `tools/promote.js` であり、この3本には自己指定の経路を存在させない。
 
+#### 配置後ドリフト（判断記録・2026-09-05・未実装）
+
+配置後、対象プロジェクト側で人間が管理パス集合内のファイルへローカル修正を加えることがある
+（実測: vehicle-intake-management・改善バックログ E1。配置コミット `6be8491` 以降、
+`.claude/rules/tsod-workflow.md`・`.claude/skills/impact-scope/SKILL.md` を含む10ファイルが
+2コミットで手直しされた）。次回 run が同じファイルを再生成すると、この手直しは**無言で
+上書きされうる**。以下を判断・記録する（実装はしない）。
+
+- **既存フローで部分的には拾える**: 次回 run の系統A（`existing-customization-analyzer`）は
+  対象の現物 `.claude/` を読むため、ローカル修正は「既存カスタマイズ」として keep/modify/merge/
+  retire 判定に載る。keep なら G8 が対象原本と output のバイト同一を強制するため、
+  再生成後も手直しが保全される。**取込み経路自体は存在する**。
+- **穴は「as-deployed」と「配置後に手で直した」を区別できないこと**: designer が
+  「これは配置後にユーザーが手で直した箇所だ」と知らずに再生成しても、どのゲートも発火しない
+  （G8 が守るのは keep 判定に限られ、modify/retire/merge には及ばない）。差分が意図的な手直しか
+  designer の見落としかを機械的に区別する手段が無い。
+- **手書きの申し送りは過少報告する**: 本件の実測が証拠——`.claude/rules/tsod-workflow.md` への
+  申し送り（`tasks/todo.md`）は1件だったが、実際のドリフトは2コミット・10ファイルだった
+  （`impact-scope/SKILL.md` の役割別書込スコープ修正は申し送りに一切現れていなかった）。
+  台帳を人手で維持する対策案は、この理由により**採らない**。
+- **推奨する機構（今回は実装しない・別セッション）**: `deploy/deploy.js` の post-check は
+  既に配置ファイル全件の sha256 を計算している。これを対象リポジトリ直下の**非管理領域**
+  （例 `.canon-deploy/<ts>.json`。管理パス集合外なので次回配置の全置換でも消えない）へ
+  書き出せば、次回 run の調査段階（系統A）で現物と突き合わせて「配置後に手で変わった
+  ファイル」を機械的に列挙できる。deploy・調査・ゲートに跨る追加開発が要るため、スコープを
+  切って別セッションで扱う。
+
 ---
 
 ## 11. 決定論ゲート（G1〜G16・完全リスト）
@@ -355,7 +397,7 @@ pre-deploy-check / deploy は `deploy/` 正本（基本設計書 §14）の**ス
 | **G4** frontmatter スキーマ | 必須キー存在（Subagent: name＋description）／未知キー検出／型・語彙照合 | A3 | per-file | PostToolUse |
 | **G5** tools/ツール名 | Claude Code の正規ツール名（Read/Write/Edit/Bash/Grep/Glob/WebFetch 等）照合／旧称・非実在ツール検出／MCP `mcp__server__tool` 構文 | A3 | per-file | PostToolUse |
 | **G6** セキュリティ | secret ハードコード検出／`.mcp.json` の `${VAR}` 展開遵守／experimental 依存フラグ明示 | §7 | per-file | PostToolUse |
-| **G7** 参照整合 | preload skill（`skills:`）実在／`disable-model-invocation:true` skill を preload していない／description による委譲トリガーの妥当／supporting files 実在／**skill パッケージに定義ファイル `SKILL.md` 実在**／plugin 参照実在 | A2 | snapshot | SubagentStop@generation |
+| **G7** 参照整合 | preload skill（`skills:`）実在／`disable-model-invocation:true` skill を preload していない／description による委譲トリガーの妥当／supporting files 実在／**skill パッケージに定義ファイル `SKILL.md` 実在**／plugin 参照実在／**対象プロジェクトの非管理ファイルへの行番号引用の禁止** | A2 | snapshot | SubagentStop@generation |
 | **G8** 非退行 | 維持ファイル全量が output に存在／**対象原本と output コピーが sha256 バイト同一**（ゲートが両者を Bash で算出）／廃止の明示照合 | A2 | snapshot | SubagentStop@generation |
 | **G9** スナップショット完全性 | design-map ⇔ output 双方向突合／MANIFEST ⇔ output／空でない出力／managed-paths.list が base ＋検出 `.claude/*`＋(L5)plugin のみ（集合外を排除・§10.1） | A4 | snapshot | SubagentStop@generation |
 | **G10** README 整合 | 網羅性／起動方式の正典整合（§12.4 導出ルール一致）／セットアップ完全性／内部専用の非露出 | README 機能 | snapshot | SubagentStop@generation |
@@ -382,6 +424,38 @@ pre-deploy-check / deploy は `deploy/` 正本（基本設計書 §14）の**ス
 - **G7 supporting file 判定の2段構え契約**: `checkSupportingFiles` は SKILL.md body 中のバッククォート付きパス様トークンを一律スキルディレクトリ相対で解決していたため、リポジトリ相対の地の文参照（例: `` `gates/lib/run.js` ``・`` `docs/` ``・`` `.claude/settings.json` ``）や一般名詞的なファイル名の言及（例: `` `template.md` ``・`` `spec.md` ``・`` `CLAUDE.md` ``）を supporting file 参照と誤認していた。判定③（description の委譲トリガー）が「正典に MUST の明文が無い」場合を error/warning の2段に分けている前例（本節 G7 行の記述）と同じ理由で、④（supporting files 実在）も2段構えとする:
   - **Tier A（error・ブロッキング）**: `./`・`../` を冠する明示相対トークン、または**トークンの第1セグメントがスキルディレクトリ直下に実在するエントリ名と一致する**トークン（例: `examples/` が実在する場合の `examples/sample.md`）。これらは構造上 Progressive Disclosure 参照であることが確定するため、実在しなければ従来どおりブロックする。
   - **Tier B（warning・非ブロッキング）**: Tier A に該当しない残りのトークンは、スキルディレクトリ → `generated` root → target root（`resolveTargetRoot`）の順に解決を試み、いずれでも解決できないものを「参照先が解決できないパス様トークン」として**報告に留める**（黙って捨てない・vacuous pass の逆＝過検出の防止）。
+
+- **G7 判定⑦: 非管理ファイルへの行番号引用の禁止（規約の SSoT・2026-09-05 新設）**: 生成物
+  （`output/<ts>/generated/**`）が、canon の管理パス集合（`gates/lib/managed-paths.js` の
+  `MANAGED_PATTERNS`／`isManaged()`）に**属さない**対象プロジェクトのファイル（`README.md`・
+  `contracts/README.md`・`specs/README.md` 等、canon の配置対象外）を `` `path:N` `` `` `path:N-M` ``
+  形式で行番号引用していたら **error（blocking）**。
+  - **実測背景**: vehicle-intake-management（改善バックログ E1・2026-09-04）で2件確認。
+    (a) `.claude/rules/tsod-workflow.md:23` が `README.md:266-269`（GitHub Free のブランチ保護
+    不可という一次情報）を行番号引用しており、E1 で README のブランチ戦略節を全面置換した際に
+    引用が陳腐化した。(b) `.claude/skills/impact-scope/SKILL.md:13` が `contracts/README.md:64-68`
+    （影響範囲のファイル名パターン規約）を同形式で参照しており、当該節が**ファイル末尾**にある
+    ため64行より上に1行挿入するだけで壊れる——この脆さを理由に、正当な編集動機があっても
+    `contracts/README.md` の編集自体を避ける判断を強いられた。行番号は対象プロジェクト側の
+    編集で無言でずれ、生成物側にはずれを検知する手段が無い（判定⑥のサイレント不発火と同種、
+    「壊れても誰も気づかない」型の脆さ）。
+  - **是正の書式**: 節見出しで参照する。例:
+    `` 出典: `README.md` の「main への直接 push を防ぐ」節 ``。行番号を落として節見出しのみに
+    することを規約とする（節見出しの併記＋行番号残置は不可——行番号がずれる余地が残るため）。
+  - **スコープの境界（誤検知を避ける最重要点）**: 走査対象は `generated/**` のみ。`spec.md`・
+    `design-map.md`・`eval/*.md` は対象外——これらは調査が対象プロジェクトを指す
+    `evidence_paths` 等を正当に行番号で記録する場所であり、対象へは配置されない。
+  - **管理ファイル間（生成物同士）の行番号参照は許可**: `isManaged()` が true を返す参照先
+    （例: 生成物内の `` `.claude/rules/backend.md:12` ``）は対象外。生成物は同じ run で
+    一括生成されるため相互の行番号がずれる余地がなく、正当な参照である。
+  - **出典の位置づけ**: 正典由来ではなく本設計書由来の自己規律（G11 が `requirements.md`
+    由来、G13 が本節 §11.3 由来であるのと同じ構図）。
+  - **実測した誤検知**（`output/` + `fixtures/` 全体走査 vs. `generated/**` のみ走査）:
+    前者は161件ヒットするが**全て** `spec.md`／`design-map.md`／`eval/*.md`／eval-corpus 内で、
+    生成物本体には無い。走査を `generated/**` に限定すると実出力＋`fixtures/sample-repos/`
+    3ケースの `expected-output/generated/`（計42ファイル）で誤検知0件、かつ対象側の既知2件は
+    両方 VIOLATION として検出される（`.claude/rules/tsod-workflow.md` 側は節見出し併記＋行番号
+    残置の中間形でも検出される）。
 
 #### G2/G8 実装契約（上記骨子を実行可能な精度に落とす）
 

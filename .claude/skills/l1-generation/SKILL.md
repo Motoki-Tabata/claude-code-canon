@@ -25,6 +25,7 @@ CLAUDE.md / Rules スキーマ準拠の生成を担う。`l1-builder` に preloa
 - `paths:` frontmatter（YAML）で Glob 指定すると、該当ファイル読取時のみロード。frontmatter なしは無条件ロード（CLAUDE.md と同等）。
 - Glob 例: `src/**/*.{ts,tsx}` / `lib/**/*.ts` / `*.md`。
 - 1機能1ファイル。10ファイル超になったら統合を検討。
+- 対象プロジェクトの非管理ファイル（`README.md`・`contracts/README.md` 等、canon の配置対象外）へ出典を書くときは**行番号でなく節見出しで参照する**（例:「README.md の『main への直接 push を防ぐ』節」）。行番号は対象側の編集で無言でずれ、G7 判定⑦がブロックする（詳細設計書 §11.2）。管理ファイル間（`.claude/rules/*.md` 同士等）の行番号参照は対象外。
 
 ## Auto Memory（要件があれば）
 利用者要件で Claude 自身の学習引き継ぎが必要なら、`MEMORY.md`（200行 or 25KB 索引）+ topic files 構成を生成する。

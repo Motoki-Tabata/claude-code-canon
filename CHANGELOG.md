@@ -32,6 +32,19 @@
   走査根を `managedRoots()`（`MANAGED_PATTERNS` から機械導出・走査根を二重管理しない）へ限定し、
   ツリー全体の再帰をやめた。読めないエントリは走査を止めず `unreadable` として記録し、
   `pre-deploy-report` が**本照合の盲点として明示**する（黙って 0 件と報告しない）。
+- **生成物が対象プロジェクトの非管理ファイルを行番号で引用できてしまう脆さ**
+  （`gates/g7_ref_integrity.js`）: G7 に判定⑦を新設。`output/<ts>/generated/**` が
+  canon の管理パス集合（`isManaged()`）に属さない対象プロジェクトのファイル（`README.md`・
+  `contracts/README.md` 等）を `` `path:N` `` 形式で行番号引用していたら違反にする。行番号は
+  対象側の編集で無言でずれ、生成物側にはずれを検知する手段が無い。実測は
+  vehicle-intake-management（改善バックログ E1・2026-09-04）——
+  `.claude/rules/tsod-workflow.md:23` の `README.md:266-269` 引用がブランチ戦略節の
+  全面置換で陳腐化、`.claude/skills/impact-scope/SKILL.md:13` の `contracts/README.md:64-68`
+  引用はファイル末尾の節を指すため1行挿入するだけで壊れる構造だった。是正は節見出し参照
+  （例:「README.md の『main への直接 push を防ぐ』節」）。管理ファイル間（生成物同士）の
+  行番号参照は対象外（正当な参照）。design-map テンプレート（詳細設計書 §9.2・`designer.md`）に
+  `## 生成上の制約` 節を新設し、`generator`・`l1-generation`・`skill-generation`・
+  `agent-generation` へ同じ規約を明記した。
 
 ### Changed
 

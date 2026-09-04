@@ -32,6 +32,17 @@
  *      plugin.json の `skills` / `commands` / `agents` / `hooks` / `mcpServers` / `outputStyles` /
  *      `lspServers` / `experimental.themes` / `experimental.monitors` は明示パス文字列（単一 or 配列）
  *      であり、plugin root 相対で実在照合する。
+ *   7. 非管理ファイルへの行番号引用の禁止
+ *      出典: 正典でなく本設計書由来の自己規律（詳細設計書 §11.2 G7 行・G11 が requirements.md 由来、
+ *      G13 が §11.3 由来であるのと同じ構図）。generated/ 配下のファイルが、canon の管理パス集合
+ *      （`gates/lib/managed-paths.js` の `isManaged()`）に属さない対象プロジェクトのファイル
+ *      （`README.md`・`contracts/README.md` 等）を `` `path/to/file.md:12` `` `` `path/to/file.md:12-40` ``
+ *      形式で行番号引用していたら違反（error・blocking）。行番号は対象プロジェクト側の編集で無言で
+ *      ずれ、生成物側にはずれを検知する手段が無い（実測: vehicle-intake-management で2件・
+ *      `.claude/rules/tsod-workflow.md:23` → `README.md:266-269`、`.claude/skills/impact-scope/SKILL.md:13`
+ *      → `contracts/README.md:64-68`）。管理ファイル間（生成物同士）の行番号参照は対象外——生成物は
+ *      同じ run で一括生成されるため相互の行番号がずれる余地がない。判定はバッククォート囲みの
+ *      トークンに絞る（判定④ supporting files 実在と同じ誤検出源対策・地の文の記述を拾わない）。
  *
  * 純関数。副作用（fs 書込・process.exit）なし。
  */
@@ -42,6 +53,7 @@ import pathsTable from './conformance_tables/paths.json' with { type: 'json' };
 import { CANON_ROOT, posix } from './lib/canon.js';
 import { loadArtifact, skillPathRole, violation, splitListValue } from './lib/artifact.js';
 import { outputDir, resolveTargetRoot } from './lib/run.js';
+import { isManaged, walkManaged } from './lib/managed-paths.js';
 
 const GATE = 'G7';
 const PLACEHOLDER_DESCRIPTION = 'What this agent does and when Claude should delegate to it';
@@ -373,6 +385,71 @@ function checkSkillPackages(ts) {
 }
 
 // ---------------------------------------------------------------------------
+// 7: 非管理ファイルへの行番号引用の禁止
+// ---------------------------------------------------------------------------
+
+// バッククォート内かつ「拡張子付きパス:行番号[-行番号]」の形のみを対象にする。
+// 判定④（extractPathLikeTokens）と同じ誤検出源対策——バッククォートに絞ることで
+// 地の文の記述（「README.md の…節を参照」等、コロン無し）や version 文字列（`v2.1.251`）を拾わない。
+const BACKTICK_RE = /`([^`\n]+)`/g;
+const LINE_REF_RE = /^((?:[\w.-]+\/)*[\w.-]+\.[A-Za-z0-9]{1,6}):(\d+)(?:-(\d+))?$/;
+
+/** テキスト中のバッククォート囲みトークンから「パス:行番号」形の参照だけを抽出する。 */
+function extractLineNumberRefs(text) {
+  const refs = [];
+  let m;
+  BACKTICK_RE.lastIndex = 0;
+  while ((m = BACKTICK_RE.exec(text)) !== null) {
+    const tok = m[1].trim();
+    const mm = LINE_REF_RE.exec(tok);
+    if (mm) refs.push({ token: tok, refPath: mm[1] });
+  }
+  return refs;
+}
+
+/**
+ * generated/ 配下の全ファイル本文を走査し、canon の管理パス集合に属さない参照先
+ * （＝対象プロジェクトの非管理ファイル）への行番号引用を検出する。
+ *
+ * 走査は `walkManaged()`（`gates/lib/managed-paths.js`・G9 と共有する SSoT）を使う。
+ * generated/ の正当な内容物は定義上すべて管理パス集合に属するため、これで
+ * generated/ 配下の実質全ファイルを漏れなく拾える（手書き再帰を複製しない）。
+ * 管理ファイル間の行番号参照（例: 生成物内の `.claude/rules/backend.md:12`）は
+ * `isManaged()` が true を返すため対象外——生成物同士は同じ run で一括生成されるため
+ * 相互の行番号がずれる余地がなく、正当な参照である。
+ */
+function checkUnmanagedLineRefs(ts) {
+  const violations = [];
+  const root = generatedRoot(ts);
+  const relFiles = walkManaged(root);
+  let checked = 0;
+  for (const relFile of relFiles) {
+    const abs = path.join(root, relFile);
+    let text;
+    try {
+      text = readFileSync(abs, 'utf8');
+    } catch {
+      continue; // バイナリ等の読取不能は対象外（このゲートの関心事はテキスト参照のみ）
+    }
+    for (const { token, refPath } of extractLineNumberRefs(text)) {
+      checked++;
+      if (isManaged(refPath)) continue; // 生成物同士の行番号参照は正当
+      violations.push(
+        violation(
+          GATE,
+          posix(relFile),
+          `対象プロジェクトの非管理ファイル "${refPath}" を行番号で引用している（\`${token}\`）。` +
+            '行番号は対象プロジェクト側の編集で無言でずれ、生成物側にはずれを検知する手段が無い。' +
+            '節見出しで参照すること（例: 「README.md の「main への直接 push を防ぐ」節」）。',
+          '詳細設計書 §11.2 G7 判定⑦（自己規律・正典由来ではない）'
+        )
+      );
+    }
+  }
+  return { violations, checked };
+}
+
+// ---------------------------------------------------------------------------
 // エントリポイント
 // ---------------------------------------------------------------------------
 
@@ -383,12 +460,14 @@ export function checkG7({ ts }) {
   const supportingResult = checkSupportingFiles(ts);
   const packageResult = checkSkillPackages(ts);
   const pluginResult = checkPluginReferences(ts);
+  const lineRefResult = checkUnmanagedLineRefs(ts);
 
   const violations = [
     ...agentResult.violations,
     ...supportingResult.violations,
     ...packageResult.violations,
     ...pluginResult.violations,
+    ...lineRefResult.violations,
   ];
   const blocking = violations.filter(isBlocking);
 
@@ -402,6 +481,7 @@ export function checkG7({ ts }) {
       supportingFileRefsChecked: supportingResult.checked,
       skillPackages: packageResult.checked,
       pluginRefsChecked: pluginResult.checked,
+      unmanagedLineRefsChecked: lineRefResult.checked,
     },
   };
 }

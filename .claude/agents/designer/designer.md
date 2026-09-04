@@ -83,6 +83,12 @@ existing_disposition:
 ## Interface Contracts
 <カスタマイズ間の入出力・依存方向>
 
+## 生成上の制約（canon の決定論ゲート由来・generator/builders への指示）
+- 対象プロジェクトの非管理ファイル（`README.md`・`contracts/README.md` 等、canon の配置対象外の
+  ファイル）への参照は**行番号でなく節見出しで書く**（例:「README.md の『main への直接 push を
+  防ぐ』節」）。行番号は対象プロジェクト側の編集で無言でずれる。管理ファイル間（生成物同士）の
+  行番号参照はこの制約の対象外（正当な参照）。G7 判定⑦が検出する（詳細設計書 §11.2）。
+
 ## Experimental Dependencies
 <constraints 許可時のみ>
 

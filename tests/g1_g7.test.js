@@ -439,3 +439,80 @@ test('G7: ネストした examples/SKILL.md はパッケージの定義ファイ
     JSON.stringify(r.blocking)
   );
 });
+
+// ---------------------------------------------------------------------------
+// G7 判定⑦: 非管理ファイルへの行番号引用の禁止。
+//
+// 実測（vehicle-intake-management・改善バックログ E1・2026-09-04）:
+//   `.claude/rules/tsod-workflow.md:23` が README.md:266-269 を行番号で引用しており、
+//   README のブランチ戦略節を書き換えた際に引用が陳腐化した。行番号は対象プロジェクト側の
+//   編集で無言でずれ、生成物側にはずれを検知する手段が無い——判定⑥（サイレント不発火）と
+//   同種の「壊れても誰も気づかない」型の脆さ。
+// ---------------------------------------------------------------------------
+
+test('G7 判定⑦: 対象プロジェクトの非管理ファイルへの行番号引用は違反（故意の違反注入）', (t) => {
+  const ts = tsFor(import.meta.url, 20);
+  setup(t, ts);
+  const rules = path.join(out(ts), 'generated', '.claude', 'rules');
+  mkdirSync(rules, { recursive: true });
+  // 故意の違反注入: 実測どおり README.md への行番号引用（非管理ファイル）。
+  writeFileSync(
+    path.join(rules, 'tsod-workflow.md'),
+    '---\npaths: ["**"]\n---\n' +
+      'GitHub 側のブランチ保護は使えない（出典: `README.md:266-269`）。\n'
+  );
+  const r = checkG7({ ts });
+  assert.equal(r.ok, false, '非管理ファイルへの行番号引用は blocking のはず');
+  assert.ok(
+    r.blocking.some((v) => v.message.includes('README.md') && v.path.includes('tsod-workflow.md')),
+    `README.md への行番号引用が検出されること: ${JSON.stringify(r.blocking)}`
+  );
+
+  // 是正: 節見出し参照へ書き換えれば通る。
+  writeFileSync(
+    path.join(rules, 'tsod-workflow.md'),
+    '---\npaths: ["**"]\n---\n' +
+      'GitHub 側のブランチ保護は使えない（出典: `README.md` の「main への直接 push を防ぐ」節）。\n'
+  );
+  assert.equal(checkG7({ ts }).ok, true, '節見出し参照へ直せば通ること');
+});
+
+test('G7 判定⑦: 行範囲形式（path:N-M）・ネストしたパス（contracts/README.md）も検出する', (t) => {
+  const ts = tsFor(import.meta.url, 21);
+  setup(t, ts);
+  const skills = path.join(out(ts), 'generated', '.claude', 'skills');
+  const skillDir = path.join(skills, 'impact-scope');
+  mkdirSync(skillDir, { recursive: true });
+  // 故意の違反注入: 実測どおり contracts/README.md への行範囲引用（ファイル末尾の節ゆえ
+  // 1行挿入されるだけで壊れる脆さの実例）。
+  writeFileSync(
+    skillDir + '/SKILL.md',
+    '---\nname: impact-scope\ndescription: x\n---\n' +
+      '影響範囲はファイル名パターンで宣言する（出典: `contracts/README.md:64-68`）。\n'
+  );
+  const r = checkG7({ ts });
+  assert.equal(r.ok, false, 'ネストした非管理パスへの行範囲引用も blocking のはず');
+  assert.ok(
+    r.blocking.some((v) => v.message.includes('contracts/README.md') && v.path.includes('impact-scope')),
+    `contracts/README.md への行範囲引用が検出されること: ${JSON.stringify(r.blocking)}`
+  );
+});
+
+test('G7 判定⑦: 生成物同士（管理ファイル間）の行番号参照は誤検出しない', (t) => {
+  const ts = tsFor(import.meta.url, 22);
+  setup(t, ts);
+  const rules = path.join(out(ts), 'generated', '.claude', 'rules');
+  mkdirSync(rules, { recursive: true });
+  // 生成物同士の行番号参照は正当（同じ run で一括生成されるため相互の行番号がずれる余地がない）。
+  writeFileSync(
+    path.join(rules, 'cross-ref.md'),
+    '---\npaths: ["**"]\n---\n' + '詳細は `.claude/rules/backend.md:12` および `CLAUDE.md:1-10` を参照。\n'
+  );
+  const r = checkG7({ ts });
+  assert.equal(
+    r.blocking.filter((v) => v.path.includes('cross-ref.md')).length,
+    0,
+    '管理ファイル間の行番号参照は blocking にならないこと'
+  );
+  assert.ok(r.scanned.unmanagedLineRefsChecked >= 2, '走査件数が見えること（0件を合格と誤認しない）');
+});

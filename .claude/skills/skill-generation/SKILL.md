@@ -17,6 +17,7 @@ Skills（SKILL.md）/ Slash Commands スキーマ準拠の生成を担う。`ski
 - 新規は必ず `.claude/skills/<name>/SKILL.md` 形式（`.claude/commands/*.md` は廃止予定）。
 - ディレクトリ名と `name:` を一致させる（silent failure 防止）。
 - supporting files（`template.md`／`examples/`／`scripts/`）はパッケージ直下に置いてよく、必要時に Read される（Progressive Disclosure Loading・§2.1 ディレクトリ構造）。**`SKILL.md` は必須**——supporting files だけのディレクトリはスキルとして発動しない（G7 が実在照合する）。本文からは `[xxx.md](./xxx.md)` 形式で参照すること（§4.2。「手動で Read してください」と書くと Claude は忘れる）。
+- 対象プロジェクトの非管理ファイル（`README.md`・`contracts/README.md` 等、canon の配置対象外）を出典として引用するときは**行番号でなく節見出しで参照する**（例:「README.md の『main への直接 push を防ぐ』節」）。行番号は対象側の編集で無言でずれ検知できない。G7 判定⑦がブロックする（詳細設計書 §11.2）。管理ファイル間（生成物同士）の行番号参照は対象外。
 
 ## frontmatter 規約（§2.1）
 - `description` はトリガー判定に使われる。最重要キーワードを冒頭に。
