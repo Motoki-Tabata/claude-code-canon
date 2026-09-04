@@ -78,6 +78,77 @@ test('シェル経路の封鎖: Monitor 経由の保護パス書込を deny す�
 // L023（fd 複製の誤検知・退行防止）は3ガード共通の SSoT（gates/lib/shell-write.js）に
 // 由来する振る舞いのため、tests/shell_guard_ssot.test.js のテーブル駆動テストへ統合した。
 
+// ---------------------------------------------------------------------------
+// 宛先ベース判定（analyzeShellWrite・2026-09-04）。ライブ run 20260903_091044 で
+// 実測した2種の偽陽性（出現ベース AND が位置関係を見ないことに由来）を回帰させない。
+// 極性差の無いケース（.claude/ 保護等）は tests/shell_guard_ssot.test.js のテーブルへ、
+// write-scope-guard 固有の極性（docs/ 保護・work/<ts> sanctioned）はここに置く。
+// ---------------------------------------------------------------------------
+
+test('宛先ベース判定: ライブ run 20260903_091044 の偽陽性2件を回帰させない', (t) => {
+  withRun(t, TS, { dirs: ['approvals'] });
+  // 偽陽性1（heredoc 本文の混入）: 書込先は sanctioned（work/<ts>/）で、保護パス文字列は
+  // heredoc の**データ本文**にしか現れない → allow。
+  const heredocFp = `cat > work/${TS}/project_profile.md <<'EOF'\n- .claude/rules/*.md を参照\n- .claude/settings.json あり\nEOF`;
+  assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: heredocFp } }), 'allow');
+
+  // 対になる真の違反: heredoc の**宛先**（リダイレクト先）が保護パスなら本文の中身に関係なく deny。
+  const heredocRealDest = `cat > .claude/settings.json <<'EOF'\nx=1\nEOF`;
+  assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: heredocRealDest } }), 'deny');
+
+  // 対になる真の違反その2: リダイレクト先を持たない heredoc（`bash <<EOF`）は本文が
+  // **即実行されるコード**なので、データとして除去せず走査対象に残す。
+  const heredocExecBody = `bash <<'EOF'\nrm -rf docs/\nEOF`;
+  assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: heredocExecBody } }), 'deny');
+
+  // 偽陽性2（読取引数＋fd リダイレクトの混入）: grep は書込コマンドでないため引数に保護パスが
+  // 複数出現しても、また 2>/dev/null が同時にあっても allow。
+  const grepFp = 'grep -rn "canon_version" docs/ design/ .claude/ 2>/dev/null | head -10';
+  assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: grepFp } }), 'allow');
+});
+
+test('宛先ベース判定: 出現ベースが見落としていた既存ホールを新たに締める（副産物・正味では網羅性が増す）', (t) => {
+  withRun(t, TS, { dirs: ['approvals'] });
+  // 末尾スラッシュ無しの保護ディレクトリ名（旧 PROTECTED_TOKEN_RE は "docs/" 前提で "docs" 単体を見落としていた）。
+  assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: 'rm -rf docs' } }), 'deny');
+  // cd による相対パス化（旧実装はコマンド文字列に "docs" という語自体が出現しないため素通りしていた）。
+  assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: 'cd docs && echo x > foo.md' } }), 'deny');
+});
+
+test('宛先ベース判定: 読取コマンドの引数・null シンクは誤検出しない', (t) => {
+  withRun(t, TS, { dirs: ['approvals'] });
+  assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: "sed -n '1,5p' gates/g1_evidence.js" } }), 'allow', '-i 無し sed は読取専用');
+  assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: 'cat docs/00_INDEX.md' } }), 'allow');
+  assert.equal(decide(GUARD, { tool_name: 'PowerShell', tool_input: { command: 'Get-Content .claude/settings.json' } }), 'allow');
+  assert.equal(decide(GUARD, { tool_name: 'PowerShell', tool_input: { command: 'Get-ChildItem .claude/ 2>$null' } }), 'allow', '$null は実質的な書込ではない');
+});
+
+test('宛先ベース判定: sanctioned 配下の .claude/ をシェル経由で作っても誤検出しない（偽陽性3の解消）', (t) => {
+  withRun(t, TS, { dirs: ['approvals'] });
+  // 旧実装は "output/<ts>/generated/.claude/agents/foo" のような sanctioned 配下の .claude/ も
+  // 出現ベースで deny していた（未報告だった偽陽性）。宛先を repo-relative に正規化して
+  // 判定することで、トップレベルの .claude/ とは区別できる。
+  assert.equal(
+    decide(GUARD, { tool_name: 'Bash', tool_input: { command: `mkdir -p output/${TS}/generated/.claude/agents/foo` } }),
+    'allow'
+  );
+});
+
+test('宛先ベース判定: 同定不能な書込構文は従来どおり広域スキャンへフォールバックする（網羅性の非後退）', (t) => {
+  withRun(t, TS, { dirs: ['approvals'] });
+  // node -e は文字列として渡されたコードを実行するため宛先を静的に解決できない → unresolved
+  // → 出現ベース広域スキャンへフォールバックし、従来どおり deny する。
+  assert.equal(
+    decide(GUARD, { tool_name: 'Bash', tool_input: { command: "node -e \"require('fs').writeFileSync('docs/x','y')\"" } }),
+    'deny'
+  );
+  // bash -c も同様（文字列として渡されたシェルスクリプトを実行する）。
+  assert.equal(
+    decide(GUARD, { tool_name: 'Bash', tool_input: { command: 'bash -c "echo x > docs/foo.md"' } }),
+    'deny'
+  );
+});
+
 test('コマンド実行系ツールの列挙が正典の全ツール集合と整合していること', async () => {
   // 「列挙の網羅性が単一障害点」（§11.3(b)）。正典にコマンド実行系が増えたら気づけるようにする。
   // ツール総数自体は正典側で変動しうる（2026-08-19時点で44種）ため、ここでは総数を固定せず

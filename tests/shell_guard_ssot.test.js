@@ -101,4 +101,63 @@ for (const g of GUARDS) {
       'allow'
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // 宛先ベース判定（analyzeShellWrite・2026-09-04）。ライブ run 20260903_091044 で実測した
+  // 2種の偽陽性（出現ベース AND が「保護パス文字列がどこかにある」だけを見て、書込宛先か
+  // どうかの位置関係を見ていなかったこと）に由来する、3ガード共通の振る舞い。
+  // .claude/ は3ガードすべてが保護するため、極性差なくテーブル化できる。
+  // ---------------------------------------------------------------------------
+
+  test(`${g.name}: 偽陽性1（heredoc 本文の混入）は allow・対になる真の違反は deny`, (t) => {
+    const ts = freshTs();
+    g.setup(t, ts);
+    // データ heredoc（opener がファイルへリダイレクトする形）: 本文に保護パス文字列が
+    // 含まれていても、書込先（リダイレクト先）が sanctioned なら allow。
+    const dataHeredocToSanctioned = `cat > work/${ts}/notes.md <<'EOF'\n.claude/ と gates/ に触れる話\nEOF`;
+    assert.equal(
+      decide(GUARD, { tool_name: 'Bash', tool_input: { command: dataHeredocToSanctioned } }),
+      'allow',
+      'heredoc 本文はデータであり判定対象ではない'
+    );
+    // 対になる真の違反: heredoc の宛先そのものが保護パスなら deny。
+    const dataHeredocToProtected = `cat > .claude/settings.json <<'EOF'\nx=1\nEOF`;
+    assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: dataHeredocToProtected } }), 'deny');
+    // 対になる真の違反その2: リダイレクト先を持たない heredoc は本文が実行されるコード。
+    const execHeredoc = `bash <<'EOF'\necho x > .claude/settings.json\nEOF`;
+    assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: execHeredoc } }), 'deny');
+  });
+
+  test(`${g.name}: 偽陽性2（読取コマンドの引数＋fd リダイレクトの混入）は allow`, (t) => {
+    g.setup(t, freshTs());
+    assert.equal(
+      decide(GUARD, {
+        tool_name: 'Bash',
+        tool_input: { command: 'grep -rn "x" .claude/ gates/ 2>/dev/null | head -10' },
+      }),
+      'allow',
+      'grep は書込コマンドでなく、2>/dev/null は null シンクへの fd リダイレクト'
+    );
+    assert.equal(
+      decide(GUARD, { tool_name: 'PowerShell', tool_input: { command: 'Get-ChildItem .claude/ 2>$null' } }),
+      'allow',
+      '$null も null シンク'
+    );
+  });
+
+  test(`${g.name}: 同定不能な書込構文（node -e・bash -c）は従来どおり広域スキャンへフォールバックし deny する`, (t) => {
+    g.setup(t, freshTs());
+    assert.equal(
+      decide(GUARD, {
+        tool_name: 'Bash',
+        tool_input: { command: "node -e \"require('fs').writeFileSync('.claude/x','y')\"" },
+      }),
+      'deny',
+      'node -e は宛先を静的に解決できない → unresolved → 出現ベース広域スキャンへフォールバック'
+    );
+    assert.equal(
+      decide(GUARD, { tool_name: 'Bash', tool_input: { command: 'bash -c "echo x > .claude/settings.json"' } }),
+      'deny'
+    );
+  });
 }

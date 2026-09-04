@@ -22,11 +22,15 @@
 import path from 'node:path';
 import { CANON_ROOT, posix } from './lib/canon.js';
 import { readHookInput, currentRunTs, toRepoRelative, allow, deny, gateDir, isMainModule } from './lib/run.js';
-import { SHELL_TOOLS, looksLikeWriteCommand } from './lib/shell-write.js';
+import { SHELL_TOOLS, looksLikeWriteCommand, analyzeShellWrite, underAnyDir, containsGateSegment } from './lib/shell-write.js';
 
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit']);
 
-// (ii) シェル経路の封鎖: 保護パスへの書込を示唆するコマンドを検出する（保険・完全ではない）。
+// 保護対象トップレベルツリー（Write/Edit 分岐・シェル分岐の両方がこの1配列を参照する）。
+const PROTECTED_DIRS = ['docs', 'gates', '.claude'];
+
+// (ii) シェル経路の封鎖・unresolved 時のフォールバック専用（出現ベースの広域スキャン・保険）。
+// 宛先を静的に同定できた通常時は analyzeShellWrite() の宛先ベース判定を使う（下記シェル分岐）。
 const PROTECTED_TOKEN_RE = /(^|["'\s/\\])(docs|gates|\.claude)[\\/]/i;
 const GATE_TOKEN_RE = /\.gate[\\/]/i;
 
@@ -45,10 +49,15 @@ function main() {
 
   if (SHELL_TOOLS.has(toolName)) {
     const command = String(toolInput.command || '');
-    const targetsProtected = PROTECTED_TOKEN_RE.test(command) || GATE_TOKEN_RE.test(command);
-    const looksLikeWrite = looksLikeWriteCommand(command);
-    if (targetsProtected && looksLikeWrite) {
-      deny(`${toolName} 経由での保護パスへの書込を検出（保険的検査・シェル経路の封鎖）: ${command}`);
+    const { targets, unresolved, scanText } = analyzeShellWrite(command, cwd);
+    const targetHit = targets.some((t) => underAnyDir(t, PROTECTED_DIRS) || containsGateSegment(t));
+    // unresolved（node -e 等の不透明な実行構文・$VAR 等の動的宛先）のときだけ、
+    // 従来どおりの出現ベース広域スキャンへフォールバックする（検出力を落とさない安全弁）。
+    const fallbackHit =
+      unresolved && looksLikeWriteCommand(command) && (PROTECTED_TOKEN_RE.test(scanText) || GATE_TOKEN_RE.test(scanText));
+    if (targetHit || fallbackHit) {
+      const via = targetHit ? `宛先=${targets.join(', ')}` : '広域スキャン（宛先同定不能）';
+      deny(`${toolName} 経由での保護パスへの書込を検出（保険的検査・シェル経路の封鎖・${via}）: ${command}`);
       return;
     }
     allow(`${toolName}: 保護パスへの書込を示唆するパターンなし`);
@@ -80,7 +89,7 @@ function main() {
     allow(`sanctioned ツリー内: ${rel}`);
     return;
   }
-  if (rel.startsWith('docs/') || rel.startsWith('gates/') || rel.startsWith('.claude/')) {
+  if (underAnyDir(rel, PROTECTED_DIRS)) {
     deny(`保護パス（システム本体）への書込: ${rel}`);
     return;
   }

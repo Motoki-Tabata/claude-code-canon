@@ -26,12 +26,16 @@ import path from 'node:path';
 import { CANON_ROOT, posix } from './lib/canon.js';
 import { readHookInput, toRepoRelative, gateDir, allow, deny, isMainModule } from './lib/run.js';
 import { readSelfOptim } from './lib/self-optim.js';
-import { SHELL_TOOLS, looksLikeWriteCommand } from './lib/shell-write.js';
+import { SHELL_TOOLS, looksLikeWriteCommand, analyzeShellWrite, underAnyDir, containsGateSegment } from './lib/shell-write.js';
 
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit']);
 
 // 保護対象（システム本体＋世代管理）。`generations/` は候補取込を CLI 一本化するため保護に含める。
 // `design/` は設計書2冊（基本設計書・詳細設計書）のディレクトリ（gates/lib/canon.js の DESIGN_DOCS）。
+const PROTECTED_DIRS = ['.claude', 'gates', 'tests', 'docs', 'design', 'generations'];
+
+// unresolved 時のフォールバック専用（出現ベースの広域スキャン・保険）。宛先を静的に同定できた
+// 通常時は analyzeShellWrite() の宛先ベース判定を使う（下記シェル分岐）。
 const PROTECTED_TOKEN_RE = /(^|["'\s/\\])(\.claude|gates|tests|docs|design|generations)[\\/]/i;
 const GATE_TOKEN_RE = /\.gate[\\/]/i;
 
@@ -51,8 +55,11 @@ function main() {
 
   if (SHELL_TOOLS.has(toolName)) {
     const command = String(toolInput.command || '');
-    const looksLikeWrite = looksLikeWriteCommand(command);
-    if (looksLikeWrite && (PROTECTED_TOKEN_RE.test(command) || GATE_TOKEN_RE.test(command))) {
+    const { targets, unresolved, scanText } = analyzeShellWrite(command, cwd);
+    const targetHit = targets.some((t) => underAnyDir(t, PROTECTED_DIRS) || containsGateSegment(t));
+    const fallbackHit =
+      unresolved && looksLikeWriteCommand(command) && (PROTECTED_TOKEN_RE.test(scanText) || GATE_TOKEN_RE.test(scanText));
+    if (targetHit || fallbackHit) {
       deny(`${toolName} 経由での保護パス（.claude/・gates/・tests/・docs/・design/・generations/）への書込を検出（自己最適化 run 中・§13.2.1）: ${command}`);
       return;
     }
@@ -84,14 +91,7 @@ function main() {
     allow(`sanctioned ツリー内（自己最適化 run）: ${rel}`);
     return;
   }
-  if (
-    rel.startsWith('.claude/') ||
-    rel.startsWith('gates/') ||
-    rel.startsWith('tests/') ||
-    rel.startsWith('docs/') ||
-    rel.startsWith('design/') ||
-    rel.startsWith('generations/')
-  ) {
+  if (underAnyDir(rel, PROTECTED_DIRS)) {
     deny(`保護パス（システム本体・自己最適化 run 中は終端マーカー後も書換不可・§13.2.1）: ${rel}`);
     return;
   }

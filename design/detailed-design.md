@@ -513,6 +513,15 @@ G14〜G16 は機能X（§13.1）の run が消費する完了リクエスト `wo
 
 **書込操作の判定式は3ガード共有 SSoT とする**: 3ガードはそれぞれ独立に「コマンド文字列が書込操作らしいか」を判定する正規表現（`>`/`tee`/`cp`/`mv`/`rm`/`mkdir`/`sed -i`/`Set-Content`/`Out-File`/`New-Item`/`Remove-Item`/`Add-Content`/`node -e`/`writeFileSync`/`appendFileSync` 等）を持っていたが、実体はリテラルの3重複だった（§11.4 が禁じる「代表例で書く」列挙漏れの単一障害点と同型）。これを `gates/lib/shell-write.js` へ集約し、3ガードは import する。あわせて **fd 複製形（`2>&1`・`>&2`・`1>&2` 等）を書込操作と誤検知していた**問題を修正した。判定は「コマンド文字列から fd 複製トークン（`\d*>&\d?` 相当）を除去してから」既存パターンを当てる規約とする。`1>out.txt`（実ファイル書込）は fd 複製形と字面が異なるため除去対象にならず、検出力は落ちない。
 
+**保護パスの判定は「出現」でなく「宛先」で行う**: 上記 SSoT は当初「コマンド文字列のどこかに書込操作がある」×「どこかに保護パス文字列がある」の AND で deny していたが、両者の**位置関係を見ない**ため、(a) heredoc 本文に保護パス文字列を含む sanctioned への書込（`cat > work/<ts>/project_profile.md <<'EOF' … .claude/rules/… EOF`）、(b) `2>/dev/null` を伴う読取（`grep -rn … docs/ .claude/ 2>/dev/null | head`）を誤って deny した（2026-09-04・ライブ run `20260903_091044` で実測）。§11.4 の「判定対象の識別子自身への自己一致を疑う」（`WRITE_OP_RE` が `2>&1` の `>` に誤反応した L023）と同系統の変種である。ゆえに判定規約を次へ改める。
+
+- `gates/lib/shell-write.js` の `analyzeShellWrite(command, cwd)` が**書込宛先の集合**を抽出する: リダイレクト宛先（`>`/`>>`/`N>`/`&>`/`>|` の直後の語）、書込コマンド（`cp`/`mv`/`rm`/`mkdir`/`sed -i`/`tee`/`Set-Content`/`Out-File`/`New-Item`/`Remove-Item`/`Add-Content` 等）の引数、`cd`/`Set-Location`/`pushd` を追跡して解決した相対宛先。null シンク（`/dev/null`・`$null`・`NUL`）は宛先に含めない。
+- 宛先は `toRepoRelative()` でリポジトリ相対へ正規化し、**Write/Edit 分岐と同一のパス分類**（保護ディレクトリ配下か・`.gate/` 配下か）で判定する。これにより sanctioned 配下の `output/<ts>/generated/.claude/**` が保護パスと誤認されない。
+- **同定不能な書込構文**（`node -e`・`sh -c`・`Invoke-Expression`・`xargs`・`find -exec`・`$VAR` 等の動的宛先）が1つでもあれば `unresolved` とし、**従来どおりの広域スキャンへフォールバックする**。
+- heredoc 本文は、opener 行がファイルリダイレクトを持つ場合（＝本文はデータであり行き先はリダイレクト宛先）に限り判定対象から除去する。リダイレクト先を持たない heredoc（`bash <<'EOF'` ＝本文が即実行される）は除去しない。
+- シェル分岐は blocklist のまま据え置く（Write/Edit 分岐の「sanctioned 以外は全 deny」は持ち込まない。シェルは `/tmp` 等へ正当に書くため）。
+- **安全不変条件**: 新判定が allow を返し旧判定が deny を返すのは「コマンド中の**すべて**の書込構文の宛先を同定でき、そのどれも保護パスでない」場合に限る。難読化・任意コード実行に対する検出力は不変であり、`rm -rf docs`（末尾スラッシュ無し）・`cd docs && echo x > foo.md` は逆に新たに deny される（正味では締まる）。
+
 ### 11.4 判定の出典と自己適用
 
 - **判定の出典は必ず正典 docs**: 照合表（frontmatter 必須キー・正規ツール名・パス規約）はハードコードせず `gates/conformance_tables/` として `docs/` から生成する（正典更新に追従）。**例外は3つ**: G11 は `requirements.md` 由来、**G13 は本設計書 §11.3 由来の自己規律**（正典は「ワーカーにコマンド実行系ツールを与えるな」とは言っていない。claude-canon 固有のガード設計から導かれる制約である）、**G3 の「skill ディレクトリ名＝name 一致」1項目のみが本設計書由来の自己規律**（正典 `L2_SKILLS.md` は「既定: ディレクトリ名」と述べるのみで、`name` 明示時の一致までは要求していない。`gates/conformance_tables/paths.json` の `design_derived_requirements` に `status: accepted_by_human` として記録済み。G3 の他の判定項目は通常どおり正典由来）。

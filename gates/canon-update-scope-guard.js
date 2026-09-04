@@ -28,12 +28,17 @@ import path from 'node:path';
 import { CANON_ROOT, posix } from './lib/canon.js';
 import { readHookInput, toRepoRelative, hasApproval, gateDir, allow, deny, isMainModule } from './lib/run.js';
 import { currentCanonUpdateRunTs } from './lib/canon-run.js';
-import { SHELL_TOOLS, looksLikeWriteCommand } from './lib/shell-write.js';
+import { SHELL_TOOLS, looksLikeWriteCommand, analyzeShellWrite, underAnyDir, containsGateSegment } from './lib/shell-write.js';
 
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit']);
 
 // 保護対象（システム本体）。docs/ はここに含めない（sanctioned だが承認ゲート付き・別扱い）。
 // design/ は設計書2冊（基本設計書・詳細設計書）のディレクトリ（gates/lib/canon.js の DESIGN_DOCS）。
+const PROTECTED_DIRS = ['.claude', 'gates', 'tests', 'design'];
+const DOCS_DIRS = ['docs'];
+
+// unresolved 時のフォールバック専用（出現ベースの広域スキャン・保険）。宛先を静的に同定できた
+// 通常時は analyzeShellWrite() の宛先ベース判定を使う（下記シェル分岐）。
 const PROTECTED_TOKEN_RE = /(^|["'\s/\\])(\.claude|gates|tests|design)[\\/]/i;
 const DOCS_TOKEN_RE = /(^|["'\s/\\])docs[\\/]/i;
 const GATE_TOKEN_RE = /\.gate[\\/]/i;
@@ -54,15 +59,25 @@ function main() {
 
   if (SHELL_TOOLS.has(toolName)) {
     const command = String(toolInput.command || '');
+    const { targets, unresolved, scanText } = analyzeShellWrite(command, cwd);
     const looksLikeWrite = looksLikeWriteCommand(command);
-    if (looksLikeWrite && (PROTECTED_TOKEN_RE.test(command) || GATE_TOKEN_RE.test(command))) {
+
+    const protectedHit = targets.some((t) => underAnyDir(t, PROTECTED_DIRS) || containsGateSegment(t));
+    const protectedFallback =
+      unresolved && looksLikeWrite && (PROTECTED_TOKEN_RE.test(scanText) || GATE_TOKEN_RE.test(scanText));
+    if (protectedHit || protectedFallback) {
       deny(`${toolName} 経由での保護パス（.claude/・gates/・tests/・design/）への書込を検出: ${command}`);
       return;
     }
-    if (looksLikeWrite && DOCS_TOKEN_RE.test(command) && !hasApproval(ts, 'canon-update')) {
+
+    const approved = hasApproval(ts, 'canon-update');
+    const docsHit = !approved && targets.some((t) => underAnyDir(t, DOCS_DIRS));
+    const docsFallback = !approved && unresolved && looksLikeWrite && DOCS_TOKEN_RE.test(scanText);
+    if (docsHit || docsFallback) {
       deny(`${toolName} 経由での docs/ 書込を検出（更新ゲート未承認・§13.1）: ${command}`);
       return;
     }
+
     allow(`${toolName}: 保護パスへの書込を示唆するパターンなし（またはゲート通過済み）`);
     return;
   }
@@ -91,7 +106,7 @@ function main() {
     allow(`sanctioned ツリー内（機能X run）: ${rel}`);
     return;
   }
-  if (rel.startsWith('docs/')) {
+  if (underAnyDir(rel, DOCS_DIRS)) {
     if (!hasApproval(ts, 'canon-update')) {
       deny(`更新ゲート未承認のため docs/ へ書込不可（§13.1・npm run approve -- ${ts} canon-update）: ${rel}`);
       return;
@@ -99,7 +114,7 @@ function main() {
     allow(`docs/: 更新ゲート承認済み: ${rel}`);
     return;
   }
-  if (rel.startsWith('.claude/') || rel.startsWith('gates/') || rel.startsWith('tests/') || rel.startsWith('design/')) {
+  if (underAnyDir(rel, PROTECTED_DIRS)) {
     deny(`保護パス（システム本体・機能X run 中は書換不可）: ${rel}`);
     return;
   }
