@@ -43,7 +43,7 @@ import { outputDir, workDir, isMainModule, readHookInput, readSessionTs, blockSt
 import { parseFrontmatter } from './lib/artifact.js';
 import { parseRequirementsDoc, RequirementsError } from './lib/requirements.js';
 import { L5_PLUGIN_PATTERN } from './lib/managed-paths.js';
-import { findHeading, sectionSlice } from './lib/markdown.js';
+import { findHeading, sectionSlice, mentionsIdentifier } from './lib/markdown.js';
 
 const GATE = 'G11';
 
@@ -283,12 +283,9 @@ function readDesignMapExperimental(ts) {
 // 縮退設計（conflicts）の検査
 // ---------------------------------------------------------------------------
 
-/** token が識別子境界で出現するか（"R1" が "R11" に一致しないように）。 */
-function mentions(text, token) {
-  if (typeof text !== 'string' || !token) return false;
-  const esc = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`(^|[^A-Za-z0-9_])${esc}([^A-Za-z0-9_]|$)`).test(text);
-}
+// 識別子境界の照合は `gates/lib/markdown.js` の `mentionsIdentifier` が SSoT
+// （G10 と共有・`.claude/rules/gates-and-tests.md`「同じ判定ロジックを複数箇所へ複製しない」）。
+const mentions = mentionsIdentifier;
 
 function checkDegradation(doc, prohibitedKeys, knownKeys) {
   const violations = [];

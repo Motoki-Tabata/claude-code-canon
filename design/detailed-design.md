@@ -611,6 +611,13 @@ readme-writer は design-map 各コンポーネントの frontmatter を読み�
 
 肝: (a) `disable-model-invocation` は Skill の起動方式に直結（自動ロード抑止）。Subagent は description ベース委譲で制御し `user-invocable` フィールドを持たない（種別を先に確定してから読む）。(b) `user-invocable:false` の Skill は起動一覧に出さない。(c) Hook はユーザーが起動しないため「なぜ止められたか」で困らない挙動予告として書く。
 
+**「一覧に載せない」の運用定義（G10 の判定粒度・2026-09-04 確定）**: 上表(b)が禁じるのは**利用者向け一覧への掲載**であって、README 本文からの完全排除ではない。G10（`gates/g10_readme.js`・判定の実体は `gates/lib/readme-listing.js`）は次の2軸だけを機械判定する。
+
+- **`/名前` 表記**: `user-invocable:false` の Skill・Subagent・Rule は起動不可／ユーザーが直接起動しないため、`/名前` が README のどこか（**使用例のコードフェンス内を含む**）に現れたら違反。逆に `listed` な Skill（`slash-only`・`auto+slash`）は `/名前` が現れないことが違反——§11.2 が掲げる「起動方式の正典整合（§12.4 導出ルール一致）」の実体はこれである。
+- **一覧項目としての出現**: 見出し行・表の第1セル・箇条書きの先頭区分に識別子として立つこと。内部専用 Skill がこの位置に現れたら違反。
+
+**散文とパス表記は禁止対象でない**。`.claude/skills/<name>/scripts/<script>` のようなパス表記（前後が `/` の出現）と、「なぜ deny されたか」を説明する散文中の言及は許可する。これが無いと上表の「「内部で参照される知識」に留める」が充足不可能になり、また §12.5 の「Hooks 配線 → `.claude/settings.json` への配線と参照スクリプトの実行権限付与」が README に hook 実体の在り処を書くことを要求している以上、パス表記の禁止は §12.5 と両立しない。ライブ run `20260903_091044` で、§12.4 の指示どおり「内部で参照される知識」節を書いた README が旧実装（`readme.includes(name)` による全文部分文字列検査）にブロックされ、hook スクリプトの実パスを README から辿れなくする是正を強いられた（実測）。`gates/lib/shell-write.js` が「保護パス判定は出現でなく宛先で行う」へ改めたのと同型の是正である（§11.3・`.claude/rules/gates-and-tests.md`）。
+
 **preload 専用 Skill は `user-invocable: false` を明示する**: 別の Subagent/Skill に `skills:` で preload されるだけで、ユーザーが `/名前` で直接起動する経路を持たない Skill（例: designer に preload される `layer-design`）は、`user-invocable: false` を明示し既定値 `true` への暗黙依存を避ける。preload・モデル自動発動のいずれにも影響しない（`disable-model-invocation` とは独立の軸）。未指定のまま既定 `true` に流れると、`/` メニューに「ユーザーが直接呼ぶ意味を持たない」Skill が露出し、上表の(b)（内部専用は一覧に出さない）が機械的に強制されない。
 
 ### 12.5 セットアップ欄の自動導出

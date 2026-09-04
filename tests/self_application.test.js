@@ -28,6 +28,7 @@ import { listCandidates, candidateClaudeDir } from '../gates/lib/generations.js'
 import { readdirSync, statSync } from 'node:fs';
 import { isNonSchemaRel } from '../gates/lib/non-schema.js';
 import { deriveLaunchMethod } from '../gates/g10_readme.js';
+import { collectListingEntries, analyzeReadmeMentions } from '../gates/lib/readme-listing.js';
 import { ROOT } from './helpers/paths.js';
 
 const SELF = path.join(ROOT, '.claude');
@@ -167,12 +168,33 @@ test('J-1: preload 専用 Skill（user-invocable:false）が .claude/README.md �
   }
   assert.equal(internal.length, 11, `内部専用 Skill は11件のはず（実際: ${internal.length}）`);
   assert.equal(listed.length, 3, `ユーザー起動可能な Skill は3件（canon/self-optimize/update-docs）のはず（実際: ${listed.length}）`);
+
+  // 判定式は G10 と同じ SSoT（gates/lib/readme-listing.js）を使う。ここへ独立実装を
+  // 置くと、片側だけが §12.4 の改訂に追従しない（gates-and-tests.md「複製しない」）。
+  const entries = collectListingEntries(readme);
   for (const name of internal) {
-    assert.ok(!readme.includes(name), `内部専用 Skill "${name}" が README に露出している（§12.4 違反）`);
+    const { slash, listing } = analyzeReadmeMentions(readme, name, entries);
+    assert.equal(listing.length, 0, `内部専用 Skill "${name}" が利用者向け一覧に載っている（§12.4 違反）`);
+    assert.equal(slash.length, 0, `内部専用 Skill "${name}" の起動表記 \`/${name}\` が README にある（§12.4 起動不可）`);
   }
   for (const name of listed) {
     assert.ok(readme.includes(name), `ユーザー起動可能な Skill "${name}" が README に登場しない（網羅性・§12.2 違反）`);
+    const { slash } = analyzeReadmeMentions(readme, name, entries);
+    assert.ok(slash.length > 0, `Skill "${name}" の起動方法 \`/${name}\` が README に無い（起動方式の正典整合・§12.4）`);
   }
+
+  // 検出力の証明: 上のループが「一覧が空だから素通りしている」のでないことを、README 文字列へ
+  // 一覧行を注入して確かめる（実ファイルは触らない・.claude/rules/gates-and-tests.md）。
+  const victim = internal[0];
+  const injected = `${readme}\n\n| Skill | 起動方法 |\n|---|---|\n| \`${victim}\` | 起動不可 |\n`;
+  assert.ok(
+    analyzeReadmeMentions(injected, victim).listing.length > 0,
+    `一覧への注入が検出されない——J-1 の述語が vacuous（対象: ${victim}）`
+  );
+  assert.ok(
+    analyzeReadmeMentions(`${readme}\n\n\`/${victim}\` で起動。\n`, victim).slash.length > 0,
+    `スラッシュ表記の注入が検出されない——J-1 の述語が vacuous（対象: ${victim}）`
+  );
 });
 
 /**

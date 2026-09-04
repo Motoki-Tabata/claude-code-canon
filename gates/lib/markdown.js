@@ -234,3 +234,48 @@ export function stripLineSuffix(item) {
 export function stripTrailingAnnotation(value) {
   return value.replace(/\s*[（(][^（）()]*[）)]\s*$/, '').trim();
 }
+
+// ---------------------------------------------------------------------------
+// 識別子境界の照合（部分文字列一致による偽陽性の回避）
+//
+// 素の `text.includes(token)` は `R1` が `R11` に、内部専用 Skill 名が公開コンポーネント名の
+// 部分文字列であるときに公開側の正しい記載へ一致する（`.claude/rules/gates-and-tests.md`
+// 「判定対象の識別子自身への自己一致を疑う」）。G11 のローカル関数だったものをここへ集約し、
+// G10（`gates/lib/readme-listing.js` 経由）と共有する。
+// ---------------------------------------------------------------------------
+
+/** 正規表現メタ文字を literal へ落とす。 */
+function escapeRe(token) {
+  return token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** token が識別子境界で出現するか（`R1` が `R11` に一致しないように）。 */
+export function mentionsIdentifier(text, token) {
+  if (typeof text !== 'string' || !token) return false;
+  return new RegExp(`(^|[^A-Za-z0-9_])${escapeRe(token)}([^A-Za-z0-9_]|$)`).test(text);
+}
+
+/**
+ * token が**パス構成要素でない**裸の識別子として出現するか。
+ *
+ * `mentionsIdentifier` の境界集合に `/` と `\` を加える。これにより
+ * `.claude/skills/impact-scope/scripts/scope-guard.mjs` 中の `impact-scope` は
+ * 「パス表記」として一致しない——詳細設計書 §12.4 が README で許すのはこの形である
+ * （禁じているのは一覧項目としての掲載と `/名前` の起動案内であって、在り処の明示ではない。
+ * §12.5「Hooks 配線 → 参照スクリプトの実行権限付与」はむしろ在り処の明示を要求する）。
+ */
+export function mentionsBareIdentifier(text, token) {
+  if (typeof text !== 'string' || !token) return false;
+  return new RegExp(`(^|[^A-Za-z0-9_./\\\\-])${escapeRe(token)}([^A-Za-z0-9_/\\\\-]|$)`).test(text);
+}
+
+/**
+ * `/名前` 形式のスラッシュコマンド表記が出現するか（起動方法の案内の機械的な代理）。
+ *
+ * 直前が `[A-Za-z0-9_./\\-]` のもの（`skills/impact-scope` のパス区切り）と、直後が
+ * `/` のもの（`/docker/init` のような絶対パス）は起動案内でないため除外する。
+ */
+export function mentionsSlashCommand(text, token) {
+  if (typeof text !== 'string' || !token) return false;
+  return new RegExp(`(^|[^A-Za-z0-9_./\\\\-])/${escapeRe(token)}(?![A-Za-z0-9_/\\\\-])`).test(text);
+}

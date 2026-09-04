@@ -5,14 +5,14 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { checkG9 } from '../gates/g9_snapshot_completeness.js';
 import { checkG10, deriveLaunchMethod } from '../gates/g10_readme.js';
 import { checkG12 } from '../gates/g12_output_perfile.js';
 import { ROOT, outputDir, genDir } from './helpers/paths.js';
 import { cleanupTs } from './helpers/run-state.js';
-import { writeSkill } from './helpers/fixtures.js';
+import { writeSkill, writeAgent } from './helpers/fixtures.js';
 import { tsFor } from './helpers/ts.js';
 
 const out = outputDir;
@@ -54,7 +54,7 @@ test('G10 導出ルール: user-invocable:false は internal（非露出）', ()
   assert.equal(deriveLaunchMethod('agent', {}).method, 'delegated');
 });
 
-test('G10: 網羅性欠落は違反、内部専用の露出も違反、両立時は通過', (t) => {
+test('G10: 網羅性欠落は違反、内部専用の一覧掲載も違反、両立時は通過', (t) => {
   const ts = tsFor(import.meta.url, 4);
   cleanupTs(t, ts);
   skill(ts, 'pub');
@@ -65,14 +65,20 @@ test('G10: 網羅性欠落は違反、内部専用の露出も違反、両立時
   writeFileSync(readme, '# 使い方\n（空）\n');
   assert.equal(checkG10({ ts }).ok, false, 'pub 未記載は網羅性違反');
 
-  // internal 露出 → 違反
-  writeFileSync(readme, '# 使い方\npub と internal\n');
+  // internal を一覧項目（表の第1セル）に載せる → 違反
+  writeFileSync(
+    readme,
+    '# 使い方\n\n`/pub` で起動できます。\n\n| Skill | 起動方法 |\n|---|---|\n| `internal` | 起動不可 |\n'
+  );
   const r2 = checkG10({ ts });
-  assert.equal(r2.ok, false, 'internal 露出は違反');
-  assert.ok(r2.violations.some((v) => v.includes('internal')));
+  assert.equal(r2.ok, false, '内部専用 Skill の一覧掲載は違反');
+  assert.ok(
+    r2.violations.some((v) => v.includes('internal') && v.includes('一覧')),
+    r2.violations.join(' / ')
+  );
 
-  // pub 記載・internal 非記載 → 通過
-  writeFileSync(readme, '# 使い方\npub を使えます\n');
+  // pub 記載・internal 非掲載 → 通過
+  writeFileSync(readme, '# 使い方\n\n`/pub` で起動できます。\n');
   assert.equal(checkG10({ ts }).ok, true);
 });
 
@@ -148,7 +154,8 @@ test('構造 e2e: 完全な生成物は G7/G9/G10/G12 を全通過する', async
   );
   writeFileSync(
     path.join(G, '.claude', 'README.md'),
-    '# 使い方\ntodo-helper スキル・reviewer エージェント・esm ルール。\n'
+    // §12.4: listed な Skill は `/名前` を書く。Subagent（reviewer）・Rule（esm）には書かない。
+    '# 使い方\n`/todo-helper` で起動。reviewer エージェント・esm ルールは自動。\n'
   );
   writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# MANIFEST\n新規4件\n');
   writeFileSync(
@@ -273,4 +280,139 @@ test('G9: .claude/hooks/ の hook ハンドラ実体は管理パス集合内、.
   const r = checkG9({ ts });
   assert.equal(r.ok, false, '.claude/ 外の hooks/ まで管理対象にしてはならない');
   assert.ok(r.violations.some((v) => v.includes('hooks/stray.sh')), r.violations.join(' / '));
+});
+
+// ---------------------------------------------------------------------------
+// G10 判定粒度（§12.4「一覧に載せない」の運用定義・2026-09-04 是正）
+//
+// 旧実装 `readme.includes(name)` は「利用者向け一覧への掲載」でなく「本文への出現」を
+// 禁じており、§12.4 が同じ行で推奨する「「内部で参照される知識」に留める」を充足不可能に
+// していた（ライブ run 20260903_091044 で実測）。緩和側だけを固定すると「検出しないこと」
+// しかテストしないので、各テストで**故意の違反**を併せて注入し、狭めていない側が現に
+// 発火することまで固定する（.claude/rules/gates-and-tests.md）。
+// ---------------------------------------------------------------------------
+
+/** 内部専用 Skill 1件 + 利用者向け Skill 1件を置き、README パスを返す。 */
+function internalFixture(ts) {
+  skill(ts, 'pub');
+  skill(ts, 'internal', 'user-invocable: false\n');
+  return path.join(gen(ts), '.claude', 'README.md');
+}
+
+const BASE_README = [
+  '# 使い方',
+  '',
+  '## 2. どう起動するか',
+  '',
+  '| Skill | 起動方法 |',
+  '|---|---|',
+  '| `pub` | `/pub` で明示起動 |',
+  '',
+  '## 5. 注意・制約',
+  '',
+  '| イベント | 判定スクリプト |',
+  '|---|---|',
+  '| PreToolUse | `.claude/skills/internal/scripts/scope-guard.mjs` |',
+  '',
+  '### 内部で参照される知識',
+  '',
+  'この deny は internal が配線した PreToolUse によるもので、実体は',
+  '`.claude/skills/internal/scripts/scope-guard.mjs` にある。',
+  '',
+].join('\n');
+
+test('G10: 散文・パス表記での内部専用 Skill の言及は通過する（ライブ run 20260903_091044 の再現）', (t) => {
+  const ts = tsFor(import.meta.url, 14);
+  cleanupTs(t, ts);
+  const readme = internalFixture(ts);
+  writeFileSync(readme, BASE_README);
+  const r = checkG10({ ts });
+  assert.equal(
+    r.ok,
+    true,
+    `§12.4 は一覧への掲載のみを禁じる（散文・パス表記・表の第2セルは可）: ${r.violations.join(' / ')}`
+  );
+});
+
+test('G10: 内部専用 Skill の一覧項目・スラッシュ表記は現に検出される（故意の違反注入）', (t) => {
+  const ts = tsFor(import.meta.url, 15);
+  cleanupTs(t, ts);
+  const readme = internalFixture(ts);
+
+  const cases = [
+    ['表の第1セル', '\n| Skill | 起動方法 |\n|---|---|\n| `internal` | 起動不可 |\n', '一覧'],
+    ['見出し', '\n### internal\n\n内部知識。\n', '一覧'],
+    ['箇条書きの先頭', '\n- `internal` — reviewer に preload される\n', '一覧'],
+    ['散文中のスラッシュ表記', '\n`/internal` で起動できます。\n', '起動表記'],
+    ['コードフェンス内のスラッシュ表記', '\n```\n/internal\n```\n', '起動表記'],
+  ];
+
+  for (const [label, injection, expect] of cases) {
+    writeFileSync(readme, BASE_README + injection);
+    const r = checkG10({ ts });
+    assert.equal(r.ok, false, `${label}: 緩和が「本文のどこでも可」に化けていないこと`);
+    assert.ok(
+      r.violations.some((v) => v.includes('internal') && v.includes(expect)),
+      `${label}: ${r.violations.join(' / ')}`
+    );
+  }
+});
+
+test('G10: 起動方式の正典整合が vacuous でない（listed に `/名前` 必須・agent/rule には禁止）', (t) => {
+  const ts = tsFor(import.meta.url, 16);
+  cleanupTs(t, ts);
+  skill(ts, 'pub');
+  writeAgent(gen(ts), 'reviewer', { tools: 'Read Grep Glob', model: 'sonnet' });
+  mkdirSync(path.join(gen(ts), '.claude', 'rules'), { recursive: true });
+  writeFileSync(path.join(gen(ts), '.claude', 'rules', 'esm.md'), '---\npaths: src/**/*.js\n---\nESM。\n');
+  const readme = path.join(gen(ts), '.claude', 'README.md');
+
+  const ok = '# 使い方\n\n`/pub` で明示起動。reviewer は自動委譲、esm は自動ロード。\n';
+  writeFileSync(readme, ok);
+  assert.equal(checkG10({ ts }).ok, true, checkG10({ ts }).violations.join(' / '));
+
+  // 故意の違反注入①: listed な Skill の起動方法が書かれていない。
+  writeFileSync(readme, '# 使い方\n\npub と reviewer と esm があります。\n');
+  const r1 = checkG10({ ts });
+  assert.equal(r1.ok, false, 'listed Skill の `/名前` 欠落が検出されること');
+  assert.ok(
+    r1.violations.some((v) => v.includes('pub') && v.includes('起動方式の正典整合')),
+    r1.violations.join(' / ')
+  );
+
+  // 故意の違反注入②: Subagent に直接起動の UI 手順を書いている。
+  writeFileSync(readme, ok + '\n`/reviewer` で呼び出せます。\n');
+  const r2 = checkG10({ ts });
+  assert.equal(r2.ok, false, 'Subagent のスラッシュ起動表記が検出されること');
+  assert.ok(r2.violations.some((v) => v.includes('reviewer')), r2.violations.join(' / '));
+
+  // 故意の違反注入③: Rule に起動表記を書いている。
+  writeFileSync(readme, ok + '\n`/esm` でルールを呼びます。\n');
+  const r3 = checkG10({ ts });
+  assert.equal(r3.ok, false, 'Rule のスラッシュ起動表記が検出されること');
+  assert.ok(r3.violations.some((v) => v.includes('esm')), r3.violations.join(' / '));
+});
+
+test('G10: 内部専用 Skill 名が公開名の部分文字列でも誤検出しない（識別子境界）', (t) => {
+  const ts = tsFor(import.meta.url, 17);
+  cleanupTs(t, ts);
+  // `scope` は `scope-guard` の部分文字列。公開側を一覧に正しく載せても内部側は違反にならない。
+  skill(ts, 'scope-guard');
+  skill(ts, 'scope', 'user-invocable: false\n');
+  const readme = path.join(gen(ts), '.claude', 'README.md');
+  writeFileSync(
+    readme,
+    ['# 使い方', '', '| Skill | 起動方法 |', '|---|---|', '| `scope-guard` | `/scope-guard` で明示起動 |', ''].join('\n')
+  );
+  const r = checkG10({ ts });
+  assert.equal(r.ok, true, `部分文字列一致で内部専用側を誤検出してはならない: ${r.violations.join(' / ')}`);
+
+  // 故意の違反注入: 内部専用側そのものを一覧に載せたら発火する（検出力が落ちていない証明）。
+  writeFileSync(readme, readFileSync(readme, 'utf8') + '| `scope` | 起動不可 |\n');
+  const after = checkG10({ ts });
+  assert.equal(after.ok, false, '内部専用 `scope` の一覧掲載は検出されること');
+  assert.ok(
+    after.violations.some((v) => v.includes('"scope"') && v.includes('一覧')),
+    after.violations.join(' / ')
+  );
 });

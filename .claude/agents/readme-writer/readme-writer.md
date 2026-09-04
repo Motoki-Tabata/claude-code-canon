@@ -32,6 +32,22 @@ model: sonnet
 
 肝: (a) `disable-model-invocation` は Skill の起動方式に直結。Subagent は description ベース委譲で制御し `user-invocable` フィールドを持たない（種別を先に確定してから読む）。(b) `user-invocable:false` の Skill は起動一覧に出さない。(c) Hook はユーザーが起動しないため「なぜ止められたか」で困らない挙動予告として書く。
 
+### 内部専用 Skill（`user-invocable:false`）の書き方（詳細設計書 §12.4・G10 が機械照合）
+
+禁止されるのは「利用者向け一覧への掲載」だけで、本文からの完全排除ではありません。
+
+| 書き方 | 可否 |
+|---|---|
+| 散文での言及（「この deny は `<name>` が配線した PreToolUse による」等） | 可 |
+| パス表記（`.claude/skills/<name>/scripts/<script>`） | **可**。hook 実体の在り処は §12.5 により書くこと |
+| 表の第2セル以降（hook 配線表の「スクリプト」列等） | 可 |
+| 表の第1セル | **不可**（一覧項目） |
+| 見出し（`### <name>`） | **不可**（一覧項目） |
+| 箇条書きの先頭 | **不可**（一覧項目） |
+| `/<name>` 表記（使用例のコードブロック内を含む） | **不可**（起動不可なのに起動方法を案内することになる） |
+
+逆に **`listed` な Skill は `/名前` 表記を README に必ず書く**こと（上表 Slash Command Skill・Skill（通常）の行が要求する書き方の機械照合点）。**Subagent・Rule には `/名前` を書かない**——Subagent は「ユーザー直接起動の UI 手順は書かない」、Rule は `paths:` 一致時に自動ロードされるためです。G10 はこの3方向を照合します。
+
 ## セットアップ欄の自動導出（詳細設計書 §12.5）
 design-map 全コンポーネントの frontmatter・依存を走査して「動かす前に」を機械抽出する:
 - `context: fork` を使う Skill → `agent:` 指定の存在確認
