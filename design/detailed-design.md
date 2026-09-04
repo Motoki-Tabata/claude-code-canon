@@ -781,7 +781,7 @@ judge に「何を見るか」を**決定論的に確定**させる。judge が�
 
 - **カバレッジ**: G2 が回付した対象（design-map の `disposition: keep` 全件 × C2/C4、`merge` 全件 × 統合先）が keep-review の `coverage` に**全件**現れること。未判定を pass と読まない。
 - **回付0件を「eval 実施済み」と誤認しない**: keep 0件・design-map 不在は G2 と同じく成功と扱わない（§11.2 G2 実装契約の vacuous 規約と同一）。
-- 軸ファイルの欠落・スキーマ違反は eval の失敗。
+- 軸ファイルの欠落・スキーマ違反は eval の失敗であり、**「判定不能（judge が判定できなかった）」として `notes` と `violations` の両方に現れる**（軸名は戻り値の `undecided` に載る）。判定不能な軸は `forcedReview` に1件も寄与しないため、**violation 0件を「違反なし」と読んではならない**——`ok` を見ずに `forcedReview` だけ読む経路の誤読を防ぐのが notes の役割である。keep-review が判定不能なら coverage 検査そのものが成立しないので、回付対象を条件単位で全件名指しして「全て未判定」と報告する（沈黙すると「回付されたのに誰も見ていない対象」が出力のどこにも現れなくなる）。
 - `verdict: violation` の findings を **P5/P7 の強制表示リスト**として抽出する（基本設計書 §8.4「C2 が eval 未通過の維持は P5 で強制表示」の実体）。
 
 ### 16.6 メタ評価 — judge の較正（`eval/meta-eval.js`）

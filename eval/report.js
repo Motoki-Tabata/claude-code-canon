@@ -9,6 +9,11 @@
  *                   keep-review の coverage に全件現れるか。**未判定を pass と読まない**
  *   (3) 集約     : violation の finding が eval-report.md に落ちているか（集約で消えていないか）
  *
+ * (1) が失敗した軸は「判定不能（judge が判定できなかった）」として `undecided` に載り、notes と
+ * violations の両方に現れる（§16.4）。判定不能な軸は `forcedReview` に1件も寄与しないため、
+ * **violation 0件を「違反なし」と読んではならない**——この区別を戻り値の形で持たせないと、
+ * `ok` を見ずに `forcedReview` だけ読む呼び出し側が「指摘なし」と誤読する。
+ *
  * 回付0件（keep/merge が無い＝新規シナリオ）は違反ではないが、**「eval で品質を確認した」
  * ことを意味しない**。この区別を notes として必ず可視化する（§16.5・§11.5 と同じ規律）。
  */
@@ -39,12 +44,14 @@ export function referredTargets(designMapText) {
 
 /**
  * @param {{ts: string, roots?: {outputDir?: string}, axes?: string[]}} opts
- * @returns {{ok, violations, notes, referred, perAxis, forcedReview}}
+ * @returns {{ok, violations, notes, referred, perAxis, forcedReview, undecided}}
  */
 export function checkEvalReport({ ts, roots = {}, axes = AXES }) {
   const oDir = roots.outputDir ?? outputDir(ts);
   const violations = [];
   const notes = [];
+  /** 判定不能（不在・パース不能・スキーマ違反）な軸名。§16.4。 */
+  const undecided = [];
 
   // --- 回付対象の確定（design-map が唯一の根拠） ---
   const dmPath = path.join(oDir, 'design-map.md');
@@ -68,12 +75,27 @@ export function checkEvalReport({ ts, roots = {}, axes = AXES }) {
     const res = loadVerdict(p, `eval/${axis}.md`);
     perAxis[axis] = res;
     if (!res.ok) {
+      undecided.push(axis);
       violations.push(...res.violations);
       continue;
     }
     for (const f of violationFindings(res.verdict)) {
       forcedReview.push({ axis, ...f });
     }
+  }
+
+  // 判定不能は「違反なし」ではない（§16.4）。notes は main() で常時出力されるので、
+  // 違反一覧を読まない読者にも「この軸は誰も判定していない」が届く。
+  if (undecided.length > 0) {
+    notes.push(
+      `判定不能の軸がある（judge が判定できなかった・§16.4）: ${undecided.join(', ')}。` +
+        '判定不能な軸は forcedReview に1件も寄与しないため、violation 0件を「違反なし」と読んではならない。'
+    );
+    violations.push(
+      `judge が判定できなかった軸がある（未判定を pass と読まない・§16.5）: ${undecided.join(', ')}。` +
+        '当該 judge に verdict の書き出しをやり直させてから再実行する' +
+        '（判定が応答に残っているなら再判定させず、そのまま Write させる）。'
+    );
   }
 
   // --- カバレッジ（keep-review） ---
@@ -100,6 +122,13 @@ export function checkEvalReport({ ts, roots = {}, axes = AXES }) {
           missingCond.map((m) => `${m.target}(${m.condition})`).join(', ')
       );
     }
+  } else if (kr && !kr.ok) {
+    // 軸ファイルが判定不能なら coverage 検査そのものが成立しない。ここで沈黙すると
+    // 「回付されたのに誰も見ていない対象」が出力のどこにも現れなくなる（§16.5）。
+    violations.push(
+      `keep-review が判定不能のため、回付された ${referred.length} 件が全て未判定（未判定を pass と読まない・§16.5）: ` +
+        referred.map((r) => `${r.target}(${r.condition})`).join(', ')
+    );
   }
 
   // --- 集約（eval-report.md） ---
@@ -127,7 +156,7 @@ export function checkEvalReport({ ts, roots = {}, axes = AXES }) {
     }
   }
 
-  return { ok: violations.length === 0, violations, notes, referred, perAxis, forcedReview };
+  return { ok: violations.length === 0, violations, notes, referred, perAxis, forcedReview, undecided };
 }
 
 // ---------------------------------------------------------------------------

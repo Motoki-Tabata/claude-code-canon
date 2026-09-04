@@ -106,6 +106,9 @@ test('全軸そろい・全対象を判定済みなら合格', (t) => {
   assert.equal(r.ok, true, r.violations.join(' / '));
   assert.equal(r.referred.length, 3);
   assert.equal(r.forcedReview.length, 0);
+  // 対照実験: 判定不能の検出器が常時発火する偽陽性でないこと。
+  assert.deepEqual(r.undecided, []);
+  assert.equal(r.notes.some((n) => n.includes('判定不能')), false, r.notes.join(' / '));
 });
 
 test('coverage に対象が欠けていたら不合格（未判定を pass と読まない）', (t) => {
@@ -127,6 +130,40 @@ test('軸ファイルの欠落を「違反なし」と読まない', (t) => {
   const r = checkEvalReport({ ts: 'x', roots: { outputDir: c.dir } });
   assert.equal(r.ok, false);
   assert.ok(r.violations.some((v) => v.includes('security')));
+});
+
+test('軸ファイルを1つ故意に削除すると「判定不能」として notes と violations の両方に現れる', (t) => {
+  const c = setup(t, { skipAxis: 'correctness' });
+  const r = checkEvalReport({ ts: 'x', roots: { outputDir: c.dir } });
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.undecided, ['correctness']);
+  assert.ok(r.notes.some((n) => n.includes('判定不能')), r.notes.join(' / '));
+  assert.ok(r.violations.some((v) => v.includes('判定できなかった')), r.violations.join(' / '));
+  // 判定不能な軸は forcedReview に寄与しない。この空を「違反なし」と読ませないための notes。
+  assert.equal(r.forcedReview.length, 0);
+});
+
+test('keep-review が判定不能なら回付対象が全件未判定として名指しされる', (t) => {
+  const c = setup(t, { skipAxis: 'keep-review' });
+  const r = checkEvalReport({ ts: 'x', roots: { outputDir: c.dir } });
+  assert.equal(r.ok, false);
+  // 軸ファイルが無いと coverage 検査そのものが成立しない。回付対象が出力のどこにも
+  // 現れないまま終わると「回付されたのに誰も見ていない対象」が消える（§16.5）。
+  const named = r.violations.filter((v) => v.includes('全て未判定'));
+  assert.equal(named.length, 1, r.violations.join(' / '));
+  assert.ok(named[0].includes(KEEP) && named[0].includes(MERGE_SRC), named[0]);
+  assert.ok(
+    named[0].includes('(C2)') && named[0].includes('(C4)') && named[0].includes('(merge_target)'),
+    '条件単位まで名指しされていない: ' + named[0]
+  );
+});
+
+test('壊れた形式（json フェンス無し）も判定不能に含まれる（不在だけに縮退しない）', (t) => {
+  const c = setup(t, { rawAxis: { canon: '# canon\n\n本文だけでフェンスが無い。\n' } });
+  const r = checkEvalReport({ ts: 'x', roots: { outputDir: c.dir } });
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.undecided, ['canon']);
+  assert.ok(r.notes.some((n) => n.includes('判定不能')), r.notes.join(' / '));
 });
 
 test('violation は forcedReview（P5/P7 の強制表示リスト）に載る', (t) => {
@@ -185,6 +222,8 @@ test('CLI: 軸ファイルが1つ欠けていれば exit 2 で欠落軸を報告
   const r = runNodeScript(path.join(ROOT, 'eval', 'report.js'), [ts]);
   assert.equal(r.code, 2, r.stdout + r.stderr);
   assert.ok(r.stdout.includes('security'), r.stdout);
+  // notes は NG/OK に関わらず出力される。違反一覧を読まない読者にも判定不能が届くこと。
+  assert.ok(r.stdout.includes('注意:') && r.stdout.includes('判定不能'), r.stdout);
 });
 
 test('CLI: import だけでは実行されない（isMainModule ガード配下・規律(g)）', () => {
