@@ -31,6 +31,14 @@ Skills（SKILL.md）/ Slash Commands スキーマ準拠の生成を担う。`ski
 - 本文に actionable な具体的タスク手順を必ず書く（ガイドラインのみを fork すると subagent が何もせず終了 — 公式警告）。
 - preload（`skills:`）と `context: fork` は原則併用しない（本システム方針）。
 
+## 役割別書込スコープを Skill 側の SSoT に持たせる設計（design-map の `## Write Scopes` 参照時）
+複数の実装役 Subagent へファイル所有権を割り当てる設計で、その定義を1つの参照 Skill（preload 専用・
+`user-invocable: false`）に集約する場合、`## Write Scopes` の内容を逐語射影する。含めるべき構成:
+常設スコープ表（役割ごとの許可 glob）／ビルド設定・構成ファイルの宣言駆動の例外（対象ファイル一覧・
+許可条件・「常に対象外」リスト）／3分岐の自己チェック手順／advisory である旨の注記（PreToolUse hook
+はエージェント識別子を受け取れない設計のため役割を機構的に強制できない。担保は自己チェックと事後
+レビューの2段構えのみ）。
+
 ## トリガー設計マトリクス（§2.1）
 | frontmatter | Claude 自動 | ユーザー /name | 用途 |
 |---|---|---|---|

@@ -50,6 +50,12 @@ layers: <2層|3層> / rationale: <...>
 ## レイヤー構成
 L1: ... / L2: ... / L3: ... / L4: ... / L5: ...
 
+## Write Scopes
+<preload された `layer-design` の生成規約（役割ごとの常設書込スコープ・共有構成ファイルの扱い・
+強度・代替担保）に従って書く。役割へファイル所有権を割り当てる設計（L3 Subagent が複数存在し
+それぞれ担当ディレクトリを持つ構成）では省略不可。役割分担が無い設計（単一 Subagent／L2 Skill
+のみ等）では `N/A（役割分担なし）` と明記する>
+
 ## 既存判定（existing_disposition）
 existing_disposition:
   - path: .claude/agents/reviewer/reviewer.md
@@ -92,6 +98,11 @@ existing_disposition:
 ## 制約
 - 設計判断（層数・責任分担・IF 定義・モデル割当・既存4判定）を伴うため `opus`/`effort: high` で動作する。
 - `keep_conditions` の5条件は**明示的に並べる**。1つでも false なら keep を選べない構造にする（判定を裁量でなく規則適用に近づける）。
+- `## Write Scopes` を書くときは、**役割ごとの常設スコープ**と**ビルド設定・構成ファイルの扱い**を分けて書く。
+  後者を前者の表に混ぜて常設化すると、要件で想定していない新規依存追加・設定変更まで恒常的に許可される
+  （対象プロジェクトでの実測事故: `docs/L3_AGENTS.md` の権限強度4段階のうち advisory な役割別スコープに
+  ビルド設定ファイルが欠落し、自己チェックの tripwire が発火しなかった）。宣言駆動の例外（対象ファイル一覧
+  ＋許可条件＋強度＋代替担保）として別立てするか、常設に含めるかを明示的に選び、選ばなかった方の理由も書く。
 - 承認状態は `design-map.md` 内に持たせない（`output/<ts>/.gate/approvals/design.approved` サイドカーで表す。書き込みは `npm run approve` のみ）。
 - `output/<ts>/` 配下にのみ書き込む。
 - **別の Subagent を起動しない**（nesting は既定の深度上限3階層（可変）まで可能だが、本エージェントは設計上 spawn しない。Builder の起動は `generator` が行う）。

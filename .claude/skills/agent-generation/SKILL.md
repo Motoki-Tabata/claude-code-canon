@@ -22,6 +22,13 @@ Subagents スキーマ準拠の生成を担う。`agent-builder` に preload さ
 - `tools`: 最小権限集合。**本文の実操作から逆算して生成系（Write/Edit）・消費系（Read/Grep/Glob）を過不足なく宣言**する。未宣言は silent failure。**ツール名は `TOOLS.md` に実在するものだけ**。deny list は `disallowedTools`（camelCase）。
 - `model` / `effort`: `model-selection` に従い割当（Subagent は親のティアを超えない）。設計判断系は `effort: high`。
 - `skills`: preload する Skill のリスト。**`disable-model-invocation: true` の Skill は preload 不可**（公式制約・G7 が弾く）。
+- **役割へファイル所有権を割り当てる設計**（design-map の `## Write Scopes` に当該役割の記載がある場合）:
+  本文に「書込スコープ」節を設け、`## Write Scopes` の常設スコープ・宣言駆動の例外を逐語射影する。
+  例外に該当する範囲外パスへの書込みが要件文書に明記されている場合のみ役割を問わず許可する設計では、
+  本文の実行手順に3分岐の自己チェック（常設スコープ一致→続行／例外条件（対象表列挙 かつ 要件文書へ
+  の明記）を満たす→続行し変更内容を完了報告に明記／いずれでもない→実装せず停止して報告）を明記する。
+  PreToolUse hook はエージェント識別子を受け取れない設計（公式仕様）のため役割別の書込スコープを
+  機構的に強制できない——この自己チェックが唯一の advisory な担保になる。
 - `isolation: worktree`: ファイル衝突回避が必要な Builder に任意付与。
 - `mcpServers`: 外部連携が必要な場合のみ。
 
