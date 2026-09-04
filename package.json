@@ -31,6 +31,7 @@
     "canon:ts": "node tools/new-canon-ts.js",
     "approve": "node tools/approve.js",
     "unblock": "node tools/unblock.js",
+    "reopen": "node tools/reopen.js",
     "eval:bundle": "node eval/bundle.js",
     "eval:meta": "node eval/meta-eval.js",
     "eval:report": "node eval/report.js",
@@ -48,6 +49,7 @@
     "type-module": "ESM 固定。hooks から `node gates/xxx.js` で直接起動されるため、拡張子と解決規則を一貫させる。",
     "test-required": "npm test は §11.5・§15.3 により【必須】。settings.json の配線は原理的に自己検証できず、配線テストが帯域外の唯一の検証手段（配線の生存検証）。",
     "test-concurrency": "--test-concurrency=1 でテストファイルを直列実行する。ガードテスト群は実 work/output（特に共有の work/.session-ts）を変更するため、ファイル並列だと run in-flight 判定が競合して偽陰性になる。本番でもガードはツール呼出ごとに逐次発火するため直列が正しいモデル。恒久策の lib ルート注入口（テストごとに CANON_ROOT を差し替え）は検討のうえ**降スコープと判定**した: CANON_ROOT/WORK_ROOT/OUTPUT_ROOT/SESSION_TS_FILE は import.meta.url 由来のモジュール定数で全パス API がここから生え、deploy/emit-run-manifest.js が独立に再導出してもいる。引数注入への全面改修は既存件数・所要時間の現状に対し便益より回帰リスクが大きいと判断した（`npm test` の出力が実測値の最新値）。**運用規約として、実 work/<ts>・output/<ts> を触るテストは ts の日付部分をテストファイルごとに重複させないこと**。`tests/helpers/ts.js`（TS_NAMESPACES レジストリ）＋ `tests/ts_namespace.test.js` がこの規約を機械検査する（重複割当・2999 プレフィックスの直書き・レジストリの腐りを検出）。新規テストファイルは `tsFor`/`tsSeq` 経由で ts を発行し、TS_NAMESPACES へ8桁日付を追加登録すること。**アドホックに複数ガードテストファイルを束ねて `node --test` する際は、npm test と同じく必ず `--test-concurrency=1` を付けること**（実 sentinel を共有するテストをファイル並列で叩くと相互汚染し、無関係な失敗として観測される）。",
-    "approve": "承認の唯一の鋳造経路（§4.4・承認鋳造経路の一本化）。.gate/** はエージェント書込 deny-all のため、Write/Edit では承認できない。"
+    "approve": "承認の唯一の鋳造経路（§4.4・承認鋳造経路の一本化）。.gate/** はエージェント書込 deny-all のため、Write/Edit では承認できない。",
+    "reopen": "権威マーカー取消の唯一の経路（§4.5 巻き戻し）。generation.done 等が残ったまま工程7へ戻ると、ガード（write-scope-guard/approval-guard/advance-guard）も §4.5①の冪等スキップも解けない。取消は下流の人間承認の事前取消を要求する。"
   }
 }

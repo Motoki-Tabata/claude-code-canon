@@ -34,6 +34,7 @@ export const TS_NAMESPACES = {
   g14_g16: '29990808',
   stage_guard_investigation: '29990810',
   self_optimize: '29990911',
+  reopen: '29991010',
 };
 
 function nameFromUrl(importMetaUrl) {

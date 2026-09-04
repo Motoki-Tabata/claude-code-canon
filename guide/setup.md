@@ -142,7 +142,7 @@ node deploy/deploy.js <output/ts> <対象> --confirm
 
 ## 8. npm scripts 一覧
 
-`package.json` の全16スクリプト。上記1〜6で個別に触れなかったものを含め、用途と実行タイミング別に整理します。
+`package.json` の全18スクリプト。上記1〜6で個別に触れなかったものを含め、用途と実行タイミング別に整理します。
 
 **日常（`/canon` run の前後・随時）**
 
@@ -152,6 +152,7 @@ node deploy/deploy.js <output/ts> <対象> --confirm
 | `npm test` | 配線テスト・必須の帯域外検証（手順2） |
 | `npm run smoke:arm` / `smoke:check` | hooks の実発火確認（手順3） |
 | `npm run unblock -- <ts>` | ブロックラッチの人間による解除（§7） |
+| `npm run reopen -- <ts> <stage>` | 権威マーカー取消の唯一の経路。工程9→工程7・P5 差し戻し等の巻き戻しでガードと再検査を再武装する（§4.5 巻き戻し。下流の人間承認の事前取消が前提） |
 
 **`/canon` run 中（内部から呼ばれる・通常は手動実行しない）**
 

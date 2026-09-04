@@ -77,6 +77,7 @@ argument-hint: "<target_project_path>"
 2. 続けて `designer`（opus・layer-design/orchestration-patterns/model-selection/existing-disposition preload）を起動し、`output/<ts>/design-map.md` を書かせる（§9）。**新規シナリオ(1) では既存が無いので keep 判定は発生しない**（G2 は空パス）。
 3. `.requests/design` → `stage-guard` が G2（維持判定・シナリオ1は空）＋ G1（design）を検査。
 4. **P5**: design-map をユーザーに提示（廃止判定があれば強調）。承認後 `npm run approve -- <ts> design` を実行。これが無いと生成物書込が deny される（前進ゲート b）。
+   - **P5 差し戻し**（design-map をやり直す場合）: `design.done` マーカーが残っていると差し戻し後の design-map に対して G1・G2 が再実行されない。工程9→工程7 の巻き戻し手順（下記）と同型の手順を踏む: 下流承認（`generation`・`eval` 等、鋳造済みなら）を先に取り消す → `npm run reopen -- <ts> design` → design-map を書き直し完了リクエストを再度書かせる → `stage-guard` が G1・G2 を再実行 → P5 を取り直す。
 
 ### 工程7: 生成（全量・README/MANIFEST を最終ステップ）→ P6
 
@@ -99,6 +100,12 @@ argument-hint: "<target_project_path>"
 4. **P7**: `eval-report.md` を提示する。`verdict: violation` は**1件残らず提示**する（§8.4 の強制表示）。とくに **C2 の violation は P5 の再確認事項**として扱う。承認後 `npm run approve -- <ts> eval`。
 
 **eval は決定論ゲートの代替ではない**。eval が clean でも決定論ゲートのブロックラッチが立っていれば前進しない。逆に eval の指摘で生成物を書き換える場合は工程7へ戻る（自己修復はデータプレーン限定・§3.3）。judge が verdict を書けなかった／形式が壊れていた場合は、**「違反なし」と読まずに「judge が判定できなかった」と報告する**（§16.4）。
+
+**工程7へ戻る具体手順**（重要: `generation.done` はガードの有効条件そのものであり、残ったままだと再検査もガードも働かない・基本設計書 §4.5 巻き戻し・詳細設計書 §11.3）:
+1. `eval.approved`（鋳造済みなら）・`generation.approved` を取り消す: `npm run approve -- <ts> eval --revoke` → `npm run approve -- <ts> generation --revoke`。
+2. `npm run reopen -- <ts> generation` を実行する。write-scope-guard／approval-guard／advance-guard が再武装され、`generation.done` が削除される。
+3. `generator` を再起動して生成物を書き直させ、`.requests/generation` を再度書かせる。`gen-guard` が G1・G7〜G12 を実際に再実行する（冪等スキップに入らない）。
+4. 通過したら P6 を取り直し、`npm run approve -- <ts> generation` → 工程9 を再実行 → P7 を取り直す。
 
 ### 工程10: デプロイ → P8
 

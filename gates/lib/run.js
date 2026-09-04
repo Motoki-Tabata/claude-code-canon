@@ -46,6 +46,23 @@ export const TERMINAL_STAGE = 'generation';
 /** ステージ・ディスパッチが扱う完了リクエストの全種別（§4.3 の例示）。 */
 export const KNOWN_STAGES = ['investigation', 'requirements', 'spec', 'design', 'generation'];
 
+/**
+ * `tools/reopen.js` が取消可能なマーカーキーの全集合（§4.5 巻き戻し）。
+ * `KNOWN_STAGES` に、investigation の phase 別キー（`investigationMarkerKey`・
+ * gates/stage-guard.js）が鋳造する `investigation.focused` を加えたもの。新しい
+ * 分類器をハードコードせず、既存の2つの語彙（リクエスト名＋phase 別マーカー）から導出する。
+ */
+export const REOPENABLE_MARKER_KEYS = [...KNOWN_STAGES, 'investigation.focused'];
+
+/**
+ * 承認 kind の前後関係（P2〜P7 の順）。`tools/reopen.js` が「<stage> 以降の承認が
+ * 残っていれば拒否」を判定する材料。`eval` はステージ（マーカー・完了リクエスト）を
+ * 持たない承認 kind（工程9 は G バッチを再発火させない・§16.7）だが、P7 の承認として
+ * 順序の末尾に置く——generation を reopen するなら、その後工程である eval の承認も
+ * 当然に前提が崩れるため事前取消を要求する。
+ */
+export const APPROVAL_ORDER = ['requirements', 'spec', 'design', 'generation', 'eval'];
+
 /** write-scope-guard が保護するシステム本体トップレベルツリー（§11.3 書込先ガード）。 */
 export const PROTECTED_DIRS = ['docs', 'gates', '.claude'];
 
@@ -138,6 +155,20 @@ export function mintMarker(ts, stage, meta = {}) {
     JSON.stringify({ stage, minted_at: new Date().toISOString(), ...meta }, null, 2) + '\n',
     'utf8'
   );
+}
+/**
+ * 権威マーカーの取消（巻き戻し・§4.5）。鋳造の唯一の経路が `mintMarker`（ゲート専有）で
+ * あるのと対称に、**取消の唯一の経路は `tools/reopen.js`（人間 CLI）**とする。マーカーは
+ * ガードの有効条件そのもの（`generation.done` なら `currentRunTs()`）なので、取消は
+ * 「ガードを再武装し次の SubagentStop で再検査を走らせる」ことと同義になる。
+ */
+export function revokeMarker(ts, stage) {
+  const p = markerPath(ts, stage);
+  if (existsSync(p)) {
+    unlinkSync(p);
+    return true;
+  }
+  return false;
 }
 
 export function approvalPath(ts, kind) {

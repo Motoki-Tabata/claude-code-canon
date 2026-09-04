@@ -485,6 +485,8 @@ G14〜G16 は機能X（§13.1）の run が消費する完了リクエスト `wo
 
 - **判定材料**: `work/.session-ts` が指す `output/<ts>/` に**終端マーカーが無い間**だけ deny する。終端マーカーがある（run 完了）／`.session-ts` が無い（run 未開始）場合、ガードは素通りさせる。
 
+**巻き戻し時の再武装**: `tools/reopen.js` が `markers/<stage>.done` を削除すると、`currentRunTs()` は再び非 null を返し3ガードが再武装される。同時に `hasMarker` の冪等スキップ（§4.5①）が外れ、次の SubagentStop で G1・G7〜G12 等が実際に再実行される（`.claude/settings.json` の SessionStart 採番禁止と同型の誤判定事故——run が実質終わっていないのに保護が解ける事故——を、意図的操作の側から塞ぐ）。取消後に run を放棄すると `.session-ts` 残置と同じ事故になるため、CLI は次の一手（再生成→再承認）を出力に明記する。
+
 > **`.session-ts` の書き手**: **`tools/new-ts.js`（`npm run ts`）のみ**が採番して書く。オーケストレータが工程1の直前に実行する。**`SessionStart` hook は採番してはならない**（足場作りのみ）。理由:
 >
 > 1. **SessionStart は無条件に発火する**。`/canon` を一度も実行しない保守セッション（`/update-docs` 等）や、設計書を書くだけのセッションでも発火する。そこで新規 `<ts>` を採番すると、それらのセッションが即座に「run in-flight」と誤判定され、保守ループが書けなくなる。

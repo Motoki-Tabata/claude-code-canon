@@ -184,6 +184,8 @@ canon_version: v2.1.251
 
 これにより「エージェントは `work/<ts>/.requests/<stage>` に完了リクエストを書くだけ」（§4.3）という原則が承認にも一貫して適用される。
 
+`tools/reopen.js` は `.gate/` 直下を書く2本目の CLI だが、**承認の鋳造・取消は行わない**（それは引き続き `tools/approve.js` のみが担う・本節の一本化は不変）。
+
 ### 4.5 `.requests/` の消費規約（順序と冪等性）
 
 完了リクエストの消費（判定バッチの実行・権威マーカーの鋳造・リクエストの削除）は、順序と冪等性を誤ると2方向に破綻する:
@@ -215,6 +217,8 @@ SubagentStop 発火 → .requests/<stage> を走査
 - **`.gate/processed.log`** は `<ts>` / `<stage>` / 判定結果 / 鋳造・削除の各時刻を追記する。`.gate/` 配下なのでエージェントは書けない（§4.4）。
 
 **investigation の phase 別マーカー**: 調査工程は1段目（要件確定前）と2段目 focused（要件確定後）が同じ `investigation` 完了リクエストを書く。マーカーキーが単純にリクエスト名 `<stage>` のままだと、1段目で `investigation.done` が鋳造された時点で②の冪等スキップが働き、2段目の G1 focused 検査（focused 空欄・evidence_paths 実在・§6.2）が実 hook 経路で一度も走らない。そこで **investigation に限り、`work/<ts>/requirements.md` が存在するとき（＝2段目）マーカーキーを `investigation.focused` にする**。結果、1段目は `investigation.done`、2段目は `investigation.focused.done` を鋳造し、2段目の検査が冪等スキップされずに発火する。リクエストの消費（削除）は従来どおりリクエスト名 `investigation` で行う（リクエストファイルは1つ）。他ステージ（requirements/spec/design/generation）は phase を持たないためマーカーキー＝ステージ名のまま。実装は `gates/lib/run.js:processStageRequests` の `markerKey` 注入口と `gates/stage-guard.js:investigationMarkerKey`。
+
+**巻き戻し（reopen）**: eval（工程9）の指摘や P5 差し戻しで生成物・design-map を書き直す場合、対応する権威マーカー（`generation.done`／`design.done` 等）が残っていると、①の冪等スキップにより再検査（G1・G7〜G12 等）が走らずガード（write-scope-guard・approval-guard・advance-guard）も `currentRunTs()` が null のまま素通りし続ける——`generation.done` はガードの有効条件そのものであるため（§4.3・詳細設計書 §11.3）。phase 別マーカーキー（`investigation.focused` と同型の `generation.round2` 等）は本質的な解にならない: `hasTerminalMarker()` はキー名 `generation.done` の存在そのものを見るため、round2 キーを別に鋳造しても `generation.done` は残りガードは沈黙したまま——G7〜G12 だけが再実行されて緑になり、「ガード不在で書かれた生成物が検証済みに見える」という現状より悪い状態を作る。ゆえに**マーカー取消 CLI**（`npm run reopen -- <ts> <stage>`・`tools/reopen.js`）を承認の唯一の鋳造経路（§4.4）と対になる**唯一の取消経路**として新設する。取消は `<stage>` 以降の人間承認（例: `generation` 取消には `generation.approved` の事前取消）を要求し、実行主体はオーケストレータの Bash（ワーカーは G13 のシェル剥奪で不可）に限る。
 
 ### 4.6 調査工程の3層 spawn
 
@@ -406,7 +410,7 @@ claude-canon/
 │   ├─ pre-deploy-check.js         ← 工程10①（詳細設計書 §10.2）。管理パス集合パターンは gates/lib/managed-paths.js を共有（G9 と同一 SSoT・§10.1）
 │   ├─ deploy.js                   ← 工程10②（詳細設計書 §10.2）
 │   └─ emit-run-manifest.js        ← 工程10 手順書 RUN.md を output/<ts>/.deploy/ へ同梱（§10.2 run-manifest 方式）
-├─ tools/                         ← 補助 CLI（new-ts / new-canon-ts / approve / unblock / promote / rollback / selfopt / stage-candidate 等）
+├─ tools/                         ← 補助 CLI（new-ts / new-canon-ts / approve / unblock / reopen / promote / rollback / selfopt / stage-candidate 等）
 ├─ tests/                         ← 自己検証テストランナー（詳細設計書 §15）
 │   └─ helpers/                    ← テスト共通ヘルパ（詳細設計書 §15.2「テストハーネスの運用制約」・§15.3）:
 │                                      paths.js（gates/lib/* の re-export）／hook.js（ガード子プロセス起動）／
@@ -481,6 +485,7 @@ claude-canon/
 | 検証/品質 | 決定論ゲート G1〜G16（真偽のみ・PreToolUse/PostToolUse/SubagentStop/UserPromptExpansion 発火）と eval（LLM-as-a-Judge）を分離。G1〜G12 は生成物検証、**G13 のみ自己検証（preflight）** |
 | ゲート硬遮断 | PreToolUse deny（3ガード）と SubagentStop/Stop、**UserPromptExpansion（G13・run 開始をブロック）**。PostToolUse はブロック不可のため助言＋G12 権威再検証 |
 | **承認の鋳造** | **`.gate/**` は deny-all。承認は Write/Edit で行わず `npm run approve -- <ts> <kind>`（`tools/approve.js`）が唯一の経路。取り消しも CLI（§4.4）** |
+| **マーカーの巻き戻し** | **`npm run reopen -- <ts> <stage>`（`tools/reopen.js`）が唯一の取消経路。`<stage>` 以降の人間承認の事前取消を要求し、ガード（3種）と再検査（G1・G7〜G12 等）を再武装する（§4.5・詳細設計書 §11.3）** |
 | **シェルの扱い** | **コマンド実行系ツール（`Bash`・`PowerShell`。Windows の主シェルである `PowerShell` を含む）を全ワーカーから剥奪（`tools:` に含めない）＝ G13（preflight・`UserPromptExpansion@/canon`）が機械強制し、違反なら run 開始をブロック。加えて write-scope-guard のコマンド文字列検査を保険として置く。適用は claude-canon 自身の `.claude/agents/**` のみで、生成物の Subagent は対象外（シェル正当）。オーケストレータ `/canon` は Skill ゆえ対象外＝シェル可。**列挙の網羅性が単一障害点**（漏れたツール経由で全ガードを迂回できる・§5.3・詳細設計書 §11.2 G13・§11.3）** |
 | **ガードの有効条件** | **run が in-flight のときのみ有効（`work/.session-ts` の指す `output/<ts>/` に終端マーカーが無い間）。保守ループ・実装作業は run 外なので通る（詳細設計書 §11.3・§13.1）** |
 | **`.requests/` 消費規約** | **鋳造→削除の順に固定。マーカー存在でキー付けした冪等演算（marker 有 & request 有 → 削除のみ）。`.gate/processed.log` で監査（§4.5）** |
