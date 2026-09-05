@@ -18,7 +18,10 @@ model: sonnet
 languages / frameworks / build / package_manager
 test: { frameworks / test_dirs / runner_cmd }
 ci / conventions（naming/lint/format）/ repo_scale / existing_docs
+learning_history（対象プロジェクト自身の学習履歴。存在すれば）
 ```
+
+`learning_history` は対象プロジェクトが過去に実機で踏んだ落とし穴の記録（例: `tasks/lessons.md`）です。命名・配置はプロジェクトごとに異なるため固定パスで探さず、README/CLAUDE.md からの言及や典型的な配置（`tasks/`・`docs/` 配下の `lessons.md`・`LESSONS.md` 等）を手掛かりに存在有無を確認してください。見つかれば要点（`evidence_paths` 付き）を書き、無ければ省略してよい（必須項目ではない）。
 
 ## モード2: `focused`（調査2・深く狭く・オーケストレータが要件確定後に直接再起動）
 起動元から `requirements.md`（確定要件）と系統A `existing_customizations.md` の `depends_on.project_refs` 一覧が注入されます。確定要件に**関係する箇所だけ**を深掘りし、かつ `project_refs` を実リポジトリに照合（解決）します。

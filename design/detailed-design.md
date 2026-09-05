@@ -47,6 +47,9 @@ canon_version: v2.1.251
 languages / frameworks / build / package_manager
 test: { frameworks / test_dirs / runner_cmd }
 ci / conventions（naming/lint/format）/ repo_scale / existing_docs
+learning_history（対象プロジェクト自身の学習履歴。命名は `tasks/lessons.md`・`docs/lessons.md`
+等プロジェクトごとに異なるため固定パスで探さず、README/CLAUDE.md からの言及や
+典型的な配置を手掛かりに存在有無を確認する）
 
 ## focused（調査2・深く狭く・要件確定後にのみ追記）
 requirement_ref / scope
@@ -60,6 +63,12 @@ ref_resolution:                       # C5 の解決結果: 系統A project_refs
 ```
 
 肝: `profile`/`focused` 分離（2段調査の構造）、`evidence_paths`（幻覚防止）、`extractable_templates`（接地の価値）、`ref_resolution`（系統A の project_refs を実リポジトリに解決した真偽＋サンプル・C5 の判定入力）。
+
+**`learning_history` を profile に追加した理由**: 既存改修モードでは、対象プロジェクトが
+過去に実機で踏んだ落とし穴（依存関係の罠・CI設定の既知の失敗パターン等）が学習履歴ファイルに
+蓄積されていることがある。工程1でこれを未発見のまま工程2ヒアリングへ進むと、要件が過去の
+既知の落とし穴を踏む形で確定してしまう恐れがある。存在すれば工程2（`requirement-elicitation`）
+のヒアリング時に踏まえる。存在しなければ空欄でよい（必須ではない）。
 
 **`evidence_paths` の書式契約**: 各項目は**対象リポジトリルート相対のパス**とする。
 `gates/lib/markdown.js` の `parseListLike` は値が `/^\[.*\]$/` にマッチする場合のみカンマで
