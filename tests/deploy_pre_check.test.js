@@ -38,6 +38,17 @@ test('pre-deploy-check: 未捕捉ファイルは uncaptured 検出で exit 2（�
   assert.match(r.stdout, /\[uncaptured\] \.claude\/skills\/surprise\/SKILL\.md/);
 });
 
+test('pre-deploy-check: managed-paths.list の glob 行を P8 で検出して exit 2（S1-1）', (t) => {
+  // 従来この CLI は retired.list しか読まず、glob 行の list を「消失予定: 0 件」で通していた。
+  // 配置は --confirm を打った deploy.js が rolled-back するまで気づけなかった（ライブ run
+  // 20260909_003820）。P8 の最終防波堤に検出機会を戻す。
+  const c = setupTmpCase(t, 'new');
+  writeFileSync(path.join(c.output, '.deploy', 'managed-paths.list'), '.claude/skills/**\n');
+  const r = runDeployCli('pre-deploy-check.js', [c.output, c.target]);
+  assert.equal(r.code, 2, 'glob 行のまま配置へ進ませてはならない');
+  assert.match(r.stdout, /\[glob\] managed-paths\.list: \.claude\/skills\/\*\*/);
+});
+
 test('pre-deploy-report: 走査不能エントリを本照合の盲点として明示する', () => {
   // walkManaged が種別判定に失敗したエントリは「管理パス集合の一部を列挙できていない」
   // ことを意味する。落ちずに続行する代わりに黙殺すると、防波堤が静かに素通りになる。

@@ -147,6 +147,11 @@ function main() {
       `（npm run approve -- ${ts} ${stage}）。\n`
   );
   process.stdout.write(
+    `オーケストレータ自身が成果物を直した場合（ワーカーを再開させない場合）は、SubagentStop の` +
+      `発火を待たずに npm run recheck -- ${ts} ${stage} でゲートを明示的に再起動すること` +
+      `（hook 経路と同じ形で起動し、マーカー鋳造・ブロックラッチまで本番と同じ副作用が起きる）。\n`
+  );
+  process.stdout.write(
     `注意: この <ts> で作業を再開しないまま放置すると work/.session-ts の残置と同じ事故になる` +
       `（保守編集が sanctioned ツリー外で deny される）。作業を打ち切るなら run を完走させるか、` +
       `.session-ts の扱いを明示的に決めること。\n`

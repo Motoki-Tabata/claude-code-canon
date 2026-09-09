@@ -17,6 +17,7 @@ import path from 'node:path';
 import { setupSampleRepo } from './helpers/fixtures.js';
 import { tsSeq } from './helpers/ts.js';
 import { checkG11 } from '../gates/g11_constraints.js';
+import { checkG1 } from '../gates/g1_stage_order.js';
 import { parseRequirementsDoc } from '../gates/lib/requirements.js';
 
 const nextTs = tsSeq(import.meta.url);
@@ -259,25 +260,40 @@ test('G11: conflicts ブロック自体が無い場合も登録漏れとして�
   assert.ok(r.violations.some((v) => v.includes('R1')));
 });
 
-test('G11: 実在しない要件 id を指す conflicts を虚偽として検出', (t) => {
+// conflicts の【整合】検査は G11（generation）から G1（requirements）へ移設した（S2-1）。
+// ライブ run 20260909_003820 で、生成物には一切問題が無いのに生成完了後の gen-guard が
+// 承認済みの requirements.md を落とし、承認済み成果物を後から書き換える羽目になったため。
+// 判定ロジックは gates/lib/requirements.js の checkConflictsIntegrity が SSoT。
+test('G1(移設): 実在しない要件 id を指す conflicts を虚偽として検出（記録直後＝承認前に落ちる）', (t) => {
   const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
   patchRequirements(c, (text) => text.replace('- requirement: R1（deterministic 希望）', '- requirement: R9（存在しない）'));
-  const r = checkG11({ ts: c.ts });
+  const r = checkG1({ ts: c.ts, stage: 'requirements' });
   assert.equal(r.ok, false);
-  assert.ok(r.violations.some((v) => v.includes('実在 id を指していない')));
+  assert.ok(r.violations.some((v) => v.message.includes('実在 id を指していない')));
 });
 
-test('G11: 禁止されていない制約との「衝突」を主張する conflicts を検出', (t) => {
+test('G1(移設): 禁止されていない制約との「衝突」を主張する conflicts を検出', (t) => {
   const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
   patchRequirements(c, (text) =>
     text
       .replace('hooks:        { allowed: false', 'hooks:        { allowed: true')
-      // hooks が許可されたので R1 の登録漏れ検査は無効化される。整合違反だけが残る。
       .replace('constraint: hooks 禁止', 'constraint: hooks 禁止（実際は許可）')
   );
-  const r = checkG11({ ts: c.ts });
+  const r = checkG1({ ts: c.ts, stage: 'requirements' });
   assert.equal(r.ok, false);
-  assert.ok(r.violations.some((v) => v.includes('衝突が成立しない')));
+  assert.ok(r.violations.some((v) => v.message.includes('衝突が成立しない')));
+});
+
+test('G11(移設後の非回帰): 整合違反だけの requirements で generation はブロックされない', (t) => {
+  // 移設の眼目は「生成物に問題が無いのに generation が止まる」ことの解消。
+  // 登録漏れ検査(1)は G11 に残るので、そちらが引き続き効くことは上の2テストが担保する。
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  patchRequirements(c, (text) => text.replace('- requirement: R1（deterministic 希望）', '- requirement: R9（存在しない）'));
+  const r = checkG11({ ts: c.ts });
+  assert.ok(
+    !r.violations.some((v) => v.includes('実在 id を指していない')),
+    'requirements の書式問題を generation で落としてはならない'
+  );
 });
 
 // ---------------------------------------------------------------------------

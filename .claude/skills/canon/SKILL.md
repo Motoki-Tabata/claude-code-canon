@@ -61,9 +61,12 @@ argument-hint: "<target_project_path>"
 
 ### 工程3: プロジェクト調査2（深く狭く）→ P3
 
-1. `project-profiler` を再起動し、確定要件に関係する箇所だけ深掘りさせる（`work/<ts>/project_profile.md` の `focused` 節に追記・evidence_paths 必須）。
-2. `.requests/investigation`（調査2）→ G1（focused 空欄違反・evidence_paths 実在）。
-3. **P3**: 深掘り結果を提示し続行確認。
+1. `project-profiler` を `focused` モードで再起動し、確定要件に関係する箇所だけ深掘りさせる（注入: `requirements.md` の確定要件と、系統A `existing_customizations.md` の `depends_on.project_refs` 一覧）。
+2. **profiler の返答をオーケストレータが `work/<ts>/project_profile.md` の `## focused` 節へ永続化する**。`project-profiler` は `tools: Read Grep Glob` で **Write を持たない**（read-only 専任・agent 定義の制約節）ため、profiler 自身は書けない。工程1では `investigator` が代筆するが、工程3は profiler を**直接**起動するので代筆者がいない——ここを「追記させる」と読むと profiler が「Write を持たないので永続化できません」と正しく報告して止まる（実測: run `20260909_003820`）。
+   - **永続化は `project-profiler` の agent 定義にある `focused` の出力テンプレートと「値の語彙契約」に従って行う**（`findings:` キー配下に `- topic` / `evidence_paths` / `summary`、`ref_resolution:` は `- ref: <値>  kind: <語>  resolved: <true|false>` をこの順で1行に）。この形式は G1 が正規表現で機械照合する。**profiler の応答を要約・整形せず逐語で写し、書き終えたらパーサへ通す**（`.claude/rules/worker-definitions.md`）。
+   - **`evidence_paths` は対象リポジトリからの相対パスを裸で書く**（バッククォート・絶対パス不可）。G1 は `work/<ts>/target.txt` のルートから解決して実在照合する（幻覚防止）。
+3. `.requests/investigation`（調査2）→ G1（focused 空欄違反・evidence_paths 実在）。**完了リクエストをオーケストレータ自身が書いた場合**、`Stop` フック経由で `stage-guard` が走る配線はあるが、走ったかどうかは `output/<ts>/.gate/markers/investigation.focused.done` の実在で確かめる。鋳造されていなければ `npm run recheck -- <ts> investigation` で明示的に再検査する。
+4. **P3**: 深掘り結果を提示し続行確認。
 
 ### 工程4: 要件定義 = spec → P4（最重要）
 
@@ -81,8 +84,8 @@ argument-hint: "<target_project_path>"
 
 ### 工程7: 生成（全量・README/MANIFEST を最終ステップ）→ P6
 
-1. `generator` を起動し、design-map を唯一の設計入力に `output/<ts>/generated/**` を生成させる。generator は必要な builder（`l1-builder`/`skill-builder`/`agent-builder`）と、最終ステップで `readme-writer`（README.md・MANIFEST.md・`.deploy/managed-paths.list`）を統括する（深さ: orchestrator→generator→builder・5以内）。
-2. 書込ごとに **PostToolUse で G3〜G6 が助言**（違反はラッチへ転写）。generator が `.requests/generation` を書いて完了 → `SubagentStop` で `gen-guard` が **snapshot ゲート G7〜G12** を検査（G12 が全 output に G3〜G6 を権威再検証）。**generator が完了リクエストを書かずに turn を終えた場合**（詳細設計書 §11.5）、`output/<ts>/generated/`・`MANIFEST.md`・`.deploy/managed-paths.list`・`.deploy/retired.list` の実在を確認し、欠けていれば generator を再開させて完走させる。
+1. `generator` を起動し、design-map を唯一の設計入力に `output/<ts>/generated/**` を生成させる。generator は必要な builder（`l1-builder`/`skill-builder`/`agent-builder`）と、最終ステップで `readme-writer`（`generated/.claude/README.md` のみ）を統括する。**MANIFEST.md・`.deploy/*.list`・L4 成果物（`.claude/settings.json`・`.mcp.json`）は generator 自身が書く**（`readme-writer` の責務ではない）（深さ: orchestrator→generator→builder・5以内）。
+2. 書込ごとに **PostToolUse で G3〜G6 が助言**（違反はラッチへ転写）。generator が `.requests/generation` を書いて完了 → `SubagentStop` で `gen-guard` が **snapshot ゲート G7〜G12** を検査（G12 が全 output に G3〜G6 を権威再検証）。**generator が完了リクエストを書かずに turn を終えた場合、および成果物の完成を報告せずに turn を終えた場合**（詳細設計書 §11.5）、`output/<ts>/generated/`・`MANIFEST.md`・`.deploy/managed-paths.list`・`.deploy/retired.list` の実在を確認し、欠けていれば generator を再開させて完走させる。**generator の応答が「待機中」等で完走を報告していなくても、それを未完了の証拠と読まない**——実測（run `20260909_003820`）では `(待機中。人間からの明示的な指示があるまで操作は行いません。)` とだけ返しながら、`generated/**` 28ファイル・`MANIFEST.md`・`.deploy/*` と `.requests/generation` を全て書き終えていた。判断材料はワーカーの自己申告ではなく**ディスクの実在**である（`.claude/rules/worker-definitions.md`「ワーカーの『書いた』は裏取りする」の裏返しで、『書いていない』も裏取りする）。
 3. **P6**: 生成物一式（generated/・MANIFEST・README）をユーザーに提示。承認後 `npm run approve -- <ts> generation` を実行。
    - 補足: generator が書くのは `.deploy/managed-paths.list`・`retired.list`（配置スクリプトの入力）まで。配置手順書 `.deploy/RUN.md` は工程10でオーケストレータが `emit-run-manifest.js` から出力する（配置先 `<target>` が定まるのが工程10のため）。
 
@@ -95,7 +98,11 @@ argument-hint: "<target_project_path>"
 決定論ゲート（工程8）と分離した**意味判断**の工程（§16）。**eval はマーカーを鋳造せず G バッチも発火させない**（§2・§16.7）。
 
 1. **判定入力バンドルを先に生成する**: `npm run eval:bundle -- <ts>`。design-map の keep/merge から `work/<ts>/eval-bundle/keep-review/` を決定論的に作る。**designer の `keep_conditions` 宣言と rationale はバンドルに入らない**（judge が判定対象自身の主張に自己一致して常に clean と答える恒真バグを構造的に防ぐ・§16.3）。
-2. `eval-reviewer` を起動し、5軸（correctness / security / canon / context / keep-review）の judge を並列 spawn させる。各 judge は `output/<ts>/eval/<axis>.md` に本文＋json フェンス1個の verdict を書き、`eval-reviewer` が `output/<ts>/eval-report.md` へ集約する。**eval-reviewer が集約せずに turn を終えた場合**（詳細設計書 §11.5。工程9 は完了リクエストを持たないため他の工程より検出が遅れやすい）、`output/<ts>/eval/<axis>.md` 5軸と `eval-report.md` の実在を確認し、欠けていれば eval-reviewer を再開させて完走させる。**欠けているのが軸ファイルなら、その軸の judge を `SendMessage` で再開させ、先に出した verdict をそのまま Write させる**（judge が判定を応答本文に返しながらファイルを書かない failure mode がある。実測: run 20260903_091044 round 2 の eval-correctness）。**新規 spawn では復旧しない**——文脈を持たない judge が再判定することになり、同じ生成物に対して round ごとに判定が揺れる。書き出し後に手順3 を再実行し、判定不能が解消したことを確かめる。
+2. `eval-reviewer` を起動し、5軸（correctness / security / canon / context / keep-review）の judge を並列 spawn させる。各 judge は `output/<ts>/eval/<axis>.md` に本文＋json フェンス1個の verdict を書き、`eval-reviewer` が `output/<ts>/eval-report.md` へ集約する。**eval-reviewer が集約せずに turn を終えた場合**（詳細設計書 §11.5。工程9 は完了リクエストを持たないため他の工程より検出が遅れやすい）、`output/<ts>/eval/<axis>.md` 5軸と `eval-report.md` の実在を確認し、欠けていれば eval-reviewer を再開させて完走させる。**欠けているのが軸ファイル、または軸ファイルの verdict が書式違反なら、次の順で復旧する**（judge が判定を応答本文に返しながらファイルを書かない／`quality-checklist` の出力契約を外す failure mode がある。実測: run 20260903_091044 round 2 の eval-correctness、run 20260909_003820 round 1 の correctness・canon・security）。
+   - **(a) `SendMessage` が使える環境**: その軸の judge を `SendMessage` で再開させ、先に出した verdict を**そのまま** Write させる。**新規 spawn では復旧しない**——文脈を持たない judge が再判定することになり、同じ生成物に対して round ごとに判定が揺れる。
+   - **(b) `SendMessage` が無い環境**: オーケストレータが **judge の判定内容（`verdict` / `rationale` / `evidence` / `confidence`）を1文字も変えずに、書式だけを機械的に修正する**ことを許可する（```json フェンスの言語タグ変更・`coverage` への `target` 追記・トップレベルの未知キー削除）。**判定そのものを書き換えてはならない**——それは judge の役割の簒奪であり、eval の独立性が失われる。実測（run 20260909_003820）でこの手当は機能した。
+   - **(c) 再判定が要る場合**: 起動プロンプトに `quality-checklist` の出力契約3点（```json フェンスは1個・トップレベル4キー・`findings[].target` は `coverage` にも列挙）を明記して再判定させる。round 2 では5軸とも一発で通った。
+   書き出し後に手順3 を再実行し、判定不能が解消したことを確かめる。
 3. **ハーネスで集約を機械検証する**: `npm run eval:report -- <ts>`（`eval/report.js` `checkEvalReport` の CLI 起動・違反があれば exit 2）。スキーマ・カバレッジ・集約漏れを検査する。回付対象（keep×C2/C4・merge×統合先）に未判定があれば eval の失敗として扱う。**判定対象0件は「品質を確認した」ではない**（§16.5）。
 4. **P7**: `eval-report.md` を提示する。`verdict: violation` は**1件残らず提示**する（§8.4 の強制表示）。とくに **C2 の violation は P5 の再確認事項**として扱う。承認後 `npm run approve -- <ts> eval`。
 

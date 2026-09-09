@@ -225,3 +225,56 @@ export function walkManaged(root, io) {
 export function sha256File(abs) {
   return createHash('sha256').update(readFileSync(abs)).digest('hex');
 }
+
+// ---------------------------------------------------------------------------
+// リスト行の具体性検査（glob 禁止・実在照合）
+// ---------------------------------------------------------------------------
+
+/**
+ * glob メタ文字。`managed-paths.list` / `retired.list` の行に現れてはならない。
+ *
+ * 【なぜ必要か】ライブ run `20260909_003820` で実際に配置が失敗した（§10.1・S1-1）。
+ * `deploy/deploy.js` は list の各行を `copyFileSync(src, dst)` の src/dst として
+ * **具体パスのまま**使う（glob 展開は一切しない）。一方 design-map の「生成上の制約」と
+ * readme/MANIFEST の慣行は集合を glob で書くため、`.claude/rules/**` のような行が list に
+ * 混入した。結果は `配置失敗のため配置前状態へ復帰した（rolled-back）: output に配置対象が
+ * 無い: .claude/rules/**`——自動 restore が働いて対象は無傷だったが、配置は `--confirm` を
+ * 打って初めて落ちた。
+ *
+ * 【なぜ isManaged では止まらないか】`MANAGED_PATTERNS` の `/^\.claude\/rules\/.+/` は
+ * `.claude/rules/**` の `**` を `.+` として**マッチさせてしまう**。集合内包検査（isManaged）は
+ * 「集合の外に出ていないか」しか見ないので、glob 行は所属判定を素通りする。具体性は
+ * 所属とは独立の性質であり、別の検査が要る。
+ */
+const GLOB_META_RE = /[*?[\]]/;
+
+/** リスト行が glob メタ文字を含むか（＝集合の表記であって1ファイルを指していない）。 */
+export function hasGlobMeta(rel) {
+  return GLOB_META_RE.test(rel);
+}
+
+/**
+ * リスト行が「具体的な1ファイル」を指しているかを検査する。G9（生成時）と
+ * deploy/pre-deploy-check（P8 の配置前照合）が共有する（判定ロジックの複製禁止）。
+ *
+ * `genRoot` を渡した場合のみ実在照合も行う。`retired.list` は「もう generated/ に無い」
+ * ことを宣言するリストなので実在照合の対象ではなく、glob 禁止だけを課す（genRoot 省略）。
+ * glob 行は実在照合をスキップする——同じ1行について「glob である」と「実在しない」を
+ * 二重に報告しても情報が増えないため。
+ *
+ * @param {string[]} entries parseListText 済みの行
+ * @param {{genRoot?: string|null}} [opts]
+ * @returns {{glob: string[], missing: string[]}}
+ */
+export function checkConcreteEntries(entries, { genRoot = null } = {}) {
+  const glob = [];
+  const missing = [];
+  for (const rel of entries) {
+    if (hasGlobMeta(rel)) {
+      glob.push(rel);
+      continue;
+    }
+    if (genRoot && !existsSync(path.join(genRoot, rel))) missing.push(rel);
+  }
+  return { glob, missing };
+}

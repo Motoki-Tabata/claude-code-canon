@@ -316,6 +316,7 @@ plugin/**                      ← L5 化する場合のみ
 - **検出パスの加算**: 系統A が対象側の追加カスタマイズパスを検出した場合のみ、その検出パスを集合に加える（`.claude/` 全体を一括削除しない）。
 - **user-profile 側（`~/.claude/`）は集合に含めない**: cross-project の個人設定であり対象プロジェクトの版管理外。常に除外する。
 - **実データ化**: 管理パス集合は検出分で実行ごとに変わるため、スクリプトにハードコードせず generator が `output/<ts>/.deploy/managed-paths.list` へ機械可読リストとして出力する（§9.3）。配置スクリプトはこれのみを読む。
+- **上の base 集合の glob 表記は「集合の定義」であって list の書式ではない**: `managed-paths.list`・`retired.list` は **glob ではなく実在ファイルを1行1件**で列挙する。`deploy/deploy.js` は各行を `copyFileSync` の src/dst として具体パスのまま使い展開しないため、glob 行は配置時に「output に配置対象が無い」で rolled-back になる（ライブ run `20260909_003820` で実際に発生。自動 restore は正しく働いた）。この2点（glob 禁止・`generated/` への実在）は G9（§11.2）と `deploy/pre-deploy-check.js`（§10.2）が `gates/lib/managed-paths.js` の共有判定 `checkConcreteEntries()` で機械照合する。集合内包検査（`isManaged`）は素通りする——`/^\.claude\/rules\/.+/` は `.claude/rules/**` の `**` を `.+` としてマッチさせるため、具体性は所属とは独立に検査しなければならない。
 
 ### 10.2 取りこぼし照合と退避スワップ
 

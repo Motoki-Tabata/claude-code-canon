@@ -48,12 +48,80 @@ export const SHELL_TOOLS = new Set(['Bash', 'PowerShell', 'Monitor']);
 // 書込を伴わないため、書込操作の判定対象から除去する（L023）。
 const FD_DUP_RE = /\d*>&\d*/g;
 
+/**
+ * `node -e`（および `node --eval`）のスクリプト本文に**書込 API が現れない**呼び出しを、
+ * 判定用テキストから丸ごと取り除く。
+ *
+ * 【なぜ要るか】`node -e` は中身を静的にパースできない不透明な実行構文として
+ * `OPAQUE_EXEC_RE`/`WRITE_OP_RE` に列挙されており、宛先ベース判定を打ち切って出現ベースの
+ * 広域スキャンへフォールバックする。その結果、**読取しかしていない** `node -e` まで、
+ * コマンド文字列に保護パス文字列が出現するだけで deny される。実測（ライブ run
+ * `20260909_003820`）: JSON の構文検査
+ * `node -e "JSON.parse(require('fs').readFileSync('output/.../settings.json','utf8'))"` と
+ * `ls gates/ && node -e "..."` がいずれも「シェル経路の封鎖・広域スキャン（宛先同定不能）」で
+ * 落ちた。実害は小さいが、保守作業のたびに書き方を試行錯誤するコストが発生する。
+ *
+ * 【どこまで緩めるか】緩めるのは「スクリプト本文に書込 API が1つも現れない」場合だけ。
+ * 書込 API か、シェルへ委譲しうる `child_process` 系が現れれば従来どおり不透明として扱う。
+ * 引用符で囲まれていない `-e` の本文は終端を静的に決められないため、これも従来どおり
+ * 不透明のままにする（`.claude/rules/gates-and-tests.md`「緩めた分は宛先を静的に確定できた
+ * 場合に限る」）。
+ *
+ * 呼び出し全体（`node ... -e "<本文>"`）を空白へ置換するのは、読取専用と判定した以上、
+ * その本文に現れる保護パス文字列を広域スキャンの材料に残さないため。リダイレクト
+ * （`node -e "..." > docs/x.md`）は引用の外側に残るので、書込としての検出力は落ちない。
+ */
+const NODE_EVAL_RE = /\bnode(?:\s+--[A-Za-z][\w-]*(?:=\S+)?)*\s+(?:-e|--eval)(?:\s+|=)/g;
+
+// 書込能力（fs の書込系 API・子プロセス経由のシェル委譲）。代表例でなく能力で列挙する。
+const NODE_WRITE_API_RE =
+  /\b(writeFileSync|writeFile|appendFileSync|appendFile|createWriteStream|writeSync|rmSync|rmdirSync|unlinkSync|unlink|renameSync|rename|mkdirSync|mkdtempSync|copyFileSync|cpSync|truncateSync|ftruncateSync|symlinkSync|linkSync|chmodSync|chownSync|utimesSync|openSync|outputFileSync)\b|child_process|\b(execSync|execFileSync|spawnSync|execFile|spawn)\s*\(/i;
+
+/** 引用符で囲まれた本文を読み取る。囲まれていなければ null（＝静的に確定できない）。 */
+function readQuotedBody(text, from) {
+  let i = from;
+  while (i < text.length && /\s/.test(text[i])) i += 1;
+  const quote = text[i];
+  if (quote !== '"' && quote !== "'") return null;
+  let body = '';
+  i += 1;
+  while (i < text.length) {
+    const ch = text[i];
+    if (ch === '\\' && i + 1 < text.length) {
+      body += text[i + 1];
+      i += 2;
+      continue;
+    }
+    if (ch === quote) return { body, end: i + 1 };
+    body += ch;
+    i += 1;
+  }
+  return null; // 閉じ引用符が無い＝確定できない
+}
+
+export function stripReadOnlyNodeEval(text) {
+  const src = String(text || '');
+  let out = '';
+  let last = 0;
+  NODE_EVAL_RE.lastIndex = 0;
+  let m;
+  while ((m = NODE_EVAL_RE.exec(src)) !== null) {
+    const quoted = readQuotedBody(src, m.index + m[0].length);
+    if (!quoted || NODE_WRITE_API_RE.test(quoted.body)) continue; // 従来どおり不透明のまま残す
+    out += src.slice(last, m.index) + ' ';
+    last = quoted.end;
+    NODE_EVAL_RE.lastIndex = quoted.end;
+  }
+  return out + src.slice(last);
+}
+
 const WRITE_OP_RE =
   /(>>?|[|]\s*tee\b|\btee\s|\bcp\s|\bmv\s|\brm\s|\brmdir\b|\bmkdir\b|\bsed\s+-i|\bSet-Content\b|\bOut-File\b|\bNew-Item\b|\bRemove-Item\b|\bAdd-Content\b|\bnode\s+-e\b|writeFileSync|appendFileSync)/i;
 
 /** コマンド文字列が書込操作らしいかを判定する（fd 複製形を誤検知しない・L023）。 */
 export function looksLikeWriteCommand(command) {
-  const withoutFdDup = String(command || '').replace(FD_DUP_RE, ' ');
+  const withoutReadOnlyEval = stripReadOnlyNodeEval(command);
+  const withoutFdDup = withoutReadOnlyEval.replace(FD_DUP_RE, ' ');
   return WRITE_OP_RE.test(withoutFdDup);
 }
 
@@ -176,7 +244,10 @@ function resolveRel(baseDir, token, cwd) {
  */
 export function analyzeShellWrite(command, cwd) {
   const original = String(command || '');
-  const scanText = stripDataHeredocBodies(original);
+  // 読取専用と静的に確定できた `node -e` は、以降の判定材料（不透明構文の検出・広域スキャンの
+  // 走査テキスト）から丸ごと外す。書込 API を含むもの・引用で閉じていないものは残るので、
+  // 検出力は落ちない（tests/write_scope_guard.test.js が故意の違反注入で示す）。
+  const scanText = stripReadOnlyNodeEval(stripDataHeredocBodies(original));
 
   // 不透明な実行構文はデータ heredoc 除去後のテキストに対して判定する（除去前の生テキストに
   // 対して判定すると、heredoc 本文の自然文中の語（"node -e for quick testing" 等）を実行構文と

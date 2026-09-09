@@ -177,3 +177,48 @@ test('コマンド実行系ツールの列挙が正典の全ツール集合と�
   const src = readFileSync(GUARD, 'utf8');
   assert.match(src, /from '\.\/lib\/shell-write\.js'/, 'ガードは SHELL_TOOLS を SSoT から import すること');
 });
+
+// ---------------------------------------------------------------------------
+// node -e の読取専用判定（S3-7）。緩めた分は故意の違反注入で検出力の非後退を示す。
+// ---------------------------------------------------------------------------
+
+test('読取専用の node -e は allow する（保護パス文字列の出現だけで落とさない）', (t) => {
+  withRun(t, TS, { dirs: ['approvals'] });
+  // 実測（ライブ run 20260909_003820）: JSON の構文検査（読取のみ）が
+  // 「広域スキャン（宛先同定不能）」で deny され、書き方の試行錯誤を強いられた。
+  const readOnly =
+    `node -e "JSON.parse(require('fs').readFileSync('output/${TS}/generated/.claude/settings.json','utf8'));console.log('OK')"`;
+  assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: readOnly } }), 'allow');
+  assert.equal(
+    decide(GUARD, { tool_name: 'Bash', tool_input: { command: `ls gates/ && ${readOnly}` } }),
+    'allow',
+    '前段の読取コマンドに保護パスが出現しても、node -e が読取専用なら allow'
+  );
+});
+
+test('node -e 経由の実書込は引き続き deny する（緩和による検出力の非後退・故意の違反注入）', (t) => {
+  withRun(t, TS, { dirs: ['approvals'] });
+  const cases = [
+    `node -e "require('fs').writeFileSync('docs/forged.md','x')"`,
+    // --input-type=module 等のフラグを挟む形も同じ扱い（従来の OPAQUE_EXEC_RE は
+    // `node -e` 直結しか見ておらず、この形は素通りしていた）。
+    `node --input-type=module -e "import('node:fs').then((f)=>f.writeFileSync('docs/forged.md','x'))"`,
+    // シェルへ委譲できる構文は読取専用と見なさない。
+    `node -e "require('child_process').execSync('rm -rf docs/rules')"`,
+    // 引用で閉じていない本文は静的に確定できない＝従来どおり不透明のまま扱い、
+    // 出現ベースの広域スキャンへフォールバックする。
+    'node -e require("fs").rmSync("docs/x.md")',
+  ];
+  for (const command of cases) {
+    assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command } }), 'deny', command);
+  }
+});
+
+test('読取専用 node -e からのリダイレクトは宛先で deny する（緩和が書込経路を開けていない）', (t) => {
+  withRun(t, TS, { dirs: ['approvals'] });
+  assert.equal(
+    decide(GUARD, { tool_name: 'Bash', tool_input: { command: `node -e "console.log(1)" > docs/out.md` } }),
+    'deny',
+    'リダイレクトは引用の外側にあり、宛先ベース判定で捕まえられる'
+  );
+});

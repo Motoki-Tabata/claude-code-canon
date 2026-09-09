@@ -29,7 +29,18 @@ export function parseSystemA(text) {
     const line = raw.replace(/\s+$/, '');
     const pathM = line.match(/^\s*-\s*path:\s*(.+?)\s*$/);
     if (pathM) {
-      cur = { path: norm(pathM[1]), canon_conformance: {}, customization_refs: [], project_refs: [] };
+      // has_* は「節が書かれたか」の記録。値の空（`project_refs: []`）と節そのものの
+      // 欠落は意味が違う——前者は正当な「参照なし」の宣言、後者は系統Aが出力契約を
+      // 守っていない（G1 の投資工程スキーマ検査が使う）。
+      cur = {
+        path: norm(pathM[1]),
+        canon_conformance: {},
+        customization_refs: [],
+        project_refs: [],
+        has_canon_conformance: false,
+        has_customization_refs: false,
+        has_project_refs: false,
+      };
       records.set(cur.path, cur);
       section = null;
       continue;
@@ -37,6 +48,7 @@ export function parseSystemA(text) {
     if (!cur) continue;
 
     if (/^\s*customization_refs\s*:/.test(line)) {
+      cur.has_customization_refs = true;
       const inline = line.match(/customization_refs\s*:\s*\[(.*)\]/);
       if (inline) {
         cur.customization_refs = inline[1]
@@ -51,11 +63,13 @@ export function parseSystemA(text) {
       continue;
     }
     if (/^\s*project_refs\s*:/.test(line)) {
+      cur.has_project_refs = true;
       const inline = line.match(/project_refs\s*:\s*\[(.*)\]/);
       section = inline ? null : 'project_refs';
       continue;
     }
     if (/^\s*canon_conformance\s*:/.test(line)) {
+      cur.has_canon_conformance = true;
       section = 'canon_conformance';
       continue;
     }
@@ -94,6 +108,18 @@ export function parseSystemA(text) {
   }
   return records;
 }
+
+/**
+ * `canon_conformance` に必須の4キー（C1 の判定材料そのもの）。
+ * `isCanonClean` が参照するキーの集合と一致していなければならないので、両者を
+ * 同じ場所に置いて片方だけが仕様に追従する事態を防ぐ（L005）。
+ */
+export const CANON_CONFORMANCE_KEYS = [
+  'frontmatter_keys_valid',
+  'unknown_frontmatter_keys',
+  'tool_names_valid',
+  'deprecated_notation',
+];
 
 /** canon_conformance が clean か（C1 の判定）。 */
 export function isCanonClean(cc) {

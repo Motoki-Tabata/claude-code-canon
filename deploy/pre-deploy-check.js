@@ -14,15 +14,51 @@
  *
  *   usage: node deploy/pre-deploy-check.js <output-dir> <target-repo-dir>
  *   exit 0 : 消えるものが無い／retired のみ（配置してよい）
- *   exit 2 : uncaptured を検出（配置を止め、調査 or design-map へ差し戻す）
+ *   exit 2 : uncaptured または list の書式欠陥を検出（配置を止め、調査 or design-map へ差し戻す）
  *   exit 1 : 引数不正・入力不在
  */
 
 import path from 'node:path';
 import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { walkManagedDetailed, readList } from '../gates/lib/managed-paths.js';
+import { walkManagedDetailed, readList, checkConcreteEntries } from '../gates/lib/managed-paths.js';
 import { isCanonSelfTarget, SELF_TARGET_MESSAGE } from '../gates/lib/self-target-guard.js';
+
+/**
+ * `.deploy/*.list` の各行が「具体的な1ファイル」を指しているかを検査する（S1-1）。
+ *
+ * 本 CLI は P8（配置前照合）の最終防波堤でありながら、従来 `retired.list` しか読んで
+ * おらず `managed-paths.list` を1行も見ていなかった。そのため glob 行を含む list は
+ * 「消失予定: 0 件」で素通りし、`--confirm` を打った `deploy.js` が
+ * 「output に配置対象が無い: .claude/rules/**」で初めて落ちた（ライブ run
+ * 20260909_003820・自動 restore は正しく働いた）。G9 と同じ判定を
+ * `gates/lib/managed-paths.js` から import して共有する（判定ロジックを複製しない）。
+ *
+ * @returns {{ globEntries: {list:string, rel:string}[], missingEntries: {list:string, rel:string}[] }}
+ */
+export function checkDeployLists(outputDir) {
+  const genRoot = path.join(outputDir, 'generated');
+  const globEntries = [];
+  const missingEntries = [];
+
+  const managed = readList(path.join(outputDir, '.deploy', 'managed-paths.list'));
+  if (managed) {
+    const { glob, missing } = checkConcreteEntries(managed, { genRoot });
+    for (const rel of glob) globEntries.push({ list: 'managed-paths.list', rel });
+    for (const rel of missing) missingEntries.push({ list: 'managed-paths.list', rel });
+  }
+
+  // retired.list は「もう generated/ に無い」ことの宣言なので実在照合は課さない。
+  // ただし G8・本 CLI が完全一致で参照するため glob 行は無効になる。
+  const retired = readList(path.join(outputDir, '.deploy', 'retired.list'));
+  if (retired) {
+    for (const rel of checkConcreteEntries(retired).glob) {
+      globEntries.push({ list: 'retired.list', rel });
+    }
+  }
+
+  return { globEntries, missingEntries };
+}
 
 /**
  * 消失予定（対象に在って output に無い管理ファイル）を retired/uncaptured に区分する。
@@ -33,6 +69,7 @@ import { isCanonSelfTarget, SELF_TARGET_MESSAGE } from '../gates/lib/self-target
 export function computeVanishing(outputDir, targetDir) {
   const genRoot = path.join(outputDir, 'generated');
   const retiredSet = new Set(readList(path.join(outputDir, '.deploy', 'retired.list')) ?? []);
+  const listDefects = checkDeployLists(outputDir);
   // 「対象の【実】管理パス集合 全ファイル」＝ §10.1 のパターンを対象へ適用した実在ファイル（§10.2 実装契約）。
   // unreadable（走査根の内側で種別判定できなかったエントリ）は「列挙できなかった範囲」＝
   // 本防波堤の盲点なので、握りつぶさず report に載せて P8 の人間に見せる。
@@ -50,7 +87,7 @@ export function computeVanishing(outputDir, targetDir) {
       uncaptured.push(rel);
     }
   }
-  return { vanishing, retired, uncaptured, targetManaged, unreadable };
+  return { vanishing, retired, uncaptured, targetManaged, unreadable, listDefects };
 }
 
 /** pre-deploy-report の本文を組み立てる（§10.2 実装契約: retired/uncaptured の区分と件数）。 */
@@ -70,6 +107,16 @@ export function renderReport(outputDir, targetDir, r) {
   if (r.uncaptured.length > 0) {
     lines.push('');
     lines.push('⚠ uncaptured を検出。調査取りこぼしの疑いがあるため配置を止め、調査 or design-map へ差し戻すこと（§10.2）。');
+  }
+  const d = r.listDefects;
+  if (d && (d.globEntries.length > 0 || d.missingEntries.length > 0)) {
+    lines.push('');
+    lines.push(
+      `⚠ .deploy/*.list の書式欠陥: ${d.globEntries.length + d.missingEntries.length} 件。` +
+        'deploy.js は各行を具体パスとして copyFileSync に渡すため、このまま配置すると rolled-back になる（§9.3）。'
+    );
+    for (const e of d.globEntries) lines.push(`  [glob] ${e.list}: ${e.rel}`);
+    for (const e of d.missingEntries) lines.push(`  [missing] ${e.list}: ${e.rel}（generated/ に実在しない）`);
   }
   if (r.unreadable?.length > 0) {
     lines.push('');
@@ -111,8 +158,9 @@ if (isMain) {
   const r = computeVanishing(outputDir, targetDir);
   const body = writeReport(outputDir, targetDir, r);
   process.stdout.write(body);
-  if (r.uncaptured.length > 0) {
-    process.exit(2); // 配置中断＝差し戻し（§10.2）
+  const defectCount = r.listDefects.globEntries.length + r.listDefects.missingEntries.length;
+  if (r.uncaptured.length > 0 || defectCount > 0) {
+    process.exit(2); // 配置中断＝差し戻し（§10.2・list 書式欠陥は §9.3）
   }
   process.exit(0);
 }

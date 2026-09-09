@@ -7,7 +7,8 @@
  *   - 空でない出力（生成物が実在する）
  *   - managed-paths.list が base ＋検出 .claude/* ＋(L5)plugin のみ（集合外を排除・§10.1）
  *   - MANIFEST ⇔ output（MANIFEST が存在する）
- *   - managed-paths.list ⇔ generated/（列挙パスが実際に生成されている）
+ *   - managed-paths.list ⇔ generated/（列挙パスが実際に生成されている・glob 記法の禁止）
+ *   - retired.list の glob 記法の禁止（G8・pre-deploy-check が完全一致で参照するため）
  *
  * §10.1 の肝: 管理パス集合の**外**（.github/workflows・CODEOWNERS 等）が list に混入すると、
  * 退避スワップで集合外を破壊しうる。集合外パスの検出は破壊防止の最終防波堤である。
@@ -22,7 +23,7 @@ import path from 'node:path';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { outputDir, isMainModule, readHookInput, readSessionTs, blockStop, passStop } from './lib/run.js';
 import { listGeneratedArtifacts } from './g12_output_perfile.js';
-import { isManaged, parseListText } from './lib/managed-paths.js';
+import { isManaged, parseListText, checkConcreteEntries } from './lib/managed-paths.js';
 
 /** generated/ 配下の【全ファイル】を列挙する（型で絞らない）。§10.1 の集合内包は全型が対象。 */
 function walkAllFiles(root) {
@@ -82,6 +83,40 @@ export function checkG9({ ts }) {
             `集合外（.github/workflows・CODEOWNERS 等）は不可侵。退避スワップで破壊される（§10.1）。`
         );
       }
+    }
+
+    // 3-b. 冒頭コメントが掲げる「managed-paths.list ⇔ generated/（列挙パスが実際に生成されて
+    //      いる）」の実装。deploy.js は各行を copyFileSync の src/dst として具体パスのまま
+    //      使うため、glob 行・不在パスは配置時に必ず落ちる（rolled-back）。生成段階で止めて
+    //      配置まで持ち越さない（ライブ run 20260909_003820 で実際に配置が失敗した）。
+    const { glob, missing } = checkConcreteEntries(entries, { genRoot });
+    for (const rel of glob) {
+      violations.push(
+        `${GATE}: managed-paths.list の行 "${rel}" が glob 記法（集合の表記）になっている。` +
+          `deploy.js は各行を具体パスとして copyFileSync に渡すため展開されず、配置時に` +
+          `「output に配置対象が無い」で rolled-back になる。実在ファイルを1行1件で列挙する（§9.3）。`
+      );
+    }
+    for (const rel of missing) {
+      violations.push(
+        `${GATE}: managed-paths.list の行 "${rel}" が generated/ に実在しない` +
+          `（列挙したのに生成していない＝配置時に rolled-back になる・§11.2）。`
+      );
+    }
+  }
+
+  // 3-c. retired.list（任意）も同じ具体性を要求する。G8（非回帰）と pre-deploy-check は
+  //      retired.list を Set の完全一致で参照するため、glob 行は黙って一致せず、「想定内の
+  //      廃止」が uncaptured に化けて配置が exit 2 で止まる——原因が読み取れない形で。
+  //      実在照合は課さない（retired は「もう generated/ に無い」ことの宣言だから）。
+  const retiredPath = path.join(outDir, '.deploy', 'retired.list');
+  if (existsSync(retiredPath)) {
+    const retired = parseListText(readFileSync(retiredPath, 'utf8'));
+    for (const rel of checkConcreteEntries(retired).glob) {
+      violations.push(
+        `${GATE}: retired.list の行 "${rel}" が glob 記法になっている。` +
+          `G8・pre-deploy-check は完全一致で参照するため展開されず、廃止宣言が無効になる（§10.2）。`
+      );
     }
   }
 

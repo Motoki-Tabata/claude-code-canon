@@ -132,6 +132,64 @@ test('G9: 集合内のみ・MANIFEST 有・managed-paths 有 → 通過', (t) =>
   assert.equal(checkG9({ ts }).ok, true);
 });
 
+test('G9: managed-paths.list の glob 行は違反（deploy が展開せず rolled-back になる・S1-1）', (t) => {
+  // 実測（ライブ run 20260909_003820）: glob 行は isManaged のパターンに `**` が `.+` として
+  // マッチするため集合内包検査を素通りし、配置の --confirm で初めて
+  // 「output に配置対象が無い: .claude/rules/**」で rolled-back になった。
+  const ts = tsFor(import.meta.url, 18);
+  cleanupTs(t, ts);
+  skill(ts, 's');
+  const dep = path.join(out(ts), '.deploy');
+  mkdirSync(dep, { recursive: true });
+  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeFileSync(path.join(dep, 'managed-paths.list'), '.claude/skills/**\n');
+  const r = checkG9({ ts });
+  assert.equal(r.ok, false, 'glob 行を生成段階で止めないと配置まで持ち越される');
+  assert.ok(r.violations.some((v) => v.includes('glob 記法')));
+});
+
+test('G9: managed-paths.list に列挙したのに generated/ に無いパスは違反', (t) => {
+  const ts = tsFor(import.meta.url, 19);
+  cleanupTs(t, ts);
+  skill(ts, 's');
+  const dep = path.join(out(ts), '.deploy');
+  mkdirSync(dep, { recursive: true });
+  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeFileSync(
+    path.join(dep, 'managed-paths.list'),
+    '.claude/skills/s/SKILL.md\n.claude/agents/ghost/ghost.md\n'
+  );
+  const r = checkG9({ ts });
+  assert.equal(r.ok, false, '列挙したのに生成していないパスは配置時に必ず落ちる');
+  assert.ok(r.violations.some((v) => v.includes('ghost.md') && v.includes('実在しない')));
+});
+
+test('G9: retired.list の glob 行は違反（G8・pre-deploy が完全一致で参照するため）', (t) => {
+  const ts = tsFor(import.meta.url, 20);
+  cleanupTs(t, ts);
+  skill(ts, 's');
+  const dep = path.join(out(ts), '.deploy');
+  mkdirSync(dep, { recursive: true });
+  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeFileSync(path.join(dep, 'managed-paths.list'), '.claude/skills/s/SKILL.md\n');
+  writeFileSync(path.join(dep, 'retired.list'), '.claude/skills/old/**\n');
+  const r = checkG9({ ts });
+  assert.equal(r.ok, false, 'glob の廃止宣言は完全一致に当たらず黙って無効になる');
+  assert.ok(r.violations.some((v) => v.includes('retired.list')));
+});
+
+test('G9: 実ファイル1行1件の list は通過する（緩めすぎていないことの対）', (t) => {
+  const ts = tsFor(import.meta.url, 21);
+  cleanupTs(t, ts);
+  skill(ts, 's');
+  const dep = path.join(out(ts), '.deploy');
+  mkdirSync(dep, { recursive: true });
+  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeFileSync(path.join(dep, 'managed-paths.list'), '.claude/skills/s/SKILL.md\n');
+  writeFileSync(path.join(dep, 'retired.list'), '.claude/skills/old/SKILL.md\n');
+  assert.equal(checkG9({ ts }).ok, true, '正しい形式まで落とすと生成が回らない');
+});
+
 // ---- 構造 e2e: 完全な生成物一式（CLAUDE.md・Rules・Skill・Agent・README・MANIFEST）----
 test('構造 e2e: 完全な生成物は G7/G9/G10/G12 を全通過する', async (t) => {
   const ts = tsFor(import.meta.url, 9);

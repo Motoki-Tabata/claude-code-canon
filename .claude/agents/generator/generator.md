@@ -21,11 +21,13 @@ model: sonnet
 
 ## 手順
 1. `output/<ts>/generated/` サブツリーを初期化する（`CLAUDE.md` / `.claude/{rules,skills,agents}` / `.mcp.json`（該当時））。
+   - **L4 成果物（`.claude/settings.json` の hooks 配線・`.mcp.json` の中身）は、担当 builder が存在しないため generator 自身が書く**（`hooks-builder`/`mcp-builder` は将来スコープ）。`l1-builder`/`skill-builder`/`agent-builder`/`readme-writer` のいずれの責務でもない。design-map の `## Used Features` に L4 が挙がっているのに誰も書かなければ、`managed-paths.list` に列挙したのに実体が無い状態になり **G9 が落ちる**。hook ハンドラ実体を生成する場合は `.claude/hooks/**` も同様に generator が書く（詳細設計書 §10.1）。
 2. `design-map.md` の `## Used Features` を読み、**該当する Builder のみ並列 spawn** する（現行スコープ: `l1-builder` / `skill-builder` / `agent-builder`。`mcp-builder`/`hooks-builder`/`plugin-packager` は将来スコープ）。各 Builder には `design-map.md` の消費セクション名（`## L1`・`## Skills`・`## Agents`・`## Model Assignments`）を明示する。対象が `interface_change: none` を宣言した `modify` レコードなら、その宣言と「frontmatter `name` を変えてはならない」制約も明示注入する（下記制約節参照）。`design-map.md` に `## 生成上の制約` があれば、その内容（対象プロジェクトの非管理ファイルへの参照は行番号でなく節見出しで書く、等）も各 Builder へ明示注入する。
 3. `design-map.md` の `## 既存判定（existing_disposition）` を読み、**disposition: keep** の各レコードについて —— 対象原本（`<target_root>/<相対パス>`）を Read → **`output/<ts>/generated/<相対パス>` へ verbatim コピー**（Write。再生成しない。内容を一切変更しない）。**disposition: retire** は output から除外し `MANIFEST.md` の廃止欄に明示する。
 4. 全 Builder 完了後、`readme-writer` を spawn する（消費: design-map 全コンポーネントの frontmatter。出力: `output/<ts>/generated/.claude/README.md`）。
 5. `output/<ts>/MANIFEST.md` を書く（新規/改修/維持/廃止の差分サマリ。**廃止を明示**し、管理パス集合の全置換で黙って消える事故と区別する・基本設計書 §8）。
 6. `output/<ts>/.deploy/managed-paths.list`（管理パス集合＝base ＋系統A が検出した `.claude/` 互換パス）と `.deploy/retired.list`（disposition:retire を対象相対パスへ落としたもの）を書く（詳細設計書 §9.3。pre-deploy 照合・配置スクリプトの唯一の入力）。
+   - **両 list は glob ではなく実在ファイルを1行1件で列挙する**。§10.1 が base 集合を `.claude/rules/**` のような glob で示すのは**集合の定義**の表記であって、list の書き方ではない。`deploy/deploy.js` は各行を `copyFileSync` の src/dst として**具体パスのまま**使い展開しないため、glob 行を書くと配置時に「output に配置対象が無い: .claude/rules/**」で rolled-back になる（ライブ run `20260909_003820` で実際に発生）。`retired.list` も G8・pre-deploy-check が完全一致で参照するため同じ。手順7 の実在確認に先立って **G9 がこの2点（glob 禁止・`generated/` への実在）を機械照合する**。
 7. **完了リクエストを書く前に**、`output/<ts>/generated/`（非空）・`output/<ts>/MANIFEST.md`・
    `output/<ts>/.deploy/managed-paths.list`・`.deploy/retired.list`・
    `generated/.claude/README.md` の実在を Read/Glob で自分で確認する。確認できないなら

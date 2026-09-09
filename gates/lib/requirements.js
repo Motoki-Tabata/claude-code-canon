@@ -195,3 +195,49 @@ export function parseRequirementsDoc(text) {
     conflicts, // null＝conflicts ブロック自体が無い（空リストとは区別する）
   };
 }
+
+/**
+ * conflicts の整合検査（要件 id・constraints キー・禁止済みであること）。
+ *
+ * 【なぜ requirements ステージへ移したか】この検査は元々 G11（SubagentStop@generation）に
+ * あった。ライブ run `20260909_003820` では工程7の生成が**全て終わったあと**の gen-guard で、
+ * 生成物ではなく `requirements.md` の書式が落ちた。生成物には一切問題が無いのに generation が
+ * ブロックされ、しかも `requirements.md` は工程2で**承認済み**の成果物なので、承認済み成果物を
+ * 後から書き換える羽目になった（gate 規律として望ましくない）。検査の**内容**は正しかった
+ * （「experimental は allowed: true なので衝突が成立しない」の指摘は事実）——誤っていたのは
+ * 発火する工程だけ。記録直後の G1 で落ちれば承認前に直せる。
+ *
+ * 呼び出し側がゲート名を前置できるよう、メッセージにゲート接頭辞は付けない。
+ *
+ * @param {object} doc parseRequirementsDoc の戻り値
+ * @param {Set<string>} prohibitedKeys allowed:false の constraints キー
+ * @param {Set<string>} knownKeys constraints に実在するキー全部
+ * @param {(a:string,b:string)=>boolean} mentions 識別子境界の照合器（markdown.js の SSoT を注入）
+ * @returns {string[]} 違反メッセージ（ゲート接頭辞なし）
+ */
+export function checkConflictsIntegrity(doc, prohibitedKeys, knownKeys, mentions) {
+  const violations = [];
+  for (const c of doc.conflicts ?? []) {
+    const reqOk = doc.requirements.some((r) => r.id && mentions(c.requirement ?? '', r.id));
+    if (!reqOk) {
+      violations.push(
+        `conflicts（${c.line}行目）の requirement "${c.requirement}" が「## 確定要件」の実在 id を指していない` +
+          `（虚偽・陳腐化した conflicts。id 一覧: ${doc.requirements.map((r) => r.id).join(', ')}）。`
+      );
+    }
+    const key = [...knownKeys].find((k) => mentions(c.constraint ?? '', k));
+    if (!key) {
+      violations.push(
+        `conflicts（${c.line}行目）の constraint "${c.constraint}" が constraints の実在キーを指していない` +
+          `（キー一覧: ${[...knownKeys].join(', ')}）。解消済みの経緯・方針の相違・配置後メモは` +
+          `conflicts ではなく散文の小節へ書く（§6.3）。`
+      );
+    } else if (!prohibitedKeys.has(key)) {
+      violations.push(
+        `conflicts（${c.line}行目）は constraint "${c.constraint}" との衝突を主張するが、` +
+          `constraints の "${key}" は allowed: true（禁止されていない）。衝突が成立しない。`
+      );
+    }
+  }
+  return violations;
+}

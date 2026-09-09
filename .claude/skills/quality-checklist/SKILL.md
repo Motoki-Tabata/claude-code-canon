@@ -87,6 +87,18 @@ Bash を実際に要する役割には**素の `Bash` が最小の表現可能�
 - `condition`: keep-review は `C2` | `C4` | `merge_target`、他軸は `null`
 - **`coverage` は判定した対象の全列挙（必須）**。これが無いと「見なかった」と「見て問題なし」を
   区別できない。**回付された対象は clean でも finding を1件書く**（判定した証跡になる）。
+- **トップレベルキーは `axis` / `ts` / `coverage` / `findings` の4つだけ**。これ以外を足さない
+  （`condition` は `findings[]` の中のキーであってトップレベルではない。実測でトップレベルへ
+  置いた事例がある）。`findings[]` のキーは `target` / `condition` / `verdict` / `confidence` /
+  `rationale` / `evidence`。
+- **`findings[].target` は必ず `coverage` にも列挙する**。`coverage` は「判定した対象の全列挙」で
+  あり、finding を書いた対象がそこに無いのは定義上ありえない。ハーネスはこの包含関係を検査する
+  （実測: correctness 11件・canon 2件が未列挙で round 1 が NG になった）。
+- **```json フェンスは verdict 用の1個だけ**。本文で生成物の JSON（`.mcp.json` や
+  `settings.json` の中身等）を引用するときは**別の言語タグ**（```jsonc・```text 等）を使う。
+  パーサ（`eval/verdict.js` の `firstFencedBlock`）は**最初の** ```json フェンスを verdict として
+  読むため、verdict より前に生成物の JSON を ```json で引用すると、そちらが verdict と誤読され
+  スキーマ違反になる（実測: security 軸が `.mcp.json` を ```json で引用して round 1 が NG）。
 - 未知キーを足さない・enum 外の値を使わない。ハーネス（`eval/verdict.js`）が機械検証し、
   **パース不能やスキーマ違反は「違反なし」ではなく eval の失敗として扱われる**。
 - **verdict は必ず `Write` でファイルへ書く。応答本文に verdict を書いただけでは「判定した」ことに

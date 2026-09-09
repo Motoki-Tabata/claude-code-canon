@@ -188,3 +188,34 @@ test('reopen は blocks/<stage>.blocked を解除しない（unblock の代替�
   assert.ok(existsSync(path.join(blocksDir(ts), 'generation.blocked')), 'reopen が勝手にラッチを解除してはならない');
   assert.match(r.stdout, /blocked/, 'ラッチが残っていることを警告するべき');
 });
+
+test('recheck: オーケストレータ自身が直した場合でもゲートを明示起動でき、違反を実際に検出する（S3-2）', (t) => {
+  // 従来この経路は `node gates/stage-guard.js` へ SubagentStop 相当の JSON を手で流す
+  // 裏技しか無かった（stage-guard の main() は stdin 前提で CLI 引数を取らない）。
+  const ts = tsFor(import.meta.url, 8);
+  withRun(t, ts, { dirs: ['markers'] });
+  // generated/ は空のまま＝故意の違反注入。recheck が実際に判定して落ちること。
+  const r = runToolCli('recheck.js', [ts, 'generation']);
+  assert.equal(r.code, 2, `違反があるのに recheck が通った: ${r.stdout}${r.stderr}`);
+  assert.ok(
+    existsSync(path.join(blocksDir(ts), 'generation.blocked')),
+    'ブロックラッチが立っていない＝ゲートが実際には走っていない（vacuous pass）'
+  );
+  assert.match(r.stdout, /完了リクエストを再作成した/, '消費済みリクエストを補って再検査を成立させること');
+});
+
+test('recheck: .session-ts と一致しない <ts> は拒否する（別 run の誤検査を防ぐ）', (t) => {
+  const ts = tsFor(import.meta.url, 9);
+  withRun(t, ts, { dirs: ['markers'] });
+  const other = tsFor(import.meta.url, 10);
+  const r = runToolCli('recheck.js', [other, 'generation']);
+  assert.notEqual(r.code, 0, 'ガードは argv でなく .session-ts を読むので、不一致は拒否しなければならない');
+  assert.match(r.stderr, /session-ts/);
+});
+
+test('recheck: 未知のステージは拒否する（vacuous pass 防止）', (t) => {
+  const ts = tsFor(import.meta.url, 11);
+  withRun(t, ts, { dirs: ['markers'] });
+  const r = runToolCli('recheck.js', [ts, 'eval']);
+  assert.notEqual(r.code, 0, 'eval はマーカーを持たない＝ステージゲートの対象ではない');
+});

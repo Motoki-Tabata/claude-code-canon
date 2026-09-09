@@ -41,8 +41,12 @@ import {
   parseBulletRecords,
   parseListLike,
   stripLineSuffix,
+  mentionsIdentifier,
 } from './lib/markdown.js';
 import { workDir, outputDir, approvalPath, resolveTargetRoot } from './lib/run.js';
+import { parseSystemA, CANON_CONFORMANCE_KEYS } from './lib/investigation.js';
+import { walkManaged } from './lib/managed-paths.js';
+import { parseRequirementsDoc, RequirementsError, checkConflictsIntegrity } from './lib/requirements.js';
 
 const GATE = 'G1';
 const STRENGTH_VALUES = new Set(['advisory', 'deterministic', 'enforced']);
@@ -70,6 +74,87 @@ function formatViolation(v) {
 // stage=investigation: focused 空欄違反／evidence_paths 実在
 // ---------------------------------------------------------------------------
 
+/**
+ * 系統A `existing_customizations.md` の出力契約（§6.1）を工程1で機械照合する。
+ *
+ * 【なぜ工程1で見るか】この形式は designer の keep 判定 C1（`canon_conformance` clean）と
+ * C5（`project_refs` を系統B `ref_resolution` で解決）の**唯一の判定材料**であり、欠けると
+ * 「1つでも false なら keep 不可」の規則により keep が全件 modify へ倒れる。倒れても違反には
+ * ならないので静かに進み、帰結として **G8 の sha256 バイト同一照合が1件も走らない**——既存
+ * 改修モードの非回帰担保が丸ごと失われる。ライブ run `20260909_003820` で実際に起きた
+ * （`canon_conformance` の出現が grep 実測0件。前回 run `20260906_025218` では22件出ていた
+ * ので、能力の欠如ではなく**遵守の退行**）。気づけたのは工程9（eval keep-review 軸）で、
+ * 設計が終わったあとだった。ここで落とせば承認前に直せる。
+ *
+ * 【greenfield を巻き込まない切り分け】「レコード0件」は新規プロジェクトでは正当なので、
+ * モードの自己申告ではなく**対象リポジトリの実物**で判定する: 対象に管理パス集合の
+ * カスタマイズファイルが実在するのに系統Aが1件も構造化できていないなら、それは
+ * 出力契約の不履行である。
+ */
+function checkSystemASchema(ts, absPath) {
+  const violations = [];
+  const records = parseSystemA(readFileSync(absPath, 'utf8'));
+
+  if (records.size === 0) {
+    const targetRoot = resolveTargetRoot(ts);
+    const targetManaged = targetRoot ? walkManaged(targetRoot) : [];
+    if (targetManaged.length > 0) {
+      violations.push(
+        violation(
+          GATE,
+          rel(absPath),
+          `対象に既存カスタマイズが ${targetManaged.length} 件実在する（例: ${targetManaged
+            .slice(0, 3)
+            .join(', ')}）のに、系統A のレコードを1件も構造化できていない` +
+            '（`- path:` 形式のレコードが0件）。C1/C5 の判定材料が無く keep が全件 modify へ' +
+            '倒れ、G8 の非回帰照合が1件も走らなくなる。existing-customization-analyzer の' +
+            '返却フォーマットどおりに永続化すること。',
+          '§6.1'
+        )
+      );
+    }
+    return violations;
+  }
+
+  for (const r of records.values()) {
+    if (!r.has_canon_conformance) {
+      violations.push(
+        violation(
+          GATE,
+          rel(absPath),
+          `レコード "${r.path}" に canon_conformance 節が無い（keep 条件 C1 の判定材料欠落）。`,
+          '§6.1'
+        )
+      );
+    } else {
+      const missing = CANON_CONFORMANCE_KEYS.filter((k) => r.canon_conformance[k] === undefined);
+      if (missing.length > 0) {
+        violations.push(
+          violation(
+            GATE,
+            rel(absPath),
+            `レコード "${r.path}" の canon_conformance にキーが欠けている: ${missing.join(', ')}` +
+              '（1キー1行の `key: value` で4キーすべてを書く）。',
+            '§6.1'
+          )
+        );
+      }
+    }
+    if (!r.has_project_refs) {
+      violations.push(
+        violation(
+          GATE,
+          rel(absPath),
+          `レコード "${r.path}" に depends_on.project_refs 節が無い（keep 条件 C5 の判定材料欠落。` +
+            '参照が無い場合も `project_refs: []` と明示する）。',
+          '§6.1'
+        )
+      );
+    }
+  }
+  return violations;
+}
+
 function checkInvestigationStage(ts) {
   const violations = [];
 
@@ -86,6 +171,8 @@ function checkInvestigationStage(ts) {
         '§6.1'
       )
     );
+  } else {
+    violations.push(...checkSystemASchema(ts, existingCustomizationsPath));
   }
 
   const profilePath = path.join(workDir(ts), 'project_profile.md');
@@ -233,6 +320,36 @@ function checkRequirementsStage(ts) {
         )
       );
     }
+  }
+
+  violations.push(...checkConflictsStage(ts, reqPath));
+  return violations;
+}
+
+/**
+ * conflicts の整合検査（元 G11・S2-1 の移設先）。
+ *
+ * 記録直後のここで落ちれば P4 の承認前に直せる。生成が全て終わったあとの gen-guard で
+ * 承認済みの requirements.md が落ちる、という工程順の誤りを解消するための移設である
+ * （判定ロジックそのものは gates/lib/requirements.js の checkConflictsIntegrity が SSoT で、
+ * G11 と同じ関数を共有する）。
+ */
+function checkConflictsStage(ts, reqPath) {
+  const violations = [];
+  let doc;
+  try {
+    doc = parseRequirementsDoc(readFileSync(reqPath, 'utf8'));
+  } catch (e) {
+    if (e instanceof RequirementsError) {
+      violations.push(violation(GATE, rel(reqPath), e.message, '§6.3'));
+      return violations;
+    }
+    throw e;
+  }
+  const knownKeys = new Set(doc.constraints.map((c) => c.key));
+  const prohibited = new Set(doc.constraints.filter((c) => c.allowed === false).map((c) => c.key));
+  for (const m of checkConflictsIntegrity(doc, prohibited, knownKeys, mentionsIdentifier)) {
+    violations.push(violation(GATE, rel(reqPath), m, '§6.3'));
   }
   return violations;
 }

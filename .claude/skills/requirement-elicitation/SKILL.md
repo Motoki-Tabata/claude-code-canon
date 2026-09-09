@@ -23,7 +23,8 @@ user-invocable: false
 3. **必要機能の兆候**: 常時必要な規約（→L1）/ 繰り返す手順（→L2）/ 専門委譲（→L3）/ イベント自動化・外部連携（→L4）/ 配布（→L5）。詳細選定は `feature-selection` に委ねる。
 4. **制約（constraints）**: シークレットの扱い・権限制御の強度（advisory/deterministic/enforced）・Experimental 機能の許容可否・hooks/mcp/plugins の可否。これらは機能選択の探索空間を事前に刈り込む入力（§6.3）。
    - **`allowed: false` は「生成物のどこにも存在してはならない（絶対不在）」を意味し、G11（決定論ゲート）がそう機械解釈する**。既存改修モードで「対象が既にその機能を使用中で、維持したいが新規追加は望まない」場合に `allowed: false` と記録すると、既存の keep 対象が該当機能を使っているだけで機械的にブロックされる。**この意図は `allowed: true` ＋ `reason` に「既存維持・新規追加なし」等を明記して表す**（`allowed: false` は使わない）。ユーザーが「新規に追加はしないが既存は維持する」と言ったら、この書き分けを確認すること。
-5. **要件ごとの強度（strength_needed）**: deterministic 希望なのに hooks 禁止、のような制約との衝突を検出する材料。
+5. **要件ごとの強度（strength_needed）**: deterministic 希望なのに hooks 禁止、のような制約との衝突を検出する材料
+   - `requirements.md` の `conflicts` に載せるのは、この形の**未解消の衝突だけ**（`constraints` の実在キーが `allowed: false` で当該要件を禁止しているもの）。ヒアリング中に**解消した**衝突の経緯・`constraints` 由来ではない方針の相違・配置後の手作業メモは、`conflicts` ではなく散文の小節へ回すよう `requirements-recorder` へ渡す（G1 が conflicts の3点整合を機械照合する）。。
 6. **検証基準**: 成功をどう確認するか（`BEST_PRACTICES.md §1.3`）。
 
 ## 用語誤マッピング検知チェックリスト（`00_INDEX.md §9` 用語集に基づく）

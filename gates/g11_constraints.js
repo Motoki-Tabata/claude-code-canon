@@ -287,11 +287,16 @@ function readDesignMapExperimental(ts) {
 // （G10 と共有・`.claude/rules/gates-and-tests.md`「同じ判定ロジックを複数箇所へ複製しない」）。
 const mentions = mentionsIdentifier;
 
-function checkDegradation(doc, prohibitedKeys, knownKeys) {
+function checkDegradation(doc, prohibitedKeys) {
   const violations = [];
   const conflicts = doc.conflicts ?? [];
 
-  // (1) 登録漏れ: 強度の実現手段が禁止されている要件は conflicts に載っていなければならない。
+  // 登録漏れ: 強度の実現手段が禁止されている要件は conflicts に載っていなければならない。
+  // conflicts の【整合】検査（要件 id・constraints キー・禁止済みであること）はここには無い。
+  // requirements の書式の問題を生成完了後に落とすのは工程順として誤りなので、G1 の
+  // requirements ステージへ移した（gates/lib/requirements.js の checkConflictsIntegrity）。
+  // 本検査が G11 に残るのは、「縮退の判断が記録されないまま【生成が通る】」ことを防ぐのが
+  // 目的で、生成の直前が最後の関門だからである。
   for (const r of doc.requirements) {
     const cap = STRENGTH_TO_CAPABILITY[r.strength_needed ?? ''];
     if (!cap || !prohibitedKeys.has(cap)) continue;
@@ -301,30 +306,6 @@ function checkDegradation(doc, prohibitedKeys, knownKeys) {
         `${GATE}: 要件 ${r.id}（${r.line}行目・strength_needed: ${r.strength_needed}）は「${cap}」で実現する強度だが ` +
           `constraints で ${cap} が禁止されている。にもかかわらず conflicts に当該要件のエントリが無い` +
           `（縮退の判断が記録されないまま生成が通る・§6.3「使用不可制約の波及」）。`
-      );
-    }
-  }
-
-  // (2) 整合: conflicts が実在の要件 id と、実在しかつ禁止済みの constraints キーを指すこと。
-  //     無関係な conflicts を1件書けば (1) を満たせてしまう形骸化を防ぐ。
-  for (const c of conflicts) {
-    const reqOk = doc.requirements.some((r) => r.id && mentions(c.requirement ?? '', r.id));
-    if (!reqOk) {
-      violations.push(
-        `${GATE}: conflicts（${c.line}行目）の requirement "${c.requirement}" が「## 確定要件」の実在 id を指していない` +
-          `（虚偽・陳腐化した conflicts。id 一覧: ${doc.requirements.map((r) => r.id).join(', ')}）。`
-      );
-    }
-    const key = [...knownKeys].find((k) => mentions(c.constraint ?? '', k));
-    if (!key) {
-      violations.push(
-        `${GATE}: conflicts（${c.line}行目）の constraint "${c.constraint}" が constraints の実在キーを指していない` +
-          `（キー一覧: ${[...knownKeys].join(', ')}）。`
-      );
-    } else if (!prohibitedKeys.has(key)) {
-      violations.push(
-        `${GATE}: conflicts（${c.line}行目）は constraint "${c.constraint}" との衝突を主張するが、` +
-          `constraints の "${key}" は allowed: true（禁止されていない）。衝突が成立しない。`
       );
     }
   }
@@ -383,7 +364,6 @@ export function checkG11({ ts }) {
   const ctx = { ts, genRoot, designMapExperimental: readDesignMapExperimental(ts) };
 
   // --- B. constraints のキー全集合を走査（代表例で列挙しない・L005）---
-  const knownKeys = new Set(doc.constraints.map((c) => c.key));
   const prohibited = new Set();
   const checked = [];
 
@@ -438,7 +418,7 @@ export function checkG11({ ts }) {
   }
 
   // --- C. 縮退設計（conflicts の登録漏れ＋整合）---
-  violations.push(...checkDegradation(doc, prohibited, knownKeys));
+  violations.push(...checkDegradation(doc, prohibited));
 
   notes.push(
     '検出は「構成として現れる経路」（JSON 宣言・frontmatter・ファイル配置）に限る。' +

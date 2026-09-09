@@ -27,7 +27,10 @@ function setup(t, ts) {
   mkdirSync(path.join(out(ts), 'generated', '.claude', 'skills'), { recursive: true });
   // 系統A成果物（investigator.md の集約・永続化契約）。investigation ステージ以外のテストにも
   // 無害に存在させ、既存の投入手順を崩さない。
-  writeFileSync(path.join(work(ts), 'existing_customizations.md'), '## サマリ\n既存カスタマイズなし。\n');
+  // 系統A成果物（investigator.md の集約・永続化契約）。G1 の調査工程スキーマ検査（§6.1）が
+  // `- path:` レコードと canon_conformance 4キー・project_refs 節を要求するので、
+  // 契約に適合する最小レコードを1件置く（stub でも契約を破らない）。
+  writeFileSync(path.join(work(ts), 'existing_customizations.md'), '## サマリ\n総数 1\n\n## レコード（1ファイル1件）\n- path: .claude/skills/stub/SKILL.md\n  layer: L2\n  kind: skill\n  depends_on:\n    customization_refs: []\n    project_refs: []\n  canon_conformance:\n    frontmatter_keys_valid: true\n    unknown_frontmatter_keys: []\n    tool_names_valid: true\n    deprecated_notation: []\n');
 }
 
 test('G1 design ステージ: spec.approved が無ければ違反、有れば通過', (t) => {
@@ -269,6 +272,49 @@ test('L024 G1 investigation: 角括弧の内側ではカンマが項目区切り
     r.violations.some((v) => v.message.includes('"20"')),
     '角括弧の内側では `path:1,20` が `path:1` と `20` の2項目に分解され、`20` が単独の' +
       '存在しないパスとして違反になること: ' + JSON.stringify(r.violations)
+  );
+});
+
+test('G1 investigation: 対象に既存カスタマイズが在るのに系統Aのレコードが0件なら違反（S1-2・keep 全滅の予防）', (t) => {
+  // ライブ run 20260909_003820 の再現。系統Aが散文形式で書き、`- path:` レコードが
+  // 1件も立たなかった。C1/C5 の判定材料が消え、keep が全件 modify へ倒れ、G8 の
+  // sha256 照合が1件も走らなかった（非回帰担保の消失）。当時は違反にならず静かに進んだ。
+  const ts = tsFor(import.meta.url, 30);
+  setup(t, ts);
+  writeFileSync(path.join(work(ts), 'project_profile.md'), '## profile\nlanguages: js\n');
+  writeFileSync(path.join(work(ts), 'target.txt'), ROOT.replace(/\\/g, '/') + '\n');
+  writeFileSync(
+    path.join(work(ts), 'existing_customizations.md'),
+    '# 既存カスタマイズ棚卸し\n\n### 1. `CLAUDE.md`\n- パス: CLAUDE.md\n- 種別: CLAUDE.md\n'
+  );
+  const r = checkG1({ ts, stage: 'investigation' });
+  assert.equal(r.ok, false, '構造化されていない系統Aを工程1で通すと keep 判定が全滅する');
+  assert.ok(r.violations.some((v) => v.message.includes('構造化できていない')));
+});
+
+test('G1 investigation: canon_conformance / project_refs 節の欠落を個別に検出する', (t) => {
+  const ts = tsFor(import.meta.url, 31);
+  setup(t, ts);
+  writeFileSync(path.join(work(ts), 'project_profile.md'), '## profile\nlanguages: js\n');
+  writeFileSync(path.join(work(ts), 'target.txt'), ROOT.replace(/\\/g, '/') + '\n');
+  writeFileSync(
+    path.join(work(ts), 'existing_customizations.md'),
+    '## レコード\n- path: .claude/skills/a/SKILL.md\n  depends_on:\n    project_refs: []\n' +
+      '- path: .claude/skills/b/SKILL.md\n  canon_conformance:\n    frontmatter_keys_valid: true\n'
+  );
+  const r = checkG1({ ts, stage: 'investigation' });
+  assert.equal(r.ok, false);
+  assert.ok(
+    r.violations.some((v) => v.message.includes('a/SKILL.md') && v.message.includes('canon_conformance 節が無い')),
+    'C1 の判定材料欠落を名指しできること'
+  );
+  assert.ok(
+    r.violations.some((v) => v.message.includes('b/SKILL.md') && v.message.includes('project_refs 節が無い')),
+    'C5 の判定材料欠落を名指しできること'
+  );
+  assert.ok(
+    r.violations.some((v) => v.message.includes('b/SKILL.md') && v.message.includes('unknown_frontmatter_keys')),
+    '4キーの部分欠落も検出すること'
   );
 });
 
