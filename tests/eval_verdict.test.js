@@ -67,11 +67,7 @@ test('coverage 欠落は違反（「見なかった」と「見て問題なし�
   assert.ok(r.violations.some((v) => v.includes('coverage')));
 });
 
-test('未知キー・enum 外の値を検出する', () => {
-  const r1 = parseVerdictText(wrap({ ...OK_JSON, extra: 1 }), 'x');
-  assert.equal(r1.ok, false);
-  assert.ok(r1.violations.some((v) => v.includes('未知のキー')));
-
+test('axis・verdict の enum 外は引き続き判定不能（判定放棄と区別すべき本質的な違反）', () => {
   const r2 = parseVerdictText(wrap({ ...OK_JSON, axis: 'そのほか' }), 'x');
   assert.equal(r2.ok, false);
   assert.ok(r2.violations.some((v) => v.includes('axis')));
@@ -81,12 +77,35 @@ test('未知キー・enum 外の値を検出する', () => {
   const r3 = parseVerdictText(wrap(bad), 'x');
   assert.equal(r3.ok, false);
   assert.ok(r3.violations.some((v) => v.includes('verdict が不正')));
+});
 
-  const bad2 = JSON.parse(JSON.stringify(OK_JSON));
-  bad2.findings[0].condition = 'C9';
-  const r4 = parseVerdictText(wrap(bad2), 'x');
-  assert.equal(r4.ok, false);
-  assert.ok(r4.violations.some((v) => v.includes('condition が不正')));
+// --- S2-1: 判定内容を毀損しない書式違反は warning に落とし、軸を判定不能にしない ---
+
+test('S2-1: トップレベルの未知キーは無視して warning に落とし、判定不能にしない', () => {
+  const r = parseVerdictText(wrap({ ...OK_JSON, extra: 1 }), 'x');
+  assert.equal(r.ok, true, JSON.stringify(r.violations));
+  assert.ok(r.warnings.some((w) => w.includes('未知のキー') && w.includes('extra')));
+});
+
+test('S2-1: condition が enum 外なら null として読み、warning に落とす（実測: "organization_policy"）', () => {
+  const bad = JSON.parse(JSON.stringify(OK_JSON));
+  bad.findings[0].condition = 'organization_policy';
+  const r = parseVerdictText(wrap(bad), 'x');
+  assert.equal(r.ok, true, JSON.stringify(r.violations));
+  assert.equal(r.verdict.findings[0].condition, null);
+  assert.ok(r.warnings.some((w) => w.includes('condition が不正')));
+  // 判定内容（verdict/rationale/evidence）は1文字も変わっていないこと。
+  assert.equal(r.verdict.findings[0].verdict, OK_JSON.findings[0].verdict);
+  assert.equal(r.verdict.findings[0].rationale, OK_JSON.findings[0].rationale);
+});
+
+test('S2-1: findings[].target が coverage に無ければ自動補完して warning に落とす', () => {
+  const bad = JSON.parse(JSON.stringify(OK_JSON));
+  bad.coverage = ['.claude/skills/other/SKILL.md'];
+  const r = parseVerdictText(wrap(bad), 'x');
+  assert.equal(r.ok, true, JSON.stringify(r.violations));
+  assert.ok(r.verdict.coverage.includes('.claude/skills/a/SKILL.md'), JSON.stringify(r.verdict.coverage));
+  assert.ok(r.warnings.some((w) => w.includes('自動補完した')));
 });
 
 test('必須キー欠落（rationale なし）を検出する', () => {
@@ -95,14 +114,6 @@ test('必須キー欠落（rationale なし）を検出する', () => {
   const r = parseVerdictText(wrap(bad), 'x');
   assert.equal(r.ok, false);
   assert.ok(r.violations.some((v) => v.includes('rationale')));
-});
-
-test('coverage に無い target への finding を検出する（coverage の網羅性が嘘になる）', () => {
-  const bad = JSON.parse(JSON.stringify(OK_JSON));
-  bad.coverage = ['.claude/skills/other/SKILL.md'];
-  const r = parseVerdictText(wrap(bad), 'x');
-  assert.equal(r.ok, false);
-  assert.ok(r.violations.some((v) => v.includes('coverage に含まれていない')));
 });
 
 test('ファイル不在を「違反なし」と読まない', () => {

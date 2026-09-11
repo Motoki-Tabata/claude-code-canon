@@ -59,12 +59,15 @@ function main() {
 
   if (SHELL_TOOLS.has(toolName)) {
     const command = String(toolInput.command || '');
-    const { targets, unresolved, scanText } = analyzeShellWrite(command, cwd);
-    const looksLikeWrite = looksLikeWriteCommand(command);
+    const { targets, unresolved, unresolvedSegments } = analyzeShellWrite(command, cwd);
+    // フォールバック走査は宛先を同定できなかったセグメントの本文のみ（S3-3・write-scope-guard
+    // と同型）。
+    const unresolvedText = unresolvedSegments.join('\n');
+    const looksLikeWrite = looksLikeWriteCommand(unresolvedText);
 
     const protectedHit = targets.some((t) => underAnyDir(t, PROTECTED_DIRS) || containsGateSegment(t));
     const protectedFallback =
-      unresolved && looksLikeWrite && (PROTECTED_TOKEN_RE.test(scanText) || GATE_TOKEN_RE.test(scanText));
+      unresolved && looksLikeWrite && (PROTECTED_TOKEN_RE.test(unresolvedText) || GATE_TOKEN_RE.test(unresolvedText));
     if (protectedHit || protectedFallback) {
       deny(`${toolName} 経由での保護パス（.claude/・gates/・tests/・design/）への書込を検出: ${command}`);
       return;
@@ -72,7 +75,7 @@ function main() {
 
     const approved = hasApproval(ts, 'canon-update');
     const docsHit = !approved && targets.some((t) => underAnyDir(t, DOCS_DIRS));
-    const docsFallback = !approved && unresolved && looksLikeWrite && DOCS_TOKEN_RE.test(scanText);
+    const docsFallback = !approved && unresolved && looksLikeWrite && DOCS_TOKEN_RE.test(unresolvedText);
     if (docsHit || docsFallback) {
       deny(`${toolName} 経由での docs/ 書込を検出（更新ゲート未承認・§13.1）: ${command}`);
       return;

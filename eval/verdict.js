@@ -10,6 +10,21 @@
  * 「findings が空 ＝ 合格」と読んでよいのは、スキーマ検証を通過し `coverage` が期待対象を
  * 網羅していると `eval/report.js` が確認した場合だけである。
  *
+ * ## 「書式違反」と「判定放棄」の区別（S2-1）
+ *
+ * `quality-checklist` で出力契約を明記しても、judge は同じ形で外し続けた（3 run 連続で
+ * `condition` に enum 外の値・`findings[].target` の `coverage` 不記載が再発。ライブ run
+ * `20260910_220906`）。judge が**判定は下しているのに書き方だけを外した**場合まで軸全体を
+ * 「判定不能」に落とすと、毎 run 手作業での書式修正（オーケストレータによる機械修正）が
+ * 必要になる。ここでは次の3種のみ**判定内容を変えずに自動補正し `warnings` に落とす**:
+ *   - `condition` が enum 外 → `null` として読む
+ *   - `findings[].target` が `coverage` に無い → `coverage` へ自動追記する
+ *   - トップレベルの未知キー → 無視する
+ * それ以外（フェンス不在・JSON パース失敗・`axis`/`verdict`/`confidence` の enum 外・
+ * `coverage`/`findings` 自体の欠落・必須キー欠落等）は**従来どおり判定不能（`ok:false`）**に
+ * 落とす。「判定不能を pass と読まない」（§16.4）の原則はここでは変えない——変えるのは
+ * 「判定は下っているが書き方を外した」ケースの扱いだけである。
+ *
  * 依存ゼロ。フェンス抽出は gates/lib/markdown.js を再利用する（§14）。
  */
 
@@ -33,12 +48,13 @@ function norm(p) {
  * 本文（Markdown）から json フェンス1個を取り出して検証する。
  * @param {string} text
  * @param {string} label 出典表示用（相対パス等）
- * @returns {{ok: boolean, verdict: object|null, violations: string[]}}
+ * @returns {{ok: boolean, verdict: object|null, violations: string[], warnings: string[]}}
  */
 export function parseVerdictText(text, label = '<text>') {
   const violations = [];
+  const warnings = [];
   if (typeof text !== 'string' || text.trim() === '') {
-    return { ok: false, verdict: null, violations: [`${label}: verdict が空（判定結果が書かれていない）。空を「違反なし」と読まない（§16.4）。`] };
+    return { ok: false, verdict: null, violations: [`${label}: verdict が空（判定結果が書かれていない）。空を「違反なし」と読まない（§16.4）。`], warnings };
   }
 
   const lines = text.split(/\r?\n/);
@@ -48,6 +64,7 @@ export function parseVerdictText(text, label = '<text>') {
       ok: false,
       verdict: null,
       violations: [`${label}: json フェンスが無い。judge は本文＋\`\`\`json フェンス1個を書く契約（§16.4）。フェンス不在を「違反なし」と読まない。`],
+      warnings,
     };
   }
 
@@ -55,15 +72,17 @@ export function parseVerdictText(text, label = '<text>') {
   try {
     data = JSON.parse(block.body.join('\n'));
   } catch (err) {
-    return { ok: false, verdict: null, violations: [`${label}: json フェンスがパースできない - ${err.message}`] };
+    return { ok: false, verdict: null, violations: [`${label}: json フェンスがパースできない - ${err.message}`], warnings };
   }
   if (data === null || typeof data !== 'object' || Array.isArray(data)) {
-    return { ok: false, verdict: null, violations: [`${label}: verdict の最上位がオブジェクトでない。`] };
+    return { ok: false, verdict: null, violations: [`${label}: verdict の最上位がオブジェクトでない。`], warnings };
   }
 
   // --- 最上位 ---
+  // トップレベルの未知キーは判定内容を毀損しない書式逸脱なので、無視して warning に落とす
+  // （S2-1: judge が同じ形で外し続けたため、軸を丸ごと判定不能にしない）。
   for (const k of Object.keys(data)) {
-    if (!TOP_KEYS.has(k)) violations.push(`${label}: 未知のキー "${k}"（許可: ${[...TOP_KEYS].join(', ')}）。`);
+    if (!TOP_KEYS.has(k)) warnings.push(`${label}: 未知のキー "${k}" を無視した（許可: ${[...TOP_KEYS].join(', ')}）。`);
   }
   if (!AXES.includes(data.axis)) {
     violations.push(`${label}: axis が不正（実際: ${JSON.stringify(data.axis)}・許可: ${AXES.join('|')}）。`);
@@ -81,17 +100,21 @@ export function parseVerdictText(text, label = '<text>') {
     violations.push(`${label}: findings が配列でない（違反0件でも空配列を明示すること）。`);
   }
 
+  if (violations.length > 0) return { ok: false, verdict: null, violations, warnings };
+
   // --- findings ---
   const findings = Array.isArray(data.findings) ? data.findings : [];
   const coverage = Array.isArray(data.coverage) ? data.coverage.map(norm) : [];
+  const coverageSet = new Set(coverage);
   findings.forEach((f, i) => {
     const at = `${label}: findings[${i}]`;
     if (f === null || typeof f !== 'object' || Array.isArray(f)) {
       violations.push(`${at} がオブジェクトでない。`);
       return;
     }
+    // findings 内の未知キーは判定内容そのものではないので警告に留める（トップレベルと同様）。
     for (const k of Object.keys(f)) {
-      if (!FINDING_KEYS.has(k)) violations.push(`${at}: 未知のキー "${k}"。`);
+      if (!FINDING_KEYS.has(k)) warnings.push(`${at}: 未知のキー "${k}" を無視した。`);
     }
     for (const k of FINDING_REQUIRED) {
       if (f[k] === undefined || f[k] === null || String(f[k]).trim() === '') {
@@ -104,30 +127,36 @@ export function parseVerdictText(text, label = '<text>') {
     if (f.confidence !== undefined && !CONFIDENCES.includes(f.confidence)) {
       violations.push(`${at}: confidence が不正（実際: ${JSON.stringify(f.confidence)}・許可: ${CONFIDENCES.join('|')}）。`);
     }
+    // condition の enum 外は判定放棄ではなく語彙の誤用（実測: security 軸が判定対象ラベル
+    // "organization_policy" を condition に入れた）。判定内容（verdict/rationale/evidence）は
+    // 毀損されないので null に丸めて warning に落とす（S2-1）。
     if (f.condition !== undefined && f.condition !== null && !CONDITIONS.includes(f.condition)) {
-      violations.push(`${at}: condition が不正（実際: ${JSON.stringify(f.condition)}・許可: ${CONDITIONS.join('|')}|null）。`);
+      warnings.push(`${at}: condition が不正（実際: ${JSON.stringify(f.condition)}・許可: ${CONDITIONS.join('|')}|null）。null として読んだ。`);
     }
     if (f.evidence !== undefined && !Array.isArray(f.evidence)) {
       violations.push(`${at}: evidence は配列（根拠パス・節参照の列挙）でなければならない。`);
     }
-    // coverage に無い対象の finding は coverage が嘘をついている（列挙の網羅性が壊れている）。
-    if (typeof f.target === 'string' && coverage.length > 0 && !coverage.includes(norm(f.target))) {
-      violations.push(`${at}: target "${f.target}" が coverage に含まれていない（coverage は判定対象の全列挙・§16.4）。`);
+    // coverage に無い対象の finding は、判定放棄ではなく列挙漏れ（実測: 3 run 連続で発生）。
+    // target 自体は判定内容の一部として温存し、coverage へ自動補完して warning に落とす。
+    if (typeof f.target === 'string' && coverage.length > 0 && !coverageSet.has(norm(f.target))) {
+      warnings.push(`${at}: target "${f.target}" が coverage に無かったため自動補完した（coverage は判定対象の全列挙・§16.4）。`);
+      coverageSet.add(norm(f.target));
     }
   });
 
-  if (violations.length > 0) return { ok: false, verdict: null, violations };
+  if (violations.length > 0) return { ok: false, verdict: null, violations, warnings };
 
   return {
     ok: true,
     violations: [],
+    warnings,
     verdict: {
       axis: data.axis,
       ts: data.ts,
-      coverage,
+      coverage: [...coverageSet],
       findings: findings.map((f) => ({
         target: norm(f.target),
-        condition: f.condition ?? null,
+        condition: CONDITIONS.includes(f.condition) ? f.condition : null,
         verdict: f.verdict,
         confidence: f.confidence,
         rationale: String(f.rationale),
@@ -144,6 +173,7 @@ export function loadVerdict(absPath, label = absPath) {
       ok: false,
       verdict: null,
       violations: [`${label}: verdict ファイルが存在しない。軸ファイルの欠落を「違反なし」と読まない（§16.5）。`],
+      warnings: [],
     };
   }
   return parseVerdictText(readFileSync(absPath, 'utf8'), label);

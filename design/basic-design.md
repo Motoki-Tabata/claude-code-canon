@@ -334,7 +334,7 @@ claude-canon/
 │   │   ├─ investigator/…                       ← 調査コーディネータ（3層起点）
 │   │   ├─ existing-customization-analyzer/…    ← 系統A・読取専用
 │   │   ├─ project-profiler/…                   ← 系統B・読取専用
-│   │   ├─ requirements-recorder/…              ← 工程2: 合意要件の直列化（機械的・haiku）
+│   │   ├─ requirements-recorder/…              ← 工程2: 合意要件の直列化（機械的・model は暫定 sonnet・S3-1）
 │   │   ├─ spec-writer/…                        ← 工程4
 │   │   ├─ selector/…                           ← 工程5
 │   │   ├─ designer/…                           ← 工程6（既存4判定・keep_conditions）

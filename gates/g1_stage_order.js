@@ -116,6 +116,28 @@ function checkSystemASchema(ts, absPath) {
     return violations;
   }
 
+  // 見出し書式の破壊検出（S1-1）: `parseSystemA` は1行形式（` / layer: … / kind: … `）を
+  // 分解できるようになった（gates/lib/markdown.js の matchPathHeading・非貪欲でも `$` アンカーで
+  // 結局行末まで取り込んでいた旧実装の是正）が、それでも path キー自体に `layer:`/`kind:`/
+  // `strength:` 等の残骸が残っていれば、見出しがさらに壊れた別形式で書かれている徴候である。
+  // design 工程まで気づけないと keep が全件 modify へ倒れ、G8 の sha256 非回帰照合が1件も
+  // 走らない vacuous pass になる（ライブ run `20260910_220906` で実測）。
+  const CORRUPTED_PATH_RE = /\s\/\s*(layer|kind|strength|disposition)\s*:/;
+  for (const r of records.values()) {
+    if (CORRUPTED_PATH_RE.test(r.path)) {
+      violations.push(
+        violation(
+          GATE,
+          rel(absPath),
+          `レコード path "${r.path}" に \`layer:\`/\`kind:\`/\`strength:\` 等のキー残骸が` +
+            '混入している。`- path:` 見出しが汚染され、path が実パスとして読めていない疑いがある' +
+            '（S1-1）。`- path: <パス>` の1行にはパスだけを書き、他のキーは別行に書くこと。',
+          '§6.1'
+        )
+      );
+    }
+  }
+
   for (const r of records.values()) {
     if (!r.has_canon_conformance) {
       violations.push(

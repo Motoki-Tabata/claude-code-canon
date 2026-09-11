@@ -163,10 +163,21 @@ function stripQuotes(tok) {
   return tok;
 }
 
-/** クォートを尊重した簡易トークナイズ（フルシェル文法パーサではない・保険的検査の範囲）。 */
+/**
+ * クォートを尊重した簡易トークナイズ（フルシェル文法パーサではない・保険的検査の範囲）。
+ *
+ * 各トークンに、元がクォートされていたか（`quoted`）を残す。`sed -i '65{/^<\/content>$/d}' file`
+ * のように**クォート内のデータに `<`/`>` が現れる**ケースで、呼び出し側が「クォート済みトークンの
+ * 中身はリダイレクト演算子ではない」と判断できるようにするため（S3-3・ライブ run
+ * `20260910_220906` で実測: この区別が無かったため `sed -i` の宛先引数への到達が打ち切られ、
+ * 宛先を静的に同定できているのに「宛先同定不能」として広域スキャンへフォールバックしていた）。
+ */
 function tokenize(segment) {
   const re = /'[^']*'|"[^"]*"|\S+/g;
-  return (segment.match(re) || []).map(stripQuotes);
+  return (segment.match(re) || []).map((tok) => {
+    const quoted = tok.length >= 2 && ((tok[0] === "'" && tok[tok.length - 1] === "'") || (tok[0] === '"' && tok[tok.length - 1] === '"'));
+    return { text: stripQuotes(tok), quoted };
+  });
 }
 
 /**
@@ -235,12 +246,18 @@ function resolveRel(baseDir, token, cwd) {
  *
  * @param {string} command
  * @param {string} [cwd] 未指定時は CANON_ROOT を基準にする。
- * @returns {{ targets: string[], unresolved: boolean, scanText: string }}
- *   targets    : リポジトリ相対 posix パスへ正規化済みの書込宛先（重複除去）。
- *   unresolved : 静的に解決できない書込構文が1つ以上あったか。true のとき呼び出し側は
- *                従来どおりの出現ベース広域スキャン（PROTECTED_TOKEN_RE 等）へフォール
- *                バックすること——検出力を落とさないための安全弁。
- *   scanText   : データ heredoc 本文を除去した後のコマンド文字列（フォールバック走査に使う）。
+ * @returns {{ targets: string[], unresolved: boolean, unresolvedSegments: string[], scanText: string }}
+ *   targets            : リポジトリ相対 posix パスへ正規化済みの書込宛先（重複除去）。
+ *   unresolved         : 静的に解決できない書込構文が1つ以上あったか。true のとき呼び出し側は
+ *                        従来どおりの出現ベース広域スキャン（PROTECTED_TOKEN_RE 等）へフォール
+ *                        バックすること——検出力を落とさないための安全弁。
+ *   unresolvedSegments : 宛先を同定できなかったセグメント本文のみ（`;`/`&&`/`||`/`|` 区切り単位・
+ *                        S3-3）。フォールバック走査は `scanText` 全体ではなくこちらを使うと、
+ *                        `&&` で連結した別セグメント（例: 保護パスの `ls`）の本文に保護パス文字列が
+ *                        出現しただけでコマンド全体を deny する摩擦を避けられる。不透明な実行構文
+ *                        （`node -e` 等）を検出した場合は `[scanText]`（全文）になる——クォート内の
+ *                        `;`/`&&` でセグメント分割自体が信頼できないため、緩めない。
+ *   scanText           : データ heredoc 本文を除去した後のコマンド文字列（全文フォールバック用）。
  */
 export function analyzeShellWrite(command, cwd) {
   const original = String(command || '');
@@ -253,116 +270,126 @@ export function analyzeShellWrite(command, cwd) {
   // 対して判定すると、heredoc 本文の自然文中の語（"node -e for quick testing" 等）を実行構文と
   // 誤認しうるため）。
   if (OPAQUE_EXEC_RE.test(scanText)) {
-    return { targets: [], unresolved: true, scanText };
+    return { targets: [], unresolved: true, unresolvedSegments: [scanText], scanText };
   }
 
   const withoutFdDup = scanText.replace(FD_DUP_RE, ' ');
   const targets = [];
   let unresolved = false;
-  let currentDir = null; // null = cwd 基準（未 cd）
+  // 宛先を同定できなかったセグメントの本文（S3-3）。write-scope-guard 等のフォールバック
+  // 広域スキャンを**コマンド全文でなくこのセグメントだけ**に限定するために返す——
+  // 「`.gate/` を `ls` するだけで `&&` 連結全体が deny される」摩擦（無関係な resolved
+  // セグメントの本文に保護パス文字列が出現しただけで広域 deny）を解消するため。
+  const unresolvedSegments = [];
+  const dirState = { currentDir: null }; // currentDir: null = cwd 基準（未 cd）
 
   for (const segment of splitSegments(withoutFdDup)) {
-    const cdMatch = segment.match(CD_RE);
-    if (cdMatch) {
-      const arg = stripQuotes(cdMatch[1].trim());
-      if (!arg || DYNAMIC_TOKEN_RE.test(arg)) {
-        unresolved = true;
-      } else {
-        currentDir = path.resolve(currentDir || cwd || CANON_ROOT, arg);
-      }
-      continue;
-    }
-
-    // リダイレクト宛先: `>` `>>` `N>` `&>` `&>>` `>|`（長い演算子を先に試す）。
-    const redirectRe = /(?:^|\s)\d*(&>>|&>|>>|>\||>)\s*(\S+)/g;
-    let rm;
-    while ((rm = redirectRe.exec(segment))) {
-      const raw = stripQuotes(rm[2]);
-      if (!raw || raw.startsWith('&')) continue;
-      if (NULL_SINKS.has(raw.toLowerCase())) continue; // 実質的な書込ではない
-      if (DYNAMIC_TOKEN_RE.test(raw)) {
-        unresolved = true;
-        continue;
-      }
-      targets.push(resolveRel(currentDir, raw, cwd));
-    }
-
-    // 書込コマンドの引数からの宛先抽出。
-    const tokens = tokenize(segment);
-    if (tokens.length === 0) continue;
-    const cmdIdx = tokens.findIndex((t) => /^[A-Za-z-]+$/.test(t));
-    if (cmdIdx === -1) continue;
-    const cmdLower = tokens[cmdIdx].toLowerCase();
-
-    // コマンド自身の引数のみを見る（リダイレクト演算子以降は上のリダイレクト処理の管轄）。
-    const argsRaw = [];
-    for (let k = cmdIdx + 1; k < tokens.length; k++) {
-      if (/[<>]/.test(tokens[k])) break;
-      argsRaw.push(tokens[k]);
-    }
-    const args = argsRaw.filter((t) => !t.startsWith('-'));
-
-    if (cmdLower === 'sed') {
-      // WRITE_OP_RE と同じく `-i`（in-place）が無い sed は書込ではない（読取専用）。
-      const hasInPlace = argsRaw.some((t) => /^-i/.test(t));
-      if (!hasInPlace) continue;
-      // sed の最初の非フラグ引数は式（データ）であり宛先ではない。残りがファイル。
-      const files = args.slice(1);
-      if (files.length === 0) unresolved = true;
-      for (const f of files) {
-        if (DYNAMIC_TOKEN_RE.test(f)) {
-          unresolved = true;
-          continue;
-        }
-        targets.push(resolveRel(currentDir, f, cwd));
-      }
-      continue;
-    }
-
-    if (ALL_ARGS_ARE_TARGETS.has(cmdLower)) {
-      if (args.length === 0) unresolved = true;
-      for (const a of args) {
-        if (DYNAMIC_TOKEN_RE.test(a)) {
-          unresolved = true;
-          continue;
-        }
-        targets.push(resolveRel(currentDir, a, cwd));
-      }
-      continue;
-    }
-
-    if (LAST_ARG_IS_TARGET.has(cmdLower)) {
-      if (args.length === 0) {
-        unresolved = true;
-        continue;
-      }
-      const dest = args[args.length - 1];
-      if (DYNAMIC_TOKEN_RE.test(dest)) {
-        unresolved = true;
-        continue;
-      }
-      targets.push(resolveRel(currentDir, dest, cwd));
-      continue;
-    }
-
-    if (FIRST_ARG_IS_TARGET.has(cmdLower)) {
-      let dest = args[0];
-      const namedIdx = argsRaw.findIndex((t) => NAMED_DEST_FLAG_RE.test(t));
-      if (namedIdx !== -1 && argsRaw[namedIdx + 1]) dest = stripQuotes(argsRaw[namedIdx + 1]);
-      if (!dest) {
-        unresolved = true;
-        continue;
-      }
-      if (DYNAMIC_TOKEN_RE.test(dest)) {
-        unresolved = true;
-        continue;
-      }
-      targets.push(resolveRel(currentDir, dest, cwd));
-      continue;
+    if (processSegment(segment, dirState, cwd, targets)) {
+      unresolved = true;
+      unresolvedSegments.push(segment);
     }
   }
 
-  return { targets: [...new Set(targets)], unresolved, scanText };
+  return { targets: [...new Set(targets)], unresolved, unresolvedSegments, scanText };
+}
+
+/**
+ * 1セグメント分の書込宛先抽出。`dirState.currentDir` と `targets` を破壊的に更新する。
+ * @returns {boolean} このセグメント内で静的に解決できない書込構文が1つでもあったか。
+ */
+function processSegment(segment, dirState, cwd, targets) {
+  let segUnresolved = false;
+  const cdMatch = segment.match(CD_RE);
+  if (cdMatch) {
+    const arg = stripQuotes(cdMatch[1].trim());
+    if (!arg || DYNAMIC_TOKEN_RE.test(arg)) {
+      segUnresolved = true;
+    } else {
+      dirState.currentDir = path.resolve(dirState.currentDir || cwd || CANON_ROOT, arg);
+    }
+    return segUnresolved;
+  }
+
+  // リダイレクト宛先: `>` `>>` `N>` `&>` `&>>` `>|`（長い演算子を先に試す）。
+  const redirectRe = /(?:^|\s)\d*(&>>|&>|>>|>\||>)\s*(\S+)/g;
+  let rm;
+  while ((rm = redirectRe.exec(segment))) {
+    const raw = stripQuotes(rm[2]);
+    if (!raw || raw.startsWith('&')) continue;
+    if (NULL_SINKS.has(raw.toLowerCase())) continue; // 実質的な書込ではない
+    if (DYNAMIC_TOKEN_RE.test(raw)) {
+      segUnresolved = true;
+      continue;
+    }
+    targets.push(resolveRel(dirState.currentDir, raw, cwd));
+  }
+
+  // 書込コマンドの引数からの宛先抽出。
+  const tokens = tokenize(segment);
+  if (tokens.length === 0) return segUnresolved;
+  const cmdIdx = tokens.findIndex((t) => /^[A-Za-z-]+$/.test(t.text));
+  if (cmdIdx === -1) return segUnresolved;
+  const cmdLower = tokens[cmdIdx].text.toLowerCase();
+
+  // コマンド自身の引数のみを見る（リダイレクト演算子以降は上のリダイレクト処理の管轄）。
+  // `<`/`>` はクォートされていないトークンにだけリダイレクト演算子として反応する——
+  // クォート内のデータ（`sed -i '65{/^<\/content>$/d}' file` の第1引数等）に含まれる
+  // `<`/`>` を演算子と誤認して引数走査を打ち切らないため（S3-3）。
+  const argsRaw = [];
+  for (let k = cmdIdx + 1; k < tokens.length; k++) {
+    if (!tokens[k].quoted && /[<>]/.test(tokens[k].text)) break;
+    argsRaw.push(tokens[k].text);
+  }
+  const args = argsRaw.filter((t) => !t.startsWith('-'));
+
+  if (cmdLower === 'sed') {
+    // WRITE_OP_RE と同じく `-i`（in-place）が無い sed は書込ではない（読取専用）。
+    const hasInPlace = argsRaw.some((t) => /^-i/.test(t));
+    if (!hasInPlace) return segUnresolved;
+    // sed の最初の非フラグ引数は式（データ）であり宛先ではない。残りがファイル。
+    const files = args.slice(1);
+    if (files.length === 0) segUnresolved = true;
+    for (const f of files) {
+      if (DYNAMIC_TOKEN_RE.test(f)) {
+        segUnresolved = true;
+        continue;
+      }
+      targets.push(resolveRel(dirState.currentDir, f, cwd));
+    }
+    return segUnresolved;
+  }
+
+  if (ALL_ARGS_ARE_TARGETS.has(cmdLower)) {
+    if (args.length === 0) segUnresolved = true;
+    for (const a of args) {
+      if (DYNAMIC_TOKEN_RE.test(a)) {
+        segUnresolved = true;
+        continue;
+      }
+      targets.push(resolveRel(dirState.currentDir, a, cwd));
+    }
+    return segUnresolved;
+  }
+
+  if (LAST_ARG_IS_TARGET.has(cmdLower)) {
+    if (args.length === 0) return true;
+    const dest = args[args.length - 1];
+    if (DYNAMIC_TOKEN_RE.test(dest)) return true;
+    targets.push(resolveRel(dirState.currentDir, dest, cwd));
+    return segUnresolved;
+  }
+
+  if (FIRST_ARG_IS_TARGET.has(cmdLower)) {
+    let dest = args[0];
+    const namedIdx = argsRaw.findIndex((t) => NAMED_DEST_FLAG_RE.test(t));
+    if (namedIdx !== -1 && argsRaw[namedIdx + 1]) dest = stripQuotes(argsRaw[namedIdx + 1]);
+    if (!dest) return true;
+    if (DYNAMIC_TOKEN_RE.test(dest)) return true;
+    targets.push(resolveRel(dirState.currentDir, dest, cwd));
+    return segUnresolved;
+  }
+
+  return segUnresolved;
 }
 
 /** rel が dirs のいずれかの配下（またはそのもの）かを判定する（dirs は末尾スラッシュ無し）。 */

@@ -7,7 +7,7 @@
  * パースする（依存ゼロ・§14）。「見つからない／0件」は黙って通さず throw する（§11.5）。
  */
 
-import { findHeading, sectionSlice, firstFencedBlock } from './markdown.js';
+import { findHeading, sectionSlice, firstFencedBlock, matchPathHeading } from './markdown.js';
 
 export class DesignMapError extends Error {
   constructor(message) {
@@ -15,6 +15,16 @@ export class DesignMapError extends Error {
     this.name = 'DesignMapError';
   }
 }
+
+/**
+ * `disposition` の正式な値語彙（S3-2）。`keep`/`modify`/`merge`/`retire` の4値のいずれにも
+ * 当てはまらない実体（canon の管理集合外だが設計判断としては言及したいもの。例: `tasks/` 配下）
+ * を表す第5の値として `out_of_scope` を正式採用する——`retire` にすると配置時に削除され、
+ * `keep`/`modify` にすると G9 が管理集合外として弾くという板挟みを、designer が独自の値
+ * （契約に無い値）を発明して切り抜けた実例がある（ライブ run `20260910_220906`）。
+ * G2（`checkG2`）が値語彙そのものを検査する（旧実装は不正値を素通りさせていた）。
+ */
+export const DISPOSITION_VALUES = ['keep', 'modify', 'merge', 'retire', 'out_of_scope'];
 
 function strip(s) {
   return s.trim().replace(/^["']|["']$/g, '');
@@ -75,11 +85,11 @@ export function parseExistingDisposition(text) {
     const line = raw.replace(/\s+$/, '');
     if (line.trim() === '' || /^\s*#/.test(line) || /^\s*existing_disposition\s*:/.test(line)) continue;
 
-    const pathM = line.match(/^\s*-\s*path:\s*(.+?)\s*$/);
-    if (pathM) {
+    const head = matchPathHeading(line);
+    if (head) {
       flush();
       cur = {
-        path: norm(pathM[1]),
+        path: norm(head.path),
         disposition: null,
         keep_conditions: null,
         reason_code: null,

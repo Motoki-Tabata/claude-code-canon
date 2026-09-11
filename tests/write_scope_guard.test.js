@@ -222,3 +222,66 @@ test('読取専用 node -e からのリダイレクトは宛先で deny する�
     'リダイレクトは引用の外側にあり、宛先ベース判定で捕まえられる'
   );
 });
+
+// --- S3-3: tokenize() のクォート無視により「宛先同定不能」に落ちていた実際のコマンド ---
+
+test('S3-3: sed -i のクォート内データに <>/ が含まれても宛先を正しく同定する（ライブ run 20260910_220906 の再現）', (t) => {
+  withRun(t, TS, { dirs: ['approvals'] });
+  const cmd =
+    "sed -i '65{/^<\/content>$/d}' work/" +
+    TS +
+    "/project_profile.md && sed -n '63,68p' work/" +
+    TS +
+    "/project_profile.md && printf 'done' > work/" +
+    TS +
+    "/.requests/investigation && ls output/" +
+    TS +
+    '/.gate/markers/';
+  assert.equal(
+    decide(GUARD, { tool_name: 'Bash', tool_input: { command: cmd } }),
+    'allow',
+    'すべての宛先が sanctioned（work/<ts>/）または読取（.gate/ の ls）であり deny してはならない'
+  );
+});
+
+test('S3-3 緩めた対: sed -i のクォート内データに <>/ を隠しても実書込先が保護パスなら deny を維持する', (t) => {
+  withRun(t, TS, { dirs: ['approvals'] });
+  assert.equal(
+    decide(GUARD, { tool_name: 'Bash', tool_input: { command: "sed -i '65{/^<x>$/d}' docs/foo.md" } }),
+    'deny',
+    'sed -i の宛先が docs/ なら緩和後も引き続き deny するべき'
+  );
+});
+
+test('S3-3 緩めた対: sed -i の宛先引数がクォートされておらず <>/ を含む場合は従来どおり引数走査を打ち切る', (t) => {
+  withRun(t, TS, { dirs: ['approvals'] });
+  // クォートされていない `<`/`>` は引き続きリダイレクト演算子として扱われ、引数走査を打ち切る
+  // （今回の緩和は「クォート済みトークンの中身」に限る・検出力の非後退）。
+  assert.equal(
+    decide(GUARD, { tool_name: 'Bash', tool_input: { command: 'mkdir docs/evil<x>' } }),
+    'deny',
+    'mkdir の引数にクォート無しの <>/ があっても docs/ への書込は deny され続けるべき'
+  );
+});
+
+test('S3-3: 別セグメントの .gate/ 読取（ls）は resolved セグメントの本文をフォールバック走査に含めない', (t) => {
+  withRun(t, TS, { dirs: ['approvals'] });
+  // node -e 等の不透明構文で unresolved になった別セグメントに保護パス文字列が無い場合、
+  // resolved セグメント（.gate/ の ls）の本文だけを理由に deny してはならない。
+  const cmd = `ls output/${TS}/.gate/markers/ && node -e "console.log(1)"`;
+  assert.equal(
+    decide(GUARD, { tool_name: 'Bash', tool_input: { command: cmd } }),
+    'allow',
+    '.gate/ の読取（ls）は禁止対象ではなく、node -e セグメントにも書込 API が無いため allow のはず'
+  );
+});
+
+test('S3-3: 不透明セグメント自体に保護パス文字列があれば、そのセグメント単体で従来どおり deny する', (t) => {
+  withRun(t, TS, { dirs: ['approvals'] });
+  const cmd = `ls output/${TS}/.gate/markers/ && bash -c "echo x > docs/foo.md"`;
+  assert.equal(
+    decide(GUARD, { tool_name: 'Bash', tool_input: { command: cmd } }),
+    'deny',
+    '不透明セグメント（bash -c）が docs/ への書込を含むなら deny を維持するべき'
+  );
+});

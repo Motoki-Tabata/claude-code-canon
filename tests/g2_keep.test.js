@@ -20,6 +20,37 @@ test('G2: keep 全 C1〜C5（実照合＋形式検査）を通過', (t) => {
   assert.equal(r.keeps, 1);
 });
 
+// --- S1-1 推奨③: keep 0件を「無かった」と「機構的に選べなかった」で区別する ---
+
+test('S1-1 G2: keep 0件＋系統A も0件（既存改修モード）は vacuous pass にせず警告する', (t) => {
+  const c = setupSampleRepo(t, 'existing', tsFor(import.meta.url, 18));
+  // design-map の keep レコードを modify へ倒す（designer が「keep で落ちるので modify にした」
+  // 実際の回避と同型）。
+  const dmPath = path.join(c.out, 'design-map.md');
+  writeFileSync(dmPath, readFileSync(dmPath, 'utf8').replace('disposition: keep', 'disposition: modify'));
+  // 系統A を「レコード0件」に落とす（見出し破壊・パース失敗を模す）。
+  writeFileSync(
+    path.join(c.work, 'existing_customizations.md'),
+    '# 系統A: existing_customizations.md（fixture）\n\n## サマリ\n総数 0\n'
+  );
+  const r = checkG2({ ts: c.ts });
+  assert.equal(r.ok, false, 'keep 0件＋系統A0件を無警告で通してはならない（vacuous pass 防止）');
+  assert.ok(
+    r.violations.some((v) => v.includes('機構的に選べなかった')),
+    JSON.stringify(r.violations)
+  );
+});
+
+test('S1-1 G2: 系統Aが実在し keep が成立する通常ケースでは過剰発火しない', (t) => {
+  const c = setupSampleRepo(t, 'existing', tsFor(import.meta.url, 19));
+  const r = checkG2({ ts: c.ts });
+  assert.equal(r.ok, true, JSON.stringify(r.violations));
+  assert.ok(
+    !r.violations.some((v) => v.includes('機構的に選べなかった')),
+    '系統Aが実在し keep も成立している通常ケースでは警告が出ないこと'
+  );
+});
+
 test('G2: C1 実照合失敗（系統A canon_conformance が dirty）', (t) => {
   const c = setupSampleRepo(t, 'existing', tsFor(import.meta.url, 2));
   const p = path.join(c.work, 'existing_customizations.md');
@@ -313,4 +344,76 @@ test('F3 G2 経由: keep の C 行にインラインコメントを付けても�
   const r = checkG2({ ts: c.ts });
   assert.equal(r.ok, true, JSON.stringify(r.violations));
   assert.equal(r.keeps, 1);
+});
+
+test('S1-1 G2: 系統A が1行形式（` / layer: … `）で書かれていても keep が成立する（ライブ run 20260910_220906 の再現）', (t) => {
+  const c = setupSampleRepo(t, 'existing', tsFor(import.meta.url, 20));
+  const sysAPath = path.join(c.work, 'existing_customizations.md');
+  const text = readFileSync(sysAPath, 'utf8');
+  // kept-skill のレコード見出しを1行形式へ書き換える（layer/kind/strength を `- path:` と
+  // 同じ行にスラッシュ区切りで詰め込む・実際に踏んだ書式）。
+  const oneLine = text.replace(
+    '- path: .claude/skills/kept-skill/SKILL.md\n  layer: L2\n  kind: skill\n  strength: medium\n',
+    '- path: .claude/skills/kept-skill/SKILL.md / layer: L2 / kind: skill / strength: medium\n'
+  );
+  assert.notEqual(oneLine, text, '置換対象の見出しが見つからない（fixture のずれ）');
+  writeFileSync(sysAPath, oneLine);
+  const r = checkG2({ ts: c.ts });
+  assert.equal(r.ok, true, JSON.stringify(r.violations));
+  assert.equal(r.keeps, 1, 'keep が1行形式でも機構的に成立すること（vacuous pass の解消）');
+});
+
+// --- S3-2: disposition の値語彙契約（keep/modify/merge/retire/out_of_scope のみ） ---
+
+test('S3-2 G2: disposition が語彙外の値（designer が独自に発明した値）は違反', (t) => {
+  const c = setupSampleRepo(t, 'existing', tsFor(import.meta.url, 21));
+  const dmPath = path.join(c.out, 'design-map.md');
+  writeFileSync(
+    dmPath,
+    readFileSync(dmPath, 'utf8').replace(
+      '  - path: .claude/skills/legacy-skill/SKILL.md\n    disposition: retire\n',
+      '  - path: .claude/skills/legacy-skill/SKILL.md\n    disposition: out_of_project\n'
+    )
+  );
+  const r = checkG2({ ts: c.ts });
+  assert.equal(r.ok, false);
+  assert.ok(r.violations.some((v) => v.includes('disposition が不正値') && v.includes('out_of_project')));
+});
+
+test('S3-2 G2: out_of_scope が canon の管理集合内パスに付いていれば違反（管理対象を静かに逃がさない）', (t) => {
+  const c = setupSampleRepo(t, 'existing', tsFor(import.meta.url, 22));
+  const dmPath = path.join(c.out, 'design-map.md');
+  writeFileSync(
+    dmPath,
+    readFileSync(dmPath, 'utf8').replace(
+      '  - path: .claude/skills/legacy-skill/SKILL.md\n    disposition: retire\n    reason_code: superseded_by_new\n    superseded_by: .claude/skills/new-skill/SKILL.md\n    manifest_note: "legacy-skill は廃止し new-skill へ移行"\n',
+      '  - path: .claude/skills/legacy-skill/SKILL.md\n    disposition: out_of_scope\n    manifest_note: "対象外"\n'
+    )
+  );
+  const r = checkG2({ ts: c.ts });
+  assert.equal(r.ok, false);
+  assert.ok(
+    r.violations.some((v) => v.includes('管理集合内') && v.includes('legacy-skill')),
+    JSON.stringify(r.violations)
+  );
+});
+
+test('S3-2 G2: out_of_scope が管理集合外パス（tasks/ 配下）なら通過し、manifest_note 欠落は違反', (t) => {
+  const c = setupSampleRepo(t, 'existing', tsFor(import.meta.url, 23));
+  const dmPath = path.join(c.out, 'design-map.md');
+  const original = readFileSync(dmPath, 'utf8');
+  const withOosNoNote = insertBeforeFence(original, '  - path: tasks/lessons.md\n    disposition: out_of_scope\n');
+  writeFileSync(dmPath, withOosNoNote);
+  const noNote = checkG2({ ts: c.ts });
+  assert.equal(noNote.ok, false, 'manifest_note 欠落は違反であるはず');
+  assert.ok(noNote.violations.some((v) => v.includes('manifest_note') && v.includes('out_of_scope')));
+
+  const withOosAndNote = insertBeforeFence(
+    original,
+    '  - path: tasks/lessons.md\n    disposition: out_of_scope\n' +
+      '    manifest_note: "canon の管理集合外（tasks/ は MANAGED_PATTERNS 対象外）"\n'
+  );
+  writeFileSync(dmPath, withOosAndNote);
+  const withNote = checkG2({ ts: c.ts });
+  assert.equal(withNote.ok, true, JSON.stringify(withNote.violations));
 });

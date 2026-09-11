@@ -219,3 +219,15 @@ test('recheck: 未知のステージは拒否する（vacuous pass 防止）', (
   const r = runToolCli('recheck.js', [ts, 'eval']);
   assert.notEqual(r.code, 0, 'eval はマーカーを持たない＝ステージゲートの対象ではない');
 });
+
+test('recheck: マーカー残存（冪等スキップ）は「違反なし」と報告せず exit 3 で reopen へ誘導する（S2-2）', (t) => {
+  const ts = tsFor(import.meta.url, 12);
+  withRun(t, ts, { dirs: ['markers'] });
+  mintMarker(ts, 'spec');
+  writeFileSync(path.join(requestsDir(ts), 'spec'), 'recheck: residual\n');
+  const r = runToolCli('recheck.js', [ts, 'spec']);
+  assert.equal(r.code, 3, `冪等スキップは exit 3 であるべき: ${r.stdout}${r.stderr}`);
+  assert.match(r.stdout, /検査していない/, '「違反なし」ではなく「検査していない」と明示するべき');
+  assert.doesNotMatch(r.stdout, /違反なし/, '冪等スキップ時に「違反なし」という文言を出してはならない');
+  assert.match(r.stdout, /npm run reopen/, 'reopen への誘導が無い');
+});

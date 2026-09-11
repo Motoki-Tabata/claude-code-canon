@@ -84,9 +84,16 @@ Bash を実際に要する役割には**素の `Bash` が最小の表現可能�
 
 - `axis`: `correctness` | `security` | `canon` | `context` | `keep-review`
 - `verdict`: `violation` | `clean` ／ `confidence`: `high` | `medium` | `low`
-- `condition`: keep-review は `C2` | `C4` | `merge_target`、他軸は `null`
+- `condition`: keep-review は `C2` | `C4` | `merge_target`、他軸は `null`。**`condition` は
+  「keep-review の5条件のどれを見たか」だけの語彙であり、判定対象を分類するラベルではない**。
+  security 軸が `requirements.md` の `constraints.organization_policy` を判定対象にしたいときは、
+  `condition` に入れず**次項の `constraint:` 接頭辞で `coverage`/`target` に表す**こと
+  （NG 例参照）。
 - **`coverage` は判定した対象の全列挙（必須）**。これが無いと「見なかった」と「見て問題なし」を
   区別できない。**回付された対象は clean でも finding を1件書く**（判定した証跡になる）。
+  **判定対象がファイルとは限らない軸**（security の `constraints.<key>` 等）は、
+  `constraint:<キー名>`（例: `constraint:organization_policy`）という接頭辞つき文字列を
+  `coverage`/`target` に使ってよい。ファイルパスと衝突しない語彙として正式に許可する。
 - **トップレベルキーは `axis` / `ts` / `coverage` / `findings` の4つだけ**。これ以外を足さない
   （`condition` は `findings[]` の中のキーであってトップレベルではない。実測でトップレベルへ
   置いた事例がある）。`findings[]` のキーは `target` / `condition` / `verdict` / `confidence` /
@@ -101,6 +108,39 @@ Bash を実際に要する役割には**素の `Bash` が最小の表現可能�
   スキーマ違反になる（実測: security 軸が `.mcp.json` を ```json で引用して round 1 が NG）。
 - 未知キーを足さない・enum 外の値を使わない。ハーネス（`eval/verdict.js`）が機械検証し、
   **パース不能やスキーマ違反は「違反なし」ではなく eval の失敗として扱われる**。
+  ただし次の3種は判定内容を毀損しない書式逸脱として**自動補正され、軸は判定不能にならない**
+  （3 run 連続で再発したため契約側でも救済するようにした・下記 NG 例参照）:
+  未知のトップレベルキー・`findings[].condition` の enum 外の値（`null` として読む）・
+  `findings[].target` が `coverage` に無い（自動追記する）。**それでも正しく書くこと**——
+  自動補正されても `eval-report.md` に「書式を自動補正した」旨が残り、査読対象になる。
+
+### NG 例（そのまま書いてはいけない実例）
+
+```json
+// NG: condition を「判定対象ラベル」として誤用（enum 外）
+{ "target": "requirements.md", "condition": "organization_policy",
+  "verdict": "violation", "confidence": "high", "rationale": "…" }
+
+// OK: constraint: 接頭辞で表す
+{ "target": "constraint:organization_policy", "condition": null,
+  "verdict": "violation", "confidence": "high", "rationale": "…" }
+```
+
+```json
+// NG: findings[].target が coverage に無い
+{ "coverage": [".claude/skills/foo/SKILL.md"],
+  "findings": [{ "target": "constraint:organization_policy", … }] }
+
+// OK: coverage に判定した対象を漏れなく列挙する
+{ "coverage": [".claude/skills/foo/SKILL.md", "constraint:organization_policy"],
+  "findings": [{ "target": "constraint:organization_policy", … }] }
+```
+
+````
+NG: ```json フェンスが2個以上ある（1個目が生成物 JSON の引用、2個目が verdict）
+→ パーサは最初の ```json フェンスを verdict として読むため、生成物 JSON を引用するときは
+  ```jsonc や ```text を使い、verdict 用の ```json は本文中に1個だけにする。
+````
 - **verdict は必ず `Write` でファイルへ書く。応答本文に verdict を書いただけでは「判定した」ことに
   ならない**——集約もハーネス（`eval/report.js`）もファイルしか読まないため、ファイルが無ければ
   その軸は**「判定不能（judge が判定できなかった）」**として報告される（実測: 完全な verdict を

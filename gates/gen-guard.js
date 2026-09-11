@@ -74,6 +74,11 @@ async function runRegisteredChecks(ts, stage) {
     if (!result || result.ok !== true) {
       violations.push(`${name}: ${(result && result.violations && result.violations.join(', ')) || '違反'}`);
     }
+    // 違反ではないが黙って通してはならない注記（例: G8 の「検査手段が無く実照合しなかった」・
+    // S1-2）。skipped ゲートと同じ扱いで、合否に関わらず必ず可視化する（§11.5）。
+    for (const note of result?.notes ?? []) {
+      process.stderr.write(`[gen-guard] ${stage}: ${note}\n`);
+    }
   }
   // スキップは必ず可視化する。黙って飛ばすと「検査した」と誤認される（§11.5）。
   for (const s of skipped) {

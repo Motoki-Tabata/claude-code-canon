@@ -24,6 +24,7 @@ argument-hint: "<target_project_path>"
 2. **ガードは run in-flight のときのみ有効**（§11.3・ガードの有効条件）。`<ts>` を採番して `work/.session-ts` が置かれた瞬間から、`output/<ts>/.gate/**`・`docs/`・`gates/`・`.claude/` への書込が deny される。採番前は素通りする。
 3. **承認は CLI が唯一の鋳造経路**（§4.4・承認鋳造経路の一本化）。`.gate/**` はエージェント書込 deny-all。人間ゲート通過後、オーケストレータ（＝本 Skill を実行するメイン Claude）が `npm run approve -- <ts> <kind>` を **Bash で実行**する。ワーカーはコマンド実行系ツールを持たないので承認を捏造できない。
 4. **工程間の状態はファイルが持つ**（§4.2）。各ワーカーは入力ファイルを読み、出力ファイルを書き、最後に `work/<ts>/.requests/<stage>` を書いて完了を告げる。`SubagentStop` で `stage-guard`/`gen-guard` が発火し、通過時のみ `output/<ts>/.gate/markers/<stage>.done` を鋳造する。
+5. **run in-flight 中は一時ファイルも `work/<ts>/` に置く**（S3-4）。環境（ハーネス）は「一時ファイルはセッション固有の scratchpad ディレクトリを使え」と指示することがあるが、write-scope-guard は sanctioned ツリー（`output/<ts>/`・`work/<ts>/`）外への書込を一律 deny するため、scratchpad は run 中は使えない（ライブ run `20260910_220906` で実測）。大きな応答をファイルへ永続化する必要があるとき（例: Write を持たないワーカーの応答を代筆する）は `work/<ts>/` に一時フラグメントを作り、使用後に削除すること。
 
 ## `subagent_type` マッピング（§4.1）
 
@@ -56,7 +57,7 @@ argument-hint: "<target_project_path>"
 
 1. `requirement-elicitation` Skill を **inline ロード**（Subagent に委譲しない・会話履歴継承のため）。
 2. 工程1の調査結果を提示し、**新規/既存改修モードを確認**。質問リストと用語誤マッピング検知チェックリストに沿って AskUserQuestion で往復対話し、要件と制約（hooks/mcp/plugins/experimental の可否）を収集する。
-3. 合意後、`requirements-recorder`（haiku・機械的直列化）を起動し `work/<ts>/requirements.md` を書かせる。`.requests/requirements` → `stage-guard` が G1（req: strength_needed/priority の enum・conflicts）を検査。
+3. 合意後、`requirements-recorder`（機械的直列化。model は暫定 sonnet・S3-1 参照）を起動し `work/<ts>/requirements.md` を書かせる。`.requests/requirements` → `stage-guard` が G1（req: strength_needed/priority の enum・conflicts）を検査。
 4. **P2**: 確定要件をユーザーに提示し承認を得る。承認後 `npm run approve -- <ts> requirements` を実行。
 
 ### 工程3: プロジェクト調査2（深く狭く）→ P3
@@ -98,10 +99,12 @@ argument-hint: "<target_project_path>"
 決定論ゲート（工程8）と分離した**意味判断**の工程（§16）。**eval はマーカーを鋳造せず G バッチも発火させない**（§2・§16.7）。
 
 1. **判定入力バンドルを先に生成する**: `npm run eval:bundle -- <ts>`。design-map の keep/merge から `work/<ts>/eval-bundle/keep-review/` を決定論的に作る。**designer の `keep_conditions` 宣言と rationale はバンドルに入らない**（judge が判定対象自身の主張に自己一致して常に clean と答える恒真バグを構造的に防ぐ・§16.3）。
-2. `eval-reviewer` を起動し、5軸（correctness / security / canon / context / keep-review）の judge を並列 spawn させる。各 judge は `output/<ts>/eval/<axis>.md` に本文＋json フェンス1個の verdict を書き、`eval-reviewer` が `output/<ts>/eval-report.md` へ集約する。**eval-reviewer が集約せずに turn を終えた場合**（詳細設計書 §11.5。工程9 は完了リクエストを持たないため他の工程より検出が遅れやすい）、`output/<ts>/eval/<axis>.md` 5軸と `eval-report.md` の実在を確認し、欠けていれば eval-reviewer を再開させて完走させる。**欠けているのが軸ファイル、または軸ファイルの verdict が書式違反なら、次の順で復旧する**（judge が判定を応答本文に返しながらファイルを書かない／`quality-checklist` の出力契約を外す failure mode がある。実測: run 20260903_091044 round 2 の eval-correctness、run 20260909_003820 round 1 の correctness・canon・security）。
-   - **(a) `SendMessage` が使える環境**: その軸の judge を `SendMessage` で再開させ、先に出した verdict を**そのまま** Write させる。**新規 spawn では復旧しない**——文脈を持たない judge が再判定することになり、同じ生成物に対して round ごとに判定が揺れる。
-   - **(b) `SendMessage` が無い環境**: オーケストレータが **judge の判定内容（`verdict` / `rationale` / `evidence` / `confidence`）を1文字も変えずに、書式だけを機械的に修正する**ことを許可する（```json フェンスの言語タグ変更・`coverage` への `target` 追記・トップレベルの未知キー削除）。**判定そのものを書き換えてはならない**——それは judge の役割の簒奪であり、eval の独立性が失われる。実測（run 20260909_003820）でこの手当は機能した。
-   - **(c) 再判定が要る場合**: 起動プロンプトに `quality-checklist` の出力契約3点（```json フェンスは1個・トップレベル4キー・`findings[].target` は `coverage` にも列挙）を明記して再判定させる。round 2 では5軸とも一発で通った。
+2. `eval-reviewer` を起動し、5軸（correctness / security / canon / context / keep-review）の judge を並列 spawn させる。各 judge は `output/<ts>/eval/<axis>.md` に本文＋json フェンス1個の verdict を書き、`eval-reviewer` が `output/<ts>/eval-report.md` へ集約する。**eval-reviewer が集約せずに turn を終えた場合**（詳細設計書 §11.5。工程9 は完了リクエストを持たないため他の工程より検出が遅れやすい）、`output/<ts>/eval/<axis>.md` 5軸と `eval-report.md` の実在を確認し、欠けていれば eval-reviewer を再開させて完走させる。**軸ファイルが欠けているなら次の順で復旧する**（judge が判定を応答本文に返しながらファイルを書かない failure mode がある。実測: run 20260903_091044 round 2 の eval-correctness）。
+   - **(a)（第一手段）`SendMessage` でその軸の judge を再開させ、先に出した verdict を**そのまま** Write させる**。`eval-reviewer` の `tools:` に `SendMessage` が入っている（S2-1・以前は入っておらず本手段が構造的に実行不能だった）。**新規 spawn では復旧しない**——文脈を持たない judge が再判定することになり、同じ生成物に対して round ごとに判定が揺れる。
+   - **(b) それでも `SendMessage` が使えない環境**: オーケストレータが **judge の判定内容（`verdict` / `rationale` / `evidence` / `confidence`）を1文字も変えずに、書式だけを機械的に修正する**ことを許可する。**判定そのものを書き換えてはならない**——それは judge の役割の簒奪であり、eval の独立性が失われる。実測（run 20260909_003820）でこの手当は機能した。
+   - **(c) 再判定が要る場合**: 起動プロンプトに `quality-checklist` の出力契約（```json フェンスは1個・`findings[].target` は `coverage` にも列挙・`condition` は keep-review 以外 `null`）を明記して再判定させる。
+
+   **書式違反のうち判定内容を毀損しない3種**（未知のトップレベルキー・`condition` の enum 外・`findings[].target` の `coverage` 不記載）は `eval/verdict.js` が自動補正するため、**軸は判定不能にならず (a)〜(c) の復旧作業自体が不要**になった（S2-1）。`npm run eval:report` の出力（`notes`）に「書式を自動補正した」旨が出るので、それを見て `quality-checklist` の NG 例を judge へ次 round で指摘するだけでよい。それでも欠けている（フェンス不在・必須キー欠落等）なら上記 (a)〜(c) で復旧する。
    書き出し後に手順3 を再実行し、判定不能が解消したことを確かめる。
 3. **ハーネスで集約を機械検証する**: `npm run eval:report -- <ts>`（`eval/report.js` `checkEvalReport` の CLI 起動・違反があれば exit 2）。スキーマ・カバレッジ・集約漏れを検査する。回付対象（keep×C2/C4・merge×統合先）に未判定があれば eval の失敗として扱う。**判定対象0件は「品質を確認した」ではない**（§16.5）。
 4. **P7**: `eval-report.md` を提示する。`verdict: violation` は**1件残らず提示**する（§8.4 の強制表示）。とくに **C2 の violation は P5 の再確認事項**として扱う。承認後 `npm run approve -- <ts> eval`。

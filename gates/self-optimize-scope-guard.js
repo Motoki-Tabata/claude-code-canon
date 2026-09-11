@@ -55,10 +55,15 @@ function main() {
 
   if (SHELL_TOOLS.has(toolName)) {
     const command = String(toolInput.command || '');
-    const { targets, unresolved, scanText } = analyzeShellWrite(command, cwd);
+    const { targets, unresolved, unresolvedSegments } = analyzeShellWrite(command, cwd);
     const targetHit = targets.some((t) => underAnyDir(t, PROTECTED_DIRS) || containsGateSegment(t));
+    // フォールバック走査は宛先を同定できなかったセグメントの本文のみ（S3-3・write-scope-guard
+    // と同型）。
+    const unresolvedText = unresolvedSegments.join('\n');
     const fallbackHit =
-      unresolved && looksLikeWriteCommand(command) && (PROTECTED_TOKEN_RE.test(scanText) || GATE_TOKEN_RE.test(scanText));
+      unresolved &&
+      looksLikeWriteCommand(unresolvedText) &&
+      (PROTECTED_TOKEN_RE.test(unresolvedText) || GATE_TOKEN_RE.test(unresolvedText));
     if (targetHit || fallbackHit) {
       deny(`${toolName} 経由での保護パス（.claude/・gates/・tests/・docs/・design/・generations/）への書込を検出（自己最適化 run 中・§13.2.1）: ${command}`);
       return;

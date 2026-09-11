@@ -214,6 +214,49 @@ export function parseListLike(raw) {
   return v === null ? [] : [v];
 }
 
+// ---------------------------------------------------------------------------
+// `- path: <値>` レコード見出し（系統A existing_customizations.md・design-map.md の
+// existing_disposition が共有する書式）
+// ---------------------------------------------------------------------------
+
+/**
+ * `- path: <値>` 見出し行をパースする。
+ *
+ * 【なぜ `$` アンカーを使わないか】系統A（existing-customization-analyzer）が
+ * `- path: X / layer: L5 / kind: settings / strength: mandatory（…）` のような**1行形式**で
+ * 書いた場合、`(.+?)\s*$` は非貪欲でも `$` アンカーのため結局行末まで取り込み、`path` の値が
+ * ` / layer: … ` ごと汚染される。ここでは値をクォート文字列、または空白（` / ` の手前）までの
+ * 非空白トークンとして切り出すため、1行形式でも汚染されない（S1-1・ライブ run
+ * `20260910_220906` で実測）。`gates/lib/investigation.js`（系統A）と `gates/lib/design-map.js`
+ * （design-map の existing_disposition）が共有する（同じ判定ロジックを複製しない）。
+ *
+ * @returns {{path: string, rest: string}|null} rest は path 以降の残り文字列
+ *   （1行形式の inline `key: value` 抽出に使う。無ければ空文字）。
+ */
+export function matchPathHeading(line) {
+  const m = line.match(/^\s*-\s*path:\s*(?:"([^"]*)"|'([^']*)'|(\S+))(.*)$/);
+  if (!m) return null;
+  return { path: m[1] ?? m[2] ?? m[3], rest: m[4] ?? '' };
+}
+
+/**
+ * `matchPathHeading` の `rest`（先頭が ` / key: value ...`）から、1行形式の inline フィールドを
+ * 分解する（系統A の `layer`/`kind`/`strength` 用・S1-1）。値に `/` が含まれても、直後に
+ * `識別子:` が続かない限り区切りとみなさないため、通常の散文値（かっこ書きの注記等）は壊れない。
+ * @returns {Object<string,string>}
+ */
+export function parseInlineSlashFields(rest) {
+  const out = {};
+  const trimmed = String(rest ?? '').replace(/^\s*\/\s*/, '');
+  if (trimmed.trim() === '') return out;
+  const parts = trimmed.split(/\s*\/\s*(?=[A-Za-z_][\w]*\s*:)/);
+  for (const part of parts) {
+    const m = part.match(/^([A-Za-z_][\w]*)\s*:\s*(.*)$/);
+    if (m) out[m[1]] = m[2].trim();
+  }
+  return out;
+}
+
 const LINE_SUFFIX_RE = /:\d+(-\d+)?$/;
 
 /**

@@ -35,7 +35,11 @@ user-invocable: false
 
 ## 本システムでの確定割当（参考・詳細設計書 §9.4）
 - `opus`（1体）: `designer`（既存4判定・keep_conditions・設計判断）
-- `sonnet`（多数）: `investigator` / `existing-customization-analyzer` / `project-profiler` / `spec-writer` / `selector` / `generator` / 各 builder / `readme-writer` / eval-*
-- `haiku`（1体）: `requirements-recorder`（合意済み要件の機械的直列化・3基準すべて充足）
+- `sonnet`（多数）: `investigator` / `existing-customization-analyzer` / `project-profiler` / `spec-writer` / `selector` / `generator` / 各 builder / `readme-writer` / `requirements-recorder` / eval-*
+- `haiku`（0体・暫定）: `requirements-recorder` は3基準を充足する機械的タスクの実例だったが、
+  `subagent_type` として未登録になる症状と1対1で相関したため（S3-1・ライブ run
+  `20260910_220906`。当該環境で `model: haiku` の agent がこの1体だけだった）、原因切り分けの
+  ため一時的に `sonnet` へ引き上げた。新セッションでの登録確認（別セッション再起動が要る）で
+  症状が解消しなければ、model 以外の原因を探したうえで `haiku` へ戻すこと。
 
 designer は割当結果を `design-map.md` の `## Model Assignments` に記録する。

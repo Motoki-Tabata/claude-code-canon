@@ -116,14 +116,85 @@ test('A1 G8: interface_change: none 宣言 × frontmatter name 変化 → 違反
   assert.ok(r.violations.some((v) => v.includes('name') && v.includes('self-optimize')));
 });
 
-test('A1 G8: interface_change: none 宣言 × frontmatter 非保持（JSON）→ 検査不能として違反', (t) => {
+// --- S1-2: frontmatter を持たない種別にも検査手段がある（interface-signature.js） ---
+
+test('S1-2 G8: JSON（settings.json）はトップレベルキー集合が対外インタフェース署名になる → キー不変なら通過', (t) => {
   const relPath = '.claude/settings.json';
   const c = setupInterfaceChangeCase(t, tsFor(import.meta.url, 9), {
     relPath,
+    originalContent: '{\n  "$comment": "旧",\n  "hooks": {}\n}\n',
+    outputContent: '{\n  "$comment": "新",\n  "hooks": {}\n}\n',
+  });
+  const r = checkG8({ ts: c.ts });
+  assert.equal(r.ok, true, JSON.stringify(r.violations));
+  assert.equal(r.unverified.length, 0);
+});
+
+test('S1-2 G8: JSON のトップレベルキー集合が変化（hooks 追加）すれば違反（宣言と矛盾）', (t) => {
+  const relPath = '.claude/settings.json';
+  const c = setupInterfaceChangeCase(t, tsFor(import.meta.url, 10), {
+    relPath,
     originalContent: '{\n  "$comment": "旧"\n}\n',
-    outputContent: '{\n  "$comment": "新"\n}\n',
+    outputContent: '{\n  "$comment": "旧",\n  "hooks": {}\n}\n',
   });
   const r = checkG8({ ts: c.ts });
   assert.equal(r.ok, false);
-  assert.ok(r.violations.some((v) => v.includes('検査不能')));
+  assert.ok(r.violations.some((v) => v.includes('json-top-keys')));
+});
+
+test('S1-2 G8: rules（paths: のみ）は paths の値集合が対外インタフェース署名になる', (t) => {
+  const relPath = '.claude/rules/backend.md';
+  const c = setupInterfaceChangeCase(t, tsFor(import.meta.url, 11), {
+    relPath,
+    originalContent: '---\npaths: ["src/**"]\n---\n旧本文\n',
+    outputContent: '---\npaths: ["src/**"]\n---\n新本文（散文だけ変更）\n',
+  });
+  const r = checkG8({ ts: c.ts });
+  assert.equal(r.ok, true, JSON.stringify(r.violations));
+});
+
+test('S1-2 G8: rules の paths 集合が変化すれば違反', (t) => {
+  const relPath = '.claude/rules/backend.md';
+  const c = setupInterfaceChangeCase(t, tsFor(import.meta.url, 12), {
+    relPath,
+    originalContent: '---\npaths: ["src/**"]\n---\n本文\n',
+    outputContent: '---\npaths: ["src/**", "lib/**"]\n---\n本文\n',
+  });
+  const r = checkG8({ ts: c.ts });
+  assert.equal(r.ok, false);
+  assert.ok(r.violations.some((v) => v.includes('rule-paths')));
+});
+
+test('S1-2 G8: CLAUDE.md（frontmatter 無し）は見出し構造が対外インタフェース署名になる', (t) => {
+  const c = setupInterfaceChangeCase(t, tsFor(import.meta.url, 13), {
+    relPath: 'CLAUDE.md',
+    originalContent: '# タイトル\n## セクションA\n本文\n## セクションB\n本文\n',
+    outputContent: '# タイトル\n## セクションA\n新本文\n## セクションB\n新本文\n',
+  });
+  const r = checkG8({ ts: c.ts });
+  assert.equal(r.ok, true, JSON.stringify(r.violations));
+});
+
+test('S1-2 G8: CLAUDE.md の見出し構造が変化（節の追加）すれば違反', (t) => {
+  const c = setupInterfaceChangeCase(t, tsFor(import.meta.url, 14), {
+    relPath: 'CLAUDE.md',
+    originalContent: '# タイトル\n## セクションA\n本文\n',
+    outputContent: '# タイトル\n## セクションA\n本文\n## セクションB\n新節\n',
+  });
+  const r = checkG8({ ts: c.ts });
+  assert.equal(r.ok, false);
+  assert.ok(r.violations.some((v) => v.includes('heading-structure')));
+});
+
+test('S1-2 G8: 検査手段が無い種別（壊れた JSON）は違反にせず unverified として名指しする', (t) => {
+  const relPath = '.claude/settings.json';
+  const c = setupInterfaceChangeCase(t, tsFor(import.meta.url, 15), {
+    relPath,
+    originalContent: '{ 不正な JSON',
+    outputContent: '{ 不正な JSON',
+  });
+  const r = checkG8({ ts: c.ts });
+  assert.equal(r.ok, true, JSON.stringify(r.violations));
+  assert.equal(r.unverified.length, 1);
+  assert.ok(r.unverified[0].includes(relPath));
 });

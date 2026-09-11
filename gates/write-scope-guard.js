@@ -49,12 +49,18 @@ function main() {
 
   if (SHELL_TOOLS.has(toolName)) {
     const command = String(toolInput.command || '');
-    const { targets, unresolved, scanText } = analyzeShellWrite(command, cwd);
+    const { targets, unresolved, unresolvedSegments } = analyzeShellWrite(command, cwd);
     const targetHit = targets.some((t) => underAnyDir(t, PROTECTED_DIRS) || containsGateSegment(t));
     // unresolved（node -e 等の不透明な実行構文・$VAR 等の動的宛先）のときだけ、
     // 従来どおりの出現ベース広域スキャンへフォールバックする（検出力を落とさない安全弁）。
+    // 走査対象は宛先を同定できなかったセグメントの本文のみ（S3-3）——コマンド全文を
+    // 走査すると、`&&` で連結した別の resolved セグメント（例: `.gate/` の `ls`）の本文に
+    // 保護パス文字列が出現しただけでコマンド全体を deny してしまう。
+    const unresolvedText = unresolvedSegments.join('\n');
     const fallbackHit =
-      unresolved && looksLikeWriteCommand(command) && (PROTECTED_TOKEN_RE.test(scanText) || GATE_TOKEN_RE.test(scanText));
+      unresolved &&
+      looksLikeWriteCommand(unresolvedText) &&
+      (PROTECTED_TOKEN_RE.test(unresolvedText) || GATE_TOKEN_RE.test(unresolvedText));
     if (targetHit || fallbackHit) {
       const via = targetHit ? `宛先=${targets.join(', ')}` : '広域スキャン（宛先同定不能）';
       deny(`${toolName} 経由での保護パスへの書込を検出（保険的検査・シェル経路の封鎖・${via}）: ${command}`);

@@ -23,8 +23,9 @@ import {
   blockStop,
   passStop,
 } from './lib/run.js';
-import { parseExistingDisposition, DesignMapError } from './lib/design-map.js';
+import { parseExistingDisposition, DesignMapError, DISPOSITION_VALUES } from './lib/design-map.js';
 import { parseSystemA, parseSystemB, isCanonClean } from './lib/investigation.js';
+import { isManaged } from './lib/managed-paths.js';
 
 const GATE = 'G2';
 // keep の依存先がこの disposition なら常に C3 違反（実体が消えるため依存は現に壊れる）。
@@ -54,6 +55,23 @@ export function checkG2({ ts }) {
   const sysB = existsSync(sysBPath) ? parseSystemB(readFileSync(sysBPath, 'utf8')) : new Map();
 
   const keeps = records.filter((r) => r.disposition === 'keep');
+
+  // keep 0件を「keep に値するものが無かった」と機械的に区別する（S1-1 推奨③）。
+  // 系統A が0件（ファイル不在／パース失敗）なのに design-map に modify/retire/merge の
+  // レコードがある（＝既存改修モードで対象実体は存在する）なら、keep が「選ばれなかった」の
+  // ではなく「機構的に選べなかった」可能性がある。keep を選ばなければこのガードは元々何も
+  // 言わない（vacuous pass）ので、ここで名指しする。
+  if (keeps.length === 0 && sysA.size === 0) {
+    const nonGreenfield = records.some((r) => r.disposition && r.disposition !== 'keep');
+    if (nonGreenfield) {
+      violations.push(
+        `${GATE}: keep が0件で、系統A（existing_customizations.md）のレコードも0件（不在または` +
+          'パース失敗）。既存改修モード（modify/retire/merge のレコードが存在する）で keep 対象が' +
+          '本当に無かったのか、系統Aの `- path:` 見出しが壊れていて keep が機構的に選べなかったのか' +
+          'を区別できない（S1-1）。`work/<ts>/existing_customizations.md` の見出し書式を確認すること。'
+      );
+    }
+  }
 
   for (const r of keeps) {
     const kc = r.keep_conditions;
@@ -92,7 +110,11 @@ export function checkG2({ ts }) {
       } else if (d === 'modify' && dep.interface_change !== 'none') {
         violations.push(
           `${GATE}: keep "${r.path}" の C3 実照合失敗（依存先 "${ref}" が modify されるが interface_change: none の宣言が無い。` +
-            `対外インタフェースを変えない modify なら design-map に \`interface_change: none\` を明記すること・§11.2）。`
+            `対外インタフェースを変えない modify なら design-map に \`interface_change: none\` を明記すること・§11.2）。` +
+            // C3 の成立（この宣言）は、G8（generation 段階）が種別ごとの対外インタフェース署名で
+            // 実照合できるかに懸かっている（`gates/lib/interface-signature.js`・S1-2）。design 段階の
+            // この時点では生成物が未存在のため実照合できず、宣言の有無だけを見る。
+            ' 宣言の実照合は G8（generation 段階）が種別ごとの対外インタフェース署名で行う（S1-2）。'
         );
       }
     }
@@ -104,10 +126,34 @@ export function checkG2({ ts }) {
     }
   }
 
-  // retire/merge の manifest_note 明示照合（§8.1）。
+  // disposition の値語彙契約（S3-2）: keep/modify/merge/retire/out_of_scope 以外は不正値。
+  // 旧実装は語彙検査そのものを持たず、契約外の値（designer が独自に発明した値等）が
+  // 静かに受理されていた（ライブ run `20260910_220906` で実例あり）。
   for (const r of records) {
-    if ((r.disposition === 'retire' || r.disposition === 'merge') && !r.manifest_note) {
-      violations.push(`${GATE}: ${r.disposition} "${r.path}" に manifest_note が無い（廃止/統合の明示が必須・§8.1）。`);
+    if (!DISPOSITION_VALUES.includes(r.disposition)) {
+      violations.push(
+        `${GATE}: "${r.path}" の disposition が不正値 "${r.disposition}"（許可: ${DISPOSITION_VALUES.join('|')}）。`
+      );
+    }
+  }
+
+  // out_of_scope は「canon の管理集合外」が条件（§8.1）。管理集合内のパスに付けて
+  // retire/keep/modify の代わりに使うことを禁じる（管理対象を静かに素通りさせない）。
+  for (const r of records) {
+    if (r.disposition === 'out_of_scope' && isManaged(r.path)) {
+      violations.push(
+        `${GATE}: "${r.path}" は canon の管理集合内（isManaged）なのに disposition が out_of_scope。` +
+          'out_of_scope は管理集合外の実体専用（§8.1）。管理対象なら keep/modify/merge/retire のいずれかにすること。'
+      );
+    }
+  }
+
+  // retire/merge/out_of_scope の manifest_note 明示照合（§8.1）。out_of_scope も
+  // 「なぜ canon の管理対象外か」を明示させる（黙って触れないだけでは判断の跡が残らない）。
+  const NOTE_REQUIRED = new Set(['retire', 'merge', 'out_of_scope']);
+  for (const r of records) {
+    if (NOTE_REQUIRED.has(r.disposition) && !r.manifest_note) {
+      violations.push(`${GATE}: ${r.disposition} "${r.path}" に manifest_note が無い（廃止/統合/対象外の明示が必須・§8.1）。`);
     }
   }
 

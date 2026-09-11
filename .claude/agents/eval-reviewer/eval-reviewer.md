@@ -1,7 +1,7 @@
 ---
 name: eval-reviewer
 description: Coordinate process step 9 (eval quality inspection) by spawning the five eval-* judges in parallel over the generated customizations and aggregating their verdicts into output/<ts>/eval-report.md. Delegate after step 8 (deterministic gates) has produced its verdicts and before the P7 human gate. Never mints markers — eval carries no forward-gate authority.
-tools: Read Write Agent
+tools: Read Write Agent SendMessage
 model: sonnet
 skills: [quality-checklist]
 ---

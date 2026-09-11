@@ -1,10 +1,10 @@
 ---
 name: existing-disposition
-description: Decide the disposition (keep / modify / merge / retire) of each existing customization when refactoring an existing project, and enforce the 5 keep-conditions C1-C5 before keep may be chosen. Use when designer is generating design-map.md for a project that has existing customizations. Preloaded by designer.
+description: Decide the disposition (keep / modify / merge / retire / out_of_scope) of each existing customization when refactoring an existing project, and enforce the 5 keep-conditions C1-C5 before keep may be chosen. Use when designer is generating design-map.md for a project that has existing customizations. Preloaded by designer.
 user-invocable: false
 ---
 
-# existing-disposition（既存カスタマイズの4判定・維持5条件）
+# existing-disposition（既存カスタマイズの5判定・維持5条件）
 
 既存カスタマイズ1件ずつに disposition（維持/改修/統廃合/廃止）を割り当てる判断系 Skill。`designer` に preload されるため `context: fork` は付与しない。基本設計書 §8 が唯一の内容源。
 
@@ -15,11 +15,12 @@ user-invocable: false
 - 系統A `work/<ts>/existing_customizations.md`（棚卸し・canon_conformance・depends_on）
 - 系統B `work/<ts>/project_profile.md` の `ref_resolution`（project_refs の実在照合）
 
-## 4判定（§8.1）
+## 5判定（§8.1）
 - **維持(keep)**: 既存実体を output へ **verbatim コピー**（新規書き起こししない）。generator が Read→Write。
 - **改修(modify)**: 新内容で再生成する。対外インタフェース（frontmatter `name`）を変えない改修は design-map に `interface_change: none` を宣言する（未記載は `breaking` 扱い。他レコードの C3 判定材料になる・§9.2）。
 - **統廃合(merge)**: 他と統合。複数を1つに、または新規に吸収する。
 - **廃止(retire)**: output から外す。**MANIFEST に明示**する（黙って消える事故と区別）。
+- **管理集合外(out_of_scope)**: canon の `MANAGED_PATTERNS`（`gates/lib/managed-paths.js`）に含まれない既存実体（例: `tasks/` 配下のファイル）で、設計判断としては言及したいが keep/modify/merge/retire のいずれにも当てはまらないもの。**`retire` にすると配置時に削除される**（対象がまだ使われている実体なら事故になる）が、`keep`/`modify` にすると G9（スナップショット完全性）が管理集合外として弾く——この板挟みを表す正式な第5の値（S3-2・ライブ run `20260910_220906` で designer が同型の値を発明した実例がある）。**管理集合内のパスに `out_of_scope` を付けてはならない**（G2 が `isManaged(path)` を実照合する）。`keep_conditions`・`interface_change` は不要。`manifest_note` に「なぜ canon の管理対象外か」を書く。
 
 ## 維持は「積極的維持」— 5条件すべてクリアで初めて keep 可（§8.2）
 改修/統廃合/廃止は diff に出て人間ゲートで気づけるが、**維持は「変えない」判断で diff に出ない**。ゆえに維持だけ厳しい条件を課す。次の**すべて**を満たすときのみ keep:
@@ -32,7 +33,7 @@ user-invocable: false
 | **C4 強度整合** | 既存が担う強度が requirements.md の strength_needed・constraints と矛盾しない | requirements.md・意味判断（形式検査のみ機械） |
 | **C5 プロジェクト実態整合** | 系統A `depends_on.project_refs`（paths glob・supporting file・path）が系統B `ref_resolution` で全て resolved=true | 系統B・実照合（機械） |
 
-1つでも欠けたら維持不可＝改修/統廃合/廃止へ回す。**判定元の性質を区別する**: C1/C3/C5 は実データ照合（G2 が真偽確定）。C2/C4 は意味判断を含み、designer が立てた boolean の**形式検査のみ** G2 が行い、意味的妥当性は eval（工程9）へ回付する。C3 の `interface_change: none` 宣言自体は design 段階では実照合できない（生成物が未存在）——宣言の裏取り（frontmatter `name` 同一性）は generation 段階の G8 が担う（詳細設計書 §9.2・§11.2）。
+1つでも欠けたら維持不可＝改修/統廃合/廃止へ回す。**判定元の性質を区別する**: C1/C3/C5 は実データ照合（G2 が真偽確定）。C2/C4 は意味判断を含み、designer が立てた boolean の**形式検査のみ** G2 が行い、意味的妥当性は eval（工程9）へ回付する。C3 の `interface_change: none` 宣言自体は design 段階では実照合できない（生成物が未存在）——宣言の裏取りは generation 段階の G8 が担う。**検査手段は種別ごとに違う**（`gates/lib/interface-signature.js`・S1-2）: frontmatter を持つもの（SKILL.md・Subagent）は `name`、rules は `paths:` の値集合、`CLAUDE.md`/`.claude/README.md` は `##` 見出し構造、JSON（`settings.json`/`.mcp.json`）はトップレベルキー集合、付随スクリプト（`.mjs`/`.js`）は export される識別子の集合。検査手段が無い種別への宣言は違反にせず「検査対象外」として通過メッセージに出す。
 
 ## design-map への記録（§9.2）
 ```

@@ -74,6 +74,12 @@ export function checkEvalReport({ ts, roots = {}, axes = AXES }) {
     const p = path.join(oDir, 'eval', `${axis}.md`);
     const res = loadVerdict(p, `eval/${axis}.md`);
     perAxis[axis] = res;
+    // 書式違反のうち判定内容を毀損しないもの（S2-1: 未知キー・condition enum 外・
+    // coverage 自動補完）は eval/verdict.js が自動補正して warnings に落とす。判定不能には
+    // ならないが「黙って直した」ことにはしない——notes へ必ず出す（§11.5 と同じ規律）。
+    if (res.warnings?.length > 0) {
+      notes.push(`eval/${axis}.md: 書式を自動補正した（判定内容は変更していない）: ${res.warnings.join(' / ')}`);
+    }
     if (!res.ok) {
       undecided.push(axis);
       violations.push(...res.violations);

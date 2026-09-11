@@ -8,6 +8,8 @@
  * markdown.js ベースの行パース（依存ゼロ・§14）。
  */
 
+import { matchPathHeading, parseInlineSlashFields } from './markdown.js';
+
 function strip(s) {
   return s.trim().replace(/^["']|["']$/g, '');
 }
@@ -27,13 +29,13 @@ export function parseSystemA(text) {
 
   for (const raw of lines) {
     const line = raw.replace(/\s+$/, '');
-    const pathM = line.match(/^\s*-\s*path:\s*(.+?)\s*$/);
-    if (pathM) {
+    const head = matchPathHeading(line);
+    if (head) {
       // has_* は「節が書かれたか」の記録。値の空（`project_refs: []`）と節そのものの
       // 欠落は意味が違う——前者は正当な「参照なし」の宣言、後者は系統Aが出力契約を
       // 守っていない（G1 の投資工程スキーマ検査が使う）。
       cur = {
-        path: norm(pathM[1]),
+        path: norm(head.path),
         canon_conformance: {},
         customization_refs: [],
         project_refs: [],
@@ -43,6 +45,13 @@ export function parseSystemA(text) {
       };
       records.set(cur.path, cur);
       section = null;
+      // 系統A の1行形式（`- path: X / layer: L5 / kind: … / strength: …`）を分解する
+      // （S1-1。複数行形式（後続の layer:/kind:/strength: 行）でも二重に上書きされるだけで
+      // 害はない）。
+      const inline = parseInlineSlashFields(head.rest);
+      for (const k of ['layer', 'kind', 'strength']) {
+        if (inline[k] !== undefined) cur[k] = strip(inline[k]);
+      }
       continue;
     }
     if (!cur) continue;

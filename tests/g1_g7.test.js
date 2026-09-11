@@ -324,6 +324,34 @@ test('G1 spec: spec.md が無ければ違反', (t) => {
   assert.equal(checkG1({ ts, stage: 'spec' }).ok, false, 'spec.md 不在は違反');
 });
 
+// --- S2-3: §9 未決事項の「なし」を箇条書きで書くと G1 が未決項目として誤カウントする ---
+
+test('S2-3 G1 spec: §9「なし」を箇条書きで書くと未決事項として検出される（ライブ run 20260910_220906 の再現）', (t) => {
+  const ts = tsFor(import.meta.url, 25);
+  setup(t, ts);
+  writeFileSync(
+    out(ts) + '/spec.md',
+    '# spec\n\n## 未決事項\n' +
+      'なし。以下の論点はすべて確定させた:\n' +
+      '- 論点A（確定済み）\n' +
+      '- 論点B（確定済み）\n'
+  );
+  const r = checkG1({ ts, stage: 'spec' });
+  assert.equal(r.ok, false, '箇条書きは内容が確定済みでも未決事項として数えられる（機械判定の仕様）');
+});
+
+test('S2-3 G1 spec: §9「なし」を散文で書けば通過する（spec-writer への回避指示どおり）', (t) => {
+  const ts = tsFor(import.meta.url, 26);
+  setup(t, ts);
+  writeFileSync(
+    out(ts) + '/spec.md',
+    '# spec\n\n## 未決事項\n' +
+      'なし。以下の論点はすべて確定させた: 論点A（確定済み）、論点B（確定済み）。\n'
+  );
+  const r = checkG1({ ts, stage: 'spec' });
+  assert.equal(r.ok, true, JSON.stringify(r.violations));
+});
+
 test('G1 未知ステージは違反（vacuous pass 防止）', (t) => {
   const ts = tsFor(import.meta.url, 5);
   setup(t, ts);
@@ -561,4 +589,48 @@ test('G7 判定⑦: 生成物同士（管理ファイル間）の行番号参照
     '管理ファイル間の行番号参照は blocking にならないこと'
   );
   assert.ok(r.scanned.unmanagedLineRefsChecked >= 2, '走査件数が見えること（0件を合格と誤認しない）');
+});
+
+// --- S1-1: 系統A の1行形式（` / layer: … / kind: … `）で path が汚染されない ---
+
+test('S1-1 G1 investigation: 系統A の1行形式レコードは path が汚染されず通過する（ライブ run 20260910_220906 の再現）', (t) => {
+  const ts = tsFor(import.meta.url, 23);
+  cleanupTs(t, ts);
+  mkdirSync(path.join(work(ts), '.requests'), { recursive: true });
+  writeFileSync(
+    path.join(work(ts), 'existing_customizations.md'),
+    '## サマリ\n総数 1\n\n## レコード（1ファイル1件）\n' +
+      '- path: .claude/settings.json / layer: L5 / kind: settings / strength: mandatory（新規追加のため全体が対象）\n' +
+      '  depends_on:\n    customization_refs: []\n    project_refs: []\n' +
+      '  canon_conformance:\n    frontmatter_keys_valid: true\n    unknown_frontmatter_keys: []\n' +
+      '    tool_names_valid: true\n    deprecated_notation: []\n'
+  );
+  writeFileSync(path.join(work(ts), 'project_profile.md'), '## profile\nlanguages: js\n');
+  writeFileSync(path.join(work(ts), 'target.txt'), ROOT.replace(/\\/g, '/') + '\n');
+  const r = checkG1({ ts, stage: 'investigation' });
+  assert.equal(r.ok, true, JSON.stringify(r.violations));
+});
+
+test('S1-1 G1 investigation: path に layer:/kind: 残骸が混入していれば見出し破壊として違反（故意の違反注入）', (t) => {
+  const ts = tsFor(import.meta.url, 24);
+  cleanupTs(t, ts);
+  mkdirSync(path.join(work(ts), '.requests'), { recursive: true });
+  // matchPathHeading では正規に切り出せない、さらに壊れた形（引用符でくくられ path 自体に
+  // 残骸が残る）を意図的に注入する。
+  writeFileSync(
+    path.join(work(ts), 'existing_customizations.md'),
+    '## サマリ\n総数 1\n\n## レコード（1ファイル1件）\n' +
+      '- path: ".claude/settings.json / layer: L5 / kind: settings"\n' +
+      '  depends_on:\n    customization_refs: []\n    project_refs: []\n' +
+      '  canon_conformance:\n    frontmatter_keys_valid: true\n    unknown_frontmatter_keys: []\n' +
+      '    tool_names_valid: true\n    deprecated_notation: []\n'
+  );
+  writeFileSync(path.join(work(ts), 'project_profile.md'), '## profile\nlanguages: js\n');
+  writeFileSync(path.join(work(ts), 'target.txt'), ROOT.replace(/\\/g, '/') + '\n');
+  const r = checkG1({ ts, stage: 'investigation' });
+  assert.equal(r.ok, false, '見出しが汚染された path は違反として検出されるはず');
+  assert.ok(
+    r.violations.some((v) => v.message.includes('キー残骸')),
+    JSON.stringify(r.violations)
+  );
 });
