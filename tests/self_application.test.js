@@ -5,7 +5,7 @@
  * 同じ正典に従う成果物である。§15.3 は「自己適用を回帰スイート化する」と規定するが、
  * 開発初期は移植元の旧 `.claude`（`_old/`・2026-08-28 に削除済み）への回帰テストしか
  * 存在せず、**現行の `.claude/` を検査するテストが無かった**（追跡外の資産に依存する回帰
- * テストだけが自己適用を名乗っていた）。その後 eval-* 6体と quality-checklist を足すに
+ * テストだけが自己適用を名乗っていた）。その後 eval-* 5体と quality-checklist を足すに
  * あたり、この空白を埋めた。
  *
  * ここが無いと、ワーカー定義の改変でパス規約・frontmatter・ツール名が壊れても
@@ -72,7 +72,7 @@ test('claude-canon 自身の .claude/**.md が G3〜G6 で違反0件', () => {
 test('claude-canon 自身のワーカー定義が G13（シェル剥奪）を通る', () => {
   const r = checkG13({});
   assert.equal(r.ok, true, JSON.stringify(r.violations));
-  assert.ok(r.checked >= 18, `検査対象が少なすぎる（実際: ${r.checked}）。agents 不在を合格と誤認しない。`);
+  assert.ok(r.checked >= 17, `検査対象が少なすぎる（実際: ${r.checked}）。agents 不在を合格と誤認しない。`);
 });
 
 test('agent の skills: preload が実在し、disable-model-invocation な Skill を preload していない（G7 相当の自己適用）', () => {
@@ -137,9 +137,8 @@ test('機能Y: generations/candidate-*/ が存在すれば G3〜G6＋G13 を適�
   }
 });
 
-test('eval-* 6体と quality-checklist が実在する（工程9の成果物が消えたら落ちる）', () => {
+test('eval-* 5体と quality-checklist が実在する（工程9の成果物が消えたら落ちる）', () => {
   for (const name of [
-    'eval-reviewer',
     'eval-correctness',
     'eval-security',
     'eval-canon',
@@ -300,9 +299,7 @@ test('検出器の素振り: ネイティブ起動の例示に model 引数が�
   assert.equal(hit, true);
 });
 
-// eval-reviewer は廃止予定（judge の集約役。オーケストレータ直接起動＋eval:report の決定論集約へ置き換える）
-// ため、effort の明示対象から一時的に外す。廃止時にこの除外も消す。
-const EFFORT_EXEMPT = new Set(['eval-reviewer']);
+const EFFORT_EXEMPT = new Set();
 
 test('全 agent が effort を明示している（未指定だとセッションの effort を継承し、高 effort が伝播する）', () => {
   const missing = [];

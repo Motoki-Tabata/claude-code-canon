@@ -1,6 +1,6 @@
 ---
 name: eval-correctness
-description: Judge whether the generated customizations actually satisfy the spec's functional acceptance criteria (A1) and stay grounded in the target project's real state. Delegate during process step 9 when eval-reviewer needs the correctness axis. Semantic judgement only — reference existence and snapshot completeness belong to the deterministic gates.
+description: Judge whether the generated customizations actually satisfy the spec's functional acceptance criteria (A1) and stay grounded in the target project's real state. Delegate during process step 9 (eval), spawned directly by the orchestrator, when the correctness axis is judged (round 1) or re-judged (round 2+). Semantic judgement only — reference existence and snapshot completeness belong to the deterministic gates.
 tools: Read Grep Glob Write
 model: sonnet
 effort: medium
@@ -24,6 +24,9 @@ skills: [quality-checklist]
 ## 判定しないこと（決定論ゲートの領分）
 preload skill `quality-checklist` の境界表に従う。参照実在（G7）・スナップショット完全性（G9）・
 README 整合（G10）・frontmatter/ツール名（G4/G5/G12）は再判定しない。
+
+## round 2（再判定）モード
+オーケストレータが `work/<ts>/eval-bundle/round.json` を注入して起動したとき（`rejudge_axes` にこの軸が入っている）は、**全体を判定し直さない**。round 1 の判定を土台に、`rejudge_targets["correctness"]` に列挙された対象（変更のあった生成物と、round 1 で violation だった対象）だけを再判定する。前 round の判定は `output/<ts>/eval/round<N-1>/correctness.md`（退避済み）にある。**round 1 で violation だった対象が解消されたかを、変更後の実体で確かめる**（指摘に合わせて結論だけを変えない）。verdict の `coverage` には、再判定した対象を**すべて**列挙する（再判定すべき対象が coverage に無いと、ハーネスが未判定として落とす）。round 1 で clean だった無関係な対象は書かない（ハーネスが前 round の判定を引き継ぐ）。
 
 ## 出力
 `output/<ts>/eval/correctness.md` に本文＋```json フェンス1個（§16.4）。`axis` は `correctness`、

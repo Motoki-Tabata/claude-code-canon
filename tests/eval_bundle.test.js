@@ -11,7 +11,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
 import os from 'node:os';
 import { buildKeepReviewBundles, collectKeepReviewCases, caseIdFor, buildAxisBundle, AXES_4 } from '../eval/bundle.js';
 import { ROOT } from './helpers/paths.js';
@@ -195,4 +195,67 @@ test('責務欄は npm run slice が書く work/<ts>/slices/responsibilities.md 
     roots: { outputDir: tmp, workDir: tmp, generatedRoot: gen },
   });
   assert.ok(text.includes('SLICE-RESP-MARKER'), 'slices/responsibilities.md の内容がバンドルに入っていない（責務欄が空のまま）');
+});
+
+// ---- S2-2（出力先の掃除）・S2-5（keep 対象の逆引き）----
+
+const DM_KEEP = [
+  '# dm',
+  '## 既存判定（existing_disposition）',
+  '```yaml',
+  'existing_disposition:',
+  '  - path: .claude/skills/impact-scope/SKILL.md',
+  '    disposition: keep',
+  '    keep_conditions:',
+  '      C1_canon_clean: true',
+  '      C2_no_requirement_conflict: true',
+  '      C3_dependency_healthy: true',
+  '      C4_strength_consistent: true',
+  '      C5_project_refs_resolved: true',
+  '```',
+  '',
+].join('\n');
+
+function keepRun(t, { generated = {} } = {}) {
+  const tmp = mkdtempSync(path.join(os.tmpdir(), 'bundle-keep-'));
+  t.after(() => rmSync(tmp, { recursive: true, force: true }));
+  writeFileSync(path.join(tmp, 'design-map.md'), DM_KEEP);
+  for (const [rel, body] of Object.entries(generated)) {
+    mkdirSync(path.dirname(path.join(tmp, 'generated', rel)), { recursive: true });
+    writeFileSync(path.join(tmp, 'generated', rel), body);
+  }
+  return tmp;
+}
+
+test('S2-5 逆引き: keep 対象を名指しする生成物の箇所が file:line で入る（不在と誤認させない）', (t) => {
+  const tmp = keepRun(t, {
+    generated: {
+      'CLAUDE.md': '# c\nimpact-scope Skill で影響範囲を判定する\n',
+      '.claude/skills/impact-scope/SKILL.md': 'impact-scope 自身（keep の verbatim コピー）\n',
+      '.claude/agents/x/x.md': '---\nname: x\n---\n無関係\n',
+    },
+  });
+  const { cases } = buildKeepReviewBundles({ ts: TS, write: false, roots: { outputDir: tmp, workDir: tmp, generatedRoot: path.join(tmp, 'generated') } });
+  const text = cases[0].text;
+  assert.match(text, /生成物内での言及/);
+  assert.match(text, /CLAUDE\.md:2:/, '言及している生成物の行番号が逆引きされていない');
+  assert.ok(!text.includes('SKILL.md:1:'), '自分自身（verbatim コピー）を言及とみなしている');
+  assert.ok(!/agents\/x\/x\.md:/.test(text), '無関係な行が混ざっている');
+});
+
+test('S2-5 逆引き: 言及が無ければ「Grep で確かめてから不在と言う」旨を出す', (t) => {
+  const tmp = keepRun(t, { generated: { 'CLAUDE.md': '# c\n本文\n' } });
+  const { cases } = buildKeepReviewBundles({ ts: TS, write: false, roots: { outputDir: tmp, workDir: tmp, generatedRoot: path.join(tmp, 'generated') } });
+  assert.match(cases[0].text, /生成物に言及なし。ただし Grep で確かめてから/);
+});
+
+test('S2-2 掃除: 前 round のバンドルは書き出し前に消える（消えた keep の古いバンドルを judge に読ませない）', (t) => {
+  const tmp = keepRun(t, { generated: { 'CLAUDE.md': 'x\n' } });
+  const stale = path.join(tmp, 'eval-bundle', 'keep-review', 'old_removed_keep.md');
+  mkdirSync(path.dirname(stale), { recursive: true });
+  writeFileSync(stale, '前 round の keep');
+  const { written } = buildKeepReviewBundles({ ts: TS, write: true, roots: { outputDir: tmp, workDir: tmp, generatedRoot: path.join(tmp, 'generated') } });
+  const names = readdirSync(path.join(tmp, 'eval-bundle', 'keep-review'));
+  assert.ok(!names.includes('old_removed_keep.md'), '前 round の古いバンドルが残っている');
+  assert.equal(names.length, written.length, '今回の対象以外のファイルが残っている');
 });

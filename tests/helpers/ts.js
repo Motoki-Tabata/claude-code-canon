@@ -39,6 +39,7 @@ export const TS_NAMESPACES = {
   run_status: '29991201',
   resume: '29991202',
   slice_design_map: '29991204',
+  eval_round: '29991301',
 };
 
 function nameFromUrl(importMetaUrl) {

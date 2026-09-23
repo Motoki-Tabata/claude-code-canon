@@ -49,7 +49,7 @@ argument-hint: "<target_project_path> | resume <ts>"
 2. 修正指示を `work/<ts>/revisions/<stage>-<n>.md` に書く（人間の指摘の逐語・直す箇所・直さない箇所）。
 3. 巻き戻す工程のマーカーが残っていれば `npm run reopen -- <ts> <stage>` を実行する（`<stage>` 以降の工程マーカーを連鎖で削除する。`generation.done` が消えるとガードが再武装される）。対応: P2→`requirements`・P4→`spec`・P5→`design`・P6+7→`generation`。
 4. 該当ワーカー（`requirements-recorder`・`spec-writer`・`designer`・`generator`）を**新規に起動**し、入力ファイル一式のパスと修正指示ファイルのパスを注入して「指示された箇所だけを Edit する」ことを明示する（各定義の「修正モード」節）。
-5. 完了リクエスト → ゲート（`npm run recheck -- <ts> <stage>`）→ 該当ゲートで対話承認を取り直して記録する。
+5. 完了リクエスト → ゲート（`npm run recheck -- <ts> <stage>`）→ 該当ゲートで対話承認を取り直して記録する。P6+7 から戻った場合は、工程9 を **round 2 以降**（`npm run eval:bundle -- <ts> --round N`）として、差分だけ再判定する。
 
 ## この Skill が前提とする契約（実装済み・変更禁止）
 
@@ -151,16 +151,22 @@ argument-hint: "<target_project_path> | resume <ts>"
 
 決定論ゲート（工程8）と分離した**意味判断**の工程（§16）。**eval はマーカーを鋳造せず G バッチも発火させない**（§2・§16.7）。
 
-1. **判定入力バンドルを先に生成する**: `npm run eval:bundle -- <ts>`。design-map の keep/merge から `work/<ts>/eval-bundle/keep-review/` を決定論的に作る。**designer の `keep_conditions` 宣言と rationale はバンドルに入らない**（judge が判定対象自身の主張に自己一致して常に clean と答える恒真バグを構造的に防ぐ・§16.3）。
-2. `eval-reviewer` を起動し、5軸（correctness / security / canon / context / keep-review）の judge を並列 spawn させる。各 judge は `output/<ts>/eval/<axis>.md` に本文＋json フェンス1個の verdict を書き、`eval-reviewer` が `output/<ts>/eval-report.md` へ集約する。**eval-reviewer が集約せずに turn を終えた場合**（詳細設計書 §11.5。工程9 は完了リクエストを持たないため他の工程より検出が遅れやすい）、`output/<ts>/eval/<axis>.md` 5軸と `eval-report.md` の実在を確認し、欠けていれば eval-reviewer を**新規に起動し直して**完走させる。**軸ファイルが欠けているなら次の順で復旧する**（judge が判定を応答本文に返しながらファイルを書かない failure mode がある。実測: run 20260903_091044 round 2 の eval-correctness）。
+1. **判定入力バンドルを先に生成する（round 1）**: `npm run eval:bundle -- <ts>`。design-map の keep/merge から `work/<ts>/eval-bundle/keep-review/` を決定論的に作り（対象を名指しする生成物の箇所は `file:line` で逆引きして同梱する・S2-5）、生成物のスナップショット（`.snapshot-r1.json`）を保存する。**前の試行の判定（`eval/*.md`・`eval-report.md`）と古いバンドルは消える**（前の判定が新しい判定に見えないように・S2-2）。**designer の `keep_conditions` 宣言と rationale はバンドルに入らない**（judge が判定対象自身の主張に自己一致して常に clean と答える恒真バグを構造的に防ぐ・§16.3）。
+2. **5軸の judge をメイン Claude が同一 turn で並列に直接起動する**: `eval-correctness` / `eval-security` / `eval-canon` / `eval-context` / `eval-keep-review`（中継役の `eval-reviewer` は廃止した——集約は下の手順3でコードが決定論に行うので、LLM の中継役は要らず、深さ2の子の報告が失われる failure mode も避けられる）。プロンプトに `<ts>`・`output/<ts>/`・`work/<ts>/slices/`（design-map の切り出し。全文は読ませない）を注入し、keep-review には `work/<ts>/eval-bundle/keep-review/` も注入する。各 judge は `output/<ts>/eval/<axis>.md` に本文＋json フェンス1個の verdict を書く。**全 judge の完了後、5軸の軸ファイルの実在を確かめる**（工程9 は完了リクエストを持たないため、他の工程より欠落の検出が遅れやすい・詳細設計書 §11.5）。**軸ファイルが欠けているなら次の順で復旧する**（judge が判定を応答本文に返しながらファイルを書かない failure mode がある。実測: run 20260903_091044 round 2 の eval-correctness）。
    - **(a)（判定が応答本文に返っている場合）** オーケストレータが **judge の判定内容（`verdict` / `rationale` / `evidence` / `confidence`）を1文字も変えずに、書式だけを機械的に修正して**軸ファイルへ書く。**判定そのものを書き換えてはならない**——それは judge の役割の簒奪であり、eval の独立性が失われる。実測（run 20260909_003820）でこの手当は機能した。
    - **(b) 判定が失われている場合**: 起動プロンプトに `quality-checklist` の出力契約（```json フェンスは1個・`findings[].target` は `coverage` にも列挙・`condition` は keep-review 以外 `null`）を明記して、その軸の judge を**新規に起動し直す**。再判定になるが、`SendMessage` での再開は使わない（5分キャッシュ切れで蓄積した文脈を作り直すため、判定の揺れを避ける利点より高くつく）。
 
    **書式違反のうち判定内容を毀損しない3種**（未知のトップレベルキー・`condition` の enum 外・`findings[].target` の `coverage` 不記載）は `eval/verdict.js` が自動補正するため、**軸は判定不能にならず (a)(b) の復旧作業自体が不要**になった（S2-1）。`npm run eval:report` の出力（`notes`）に「書式を自動補正した」旨が出るので、それを見て `quality-checklist` の NG 例を judge へ次 round で指摘するだけでよい。それでも欠けている（フェンス不在・必須キー欠落等）なら上記 (a)(b) で復旧する。
    書き出し後に手順3 を再実行し、判定不能が解消したことを確かめる。
-3. **ハーネスで集約を機械検証する**: `npm run eval:report -- <ts>`（`eval/report.js` `checkEvalReport` の CLI 起動・違反があれば exit 2）。スキーマ・カバレッジ・集約漏れを検査する。回付対象（keep×C2/C4・merge×統合先）に未判定があれば eval の失敗として扱う。**判定対象0件は「品質を確認した」ではない**（§16.5）。
+3. **集約と機械検証は決定論で行う**: `npm run eval:report -- <ts> --write`。各軸の判定から `output/<ts>/eval-report.md` を組み立て（judge の判定内容は1文字も変えず、violation を1件も落とさない・`eval/aggregate.js`）、続けてスキーマ・カバレッジ・集約漏れを検査する（違反があれば exit 2）。回付対象（keep×C2/C4・merge×統合先）に未判定があれば eval の失敗として扱う。**判定対象0件は「品質を確認した」ではない**（§16.5）。全軸が判定済みで検査を通ると、その判定が「有効な判定」として保存され、round 2 の土台になる。
 4. **P6+7**: 生成物一式（generated/・MANIFEST・README）と `eval-report.md` を**1回の提示にまとめる**。`verdict: violation` は**1件残らず提示**する（§8.4 の強制表示）。とくに **C2 の violation は P5 の再確認事項**として扱う。`npm run state:record -- <ts> P6+7 "<要旨>"` で記録する。
 5. **S3 の終わり**: 上記の作法で停止し、S4 の起動（Sonnet）を案内する。
+
+**round 2 以降（指摘を受けて生成物を直したあとの再 eval）は、差分だけを再判定する**（1周あたり約7M・全体の16〜20%を占めた eval を、2周目で丸ごと繰り返さない）:
+1. 「差し戻し」の手順で生成物を直し、`gen-guard` が通ったら `npm run eval:bundle -- <ts> --round 2`（3周目なら `--round 3`）を実行する。前 round の有効な判定（`effective-r<N-1>.json`）が無ければ拒否される（前 round を `eval:report --write` で確定してから）。
+2. コマンドの出力（と `work/<ts>/eval-bundle/round.json`）が、**再判定する軸**（`rejudge_axes`）と**引き継ぐ軸**（`carry_axes`）、各軸の**再判定する対象**（`rejudge_targets`）を示す。再判定するのは、前 round に違反があった軸と、変更があれば常に **security** 軸、および keep/merge の対象が変わった keep-review。それ以外は前 round の判定を引き継ぐ（変更で新たな違反が出うる軸を security に絞るのは既知のトレードオフ）。再判定する軸のファイルと `eval-report.md` は round 開始時に消え、前 round のものは `output/<ts>/eval/round<N-1>/` に退避される。
+3. **再判定する軸の judge だけ**を起動する。プロンプトに `work/<ts>/eval-bundle/round.json` を注入し、round 2 モード（各 judge 定義の「round 2（再判定）モード」節）で動かす——変更ファイルと前 round の違反対象だけを見て、`coverage` に再判定した対象を**すべて**列挙させる。列挙が漏れると、ハーネスが未判定として落とす。
+4. `npm run eval:report -- <ts> --write` で集約する（引き継いだ判定と再判定の結果を合成する）。以降は手順4・5 と同じ。
 
 **eval は決定論ゲートの代替ではない**。eval が clean でも決定論ゲートのブロックラッチが立っていれば前進しない。逆に eval の指摘で生成物を書き換える場合は工程7へ戻る（自己修復はデータプレーン限定・§3.3）。judge が verdict を書けなかった／形式が壊れていた場合は、**「違反なし」と読まずに「judge が判定できなかった」と報告する**（§16.4）。
 

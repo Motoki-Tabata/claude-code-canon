@@ -213,7 +213,7 @@ test('回付0件（keep/merge なし）は違反ではないが「eval 実施済
   assert.ok(r.notes.some((n) => n.includes('意味しない')), r.notes.join(' / '));
 });
 
-// --- CLI（npm run eval:report -- <ts>）: eval-reviewer が集約せずに turn を終える failure mode
+// --- CLI（npm run eval:report -- <ts>）: judge が軸ファイルを書かずに終える・集約が行われない failure mode
 //     （詳細設計書 §16.7・§16.8）を子プロセスで検出する。実 output/<ts>/ を使う。 ---
 
 test('CLI: 軸ファイルが1つ欠けていれば exit 2 で欠落軸を報告する（故意の違反注入）', (t) => {

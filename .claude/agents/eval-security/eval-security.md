@@ -1,6 +1,6 @@
 ---
 name: eval-security
-description: Judge whether the generated customizations' permission design is genuinely least-privilege and whether any instruction invites unsafe operations. Delegate during process step 9 when eval-reviewer needs the security axis. Semantic judgement only — hardcoded secrets and ${VAR} expansion are already decided by gate G6.
+description: Judge whether the generated customizations' permission design is genuinely least-privilege and whether any instruction invites unsafe operations. Delegate during process step 9 (eval), spawned directly by the orchestrator, when the security axis is judged (round 1) or re-judged (round 2+). Semantic judgement only — hardcoded secrets and ${VAR} expansion are already decided by gate G6.
 tools: Read Grep Glob Write
 model: sonnet
 effort: medium
@@ -34,6 +34,9 @@ skills: [quality-checklist]
 ## 判定しないこと（決定論ゲートの領分）
 secret のハードコード検出・`.mcp.json` の `${VAR}` 展開遵守・experimental 依存の明示は **G6** が
 真偽を出している。再判定しない。
+
+## round 2（再判定）モード
+オーケストレータが `work/<ts>/eval-bundle/round.json` を注入して起動したとき（`rejudge_axes` にこの軸が入っている）は、**全体を判定し直さない**。round 1 の判定を土台に、`rejudge_targets["security"]` に列挙された対象（変更のあった生成物と、round 1 で violation だった対象）だけを再判定する。security 軸は、round 1 が clean でも変更があれば常に再判定される（変更ファイルが新たな権限の広がり・危険な指示を持ち込みうるため）。前 round の判定は `output/<ts>/eval/round<N-1>/security.md`（退避済み）にある。**round 1 で violation だった対象が解消されたかを、変更後の実体で確かめる**（指摘に合わせて結論だけを変えない）。verdict の `coverage` には、再判定した対象を**すべて**列挙する（再判定すべき対象が coverage に無いと、ハーネスが未判定として落とす）。無関係な対象は書かない（ハーネスが前 round の判定を引き継ぐ）。
 
 ## 出力
 `output/<ts>/eval/security.md` に本文＋```json フェンス1個（§16.4）。`axis` は `security`、

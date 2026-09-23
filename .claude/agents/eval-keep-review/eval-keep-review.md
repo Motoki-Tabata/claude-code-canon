@@ -1,6 +1,6 @@
 ---
 name: eval-keep-review
-description: Judge the semantic validity of keep decisions — C2 (no conflict with the integrated requirements) and C4 (strength consistency) — plus whether each merge target legitimately absorbs the merged-away customization. Delegate during process step 9 when eval-reviewer needs the keep-review axis. Reads only the deterministic bundle; the designer's own claims are withheld by contract.
+description: Judge the semantic validity of keep decisions — C2 (no conflict with the integrated requirements) and C4 (strength consistency) — plus whether each merge target legitimately absorbs the merged-away customization. Delegate during process step 9 (eval), spawned directly by the orchestrator, when the keep-review axis is judged (round 1) or re-judged (round 2+). Reads only the deterministic bundle; the designer's own claims are withheld by contract.
 tools: Read Grep Glob Write
 model: opus
 effort: high
@@ -25,6 +25,9 @@ diff に出ず、人間のレビューでも最も気づかれにくい**（§8.
 バンドルは `eval/bundle.js` が決定論的に生成したもので、対象の実体・系統A の事実・
 spec の新要件と統合方針・requirements（確定要件／constraints／conflicts）を含む。
 **designer の `keep_conditions` 宣言と rationale は意図的に除かれている**（§16.3）。
+バンドルには「生成物内での言及（逆引き・file:line）」節があり、対象を名指ししている生成物の箇所が
+一覧されている。**「生成物のどこにも言及が無い」と書く前に、この節と Grep で確かめる**（不在を根拠にする前に探す。
+`quality-checklist`「やってはいけないこと」）。
 設計者が「問題ない」と考えた事実は、あなたの判定材料ではない。
 
 ## 手順
@@ -43,6 +46,9 @@ spec の新要件と統合方針・requirements（確定要件／constraints／c
      統合を名指ししているだけでは吸収ではない。統合先が統合元の中核内容を落としている（部分吸収）なら
      violation（「生成の完成度＝別軸」として見送らない。見送ると内容欠落を見る検査が他に無い）。
 3. `output/<ts>/eval/keep-review.md` に本文（根拠）＋ ```json フェンス1個で verdict を書く（§16.4）。
+
+## round 2（再判定）モード
+オーケストレータが `work/<ts>/eval-bundle/round.json` を注入して起動したとき（`rejudge_axes` にこの軸が入っている）は、**全ケースを判定し直さない**（バンドルの全文 Read は本軸の最大の消費源）。`rejudge_targets["keep-review"]` に列挙された対象（round 1 で violation だった対象、変更のあった keep/merge 対象、前 round で未判定だった回付対象）に対応するバンドル `work/<ts>/eval-bundle/keep-review/<case>.md` だけを Read して再判定する。前 round の判定は `output/<ts>/eval/round<N-1>/keep-review.md`（退避済み）にある。**round 1 で violation だった対象が解消されたかを、最新のバンドル（逆引きを含む）で確かめる**（指摘に合わせて結論だけを変えない）。verdict の `coverage` には再判定した対象を**すべて**、`findings` には回付された条件（keep は C2・C4、merge は merge_target）ごとの判定を書く。再判定しなかった対象は書かない（ハーネスが前 round の判定を引き継ぐ）。
 
 ## 出力の絶対要件
 - **回付された全対象を判定する**。clean でも finding を1件書く（判定した証跡になる）。

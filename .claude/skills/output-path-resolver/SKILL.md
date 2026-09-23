@@ -29,7 +29,7 @@ user-invocable: false
 | 調査中間成果物 | `work/<ts>/{target.txt,existing_customizations.md,project_profile.md,requirements.md}` |
 | 工程9 判定入力バンドル（`eval/bundle.js` が生成） | `work/<ts>/eval-bundle/<axis>/<case>.md` |
 | 工程9 各軸 judge の verdict | `output/<ts>/eval/<axis>.md` |
-| 工程9 集約レポート（`eval-reviewer` が書く。マーカーは鋳造しない） | `output/<ts>/eval-report.md` |
+| 工程9 集約レポート（`npm run eval:report -- <ts> --write` が各軸の判定から決定論で書く。マーカーは鋳造しない） | `output/<ts>/eval-report.md` |
 | 完了リクエスト（エージェントが書く・Hook が消費削除） | `work/<ts>/.requests/<stage>` |
 
 ## 重要な制約

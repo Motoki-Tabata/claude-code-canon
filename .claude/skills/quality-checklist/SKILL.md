@@ -1,12 +1,12 @@
 ---
 name: quality-checklist
-description: Define the five eval axes (correctness / security / canon / context / keep-review) and the boundary against the deterministic gates, plus the verdict output contract. Use when eval-reviewer or an eval-* judge must decide what to examine in process step 9 and how to write output/<ts>/eval/<axis>.md. Preloaded by the eval-* agents.
+description: Define the five eval axes (correctness / security / canon / context / keep-review) and the boundary against the deterministic gates, plus the verdict output contract. Use when the orchestrator or an eval-* judge must decide what to examine in process step 9 and how to write output/<ts>/eval/<axis>.md. Preloaded by the eval-* agents.
 user-invocable: false
 ---
 
 # quality-checklist（工程9 eval の観点定義と出力契約）
 
-工程9（品質検査＝eval）の観点と出力形式を定める判断系 Skill。`eval-reviewer` と各 `eval-*` に
+工程9（品質検査＝eval）の観点と出力形式を定める判断系 Skill。オーケストレータと各 `eval-*` に
 preload されるため `context: fork` は付与しない。設計書 **§16** が唯一の内容源。
 
 ## 大前提: 決定論ゲートが見たものは見ない
@@ -158,3 +158,9 @@ NG: ```json フェンスが2個以上ある（1個目が生成物 JSON の引用
 - **応答本文にだけ verdict を書いてファイルを書かずに終える**（その軸は「判定不能」として
   報告され、あなたの判定は誰にも読まれない・§16.4）。
 - 決定論ゲートが既に真偽を出した項目を蒸し返す。
+- **「存在しない」「言及が無い」を、探す前に根拠にする**。不在は探索範囲に対してしか成立しない。
+  「生成物のどこにも X への言及が無い」「Y が実在しない」と書く前に、必ず Grep／Glob で確かめる
+  （keep-review のバンドルには、対象を名指ししている生成物の箇所が `file:line` で逆引きされている。
+  まずそれを読み、それでも足りなければ自分で Grep する）。バンドルしか読まない judge は、事実と異なる
+  「不在」を根拠に C2 違反を出した（run 20260922）。確かめられなかった場合は「見つけられなかった
+  （探索範囲: …）」と書き、`confidence` を下げる。

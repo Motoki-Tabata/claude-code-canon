@@ -19,34 +19,24 @@
  */
 
 import path from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { outputDir, isMainModule, readSessionTs } from '../gates/lib/run.js';
-import { parseExistingDisposition, DesignMapError } from '../gates/lib/design-map.js';
-import { AXES, loadVerdict, violationFindings } from './verdict.js';
+import { DesignMapError } from '../gates/lib/design-map.js';
+import { referredTargets } from './referred.js';
+import { AXES, violationFindings } from './verdict.js';
+import { loadEffectiveVerdicts, saveEffective, RoundError } from './round.js';
+import { renderEvalReport } from './aggregate.js';
+
+export { referredTargets };
 
 /**
- * design-map から「eval へ回付される対象」を導く（G2 の回付規約と同一・§8.4）。
- * @returns {{target: string, condition: string}[]}
- */
-export function referredTargets(designMapText) {
-  const records = parseExistingDisposition(designMapText);
-  const out = [];
-  for (const r of records) {
-    if (r.disposition === 'keep') {
-      out.push({ target: r.path, condition: 'C2' });
-      out.push({ target: r.path, condition: 'C4' });
-    } else if (r.disposition === 'merge') {
-      out.push({ target: r.path, condition: 'merge_target' });
-    }
-  }
-  return out;
-}
-
-/**
- * @param {{ts: string, roots?: {outputDir?: string}, axes?: string[]}} opts
+ * @param {{ts: string, roots?: {outputDir?: string, workDir?: string}, axes?: string[], write?: boolean}} opts
+ *   write: true なら、集約検査の前に各軸の有効な verdict から eval-report.md を決定論で書き出す
+ *   （eval-reviewer による LLM 集約の代替・eval/aggregate.js）。全軸判定済みで検査を通れば、その判定を
+ *   次の round の土台として保存する（eval/round.js の saveEffective）。
  * @returns {{ok, violations, notes, referred, perAxis, forcedReview, undecided}}
  */
-export function checkEvalReport({ ts, roots = {}, axes = AXES }) {
+export function checkEvalReport({ ts, roots = {}, axes = AXES, write = false }) {
   const oDir = roots.outputDir ?? outputDir(ts);
   const violations = [];
   const notes = [];
@@ -67,13 +57,21 @@ export function checkEvalReport({ ts, roots = {}, axes = AXES }) {
     }
   }
 
-  // --- 各軸 verdict ---
-  const perAxis = {};
+  // --- 各軸 verdict（round 2 以降は、引き継ぐ軸は前 round の判定・再判定する軸は合成した判定） ---
+  let effective;
+  try {
+    effective = loadEffectiveVerdicts({ ts, roots, axes });
+  } catch (e) {
+    if (e instanceof RoundError) {
+      return { ok: false, violations: [...violations, e.message], notes, referred, perAxis: {}, forcedReview: [], undecided: [...axes] };
+    }
+    throw e;
+  }
+  const perAxis = effective.perAxis;
+  const round = effective.plan?.round ?? 1;
   const forcedReview = [];
   for (const axis of axes) {
-    const p = path.join(oDir, 'eval', `${axis}.md`);
-    const res = loadVerdict(p, `eval/${axis}.md`);
-    perAxis[axis] = res;
+    const res = perAxis[axis];
     // 書式違反のうち判定内容を毀損しないもの（S2-1: 未知キー・condition enum 外・
     // coverage 自動補完）は eval/verdict.js が自動補正して warnings に落とす。判定不能には
     // ならないが「黙って直した」ことにはしない——notes へ必ず出す（§11.5 と同じ規律）。
@@ -99,8 +97,8 @@ export function checkEvalReport({ ts, roots = {}, axes = AXES }) {
     );
     violations.push(
       `judge が判定できなかった軸がある（未判定を pass と読まない・§16.5）: ${undecided.join(', ')}。` +
-        '当該 judge に verdict の書き出しをやり直させてから再実行する' +
-        '（判定が応答に残っているなら再判定させず、そのまま Write させる）。'
+        '当該 judge を新規に起動し直して verdict を書かせてから再実行する' +
+        '（判定が応答本文に残っているなら、オーケストレータが判定内容を1文字も変えずに書式だけ整えて書く）。'
     );
   }
 
@@ -139,6 +137,9 @@ export function checkEvalReport({ ts, roots = {}, axes = AXES }) {
 
   // --- 集約（eval-report.md） ---
   const reportPath = path.join(oDir, 'eval-report.md');
+  if (write) {
+    writeFileSync(reportPath, renderEvalReport({ ts, perAxis, referred, notes, undecided, plan: effective.plan }), 'utf8');
+  }
   if (!existsSync(reportPath)) {
     violations.push('eval-report.md が存在しない（工程9 の集約成果物・§14）。');
   } else {
@@ -162,7 +163,10 @@ export function checkEvalReport({ ts, roots = {}, axes = AXES }) {
     }
   }
 
-  return { ok: violations.length === 0, violations, notes, referred, perAxis, forcedReview, undecided };
+  const ok = violations.length === 0;
+  // 全軸が判定済みで検査を通ったときだけ、次の round の土台として有効な判定を保存する。
+  if (write && ok && axes.length === AXES.length) saveEffective({ ts, roots, perAxis, round });
+  return { ok, violations, notes, referred, perAxis, forcedReview, undecided };
 }
 
 // ---------------------------------------------------------------------------
@@ -170,17 +174,20 @@ export function checkEvalReport({ ts, roots = {}, axes = AXES }) {
 //
 // 詳細設計書 §16.7・§16.8「eval ハーネスは CLI と npm test から回る」の実体。
 // オーケストレータが工程9 の手順3（.claude/skills/canon/SKILL.md）でこれを実行し、
-// eval-reviewer が集約せずに turn を終えた場合（§11.5 の vacuous pass）を検出する。
+// 集約が行われなかった・軸ファイルが欠けた場合（§11.5 の vacuous pass）を検出する。
+// `--write` を付けると eval-report.md も各軸の判定から決定論で書き出す（eval/aggregate.js）。
 // ---------------------------------------------------------------------------
 
 export function main(argv = process.argv.slice(2)) {
-  const ts = argv[0] || readSessionTs();
+  const write = argv.includes('--write');
+  const args = argv.filter((a) => !a.startsWith('--'));
+  const ts = args[0] || readSessionTs();
   if (!ts) {
-    process.stderr.write('使い方: npm run eval:report -- <ts>（work/.session-ts があれば省略可）\n');
+    process.stderr.write('使い方: npm run eval:report -- <ts> [--write]（work/.session-ts があれば <ts> は省略可。--write は eval-report.md を各軸の判定から決定論で書き出す）\n');
     process.exitCode = 2;
     return;
   }
-  const { ok, violations, notes } = checkEvalReport({ ts });
+  const { ok, violations, notes } = checkEvalReport({ ts, write });
   process.stdout.write(`[eval:report] ts=${ts} ${ok ? 'OK' : 'NG'}\n`);
   for (const n of notes) process.stdout.write(`  注意: ${n}\n`);
   if (!ok) {

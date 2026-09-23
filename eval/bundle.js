@@ -20,12 +20,13 @@
  * 「削り忘れ」が起きない形にすることが肝で、除去はテストで固定する。
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { findHeading, sectionSlice } from '../gates/lib/markdown.js';
 import { parseExistingDisposition } from '../gates/lib/design-map.js';
 import { parseSystemA } from '../gates/lib/investigation.js';
 import { workDir, outputDir, resolveTargetRoot, isMainModule, readSessionTs } from '../gates/lib/run.js';
+import { startFirstRound, planRound, applyRound, RoundError } from './round.js';
 
 export class BundleError extends Error {
   constructor(message) {
@@ -137,6 +138,15 @@ export function renderBundle(c, ctx) {
   out.push('```');
   out.push('');
 
+  out.push('## 生成物内での言及（逆引き・file:line）');
+  out.push('');
+  out.push('> この既存を名指ししている生成物の箇所。**「生成物のどこにも言及が無い」を根拠にする前に、この一覧と Grep で確かめること**（不在を言う前に探す）。');
+  out.push('');
+  if (ctx.references === undefined) out.push('(逆引きは生成されていない)');
+  else if (ctx.references.length === 0) out.push('(生成物に言及なし。ただし Grep で確かめてから「不在」と言うこと)');
+  else for (const r of ctx.references) out.push(`- ${r}`);
+  out.push('');
+
   out.push('## spec: 新要件（§2）');
   out.push('');
   out.push(ctx.specRequirements ?? '(spec に「新要件」節が無い)');
@@ -157,6 +167,41 @@ export function renderBundle(c, ctx) {
   out.push('`coverage` には判定した target を必ず列挙する（空判定を「違反なし」と読ませないため）。');
   out.push('');
   return out.join('\n') + '\n';
+}
+
+/**
+ * keep 対象を名指しする語（パス全体と、skill／agent／rule の名前）。逆引きの検索語。
+ * 名前は短すぎると無関係な行に当たるため4文字以上に限る。
+ */
+export function referenceTokens(target) {
+  const t = target.replace(/\\/g, '/');
+  const tokens = [t];
+  const m = /^\.claude\/(?:skills|agents)\/([^/]+)\//.exec(t) ?? /^\.claude\/rules\/([^/]+?)\.md$/.exec(t);
+  if (m && m[1].length >= 4) tokens.push(m[1]);
+  return tokens;
+}
+
+/**
+ * generated/ 配下で keep 対象を名指ししている箇所を `file:line: 本文` で返す（S2-5）。
+ * keep-review の judge はバンドルしか読まないため、この逆引きが無いと「生成物のどこも
+ * この既存に言及していない」と誤認して事実と異なる C2 違反を出した（run 20260922）。
+ * @returns {string[]} 最大 40 件。
+ */
+export function findReferencesToTarget(generatedRoot, target) {
+  if (!generatedRoot || !existsSync(generatedRoot)) return [];
+  const tokens = referenceTokens(target);
+  const hits = [];
+  for (const rel of collectGeneratedArtifacts(generatedRoot)) {
+    if (rel === target) continue; // 自分自身（verbatim コピー）は言及とみなさない
+    const lines = (readIfExists(path.join(generatedRoot, rel)) ?? '').split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      if (tokens.some((tok) => lines[i].includes(tok))) {
+        hits.push(`${rel}:${i + 1}: ${lines[i].trim().slice(0, 160)}`);
+        if (hits.length >= 40) return hits;
+      }
+    }
+  }
+  return hits;
 }
 
 /** 系統A の該当レコードを yaml 風に整形する（判定に要る事実のみ）。 */
@@ -208,7 +253,13 @@ export function buildKeepReviewBundles({ ts, write = true, roots = {} }) {
     .join('\n\n');
 
   const outDir = path.join(wDir, 'eval-bundle', 'keep-review');
-  if (write) mkdirSync(outDir, { recursive: true });
+  // 出力先を空にしてから書く（S2-2）。前 round の keep が残ると、消えた対象の古いバンドルを
+  // judge が読み、eval:report のカバレッジ検査（回付対象との突合）も古い対象で汚れる。
+  if (write) {
+    rmSync(outDir, { recursive: true, force: true });
+    mkdirSync(outDir, { recursive: true });
+  }
+  const generatedRoot = roots.generatedRoot ?? path.join(oDir, 'generated');
 
   const written = [];
   for (const c of cases) {
@@ -220,6 +271,7 @@ export function buildKeepReviewBundles({ ts, write = true, roots = {} }) {
       specRequirements: section(specText, '新要件'),
       specIntegration: section(specText, '統合方針'),
       requirements: reqParts || null,
+      references: findReferencesToTarget(generatedRoot, c.target),
     };
     if (c.disposition === 'merge') {
       const mergedAbs = c.supersededBy ? path.join(oDir, 'generated', c.supersededBy) : null;
@@ -431,12 +483,34 @@ export function buildAxisBundle({ axis, ts, caseId, write = true, roots = {} }) 
 // ---------------------------------------------------------------------------
 
 export function main(argv = process.argv.slice(2)) {
-  const ts = argv[0] || readSessionTs();
+  const roundIdx = argv.indexOf('--round');
+  const round = roundIdx === -1 ? 1 : Number(argv[roundIdx + 1]);
+  const positional = argv.filter((a, i) => !a.startsWith('--') && i !== roundIdx + 1);
+  const ts = positional[0] || readSessionTs();
   if (!ts) {
-    process.stderr.write('使い方: npm run eval:bundle -- <ts>（work/.session-ts があれば省略可）\n');
+    process.stderr.write('使い方: npm run eval:bundle -- <ts> [--round N]（work/.session-ts があれば <ts> は省略可）\n');
     process.exitCode = 2;
     return;
   }
+
+  if (round === 1) {
+    // round 1（やり直しを含む）: eval-bundle/・前の試行の判定（eval/*.md・eval-report.md）を消し、
+    // 生成物のスナップショット r1 を保存する。前の試行の判定が新しい判定に見えてはならない（S2-2）。
+    const { removed } = startFirstRound({ ts });
+    for (const r of removed) process.stdout.write(`[eval:bundle] 前の試行の判定を削除した: ${r}\n`);
+  } else {
+    // round N（N ≥ 2）: 変更のあった生成物と前 round の違反対象だけを再判定する（eval/round.js）。
+    const plan = planRound({ ts, round });
+    const { archived, removed } = applyRound({ ts, plan });
+    process.stdout.write(
+      `[eval:bundle] round ${round}: 再判定する軸 = ${plan.rejudge_axes.length ? plan.rejudge_axes.join(', ') : '（なし）'} / 引き継ぐ軸 = ${plan.carry_axes.join(', ') || '（なし）'}\n` +
+        `  変更ファイル ${plan.changed.length}件・削除 ${plan.removed.length}件（work/${ts}/eval-bundle/round.json）\n`
+    );
+    for (const axis of plan.rejudge_axes) process.stdout.write(`  - ${axis}: 再判定の対象 ${plan.rejudge_targets[axis].length}件\n`);
+    for (const r of removed) process.stdout.write(`  削除: ${path.relative(process.cwd(), r)}\n`);
+    void archived;
+  }
+
   const { cases, written, outDir } = buildKeepReviewBundles({ ts });
   process.stdout.write(`[eval:bundle] ts=${ts} axis=keep-review 対象 ${cases.length} 件 → ${outDir}\n`);
   for (const w of written) process.stdout.write(`  - ${path.basename(w)}\n`);
@@ -455,6 +529,6 @@ if (isMainModule(import.meta.url)) {
     main();
   } catch (err) {
     process.stderr.write(`eval:bundle: ${err.message}\n`);
-    process.exit(2);
+    process.exit(err instanceof RoundError ? 3 : 2);
   }
 }

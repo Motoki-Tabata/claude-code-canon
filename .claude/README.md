@@ -52,12 +52,11 @@
 | `skill-builder` | 生成対象に Skills / Slash Commands が含まれるとき、`generator` から工程7で使われる。 |
 | `agent-builder` | 生成対象に Subagent が含まれるとき、`generator` から工程7で使われる。 |
 | `readme-writer` | 全 Builder が完了した後、この README.md 自体を書く工程7の最終ステップとして `generator` から使われる。 |
-| `eval-reviewer` | 決定論ゲート（工程8）の後、P7ゲートの前に、5軸の品質検査（工程9）を統括するために使われる。 |
-| `eval-correctness` | `eval-reviewer` が生成物と受け入れ基準(A1)の整合を判定させるときに使われる。 |
-| `eval-security` | `eval-reviewer` が権限設計・安全性を判定させるときに使われる。 |
-| `eval-canon` | `eval-reviewer` が正典の趣旨適合を判定させるときに使われる。 |
-| `eval-context` | `eval-reviewer` がコンテキスト効率を判定させるときに使われる。 |
-| `eval-keep-review` | `eval-reviewer` が維持判定の意味的妥当性を判定させるときに使われる。 |
+| `eval-correctness` | 決定論ゲート（工程8）の後、品質検査（工程9）で、メインが生成物と受け入れ基準(A1)の整合を判定させるときに直接使う（2周目は変更分だけ再判定）。 |
+| `eval-security` | 品質検査（工程9）で、メインが権限設計・安全性を判定させるときに直接使う（変更があれば2周目も必ず再判定）。 |
+| `eval-canon` | 品質検査（工程9）で、メインが正典の趣旨適合を判定させるときに直接使う。 |
+| `eval-context` | 品質検査（工程9）で、メインがコンテキスト効率を判定させるときに直接使う。 |
+| `eval-keep-review` | 品質検査（工程9）で、メインが維持判定の意味的妥当性を判定させるときに直接使う。 |
 | `canon-updater` | `/update-docs` からのみ使われる。`/canon`・`/self-optimize` の実行中に使われることはない。 |
 
 ---
