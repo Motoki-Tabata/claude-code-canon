@@ -64,3 +64,14 @@ test('emit-run-manifest(render): 集合が空でも本文を組み立てられ�
   assert.match(body, /配置される管理パス集合/);
   assert.match(body, /対象から消える/);
 });
+
+test('RUN.md に実行環境の注意（サンドボックスの外で --confirm・push は対象のセッションで・SSH ホスト）が入る（R-S1-1・R-S3-4）', (t) => {
+  const c = setupTmpCase(t, 'constrained');
+  const body = renderRunManifest(c.output, c.target);
+  assert.match(body, /## 実行環境の注意/);
+  assert.match(body, /`--confirm` はサンドボックスの外/, '前回の事故（EBUSY で半壊）をそのまま防ぐ1行が無い');
+  assert.match(body, /EBUSY/);
+  assert.match(body, /対象リポジトリで起動した Claude Code セッションで行う/);
+  assert.match(body, /github\.com:22/);
+  assert.match(body, /deploy-result\.json/);
+});

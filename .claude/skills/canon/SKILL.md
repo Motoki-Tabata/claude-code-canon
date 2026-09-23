@@ -147,6 +147,8 @@ argument-hint: "<target_project_path> | resume <ts>"
 
 工程7の `gen-guard` バッチ（G7〜G12）が真偽で確定済み。ブロックラッチ（`.gate/blocks/*.blocked`）が残っていれば前進不可。解除は原因修正＋再生成、またはやむを得ない場合のみ `npm run unblock -- <ts>`（人間判断）。
 
+**実行を要する検証はオーケストレータ（メイン Claude）が行う**（S2-3）。design-map や受入基準が「生成物に含まれるテスト・スクリプトを実行して確かめる」ことを求めている場合、`designer`・`generator`・各 builder は Bash を持たない（G13）ので実行できない。メイン Claude が Bash で実行し、結果（コマンド行と実出力）を P6+7 の提示に含める。実行できない環境なら「実行して確かめていない」と明示する（読んだだけで「動作確認した」と言わない）。
+
 ### 工程9: 品質検査 = eval → P6+7
 
 決定論ゲート（工程8）と分離した**意味判断**の工程（§16）。**eval はマーカーを鋳造せず G バッチも発火させない**（§2・§16.7）。
@@ -179,7 +181,10 @@ argument-hint: "<target_project_path> | resume <ts>"
 1. **手順書を同梱する**: `node deploy/emit-run-manifest.js <output> <target>` を実行し `output/<ts>/.deploy/RUN.md` を出力する（配置/廃止される集合と実行コマンドの決定論的な同梱・§10.2 run-manifest 方式。スクリプト正本は複製しない＝`gates/lib/managed-paths.js` の SSoT を二重化しない）。以降の手順は RUN.md と同一。
 2. **配置前照合**: `node deploy/pre-deploy-check.js <output> <target>`。対象の実管理パス集合と output を突き合わせ、消える予定を retired（想定内）/ uncaptured（取りこぼし）に区分する（`.deploy/pre-deploy-report.txt` にも出力）。**uncaptured≥1（exit 2）なら配置を止め、調査 or design-map へ差し戻す**（§10.2）。
 3. **P8**: pre-deploy-report の retired 一覧が意図した廃止と一致することをユーザーが確認する。`npm run state:record -- <ts> P8 "<要旨>"` で記録する。
-4. **配置**: `--confirm` 無し（`node deploy/deploy.js <output> <target>`）は配置予定表示のみ（対象不変）。承認後 `--confirm` 付きで退避スワップ配置する（対象を `.claude-canon.bak.<ts>/` へ mv 退避 → output 配置 → post-check で sha256 バイト同一確認 → 失敗時は自動 restore）。**`--confirm` でも実行時に uncaptured があれば拒否**する（P8 を無視した配置の最終防波堤）。
+4. **配置**: `--confirm` 無し（`node deploy/deploy.js <output> <target>`）は配置予定表示のみ（対象不変）。承認後 `--confirm` 付きで退避スワップ配置する（**事前検査で退避できないファイルが無いか確かめ**、対象を `.claude-canon.bak.<ts>/` へ mv 退避 → output 配置 → post-check で sha256 バイト同一確認 → 失敗時は実際に動かした分だけ自動 restore）。**`--confirm` でも実行時に uncaptured があれば拒否**する（P8 を無視した配置の最終防波堤）。
+   - **`--confirm` はサンドボックスの外（通常のシェル）で実行する**。サンドボックスが `.mcp.json` 等をバインドマウントしていると退避の rename が EBUSY になる（run 20260919・20260922 で連続して半壊した）。事前検査が動かせないファイルを検出して**対象を変更せずに**拒否するが、外で実行すれば起きない。人間が対象リポジトリのシェルで実行する（RUN.md「実行環境の注意」）。
+   - **対象リポジトリへの push は、対象リポジトリで起動した Claude Code セッションで行う**（claude-canon のセッションからは対象側のサンドボックス例外が効かず、pre-push の gitleaks が失敗する。SSH リモートなら `github.com:22` の許可も要る）。
+   - 配置に成功すると `output/<ts>/.deploy/deploy-result.json` が書かれる（`/canon resume` が配置済みかを判定する）。退避が0件（対象に管理ファイルが無かった）のとき `.bak` は作られない——案内する前に `bak_exists` を確かめる。
 5. ロールバックは対象の git revert ＋ `.claude-canon.bak.<ts>/` からの手動 restore。`.bak` の掃除は人間が明示的に行う（自動削除しない）。
 
 ---
