@@ -195,6 +195,7 @@ argument-hint: "<target_project_path> | resume <ts>"
 - **run の途中（S1〜S3 の区間の間）**: `generation.done` が無いあいだは run 中で、`work/.session-ts` が残る。この間、claude-canon 本体（docs/・gates/・.claude/・design/ 等）の保守編集は sanctioned ツリー外として deny される。保守をしたいときは、run を工程7まで完走させるか、放棄する（`work/.session-ts` の扱いはユーザーに確認する）。
 - **設計書への記録**: `design/` 配下は run 中は書き込めない。`generation.done` の鋳造後（S3 の eval 以降・S4）であれば書ける。run の記録（canon-issues 等）が必要なら、その時点以降に行う。
 - 機能X（`/update-docs`）・機能Y（`/self-optimize`）とは相互排他。run が中断中でもそれらは開始できない。
+- **対象リポジトリや claude-canon 本体をコミットするときは、`git add <パス>` で対象を明示する**（S3-3）。サンドボックスのマウントポイント（`.bashrc`・`.gitconfig`・`.mcp.json` 等）が未追跡ファイルとして `git status` に並ぶため、`git add -A`・`git add .` は無関係なファイルを拾う。
 
 ## 各ゲートで停止する（自動遷移しない）
 

@@ -70,7 +70,7 @@ canon_version: v2.1.280
 
 対象プロジェクト向け生成物の設計は正典レイヤー L1〜L5 に対応するが、**本システム自身の運営規律**は次の3観点で構成する。
 
-- **工程規律（SDD 中核）**: 工程を Subagent の役割に切り、オーケストレータ主導の委譲＋ファイル駆動で進める。各工程完了で停止し人間ゲート。
+- **工程規律（SDD 中核）**: 工程を Subagent の役割に切り、オーケストレータ主導の委譲＋ファイル駆動で進める。人間ゲート（§2）で停止する。
 - **品質ハーネス**: 決定論ゲート（正典 `L4_AUTOMATION.md` の Hooks・exit 2 ブロック）と eval（`L3_AGENTS.md` の並列 Subagent）で二重化。
 - **運用トレーサビリティ（LLMOps・軽量）**: `model:` ピン留め・成果物同梱の `spec.md`／`design-map.md`／`MANIFEST.md`・コスト観点（`effort`・コンテキストサイズ）。
 
@@ -80,17 +80,17 @@ canon_version: v2.1.280
 
 調査を先頭に置く。全量スナップショット方式（§8）では既存の取りこぼしが「管理パス集合の全置換」で既存機能を消すため、調査は努力目標ではなく**ハード要件**である。
 
-| # | 工程 | 位置づけ | 人間ゲート | 決定論ゲート |
-|---|---|---|---|---|
-| 1 | プロジェクト調査1（浅く広く・2系統） | plan 前提 | P1 | G1(調査1) |
-| 2 | 要件ヒアリング | — | P2 | G1(req) |
-| 3 | プロジェクト調査2（深く狭く） | plan 前提 | P3 | G1(調査2) |
-| 4 | 要件定義 = spec | spec | **P4（最重要・spec 承認）** | G1(spec) |
-| 5+6 | 機能選定 → 設計 = design-map | plan | P5（廃止判定確認） | G2 ＋ G1(design) |
-| 7 | 生成（全量・README/MANIFEST を最終ステップ） | implement | P6 | per-file G3〜G6 ／ snapshot G7〜G12 |
-| 8 | 検証 | — | — | 上記 G 群（真偽のみ） |
-| 9 | 品質検査 = eval | — | P7 | （マーカー書かない・G バッチ非発火） |
-| 10 | デプロイ | 照合付き手動工程 | P8（消失予定確認） | pre-deploy 照合スクリプト |
+| # | 工程 | 位置づけ | 人間ゲート | 決定論ゲート | セッション（§4.7） |
+|---|---|---|---|---|---|
+| 1 | プロジェクト調査1（浅く広く・2系統） | plan 前提 | P1（報告のみ・停止しない） | G1(調査1) | S1 |
+| 2 | 要件ヒアリング | — | P2 | G1(req) | S1 |
+| 3 | プロジェクト調査2（深く狭く） | plan 前提 | P3（報告のみ・停止しない） | G1(調査2) | S1 |
+| 4 | 要件定義 = spec | spec | **P4（最重要・spec 承認）** | G1(spec) | S1 |
+| 5+6 | 機能選定 → 設計 = design-map | plan | P5（廃止判定確認） | G2 ＋ G1(design) | S2 |
+| 7 | 生成（全量・README/MANIFEST を最終ステップ） | implement | （P6+7 に統合） | per-file G3〜G6 ／ snapshot G7〜G12 | S3 |
+| 8 | 検証 | — | — | 上記 G 群（真偽のみ） | S3 |
+| 9 | 品質検査 = eval | — | **P6+7**（生成物と eval を1回で提示） | （マーカー書かない・G バッチ非発火） | S3 |
+| 10 | デプロイ | 照合付き手動工程 | P8（消失予定確認） | pre-deploy 照合スクリプト | S4 |
 
 - **工程1の前に preflight 2段**: 順序は **G13 →（`<ts>` 採番）→ カナリア → 工程1**。
   - **G13（詳細設計書 §11.2）**: `/canon` 展開時（`UserPromptExpansion`）に claude-canon 自身のワーカー定義を検査し、`tools:` に `Bash` があれば **run の開始をブロック**する（ワーカーがガードを迂回する手段を持たないことの保証）。
@@ -98,7 +98,8 @@ canon_version: v2.1.280
 - **工程8（検証）と工程9（品質検査）を分離**する。eval の非決定性で決定論検証を汚さないため。
 - **工程5＋6は連続実行・人間承認1回（P5）に統合**する（機能選定は設計の入口で、選定結果は design-map に載る）。
 - **工程2はワーカーにしない**。ヒアリングは人間との対話そのものであり、独立コンテキストの Subagent に隔離すると対話が分断される。オーケストレータ（inline のメイン Claude）が調査結果を提示し直接対話して確定、合意結果の直列化のみを最小ワーカーに委譲する（§4.3）。
-- **調査2（工程3）は要件確定後**に実行する2段調査の後段（§5.2）。人間ゲートは P1=調査1、P2=要件、P3=調査2、P4=spec、P5=design-map、P6=生成物、P7=品質検査、P8=デプロイ照合。
+- **調査2（工程3）は要件確定後**に実行する2段調査の後段（§5.2）。
+- **人間ゲート（停止して対話承認を取る）は P2=要件、P4=spec、P5=design-map、P6+7=生成物＋品質検査、P8=デプロイ照合の5つ**。P1（調査1）・P3（調査2）は報告のみで停止しない（調査結果は工程2の往復・spec の精査で人間の目に入る）。旧 P6（生成物）と P7（品質検査）は、生成物を eval の結果と切り離して見ても判断材料が揃わないため1回の提示に統合した。
 
 ---
 
@@ -108,7 +109,7 @@ canon_version: v2.1.280
 
 ### 3.1 工程規律 → L2 Skills + L3 Subagents
 
-- 工程を Subagent の役割に切り、**オーケストレータ主導の Subagent 委譲＋ファイル駆動**で進める（`ORCHESTRATION.md §5.1` の「多段の専門処理」に該当）。各工程完了で停止し人間ゲート。
+- 工程を Subagent の役割に切り、**オーケストレータ主導の Subagent 委譲＋ファイル駆動**で進める（`ORCHESTRATION.md §5.1` の「多段の専門処理」に該当）。人間ゲート（§2）で停止する。
 - 判定ロジック（機能選択フローチャート・design-map テンプレート・維持判定条件）は L2 Skills に切り出す（`L2_SKILLS.md §2.1` の段階的開示）。
 - 正典は各工程に絞って供給する（`BEST_PRACTICES.md §1.1` コンテキストは最も貴重な資源）。
 - 副作用のある生成・配置系オーケストレーション Skill は `disable-model-invocation: true` で `/name` 明示起動専用にする（`L2_SKILLS.md §2.1`）。
@@ -129,7 +130,7 @@ canon_version: v2.1.280
 
 ### 3.3 運用トレーサビリティ → L1 + L5 + frontmatter `model:`
 
-- `model:` ピン留め（`L3_AGENTS.md §2.1` のモデルティア）と、システム本体（`.claude/`）・正典（`docs/`）の版管理。
+- `model:`・`effort:` ピン留め（`L3_AGENTS.md §2.1` のモデルティア。値は各 agent の frontmatter の一箇所に置き、起動時に `model` 引数で上書きしない・詳細設計書 §9.4）と、システム本体（`.claude/`）・正典（`docs/`）の版管理。
 - 成果物のトレーサビリティは output 同梱で担保（`spec.md`・`design-map.md`・`MANIFEST.md` が「なぜこの構成か」を対象プロジェクトへ届ける）。
 - 自己修復はデータプレーン限定（ゲート違反 → 成果物の再生成のみ。エージェント定義・`gates/` は不変）。同一ゲートの失敗は既定 N 回で打ち切り人間へエスカレーション（無限再生成の防止）。
 
@@ -137,16 +138,16 @@ canon_version: v2.1.280
 
 ## 4. オーケストレーション構造
 
-基本は Coordinator-Worker（正典 `ORCHESTRATION.md §7` の「積みすぎない」原則）。調査工程のみ3層。
+基本は Coordinator-Worker（正典 `ORCHESTRATION.md §7` の「積みすぎない」原則）。生成工程（工程7: メイン Claude → generator → builder）のみ3層。調査（§4.6）と eval（詳細設計書 §16）は中継役を置かずメイン Claude が直接 spawn する。
 
 ### 4.1 コーディネータ = メイン Claude が実行する Slash Command Skill
 
-オーケストレータは **メイン Claude が inline 実行する単一の Slash Command Skill（`/canon`）** とし、10工程を駆動して各人間ゲート P1〜P8 で**チャット上でユーザー確認して停止**する。
+オーケストレータは **メイン Claude が inline 実行する単一の Slash Command Skill（`/canon`）** とし、10工程を4セッションに分けて駆動し（§4.7）、人間ゲート P2・P4・P5・P6+7・P8 で**チャット上でユーザー確認して停止**する（P1・P3 は報告のみ）。
 
 この配置を採る根拠（いずれも `docs/` に基づく）:
 
 1. **inline 会話履歴の継承**: 工程2のヒアリングは `requirement-elicitation` Skill を inline ロードし、メイン Claude の会話履歴を保ったままユーザーと往復対話する必要がある。オーケストレータを Subagent 化すると会話履歴が非継承となり（`L2_SKILLS.md §2.2`）往復ヒアリングが成立しない。
-2. **人間ゲートの自然な表現**: 各工程の停止と承認待ちは、inline のメイン Claude が結果を提示してユーザーの応答を待つ形で、セッション内で完結できる（再起動不要）。
+2. **人間ゲートの自然な表現**: 各ゲートの停止と承認待ちは、inline のメイン Claude が結果を提示してユーザーの応答を待つ形で表現できる。区間（§4.7）の終わりのゲートを承認したら停止し、次の区間は新しいセッションの `/canon resume <ts>` で始める。
 3. **Subagent 起動方式**: 配下ワーカーは環境に登録されているネイティブの `subagent_type` を優先して起動する。環境によっては `.claude/agents/` 配下の canon agent が `subagent_type` として未登録のことがあり（`00_INDEX.md §9`・`ORCHESTRATION.md §2.3`）、その場合に限り `Agent(subagent_type="general-purpose", …)` 起動＋「`.claude/agents/<name>/<name>.md` を Read して定義に従え」のプロンプト注入へフォールバックする。**`general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13（§5.3）が強制するワーカーのコマンド実行系ツール剥奪を無効化する**ため、フォールバックは §4.4 の権威記録の捏造不能の前提を崩す——常用せず、ネイティブ起動を優先する。この起動主体はメイン Claude に一元化する。
 
 オーケストレータ Skill 本文には `context: fork` を**付与しない**（fork すると会話履歴が非継承になりヒアリングが破綻する・`L2_SKILLS.md §2.2`）。
@@ -165,7 +166,7 @@ canon_version: v2.1.280
 
 - 各工程ワーカーは**最終アクションとして「完了リクエスト」ファイル** `work/<ts>/.requests/<stage>` を書く（例: `investigation` / `requirements` / `spec` / `design` / `generation`）。**書く前に、そのステージの成果物ファイルが実在し空でないことを自分で確認する。確認できない場合は完了リクエストを書かず、欠落を親へ報告する**（成果物なきリクエストはゲートに空の検査対象を渡し vacuous pass を招く・詳細設計書 §11.5）。
 - `SubagentStop`（または `Stop`）で発火するゲート配線が `.requests/` を走査し、**リクエストの種類に応じてゲートバッチを選ぶ**。通過時のみ権威マーカー `output/<ts>/.gate/markers/<stage>.done` を鋳造し、処理したリクエストを消費（削除）する。違反時はブロックラッチ `output/<ts>/.gate/blocks/<stage>.blocked` を残す。消費の順序と冪等性は §4.5 の消費規約に従う。
-- 人間ゲートの承認はオーケストレータがユーザーとの**対話で取り、要旨と日時を `work/<ts>/state.md` に記録する**。state.md は LLM が書ける記録なので**ゲートの判定材料にしない**。工程順の機械担保は承認でなく**完了マーカーの順序**が担う（G1 が前段マーカーを要求し、advance-guard の順序ガードが前段マーカーなしの書込を deny する・詳細設計書 §11.2・§11.3）。**エージェント（オーケストレータ含む）は `.gate/**` を Write/Edit で書かない**（§4.4）。
+- 人間ゲートの承認はオーケストレータがユーザーとの**対話で取り、要旨と日時を `work/<ts>/state.md` に記録する**（`npm run state:record`・§4.7）。state.md は LLM が書ける記録なので**ゲートの判定材料にしない**。工程順の機械担保は承認でなく**完了マーカーの順序**が担う（G1 が前段マーカーを要求し、advance-guard の順序ガードが前段マーカーなしの書込を deny する・詳細設計書 §11.2・§11.3）。**エージェント（オーケストレータ含む）は `.gate/**` を Write/Edit で書かない**（§4.4）。
 
 > **Claude Code 向けの簡素化**: `output/<ts>/.gate/**` は PreToolUse の書込先ガードで**エージェント書込を一律 deny**（deny-all）し、権威マーカー・ブロックはゲートスクリプトと `tools/` CLI（Bash/node・execute 可）のみが鋳造・取消する。ゲートは execute を持つため、非退行照合の sha256 等を直接算出できる（詳細設計書 §11 G8）。マーカー・ブロックの権威記録を単一の `.gate/` サブツリーに集約し、専有トップレベルツリーを別途設けない。
 
@@ -175,7 +176,7 @@ canon_version: v2.1.280
 
 肝: **`tool_input` のパスは「誰が書いたか」を含まない**。`.gate/**` への書込がオーケストレータ由来かワーカー由来かをパスだけで識別する方法は存在しない（PreToolUse の入力は `tool_name` / `tool_input` / `session_id` / `cwd` / `permission_mode` であり、呼び出し元エージェントの同一性は判定材料に無い）。ゆえに `.gate/**` を一部でも allow すれば任意のワーカーが権威記録を捏造でき、工程順の担保が崩壊する。deny-all を例外なく保ち、書込をツール経路の外（ゲートスクリプト・CLI の `node:fs`）に限ることでこれを防ぐ。
 
-- **人間の承認は機械的な権威記録にしない**: P1〜P8 の承認はオーケストレータがユーザーとの対話で取り、要旨と日時を `work/<ts>/state.md` に記録する。state.md は LLM が書ける記録なので**ゲートの判定材料に使わない**。人間が本当に承認したかは機械的に確かめられず、承認を `.gate/` の記録として鋳造しても「オーケストレータが承認 CLI を叩いた」ことしか証明しないためである（旧設計の承認サイドカー `tools/approve.js`・`.gate/approvals/` は廃止済み）。
+- **人間の承認は機械的な権威記録にしない**: 人間ゲート（P2・P4・P5・P6+7・P8）の承認はオーケストレータがユーザーとの対話で取り、要旨と日時を `work/<ts>/state.md` に記録する。state.md は LLM が書ける記録なので**ゲートの判定材料に使わない**（再開時の「人間の返事待ちか」の判定にだけ使う・§4.7）。人間が本当に承認したかは機械的に確かめられず、承認を `.gate/` の記録として鋳造しても「オーケストレータが承認 CLI を叩いた」ことしか証明しないためである（旧設計の承認サイドカー `tools/approve.js`・`.gate/approvals/` は廃止済み）。
 - **工程順の機械担保＝完了マーカーの順序**: 前段工程のマーカー（`spec.done`・`design.done`）はゲート通過時にしか鋳造されず、エージェントは `.gate/**` を書けないので捏造できない。G1 は design ステージで `spec.done`、generation ステージで `design.done` の実在を要求し（詳細設計書 §11.2）、advance-guard の順序ガードは `spec.done` なしの `design-map.md` 書込・`design.done` なしの `generated/**` 書込を deny する（詳細設計書 §11.3）。
 - **CLI を叩けるのはオーケストレータだけ**: `.gate/` を書く CLI（`tools/reopen.js`・`npm run unblock`・`npm run recheck` 等）はコマンド実行系ツールを要する。**全ワーカーがコマンド実行系ツール（`Bash`・`PowerShell`）を持たないこと**（§5.3）を **G13 が preflight で機械強制**する（詳細設計書 §11.2・§11.3）ので、ワーカーはこれらを叩けない。根拠はガードの条件ではなくツール剥奪である。
 
@@ -220,6 +221,34 @@ SubagentStop 発火 → .requests/<stage> を走査
 調査工程（§5）は、メイン Claude が系統A `existing-customization-analyzer` と系統B `project-profiler` を**同一 turn で並列に直接 spawn** し、各ワーカーが**自分の成果物ファイル**（`work/<ts>/existing_customizations.md`・`work/<ts>/project_profile.md`）を書く。深さは2（メイン Claude → analyzer/profiler）。応答テキストは「書いた旨」だけの短いもので、調査結果の本文は会話を通らない。
 
 かつては `investigator`（コーディネータ）を中継役に置き（深さ3）、2ワーカーの応答を集約して永続化させていた。しかし深さ2の子の報告が呼び出し元（investigator）ではなくメイン Claude に届く、`SendMessage` での再開もできない、という不具合が run 20260919・20260922 で連続して起き、メイン Claude が応答を逐語で書き写す羽目になった（書き写しのずれとコストの二重払い）。中継役の存在意義（永続化の代行）は、ワーカー自身が書くことで消えるため、`investigator` を廃止した。書込先の逸脱（`work/<ts>/` の自分のファイル以外）は agent 定義の制約と G1（実在・書式・件数照合）で縛る。
+
+### 4.7 セッション分割と再開（`/canon resume <ts>`）
+
+1セッションで全工程を回すと、メイン会話の履歴を毎ターン読み直すコストが積み上がり、5時間枠を使い切る（実測: run 20260922 は開始から約2時間04分で上限到達。メインの総入力が全体の36〜48%・`design/canon-token-baseline-20260924.md`）。状態はすべてファイルが持つ（§4.2）ので、`/canon` を4区間に分け、区間ごとに新しいセッションで動かす。
+
+| セッション | 工程 | 推奨モデル | 人間ゲート | 区間の終わり |
+|---|---|---|---|---|
+| S1 | 工程1〜4 | Opus | P2・P4（P1・P3 は報告のみ） | P4 の承認を記録したら停止 |
+| S2 | 工程5〜6 | Opus | P5 | P5 の承認を記録したら停止 |
+| S3 | 工程7〜9 | Sonnet | P6+7 | P6+7 の承認を記録したら停止 |
+| S4 | 工程10 | Sonnet | P8 | 配置の案内で終了（`/self-optimize` の run では世代ステージング） |
+
+判断の精度を要する区間（ヒアリング・spec の精査・keep/retire の議論）は Opus、委譲と機械手順が主体の区間は Sonnet とする。S3 の意味判断は `eval-keep-review`（Opus）に閉じる。推奨モデルは強制しない（resume が食い違いを警告する）。
+
+- **再開**: `npm run resume -- <ts>`（`tools/resume.js`）が相互排他（別の `/canon` run・機能X・機能Y・`gates/lib/run-exclusion.js`）を検査し、`work/.session-ts` を `<ts>` に合わせ、現在地を JSON で返す（`position`・`session`・`expected_model`・`canary_required`・`waiting_gate`・`next_action`・`blocked`・`pending_requests`・`stale`）。オーケストレータは多数のファイルを Read して現在地を推測せず、この JSON だけを読む。別の `/canon` run からの切替だけは `--force` で可能で、機能X・機能Y が in-flight なら不可。
+- **現在地の導出**（`gates/lib/run-status.js` の `deriveRunStatus`）: ディスクの成果物・完了マーカー・ブロックラッチ・未消費の完了リクエストから導く。**state.md は待ち状態（人間の返事待ちか）の判定にだけ使い、ゲートの通過判定には使わない**——state.md に承認が並んでいてもマーカーが無ければ工程は進まない。承認は**承認対象の確定より後に記録されたものだけ有効**（P2=`requirements.done`・P4=`spec.done`・P5=`design.done`・P6+7=`generation.done` と `eval-report.md` の新しいほう・P8=`pre-deploy-report.txt` の mtime と比較）で、成果物を作り直せば古い承認は自動的に無効になる。成果物がマーカーより新しい場合は `stale`（直したのに再検査していない疑い）として報告する（focused 追記後の `project_profile.md` は `investigation.focused` の管轄とし、調査1マーカーに対して誤警告しない）。
+- **承認の記録**: `npm run state:record -- <ts> <gate> "<要旨>"`（`tools/record-state.js`）が実時刻・固定書式（`- <gate> | <ISO 時刻> | <要旨>`）で `work/<ts>/state.md` に追記する。承認対象が未確定（対応するマーカー等が無い）なら拒否する。`--revision` で差し戻しを記録すると、そのゲートは未承認に戻る。
+- **ガードとの関係**: `work/.session-ts` は `generation.done` まで残るので、S1〜S3 の区間の合間もガードは武装したまま（claude-canon 本体の保守編集は deny）。カナリアは S1〜S3 の開始ごとに撃ち、S4（run 外）では撃たない。
+
+### 4.8 差し戻し（新規 spawn ＋修正指示ファイル）
+
+ゲートで人間が修正を求めたら、ワーカーを `SendMessage` で再開せず**新規に起動**する。再開は5分キャッシュが切れた状態で蓄積した文脈を読み直すことになり、実測で初回起動より重かった。
+
+1. `npm run state:record -- <ts> <gate> --revision "<要旨>"` で差し戻しを記録する。
+2. 修正指示を `work/<ts>/revisions/<stage>-<n>.md` に書く（人間の指摘の逐語・直す箇所・直さない箇所）。
+3. マーカーが残っていれば `npm run reopen -- <ts> <stage>` で `<stage>` 以降を連鎖削除する（§4.5）。対応は P2→`requirements`・P4→`spec`・P5→`design`・P6+7→`generation`。
+4. 該当ワーカー（`requirements-recorder`・`spec-writer`・`designer`・`generator`）を新規に起動し、入力一式と修正指示ファイルのパスを注入する。各定義の「修正モード」節に従い、指示された箇所だけを Edit する（全量を作り直さない）。
+5. 完了リクエスト → ゲート（`npm run recheck -- <ts> <stage>`）→ 該当ゲートで対話承認を取り直す。P6+7 から戻った場合、工程9 は round 2 以降として差分だけ再判定する（詳細設計書 §16.9）。
 
 ---
 
@@ -327,7 +356,7 @@ claude-canon/
 │   │   ├─ gates-and-tests.md      ← paths: gates/** tests/** eval/** tools/** deploy/**
 │   │   ├─ canon-docs.md           ← paths: docs/**
 │   │   └─ worker-definitions.md   ← paths: .claude/agents/** .claude/skills/** .claude/settings.json
-│   ├─ agents/                     ← Subagent 18体
+│   ├─ agents/                     ← Subagent 17体（model・effort は各 frontmatter が正・詳細設計書 §9.4）
 │   │   ├─ canon-orchestrator は Skill 側（下記）に置く（メイン Claude が inline 実行するため）
 │   │   ├─ existing-customization-analyzer/…    ← 系統A・対象は読取専用（work/<ts>/ の自分の成果物だけ書く）
 │   │   ├─ project-profiler/…                   ← 系統B・対象は読取専用（work/<ts>/project_profile.md だけ書く）
@@ -335,11 +364,10 @@ claude-canon/
 │   │   ├─ spec-writer/…                        ← 工程4
 │   │   ├─ selector/…                           ← 工程5
 │   │   ├─ designer/…                           ← 工程6（既存4判定・keep_conditions）
-│   │   ├─ generator/…                          ← 工程7（builders と readme-writer を統括）
+│   │   ├─ generator/…                          ← 工程7（builders と readme-writer を統括。MANIFEST・.deploy/*.list は自身が書く）
 │   │   ├─ l1-builder / skill-builder / agent-builder      ← 工程7 の各 Builder（生成対象は L1・Skill・Subagent の3種のみ。MCP/Hooks/Plugin 専用 Builder は無い・詳細設計書 §9.3）
-│   │   ├─ readme-writer/…                      ← 工程7最終: 成果物 README/MANIFEST
-│   │   ├─ eval-reviewer/…                      ← 工程9 コーディネータ（並列 eval-* を spawn）
-│   │   ├─ eval-correctness / eval-security / eval-canon / eval-context / eval-keep-review
+│   │   ├─ readme-writer/…                      ← 工程7最終: 成果物 README
+│   │   ├─ eval-correctness / eval-security / eval-canon / eval-context / eval-keep-review  ← 工程9 の judge（メイン Claude が並列に直接 spawn。中継役 eval-reviewer は廃止・詳細設計書 §16）
 │   │   └─ canon-updater/…                      ← 機能X（詳細設計書 §13.1・`/canon` の委譲チェーン外・独立）
 │   └─ skills/                     ← Skill 14件
 │       ├─ canon（/canon）                       ← オーケストレータ Slash Command（disable-model-invocation:true）
@@ -361,12 +389,17 @@ claude-canon/
 │   ├─ session-init.js             ← SessionStart 実処理（足場作りのみ・採番はしない。§11.3 注）
 │   ├─ build-conformance-tables.js ← docs/ → conformance_tables/ を生成（手動編集しない）
 │   ├─ lib/                        ← 共有ライブラリ（run/artifact/markdown/canon/managed-paths/generations＋design-map・investigation＝G2/G8 が design-map・系統A/B をパース。resolveTargetRoot は run.js）
+│   │                                 ＋ run-status（再開時の現在地導出・§4.7）／run-exclusion（3方向の相互排他）／
+│   │                                 design-slices（design-map のスライス切り出し）／manifest（MANIFEST `## 全ファイル` のパース・G9）
 │   └─ conformance_tables/         ← docs/ から生成（frontmatter/tools/paths.json・手動編集しない）
 │
 ├─ eval/                          ← 【eval ハーネス（工程9・詳細設計書 §16）】git 管理。hooks から発火しない別系統
-│   ├─ bundle.js                   ← 判定入力バンドル生成（決定論・宣言除去規約・§16.3）
+│   ├─ bundle.js                   ← 判定入力バンドル生成（決定論・宣言除去規約・§16.3）。`--round N` で round 2 以降の計画
+│   ├─ round.js                    ← round の計画・判定の引き継ぎと合成（mergeVerdict）・スナップショット（§16.9）
+│   ├─ referred.js                 ← eval へ回付される対象の導出（report.js・round.js が共有）
 │   ├─ verdict.js                  ← judge の verdict パース＋スキーマ検証（§16.4）
-│   ├─ report.js                   ← eval-report 集約検証・カバレッジ規約（§16.5）
+│   ├─ aggregate.js                ← eval-report.md を各軸の有効な verdict から決定論で組み立てる（§16.5）
+│   ├─ report.js                   ← eval-report 集約検証・カバレッジ規約（§16.5）。`--write` で aggregate を呼ぶ
 │   └─ meta-eval.js                ← judge の較正（ラベル付きコーパスの precision/recall・§16.6）
 │
 ├─ output/                        ← 【成果物ステージング】gitignore・対象プロジェクトで版管理
@@ -377,16 +410,19 @@ claude-canon/
 │       │   ├─ managed-paths.list   ← 管理パス集合（base＋検出 .claude＋generator 出力）
 │       │   ├─ retired.list
 │       │   ├─ RUN.md               ← 配置手順書（emit-run-manifest.js が同梱・§10.2 run-manifest 方式。スクリプト正本は複製しない）
-│       │   └─ pre-deploy-report.txt ← pre-deploy-check.js の照合結果（配置直前・対象で実行）
+│       │   ├─ pre-deploy-report.txt ← pre-deploy-check.js の照合結果（配置直前・対象で実行）
+│       │   ├─ deploy-result.json   ← deploy.js が配置成功時だけ書く（存在＝配置済み。resume の判定材料・詳細設計書 §10.2）
+│       │   └─ deploy-attempt.json  ← deploy.js が試行ごとに書く（状態・動かせなかったファイル・復元できなかったもの）
 │       ├─ .gate/                  ← 権威マーカー・ブロック（Hook/tools 専有・PreToolUse が deny-all・§4.4）
 │       │   ├─ markers/<stage>.done   ← 終端マーカー含む（ガード有効条件の判定材料・詳細設計書 §11.3）
 │       │   ├─ blocks/<x>.blocked
 │       │   └─ processed.log          ← 消費規約の監査ログ＋カナリア結果（§4.5・詳細設計書 §11.5）
 │       ├─ spec.md                 ← 承認状態は持たない（承認は対話・work/<ts>/state.md に記録・§4.4）
 │       ├─ design-map.md           ← 承認状態は持たない（同上）
-│       ├─ MANIFEST.md
+│       ├─ MANIFEST.md             ← 差分サマリ＋`## 全ファイル` 節（G9 が generated/ と双方向照合・詳細設計書 §12.3）
 │       ├─ eval/<axis>.md          ← 工程9 各軸 judge の verdict（本文＋json フェンス1個・§16.4）
-│       └─ eval-report.md          ← 工程9（eval-reviewer が集約・マーカー書かない）
+│       ├─ eval/round<N>/          ← round N+1 開始時に退避した前 round の軸ファイル（§16.9）
+│       └─ eval-report.md          ← 工程9（`npm run eval:report -- <ts> --write` が決定論で集約・マーカー書かない）
 │
 ├─ work/                          ← 【調査中間成果物】gitignore
 │   ├─ .session-ts                  ← `tools/new-ts.js`（`npm run ts`）が採番した ts。**SessionStart は採番しない**（詳細設計書 §11.3 注）
@@ -397,18 +433,22 @@ claude-canon/
 │       ├─ existing_customizations.md   ← 系統A
 │       ├─ project_profile.md           ← 系統B
 │       ├─ requirements.md              ← 工程2
+│       ├─ slices/                      ← design-map のスライス（`npm run slice` が S3 冒頭に生成・詳細設計書 §9.5）
 │       ├─ eval-bundle/<axis>/<case>.md ← 工程9 の判定入力バンドル（eval/bundle.js が生成・§16.3）
+│       ├─ eval-bundle/{round.json,.snapshot-r<N>.json,effective-r<N>.json} ← round の計画・生成物の sha256 スナップショット・有効な判定（§16.9）
+│       ├─ revisions/<stage>-<n>.md     ← 差し戻しの修正指示（オーケストレータが書き、新規 spawn したワーカーに注入・§4.8）
 │       ├─ canon-diff-proposal.md       ← 機能X: 差分候補・固定フォーマット（詳細設計書 §13.1）
 │       ├─ impact-report.md             ← 機能X: G15 波及 stale 検出レポート（詳細設計書 §13.1）
 │       ├─ .docs-snapshot.json          ← 機能X: 採番時の docs/ sha256 スナップショット（`tools/new-canon-ts.js` が保存・提案フェーズの docs/ 無変更照合・詳細設計書 §13.1）
-│       ├─ state.md                     ← 人間ゲートの対話承認の記録（要旨・日時。ゲートの判定材料にしない・§4.4）
+│       ├─ state.md                     ← 人間ゲートの対話承認・差し戻しの記録（`npm run state:record` が追記。ゲートの判定材料にしない・§4.4・§4.7）
 │       └─ .requests/                   ← 完了リクエスト（エージェント書込・Hook が消費削除・§4.3）
 │
 ├─ deploy/                        ← 【配置スクリプト正本】git 管理。正本のまま実行（output へは複製せず RUN.md を同梱・詳細設計書 §10.2）
 │   ├─ pre-deploy-check.js         ← 工程10①（詳細設計書 §10.2）。管理パス集合パターンは gates/lib/managed-paths.js を共有（G9 と同一 SSoT・§10.1）
 │   ├─ deploy.js                   ← 工程10②（詳細設計書 §10.2）
 │   └─ emit-run-manifest.js        ← 工程10 手順書 RUN.md を output/<ts>/.deploy/ へ同梱（§10.2 run-manifest 方式）
-├─ tools/                         ← 補助 CLI（new-ts / new-canon-ts / unblock / reopen / recheck / promote / rollback / selfopt / stage-candidate 等）
+├─ tools/                         ← 補助 CLI（new-ts / new-canon-ts / unblock / reopen / recheck / promote / rollback / selfopt / stage-candidate /
+│                                    resume / record-state / slice-design-map / token-usage 等）
 ├─ tests/                         ← 自己検証テストランナー（詳細設計書 §15）
 │   └─ helpers/                    ← テスト共通ヘルパ（詳細設計書 §15.2「テストハーネスの運用制約」・§15.3）:
 │                                      paths.js（gates/lib/* の re-export）／hook.js（ガード子プロセス起動）／
@@ -421,10 +461,10 @@ claude-canon/
 │       └─ candidate-poisoned/      ← 機能Y 自己欺瞞実証 fixture（`tools: Bash` を持つ次世代候補・詳細設計書 §13.2）
 ├─ guide/                         ← 人間向け手順（セットアップ手順のみ。§14.1a）
 ├─ generations/                   ← 【世代管理・機能Y 用】配下は全て .gitignore（実行結果。詳細設計書 §13.2 が権威。次回 `/self-optimize`/`promote` 時に自動再作成）
-├─ design/                        ← 本設計書2冊（基本設計書・詳細設計書）
+├─ design/                        ← 本設計書2冊（基本設計書・詳細設計書）＋ run の記録（canon-issues-<ts>.md・対処記録・トークン基準値・改修まとめ）
 │   ├─ basic-design.md             ← 本書
 │   └─ detailed-design.md          ← 詳細設計書
-├─ package.json                   ← npm scripts 全19件（build:tables / test / ts / unblock / reopen 等）。
+├─ package.json                   ← npm scripts 全22件（build:tables / test / ts / unblock / reopen / resume / state:record 等）。
 │                                    全件一覧は guide/setup.md §8 が権威。
 │                                    reopen = 権威マーカー取消の唯一経路（§4.5）／test = 配線テスト・必須（詳細設計書 §15.3）
 ├─ .github/workflows/ci.yml       ← 恒久 CI: 照合表の鮮度検査 → npm test（§15.2・os×node の matrix）
@@ -469,7 +509,9 @@ claude-canon/
 
 | 論点 | 決定 |
 |---|---|
-| 実行者 | 半自律（工程ごと人間ゲート P1〜P8） |
+| 実行者 | 半自律（人間ゲート P2・P4・P5・P6+7・P8 で停止。P1・P3 は報告のみ） |
+| **セッション分割** | **`/canon` を S1 工程1-4（Opus）/S2 工程5-6（Opus）/S3 工程7-9（Sonnet）/S4 工程10（Sonnet）に分け、区間の終わりで停止。次の区間は新セッションの `/canon resume <ts>`（`npm run resume` が現在地を JSON で返す）。5時間枠対策（§4.7）** |
+| **差し戻し** | **`SendMessage` で再開せず、`reopen` ＋修正指示ファイル `work/<ts>/revisions/<stage>-<n>.md` を注入して新規 spawn。ワーカーは修正モードで指示箇所だけ直す（§4.8）** |
 | 生成物 | 対象プロジェクト用の実運用カスタマイズ一式 |
 | 工程順 | 調査1→ヒアリング→調査2→spec→選定→設計→生成→検証→品質検査→照合付き配置（10工程） |
 | オーケストレーション | メイン Claude の Slash Command Skill（`/canon`）＋ Subagent 委譲＋ファイル駆動。handoffs 不採用 |
@@ -479,10 +521,10 @@ claude-canon/
 | 成果物出力 | 全量スナップショット（output 配下・gitignore） |
 | 既存扱い | 維持は再生成せず既存実体を verbatim コピー。改修/新規のみ内容生成 |
 | 維持判定 | 積極的維持＝5条件 C1〜C5 クリア必須。G2（設計時点）＋G8（生成物）で二重検証。C2/C4 意味判断は eval 回付 |
-| 配置 | 管理パス集合（詳細設計書 §10.1）を退避スワップで全置換（.bak 退避→コピー→失敗時 restore）。集合外は不可侵 |
-| 検証/品質 | 決定論ゲート G1〜G16（真偽のみ・PreToolUse/PostToolUse/SubagentStop/UserPromptExpansion 発火）と eval（LLM-as-a-Judge）を分離。G1〜G12 は生成物検証、**G13 のみ自己検証（preflight）** |
+| 配置 | 管理パス集合（詳細設計書 §10.1）を退避スワップで全置換（事前検査で動かせないファイルがあれば無変更で拒否→.bak 退避→コピー→失敗時は実際に動かした分だけ restore）。集合外は不可侵 |
+| 検証/品質 | 決定論ゲート G1〜G16（真偽のみ・PreToolUse/PostToolUse/SubagentStop/UserPromptExpansion 発火）と eval（LLM-as-a-Judge）を分離。G1〜G12 は生成物検証、**G13 のみ自己検証（preflight）**。eval は5 judge をメイン Claude が直接並列起動し、集約はコード（`eval/aggregate.js`）が決定論で行う。round 2 以降は差分だけ再判定（詳細設計書 §16） |
 | ゲート硬遮断 | PreToolUse deny（2ガード: write-scope-guard・advance-guard）と SubagentStop/Stop、**UserPromptExpansion（G13・run 開始をブロック）**。PostToolUse はブロック不可のため助言＋G12 権威再検証 |
-| **承認と工程順** | **人間の承認は対話で取り `work/<ts>/state.md` に記録（判定材料にしない）。工程順は `.gate/**` deny-all 下でゲートだけが鋳造する完了マーカーの順序で担保（G1＋advance-guard の順序ガード）。マーカー取消は `npm run reopen` のみ（§4.4・§4.5）** |
+| **承認と工程順** | **人間の承認は対話で取り `npm run state:record` で `work/<ts>/state.md` に記録（判定材料にしない。再開時の待ち状態の判定にだけ使い、承認対象の確定より後の記録だけ有効）。工程順は `.gate/**` deny-all 下でゲートだけが鋳造する完了マーカーの順序で担保（G1＋advance-guard の順序ガード）。マーカー取消は `npm run reopen` のみ（§4.4・§4.5）** |
 | **マーカーの巻き戻し** | **`npm run reopen -- <ts> <stage>`（`tools/reopen.js`）が唯一の取消経路。`<stage>` 以降の工程マーカーを連鎖で削除し、ガード（write-scope-guard・advance-guard）と再検査（G1・G7〜G12 等）を再武装する（§4.5・詳細設計書 §11.3）** |
 | **シェルの扱い** | **コマンド実行系ツール（`Bash`・`PowerShell`。Windows の主シェルである `PowerShell` を含む）を全ワーカーから剥奪（`tools:` に含めない）＝ G13（preflight・`UserPromptExpansion@/canon`）が機械強制し、違反なら run 開始をブロック。加えて write-scope-guard のコマンド文字列検査を保険として置く。適用は claude-canon 自身の `.claude/agents/**` のみで、生成物の Subagent は対象外（シェル正当）。オーケストレータ `/canon` は Skill ゆえ対象外＝シェル可。**列挙の網羅性が単一障害点**（漏れたツール経由で全ガードを迂回できる・§5.3・詳細設計書 §11.2 G13・§11.3）** |
 | **ガードの有効条件** | **run が in-flight のときのみ有効（`work/.session-ts` の指す `output/<ts>/` に終端マーカーが無い間）。保守ループ・実装作業は run 外なので通る（詳細設計書 §11.3・§13.1）** |

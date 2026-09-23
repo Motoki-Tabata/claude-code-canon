@@ -1,5 +1,5 @@
 /**
- * eval/aggregate.js — 各軸の有効な verdict から `output/<ts>/eval-report.md` を決定論で組み立てる（詳細設計書 §16.6）。
+ * eval/aggregate.js — 各軸の有効な verdict から `output/<ts>/eval-report.md` を決定論で組み立てる（詳細設計書 §16.5）。
  *
  * 以前は `eval-reviewer`（LLM）が5軸の verdict を読んで eval-report.md に書き写していた。集約は
  * 「1件も落とさず転記する」機械作業であり、LLM に任せると転記漏れ（violation の脱落）が起きうるうえ、

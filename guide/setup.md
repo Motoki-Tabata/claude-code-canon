@@ -83,13 +83,17 @@ npm run smoke:check    # 的にファイルが在れば「配線が死んでい�
 
 ## 4. `/canon` を実行する
 
+`/canon` は10工程を**4つのセッション（S1〜S4）に分けて**実行します（手順5）。最初の S1 は Opus で起動します。
+
 ```
+claude --model opus
 /canon <対象プロジェクトの絶対パス>
 ```
 
 例: `/canon C:/path/to/my-project`
 
-`/canon` は10工程を駆動し、各人間ゲート P1〜P8 でチャット上に確認を求めて停止します。
+`/canon` は人間ゲート P2・P4・P5・P6+7・P8 でチャット上に確認を求めて停止します
+（P1・P3 は報告のみで停止しません）。
 
 ### 実行の流れ（preflight ＋ 10工程）
 
@@ -100,14 +104,40 @@ npm run smoke:check    # 的にファイルが在れば「配線が死んでい�
    - **ランタイム・カナリア**: `.gate/.canary` への意図的な書込を試み、**deny されなければ
      「配線が死んでいる」と判断して run を中断**する。ここで中断したら手順3（配線の実発火確認・
      書式ミス→再起動の順に切り分け）に戻る。
-2. **工程1〜7**（P1〜P6）: 調査 → ヒアリング → 深掘り → spec → 選定+設計 → 生成。
-   各人間ゲートの承認はオーケストレータとの対話で取り、要旨と日時を `work/<ts>/state.md` に
-   記録します（ゲートの判定材料には使いません）。工程順は決定論ゲートが鋳造する完了マーカー
-   （`spec.done`・`design.done` 等。`.gate/**` はエージェント書込 deny-all）で機械的に担保されます。
-3. **工程8**（検証）: 決定論ゲートが真偽で確定。
-4. **工程9**（品質検査＝eval）: judge が5軸で意味判断し `eval-report.md` を提示（P7）。
+2. **工程1〜7**（P2・P4・P5）: 調査 → ヒアリング → 深掘り → spec → 選定+設計 → 生成。
+   各人間ゲートの承認はオーケストレータとの対話で取り、`npm run state:record` が要旨と日時を
+   `work/<ts>/state.md` に記録します（ゲートの判定材料には使いません）。工程順は決定論ゲートが鋳造する
+   完了マーカー（`spec.done`・`design.done` 等。`.gate/**` はエージェント書込 deny-all）で機械的に担保されます。
+3. **工程8**（検証）: 決定論ゲートが真偽で確定。生成物に含まれるテスト等の実行はオーケストレータが行います。
+4. **工程9**（品質検査＝eval）: 5軸の judge が意味判断し、`npm run eval:report -- <ts> --write` が
+   `eval-report.md` を決定論で集約します。生成物と一緒に1回で提示されます（P6+7）。
    決定論ゲートの代替ではありません（eval が clean でもラッチが立てば前進しません）。
 5. **工程10**（デプロイ）: 照合付き手動配置（下記「6. デプロイ」）。
+
+## 5. 4セッション運用（区間の終わりと再開）
+
+1セッションで全工程を回すと5時間枠を使い切るため（実測: 約2時間で上限到達）、`/canon` は4区間に分かれます。
+区間の終わりのゲートを承認すると、オーケストレータは続きを実行せずに停止し、次のように案内します。
+
+> 区間 S<n> が完了しました。新しいセッションを `claude --model <推奨モデル>` で起動し、`/canon resume <ts>` を実行してください。
+
+| セッション | 工程 | 起動 | 区間の終わり |
+|---|---|---|---|
+| S1 | 工程1〜4（調査・ヒアリング・spec） | `claude --model opus` → `/canon <target>` | P4 承認 |
+| S2 | 工程5〜6（機能選定・設計） | `claude --model opus` → `/canon resume <ts>` | P5 承認 |
+| S3 | 工程7〜9（生成・検証・eval） | `claude --model sonnet` → `/canon resume <ts>` | P6+7 承認 |
+| S4 | 工程10（配置） | `claude --model sonnet` → `/canon resume <ts>` | 配置の案内 |
+
+- **再開**: `/canon resume <ts>` は内部で `npm run resume -- <ts>` を実行し、ディスクの成果物・完了マーカーから
+  現在地を JSON で得て続きから始めます。別の run（機能X・機能Y を含む）が in-flight なら拒否されます。
+  推奨モデルと違うモデルで起動すると警告が出ます（強制ではありません）。S1〜S3 の開始時にはカナリアを撃ち直します。
+- **中断**: 区間の途中で止まっても同じ `/canon resume <ts>` で再開できます。ヒアリングの途中だった場合は
+  会話が失われているので、調査サマリの提示からやり直します。
+- **差し戻し**: ゲートで修正を求めると、オーケストレータは差し戻しを記録し（`state:record --revision`）、
+  修正指示を `work/<ts>/revisions/<stage>-<n>.md` に書き、`reopen` のうえでワーカーを新規に起動して
+  指示箇所だけを直させます。
+- **区間の合間の注意**: `generation.done`（工程7の通過）までは run 中でガードが武装したままです。
+  この間は claude-canon 本体（`docs/`・`gates/`・`.claude/`・`design/`）を編集できません。
 
 ## 6. デプロイ（工程10・output バンドルを対象へ配置する）
 
@@ -125,10 +155,16 @@ node deploy/pre-deploy-check.js <output/ts の絶対パス> <対象リポジト�
 # 3-a. 配置予定だけ確認（--confirm 無し・対象は変更されない）
 node deploy/deploy.js <output/ts> <対象>
 
-# 3-b. 実配置（退避スワップ。.claude-canon.bak.<ts>/ へ退避してから配置し post-check）
+# 3-b. 実配置（退避スワップ。事前検査 → .claude-canon.bak.<ts>/ へ退避 → 配置 → post-check）
 node deploy/deploy.js <output/ts> <対象> --confirm
 ```
 
+- **`--confirm` はサンドボックスの外（通常のシェル）で実行します**。サンドボックスが `.mcp.json` 等を
+  バインドマウントしていると退避の rename が EBUSY になります（事前検査が検出して対象を変更せずに拒否します）。
+- **対象リポジトリへの push は、対象リポジトリで起動したセッションで行います**（canon のセッションからは
+  対象側のサンドボックス例外が効きません。SSH リモートなら `github.com:22` の許可も要ります）。
+- 配置に成功すると `output/<ts>/.deploy/deploy-result.json` が書かれます（`/canon resume` が配置済みと判定する材料）。
+  退避が0件のときは `.bak` は作られません。
 - **uncaptured**（調査取りこぼし）が1件でも出たら配置を止め、調査 or design-map へ差し戻します。
 - ロールバックは対象の git revert ＋ `.claude-canon.bak.<ts>/` からの手動 restore。`.bak` の掃除は
   配置が正しいと確認できてから人間が行います（自動削除しません）。
@@ -143,7 +179,7 @@ node deploy/deploy.js <output/ts> <対象> --confirm
 
 ## 8. npm scripts 一覧
 
-`package.json` の全19スクリプト。上記1〜6で個別に触れなかったものを含め、用途と実行タイミング別に整理します。
+`package.json` の全22スクリプト。上記1〜6で個別に触れなかったものを含め、用途と実行タイミング別に整理します。
 
 **日常（`/canon` run の前後・随時）**
 
@@ -154,12 +190,17 @@ node deploy/deploy.js <output/ts> <対象> --confirm
 | `npm run smoke:arm` / `smoke:check` | hooks の実発火確認（手順3） |
 | `npm run unblock -- <ts>` | ブロックラッチの人間による解除（§7） |
 | `npm run reopen -- <ts> <stage>` | 権威マーカー取消の唯一の経路。工程9→工程7・P5 差し戻し等の巻き戻しでガードと再検査を再武装する（§4.5 巻き戻し。`<stage>` 以降の工程マーカーを連鎖で削除する。巻き戻した工程の承認は対話で取り直す） |
+| `npm run tokens -- <session-id>` | セッション transcript のトークン消費をメイン／agentType×model 別に集計（`tools/token-usage.js`）。改修前の基準値は `design/canon-token-baseline-20260924.md` |
 
 **`/canon` run 中（内部から呼ばれる・通常は手動実行しない）**
 
 | script | 用途 |
 |---|---|
 | `npm run ts` | `<ts>` の採番（`tools/new-ts.js`）。run 開始で自動発行 |
+| `npm run resume -- <ts> [--force]` | `/canon resume <ts>` の中身。相互排他を検査し、`work/.session-ts` を合わせ、現在地を JSON で返す（`tools/resume.js`）。`--force` は別の `/canon` run からの切替だけに効く |
+| `npm run state:record -- <ts> <gate> "<要旨>" [--revision]` | 人間ゲート（P2・P4・P5・P6+7・P8）の対話承認を実時刻・固定書式で `work/<ts>/state.md` に記録（`tools/record-state.js`）。承認対象が未確定なら拒否。`--revision` は差し戻しの記録 |
+| `npm run recheck -- <ts> <stage>` | 完了リクエストを書いてゲートを hook 経路と同じ形で起動する（オーケストレータ自身が成果物を直したとき・調査1/2 の完了時）。マーカー残存時は exit 3 で reopen へ誘導 |
+| `npm run slice -- <ts>` | design-map をワーカー別のスライスに切り出して `work/<ts>/slices/` に書く（S3 冒頭・`design.done` 必須・出力先を掃除してから書く） |
 
 **機能X（正典更新・`/update-docs`）**
 
@@ -182,7 +223,8 @@ node deploy/deploy.js <output/ts> <対象> --confirm
 
 | script | 用途 |
 |---|---|
-| `npm run eval:bundle` | judge への判定入力バンドルを生成（`eval/bundle.js`・§16.3） |
+| `npm run eval:bundle -- <ts> [--round N]` | judge への判定入力バンドルを生成（`eval/bundle.js`・§16.3）。round 1 は前の試行の判定を消して生成物スナップショットを保存。`--round N`（N≥2）は変更ファイルと前 round の違反対象だけを再判定する計画を `work/<ts>/eval-bundle/round.json` に出す（§16.9） |
+| `npm run eval:report -- <ts> [--write]` | eval の集約検証（欠落軸・カバレッジ・集約漏れで exit 2）。`--write` で各軸の判定から `eval-report.md` を決定論で書き出し、有効な判定を保存する（§16.5） |
 | `npm run eval:meta` | judge の較正（ラベル付きコーパスの precision/recall 実測・§16.6） |
 
 ## トラブルシューティング

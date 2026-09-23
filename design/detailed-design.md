@@ -274,7 +274,7 @@ existing_disposition:
 - **keep** → 再生成せず、既存実体（`<target_root>/<相対パス>`）を Read → Write で output へ verbatim コピー。snapshot の G8 が対象原本と output コピーを sha256 バイト同一照合する（§11）。
 - **modify / merge / 新規** → generator が生成する。
 - **retire** → output から除外・MANIFEST 廃止欄へ。
-- design-map 全ファイル ⇔ output の過不足ゼロを G9 が検証。
+- design-map ⇔ output の過不足を G9 が検証する: design-map が宣言した成果物（層ごとの節の見出しと keep/modify レコード・`gates/lib/design-map.js` の `listDeclaredArtifacts`）が `generated/` に全件実在すること（照合元は generator の自己申告でなく design-map・S1-4）と、MANIFEST の `## 全ファイル` 節と `generated/` の双方向一致（§12.3）。generator は builder へ spawn する前に `slices/targets-<層>.txt` の件数と生成させるファイル数を突き合わせる（脱落を書く側で先に数えて気づく）。
 - **配置リストの出力**: generator は工程7の最終処理で `output/<ts>/.deploy/managed-paths.list`（管理パス集合＝base ＋系統A が検出した `.claude/` 互換パス）と `.deploy/retired.list`（**対象から意図的に消えるファイル＝disposition:retire ＋ merge の被統合元**を対象相対パスへ落としたもの）を出力する。merge 被統合元は統合先へ集約され対象から消えるため、retire と同じく「想定内の消失」として retired.list に載せる（さもなくば pre-deploy-check が uncaptured と誤検出する）。pre-deploy 照合・配置スクリプトの唯一の入力（§10）。
 
 ### 9.4 モデル割当の根拠
@@ -286,6 +286,26 @@ existing_disposition:
 3. 失敗コストが低い（後続工程または eval が出力を検証する）。
 
 `fable`（Claude Fable 5）は公式エイリアスとして指定可能だが canon フローでは既定採用しない。詳細ロジックは `model-selection` Skill が保持し、designer が design-map の `## Model Assignments` に記録する。
+
+**claude-canon 自身のワーカーの割当（model・effort）**: 生成物への割当とは別に、claude-canon 自身の agent 17体は frontmatter に `model:` と `effort:` を**全件明示**する（`effort` 未指定だとセッションの effort を継承し、高 effort が伝播する）。
+
+| model / effort | agent |
+|---|---|
+| opus / high | `designer`・`eval-keep-review`（keep/retire・C2/C4 の意味判断） |
+| opus / medium | `canon-updater`（機能X） |
+| sonnet / high | `spec-writer` |
+| sonnet / medium | `existing-customization-analyzer`・`project-profiler`・`selector`・`generator`・`l1-builder`・`skill-builder`・`agent-builder`・`eval-correctness`・`eval-security`・`eval-canon`・`eval-context` |
+| sonnet / low | `requirements-recorder`・`readme-writer`（機械的な直列化・導出） |
+
+**モデルの正は frontmatter の一箇所に置き、ネイティブ起動では `Agent` に `model` 引数を渡さない**。起動時の `model` 引数は frontmatter より優先されるため、run 20260919 では `spec-writer`・`generator` が frontmatter sonnet のまま Opus で、`eval-keep-review` が frontmatter opus のまま sonnet で走った（`design/canon-token-baseline-20260924.md`）。`/canon` SKILL.md のネイティブ起動例示に `model` 引数が無いこと・全 agent が `effort` を持つことは `tests/self_application.test.js` が固定する。`general-purpose` へのフォールバック時だけは frontmatter が効かないため、定義の値を読んで同じ値を渡す。オーケストレータ（メイン Claude）のモデルはセッション単位で選ぶ（基本設計書 §4.7）。
+
+### 9.5 design-map のスライス（工程7 の入力）
+
+design-map は1 run で約96KB に達し、generator・3 builder・readme-writer・eval judge が全文を Read すると 1 run で19〜30回（1回 3.4〜3.7万文字）になり、読んだ内容が各エージェントの以後の全ターンで cache_read として積み上がった。そこで S3 の冒頭でオーケストレータが `npm run slice -- <ts>`（`tools/slice-design-map.js`・`gates/lib/design-slices.js`）を実行し、`work/<ts>/slices/` にワーカー別のスライスを書く。
+
+- **出力**: `common.md`（メタ・Used Features・レイヤー構成・Model Assignments・Interface Contracts・生成上の制約・Experimental Dependencies・依存フラグ）／`write-scopes.md`／`l1.md`・`skills.md`・`agents.md`・`l4.md`・`l5.md`（各層の節＋その層の modify・merge レコード）／`disposition-other.md`（keep・retire・out_of_scope）／`responsibilities.md`（Responsibility Map）／`other-sections.md`（上のどれにも属さない節の受け皿）／`targets-<層>.txt`・`targets-all.txt`（宣言された生成物。G9 と同じ宣言源）／`INDEX.md`。
+- **規約**: 切り出しは節見出しと disposition レコードの分割による決定論で、記述を1文字も変えない（再シリアライズしない）。未知の節は `other-sections.md` に集め黙って落とさない（全スライスの和集合が design-map の全節を覆う）。`## Used Features` が無ければ throw する。`design.done` が無ければ拒否し（確定前に切らない）、書き出し前に出力先を掃除する（古いスライスを読ませない・eval の S2-2 と同型）。差し戻しで design-map を書き直したら、`design.done` 再鋳造後に再実行する。
+- **読み手**: generator は `common.md`・`targets-*`・`disposition-other.md`、各 builder は自層のスライス＋`common.md`・`write-scopes.md`、readme-writer・`eval-context`・`eval-correctness` もスライスを読む。
 
 ---
 
@@ -334,6 +354,7 @@ verbatim コピー（§9.3）は「調査で把握済みの keep が消える」
    uncaptured が1件でもあれば → 配置を止め調査 or design-map へ差し戻す
    retired のみ → ② deploy（退避スワップ）
 ② deploy（P8 承認後に実行）
+   step0: 事前検査（退避する全ファイルが rename できるか。1件でも不可なら何も変えずに拒否）
    step1: 対象の管理パス集合を .claude-canon.bak.<ts>/ へ mv で退避（削除でなく退避）
    step2: output/<ts>/ の管理パス集合を対象へコピー配置
    step3: post-check（配置後に集合が output と一致するか簡易確認）
@@ -352,6 +373,13 @@ pre-deploy-check / deploy は `deploy/` 正本（基本設計書 §14）の**ス
 - **P8 の CLI 表現**: `deploy.js` は `--confirm` 無しでは配置予定を表示するのみで**配置しない**（人間承認 P8 の機械的裏付け）。実行時に pre-deploy-check 相当を再実行し、**uncaptured ≥ 1 なら配置を拒否**する（P8 を無視した配置を防ぐ最終防波堤）。
 - **post-check の一致**: step3 は配置後、集合内の各ファイルが output と **sha256 バイト同一**であることを確認する（§9.3 keep の G8 と同じ非退行基準）。不一致は step4 の restore を起動する。
 - **原子性・ロールバック**: step1 は mv 退避、post-check 失敗時は `.bak` から restore（配置物を除去し退避物を戻す）し exit 2。成功時は `.bak` を保持し revert 手順（git revert ＋ `.bak` 手動 restore）を出力する。`.bak` の掃除は人間（上記既述）。
+- **事前検査と失敗時の復元範囲（R-S1-1・run 20260919・20260922 で連続して半壊）**: サンドボックスが対象の `.mcp.json` 等をバインドマウントしていると rename が EBUSY になる。旧実装は step1 の退避ループが try の外にあり、29〜30件を退避した半壊状態のまま例外で止まった。さらに旧 restore は `managed-paths.list` の全エントリを削除する作りで、step1 の途中失敗ではまだ退避していない元ファイルを消しうった（変異注入で再現）。現行は次のとおり:
+  - **step0 `probeMovable`**: 退避する全ファイルを同じ場所で rename して戻せるかを検査し、動かせないものが1件でもあれば**対象を変更せずに**拒否する（原因と「サンドボックスの外で実行」を出力）。
+  - **step1 も try の内側**に置き、復元は**実際に退避したファイルと実際に置いたファイルだけ**を対象にする。復元できないものがあれば `.bak` を残し `state: partial` と残った問題を返す（黙って掃除しない）。全部戻れば `state: restored`。
+  - **退避0件のとき `.bak` を案内しない（S3-6）**: `.bak` は退避の副作用でしか作られないため、対象に管理ファイルが無ければ作られない。成功時の案内は `.bak` の実在（`bak_exists`）と退避件数（`baked`）を確かめてから出す。
+  - **記録**: 成功時だけ `output/<ts>/.deploy/deploy-result.json`（`bak_dir`・`bak_exists`・`baked`・配置件数・廃止）を書き、存在＝配置済みとして `/canon resume` が判定に使う。試行の記録は毎回 `deploy-attempt.json`（状態・動かせなかったファイル・復元できなかったもの）に書く。
+  - **実行環境の注意**: `RUN.md` に「`--confirm` はサンドボックスの外で実行する」「対象への push は対象リポジトリで起動したセッションで行う（SSH リモートなら `github.com:22` の許可も要る）」を固定文で載せる（R-S3-4）。
+  - 回帰テストは `tests/deploy_swap.test.js`（EBUSY 注入・step1 途中失敗・復元失敗・退避0件・deploy-result.json）と `tests/deploy_run_manifest.test.js`（RUN.md の注意書き）。
 - **run-manifest 同梱**: pre-deploy-check.js / deploy.js は `gates/lib/managed-paths.js`（管理パス集合の SSoT）を相対 import しており素朴な複製では単体動作しない。さりとて `managed-paths.js` も複製すると管理パス集合のパターン定義が正本と output コピーの2箇所に分裂し、一方だけが仕様に追従する単一障害点になる。集合の網羅性が破れると退避スワップが不可侵領域を破壊しうる（§10.1）ため、この定義は**二重化しない**。ゆえにスクリプトは canon 正本のままとし、output には**実行手順書 `RUN.md` のみを同梱**する（`deploy/emit-run-manifest.js`）。RUN.md は固定テンプレートで、変数は `<ts>`・output/target/canon の絶対パスと、`managed-paths.list`/`retired.list` から読んだ配置集合・廃止集合の要約のみ（自由作文しない）。emit-run-manifest も pre-deploy-check / deploy と同じ run 外 CLI（`.session-ts` に触れない）で、引数は `emit-run-manifest.js <output-dir> <target-repo-dir>`。オーケストレータが工程10 の冒頭で実行し、以降の手順（pre-deploy-check → P8 → deploy --confirm）は RUN.md と同一。
 - **自己指定の拒否**: `pre-deploy-check.js`・`deploy.js`・`emit-run-manifest.js` の3本は、`<target-repo-dir>` を `path.resolve` した結果が `CANON_ROOT`（claude-canon 自身）と一致する場合、**exit 1 で拒否**する。工程10（退避スワップ配置）は対象プロジェクトの `.claude/` に人間が回す運用を前提としており、対象に claude-canon 自身を指定すると**稼働中の実行体を、機能Y の昇格前検証（G13・G3〜G6・`npm test`・自動ロールバック・§13.2）を一切通さずに置換できてしまう**。自己再生成の唯一の正しい経路は世代ステージング（`tools/stage-candidate.js`）→ `tools/promote.js` であり、この3本には自己指定の経路を存在させない。
 
@@ -401,7 +429,7 @@ pre-deploy-check / deploy は `deploy/` 正本（基本設計書 §14）の**ス
 
 | ゲート | 内容 | spec 対応 | 系統 | 発火契機 |
 |---|---|---|---|---|
-| **G1** 工程順・状態 | focused 空欄違反／evidence_paths 実在／open_questions 残存／requirements の enum（strength_needed・priority）／前段工程の完了マーカーの実在（design ステージで `spec.done`・generation ステージで `design.done`。advance-guard の順序ガードが事前に強制する工程順を停止時点で権威再検証する・§11.3）／work/<ts>/existing_customizations.md 実在（系統A成果物・§6.1） | 規律 | stage | SubagentStop@各リクエスト |
+| **G1** 工程順・状態 | focused 空欄違反／evidence_paths 実在／open_questions 残存／requirements の enum（strength_needed・priority）／前段工程の完了マーカーの実在（design ステージで `spec.done`・generation ステージで `design.done`。advance-guard の順序ガードが事前に強制する工程順を停止時点で権威再検証する・§11.3）／work/<ts>/existing_customizations.md 実在（系統A成果物・§6.1）／**系統A `## サマリ` の件数照合**（総数と総数行の `L<n> <件数>` 内訳を本文の `- path:` レコード数と照合。総数行が無ければ照合しない・S2-4） | 規律 | stage | SubagentStop@各リクエスト |
 | **G2** 維持判定妥当性 | keep 全レコードで keep_conditions C1〜C5 が true／**実照合**: C1（対象原本が正典 frontmatter/tools 適合）・C3（keep の依存先が同 design-map で retire/modify されない）・C5（対象原本の project 参照が対象リポジトリで解決）／**形式検査のみ**: C2・C4 が true 宣言（意味判断は eval へ回付・基本設計書 §8.4）／廃止の manifest_note | A2 | stage | SubagentStop@design |
 | **G3** パス規約準拠 | 許可パス合致／拡張子・種別整合／skill ディレクトリ名＝name 一致※／**skill パッケージ配下の supporting files は違反にしない**（正典 `L2_SKILLS.md §2.1` ディレクトリ構造の明示的許可） | A3 | per-file | PostToolUse |
 | **G4** frontmatter スキーマ | 必須キー存在（Subagent: name＋description）／未知キー検出／型・語彙照合 | A3 | per-file | PostToolUse |
@@ -409,7 +437,7 @@ pre-deploy-check / deploy は `deploy/` 正本（基本設計書 §14）の**ス
 | **G6** セキュリティ | secret ハードコード検出／`.mcp.json` の `${VAR}` 展開遵守／experimental 依存フラグ明示 | §7 | per-file | PostToolUse |
 | **G7** 参照整合 | preload skill（`skills:`）実在／`disable-model-invocation:true` skill を preload していない／description による委譲トリガーの妥当／supporting files 実在／**skill パッケージに定義ファイル `SKILL.md` 実在**／plugin 参照実在／**対象プロジェクトの非管理ファイルへの行番号引用の禁止** | A2 | snapshot | SubagentStop@generation |
 | **G8** 非退行 | 維持ファイル全量が output に存在／**対象原本と output コピーが sha256 バイト同一**（ゲートが両者を Bash で算出）／廃止の明示照合 | A2 | snapshot | SubagentStop@generation |
-| **G9** スナップショット完全性 | design-map ⇔ output 双方向突合／MANIFEST ⇔ output／空でない出力／managed-paths.list が base ＋検出 `.claude/*`＋(L5)plugin のみ（集合外を排除・§10.1） | A4 | snapshot | SubagentStop@generation |
+| **G9** スナップショット完全性 | **design-map の宣言 ⇒ output**（`listDeclaredArtifacts` が返す宣言成果物が `generated/` に全件実在。retire 注記は要求しない・S1-4）／**MANIFEST `## 全ファイル` ⇔ output の双方向一致**（節の欠落・1行欠落・実在しない行を違反・§12.3・S1-3）／空でない出力／managed-paths.list が base ＋検出 `.claude/*`＋(L5)plugin のみ（集合外を排除・§10.1）かつ glob 禁止・`generated/` に実在 | A4 | snapshot | SubagentStop@generation |
 | **G10** README 整合 | 網羅性／起動方式の正典整合（§12.4 導出ルール一致）／セットアップ完全性／内部専用の非露出 | README 機能 | snapshot | SubagentStop@generation |
 | **G11** 制約遵守 | `requirements.md` constraints に違反する生成物の検出（hooks 禁止なのに hook 含む／experimental 禁止なのに context:fork 使用 等） | requirements.md | snapshot | SubagentStop@generation |
 | **G12** per-file 権威再検証 | 停止時に全 output カスタマイズへ G3〜G6 を再実行（PostToolUse の読取失敗で非ブロッキング降格した分を網羅）／output ツリー不在は違反（vacuous pass 防止） | A3 | snapshot | SubagentStop@generation |
@@ -513,7 +541,7 @@ G11 は「このプロジェクトで**使ってはいけない機能**が生成
 - **縮退設計の検査範囲**: 「制約で deterministic が使えないとき advisory へ格下げした設計が妥当か」のうち、決定論で判定できるのは **conflicts の登録漏れと整合**までとする。
   - **登録漏れ**: `strength_needed: deterministic` の要件が存在し、その実現手段（§6.3 の強度3段階対応・`00_INDEX.md §4.4`: deterministic → Hooks / enforced → permissions）が禁止されているなら、`conflicts` に**当該要件 id を指すエントリ**が無ければ違反（縮退の判断が記録されないまま生成が通ることを防ぐ）。
   - **整合**: `conflicts[].requirement` が実在の要件 id を、`conflicts[].constraint` が**実在しかつ禁止済み**の constraints キーを指すこと（無関係な conflicts を1件書けば通る形骸化を防ぐ）。
-  - **踏み込まない範囲**: design-map の自由記述（`## レイヤー構成` の散文）との突合はしない。パーサの脆さを判定の前提にすると、書き方の揺れが偽陽性になり検査の信頼を損なう。縮退の**意味的な妥当性**（advisory へ落として要件を満たせるのか）は人間ゲート P5/P7 が読む。
+  - **踏み込まない範囲**: design-map の自由記述（`## レイヤー構成` の散文）との突合はしない。パーサの脆さを判定の前提にすると、書き方の揺れが偽陽性になり検査の信頼を損なう。縮退の**意味的な妥当性**（advisory へ落として要件を満たせるのか）は人間ゲート P5/P6+7 が読む。
 - **vacuous pass 封鎖（§11.5）**: 次はすべて違反とする。①`work/<ts>/requirements.md` 不在 ②`constraints` 節不在 ③ constraints キー0件 ④`allowed` が真偽値でない ⑤`generated/` 不在または空（制約検査の対象ゼロを合格と読まない・G12 と同じ規律）。**「制約が書かれていない＝制約なし＝合格」と読まない**のが肝である。制約が全て `allowed: true`（＝実際に制約が無い）ことと、制約が記録されていないことは別事象である。
 - **eval に回さない（§16.1 の分離線）**: 制約遵守は真偽が機械的に決まるため、G11 の判定を eval へ回付してはならない。G2 が C2/C4 を eval へ回すのは「意味を要する」からであって、判定に自信が無いからではない。
 - **G6 との区別（再掲・実装コメントに残す）**: G6 は普遍的な安全性（secret・experimental 依存の**明示**）、G11 はこのプロジェクト固有の環境制約（experimental の**使用可否**そのもの）。同じ `context: fork` でも、G6 は「実験機能である旨を書いたか」を、G11 は「そもそも使ってよいか」を見る。
@@ -643,7 +671,7 @@ G14〜G16 は機能X（§13.1）の run が消費する完了リクエスト `wo
 
 順序は **G13 →（`<ts>` 採番）→ カナリア → 工程1**。G13 が先なのは、`UserPromptExpansion` が `/canon` の展開時＝採番より前に発火する自然な帰結であり、かつ**カナリアはガードの生存しか見ない**ため、ワーカーの権限逸脱を先に潰しておく必要があるからである。逆にカナリアが G13 より前に来ることはできない（採番前は run 外と判定されガードが素通りする・§11.3）。
 
-**コーディネータの turn 中断（vacuous pass の送り側）**: G13 との2重の門（本節上記）は「ガードが生きているか」を守るが、**ガードの前段——完了リクエストと成果物そのものが書かれるか——は別の脆弱点である**。`eval-reviewer`／`generator`（`Agent` ツールを持つコーディネータ。かつては `investigator` も該当したが、深さ2の中継が報告を失う failure mode があり廃止した・基本設計書 §4.6）が配下ワーカーを spawn した直後、結果を回収せずに turn を終えると、`.requests/<stage>` が書かれないまま SubagentStop が発火し、stage-guard/gen-guard は「対象リクエストなし」として exit 0 で通過する（実測: run 20260903_091044 で investigator・eval-reviewer が各1回）。G13 が「ワーカーの外側からガードを迂回する経路」を塞ぐのと対称に、この経路は「ガードの内側（判定ロジック）に判定対象を渡さない」ことで検査を沈黙させる——G13 と同様に**発火機会が構造的にゼロ**になる帰結だが、成因は逆（G13は権限の逸脱・本件はコーディネータの turn 完走義務の欠如）である。ゲートは呼ばれて初めて判定できるため、この経路をゲート自身では検出できない。ゆえに帯域外の契約（`.claude/agents/{eval-reviewer,generator}/*.md` の完走義務・`.claude/rules/worker-definitions.md`）とオーケストレータ側の実在確認（`.claude/skills/canon/SKILL.md` の各工程末尾）で塞ぐ。G1 の investigation 段（`existing_customizations.md` 実在検査）は「リクエストは書かれたが成果物が無い」場合を機械的に捕らえるが、「リクエストも成果物も書かれない」場合は機械検査の射程外であり、オーケストレータの確認と人間ゲート P1・P6・P7 が最終防波堤となる。
+**コーディネータの turn 中断（vacuous pass の送り側）**: G13 との2重の門（本節上記）は「ガードが生きているか」を守るが、**ガードの前段——完了リクエストと成果物そのものが書かれるか——は別の脆弱点である**。現行で `Agent` ツールを持つコーディネータは **`generator` だけ**である（かつては `investigator`・`eval-reviewer` も該当したが、深さ2の中継が報告を失う failure mode があり、いずれも廃止してメイン Claude が直接 spawn する形にした・基本設計書 §4.6・本書 §16.2）。generator が配下ワーカーを spawn した直後、結果を回収せずに turn を終えると、`.requests/<stage>` が書かれないまま SubagentStop が発火し、stage-guard/gen-guard は「対象リクエストなし」として exit 0 で通過する（実測: run 20260903_091044 で investigator・eval-reviewer が各1回）。G13 が「ワーカーの外側からガードを迂回する経路」を塞ぐのと対称に、この経路は「ガードの内側（判定ロジック）に判定対象を渡さない」ことで検査を沈黙させる——G13 と同様に**発火機会が構造的にゼロ**になる帰結だが、成因は逆（G13は権限の逸脱・本件はコーディネータの turn 完走義務の欠如）である。ゲートは呼ばれて初めて判定できるため、この経路をゲート自身では検出できない。ゆえに帯域外の契約（`.claude/agents/generator/generator.md` の完走義務・`.claude/rules/worker-definitions.md`）とオーケストレータ側の実在確認（`.claude/skills/canon/SKILL.md` の各工程末尾）で塞ぐ。直接 spawn されるワーカー（系統A/B・eval judge）は中継を挟まないのでこの経路を持たないが、成果物を書かずに終わる failure mode は残るため、オーケストレータが完了後に成果物（系統A/B のファイル・5軸の軸ファイル）の実在を確かめる。G1 の investigation 段（`existing_customizations.md` 実在検査）は「リクエストは書かれたが成果物が無い」場合を機械的に捕らえるが、「リクエストも成果物も書かれない」場合は機械検査の射程外であり、オーケストレータの確認と人間ゲート（P2 の前の調査サマリ提示・P6+7）が最終防波堤となる。
 
 ---
 
@@ -675,7 +703,8 @@ README は作文でなく**規則適用**で書く（起動方式を正典から
 ### 12.3 配置と MANIFEST
 
 - README は `output/<ts>/generated/.claude/README.md`。管理パス集合（§10.1）に含まれ、canon が生成した README で置換される。
-- MANIFEST は `output/<ts>/MANIFEST.md`。新規/改修/維持/廃止の差分サマリを記す。**廃止を明示**して「管理パス集合の全置換で黙って消える」事故と区別する。
+- MANIFEST は `output/<ts>/MANIFEST.md`（generator が書く）。新規/改修/維持/廃止の差分サマリを記す。**廃止を明示**して「管理パス集合の全置換で黙って消える」事故と区別する。
+- **`## 全ファイル` 節（機械照合の契約）**: 差分サマリに加え、`generated/` の全ファイルを1行1件（`` - `<generated/ からの相対パス>` ``）で列挙する。G9 が `gates/lib/manifest.js` でこの節をパースし、`generated/` の実ファイル集合と**双方向**に照合する（節が無い・1行欠けている・実在しない行がある、のいずれも違反）。MANIFEST は P6+7 で人間が「何が変わるか」を判断する唯一の記録であり、存在だけを見ていた旧 G9 では1行欠落した MANIFEST が全ゲート・eval・post-check を通過した（S1-3・run 20260922）。
 
 ### 12.4 起動方式の導出ルール表（frontmatter → 起動方式）
 
@@ -750,7 +779,7 @@ experimental 禁止プロジェクトなら該当フラグを使う設計は G11
 - **起動経路**: `/canon` は「claude-canon 自身のリポジトリを棚卸ししない」ことを前提にしており（基本設計書 §5.1）、対象を自己に向ける経路を持たない。ゆえに**専用 Skill** `.claude/skills/self-optimize/`（`disable-model-invocation:true`・`user-invocable:true`・`context: fork` 不付与＝基本設計書 §4.1 と同じ理由）を新設する。工程1〜9 は `/canon` と同一（対象は claude-canon 自身のルート）。**工程10（デプロイ）は行わない**——対象自身への退避スワップは稼働中の実行体を破壊しうるため、工程10 を「世代ステージング」（下記）に差し替える。
 - **名前空間**: `work/.self-optim`（`tools/selfopt.js`・`npm run selfopt:begin -- <label>` / `selfopt:end`）。判定材料は sentinel ファイル1個（label を記録）。**`/canon` run・機能X run と3方向で相互排他**——いずれかが in-flight なら他の開始を拒否する（`tools/new-ts.js`・`tools/new-canon-ts.js`・`tools/selfopt.js` が相互に確認）。
 - **第3の極性ガード（`gates/self-optimize-scope-guard.js`・PreToolUse）**: `write-scope-guard`・`canon-update-scope-guard` に続く3本目。判定材料は `work/.self-optim`。sanctioned は `output/<ts>/`（`.gate/**` 除く）・`work/<ts>/`。保護（deny）は `.claude/`・`gates/`・`tests/`・`docs/`・両設計書・**`generations/`**（候補の取り込みは CLI 一本化・下記）。**write-scope-guard と異なり、終端マーカー（`generation`）到達後も sentinel が在る限り保護を続ける**——自己最適化では工程7通過の直後こそ「直接 `.claude/` を直したくなる」局面であり（3リスク(1)の露出点）、通常の run 外緩和はここでは適用しない。§11.3「ガードの3系統」に対照表がある。
-- **世代ステージング（工程10 の代替・`tools/stage-candidate.js`・`npm run stage -- <output-dir> <label>`）**: `output/<ts>/.gate/markers/generation.done`（G7〜G12 通過済み）・ブロックラッチ（`.gate/blocks/*.blocked`）0件・`output/<ts>/eval-report.md` の実在（工程9 実施済み）を前提条件とし（人間の承認は機械的に確かめられないため、P6・P7 の承認は対話で取ってからオーケストレータがこの CLI を実行する）、`deploy/pre-deploy-check.js` が export する `computeVanishing(outputDir, targetDir)`（§10.2・既存 SSoT を再利用）で `targetDir = CANON_ROOT` として取りこぼしを照合、**uncaptured ≥ 1 なら候補への取り込みを拒否**する。通過したら `generated/.claude/` を `generations/candidate-<label>/.claude/` へコピーする（`generations/candidate-*/` は run の sanctioned 外のため、この CLI だけが書ける）。
+- **世代ステージング（工程10 の代替・`tools/stage-candidate.js`・`npm run stage -- <output-dir> <label>`）**: `output/<ts>/.gate/markers/generation.done`（G7〜G12 通過済み）・ブロックラッチ（`.gate/blocks/*.blocked`）0件・`output/<ts>/eval-report.md` の実在（工程9 実施済み）を前提条件とし（人間の承認は機械的に確かめられないため、P6+7 の承認は対話で取ってからオーケストレータがこの CLI を実行する。4セッション分割では S4 がこの世代ステージングになり、`gates/lib/run-status.js` は `target.txt` が claude-canon 自身を指す run を `isSelfOptimizeRun` で判別して配置の代わりに本 CLI を次の一手として返す）、`deploy/pre-deploy-check.js` が export する `computeVanishing(outputDir, targetDir)`（§10.2・既存 SSoT を再利用）で `targetDir = CANON_ROOT` として取りこぼしを照合、**uncaptured ≥ 1 なら候補への取り込みを拒否**する。通過したら `generated/.claude/` を `generations/candidate-<label>/.claude/` へコピーする（`generations/candidate-*/` は run の sanctioned 外のため、この CLI だけが書ける）。
 - **`--resync-keep <label>`**: `promote.js` の乖離検出（§13.2）が拒否した場合の**定義上正しい修復手段**。design-map で disposition が `keep` のファイルのうち、候補と稼働中 `.claude/` が差分を持つものだけを **live → 候補** へ再同期する（keep＝「変更しない」なので、この方向の同期だけが定義と整合する）。実施した各ファイルを1件ずつ標準出力に出す。候補へ書ける CLI を増やさない（`stage-candidate.js` への機能追加に留める）。
 - **`deploy/` の自己指定拒否**: `deploy/deploy.js`・`deploy/pre-deploy-check.js`・`deploy/emit-run-manifest.js` は `<target-repo-dir>` が `CANON_ROOT` と一致する場合 exit 1 で拒否する（§10.2 に追記）。**世代ステージングと退避スワップ配置は別経路**であり、対象自身への退避スワップは promote の G13・`npm test`・自動ロールバックを丸ごと迂回して稼働中の実行体を破壊しうるため、経路として存在させない。
 - **`tools/promote.js` の追加前提**（既存の G13・G3〜G6 検査に追加）: 候補に `.claude/settings.json` が無ければ拒否（配線消滅時の vacuous pass を事前封鎖）。`work/.self-optim` sentinel が在る間は拒否（run 途中の昇格を防ぐ）。`--dry-run` を追加し、スワップ・`npm test` を伴わずに検査のみ行えるようにする（実昇格せずに候補の健全性を確認する手段）。
@@ -770,9 +799,9 @@ G1〜G12 は**生成物**の検証であり、claude-canon 自身の正しさは
 
 ### 15.2 現状の運用制約と将来スコープ
 
-- **非機能要件の定量化**: 1実行あたりのコスト/所要時間/LLM 呼び出し規模は運用後に実測して判断する。
-- **並行実行の排他**: 同一 `<ts>` 衝突・同一対象への同時実行の排他は設けない。**逐次実行前提**を維持する。
-- **中断実行の自動再開**: ファイル駆動（`work/`・`output/`）ゆえ原理的に再開可能だが、人間が `output/<ts>/.gate/markers/*.done` を確認して当該工程から手動再開する運用を維持する。
+- **コスト（実測に基づく方針）**: 1 run の消費は `npm run tokens -- <session-id>`（`tools/token-usage.js`）でセッション transcript からメイン／agentType×model 別に集計する（総入力 = input＋cache_creation＋cache_read。`message.id` 重複は最後のレコードを採る）。改修前の基準値は `design/canon-token-baseline-20260924.md`（run 20260919: 総入力約76.9M・run 20260922: 約68.2M で開始から約2時間04分で5時間枠に到達）。実測で大きかった順に、メイン履歴の再読込（36〜48%）→ セッション分割（基本設計書 §4.7）、designer・generator の文脈と design-map の重複 Read（19〜30回）→ スライス（§9.5）、eval 2周（約16〜20%）→ round 2 の差分再判定と決定論集約（§16.5・§16.9）、差し戻し時の `SendMessage` 再開 → 新規 spawn（基本設計書 §4.8）で削る。モデルは frontmatter の一箇所で固定する（§9.4）。**これらの効果は改修後の実 run でまだ測っていない**。改修後の run で `npm run tokens` を取り、基準値の「改修後に確認する指標」（main の総入力・design-map の Read 回数・Opus で動いた agent・eval 2周目の総入力・各セッションが5時間枠に収まるか）と比較すること。
+- **並行実行の排他**: 同一 `<ts>` 衝突・同一対象への同時実行の排他は設けない。**逐次実行前提**を維持する。`/canon`・機能X・機能Y の3系統は相互排他（§11.3）で、再開時も `npm run resume` が同じ判定（`gates/lib/run-exclusion.js`）で衝突を拒否する。
+- **中断実行の再開**: 区間の境目・中断のいずれからも、新しいセッションで `/canon resume <ts>` を実行する。`npm run resume -- <ts>` がディスクの成果物・完了マーカー・ブロックラッチ・state.md から現在地を導いて JSON で返し（基本設計書 §4.7）、オーケストレータはそれに従って該当工程から再開する。工程2のヒアリング途中で中断した場合は会話が失われているので、調査サマリの提示からやり直す。
 - **ミューテーションテスト**: 引き続きスコープ外（代表シナリオ試走で代替・§15.3）。
 - **恒久 CI**: `.github/workflows/ci.yml` が `npm test` と照合表の鮮度検査（`npm run build:tables` 後の `git diff` 無変化）を通す（基本設計書 §14 参照）。段階的リリース運用（canary deploy）はスコープ外——§11.5 の「ランタイム・カナリア」（vacuous pass 検出のための run 内自己診断）とは別物であり、用語が重なるため注記する。
 - **テストハーネスの運用制約**: `npm test` は **`--test-concurrency=1` によるファイル直列実行**を前提とする——ガードテスト群は実 `work/`・`output/`（特に共有の `work/.session-ts`）を変更するため、ファイル並列だと run in-flight 判定が競合し偽陰性になる（本番でもガードはツール呼出ごとに逐次発火するため直列が正しいモデル）。恒久策として検討したルート注入口（テストごとに `CANON_ROOT` を差し替える引数注入）は、既存件数・所要時間に対し便益より回帰リスクが大きいという判断で降スコープとした。実 `work/<ts>`・`output/<ts>` を触るテストの ts 日付プレフィックスをファイル間で重複させない運用規約は、`tests/helpers/ts.js`（`TS_NAMESPACES` レジストリ）と `tests/ts_namespace.test.js` により**機械検査へ格上げ**した。
@@ -811,12 +840,12 @@ G1〜G12 は**生成物**の検証であり、claude-canon 自身の正しさは
 | 意味を要する | eval（`.claude/agents/eval-*`） | **C2 要件非抵触・C4 強度整合**の意味的妥当性・merge 統合先の妥当性・受け入れ基準 `functional`(A1)・コンテキスト効率 |
 
 - **eval は決定論ゲートが既に見た項目を再判定しない**。再判定は「非決定論の判定が決定論の判定を上書きしうる」経路を作り、真偽の権威を壊すからである。
-- **eval の出力は工程前進の権威にならない**。eval はマーカーを鋳造せず（基本設計書 §2・§16.7）、その結果は P7（および C2 については P5）で**人間が読む材料**である（基本設計書 §8.4 の三段担保の中段）。
+- **eval の出力は工程前進の権威にならない**。eval はマーカーを鋳造せず（基本設計書 §2・§16.7）、その結果は P6+7（および C2 については P5 の再確認事項として）で**人間が読む材料**である（基本設計書 §8.4 の三段担保の中段）。
 - **eval が沈黙しても決定論ゲートは無傷**である（逆は成り立たない。決定論ゲートが沈黙すれば eval は生成物の正しさを担保できない）。
 
 ### 16.2 判定5軸（基本設計書 §3.2 の具体化）
 
-`eval-reviewer`（コーディネータ）が並列 spawn する（基本設計書 §14 のツリー）:
+5軸の judge は**メイン Claude（オーケストレータ）が同一 turn で並列に直接 spawn する**（基本設計書 §14 のツリー）。かつてはコーディネータ `eval-reviewer` が spawn と集約を担ったが、深さ2の子の報告が呼び出し元に届かない failure mode（基本設計書 §4.6 の investigator と同じ）があり、集約は「1件も落とさず転記する」機械作業で LLM に任せると転記漏れが起きうるため、廃止した。集約はコード（§16.5）が行う。各 judge に `<ts>`・`output/<ts>/`・`work/<ts>/slices/`（design-map 全文は読ませない）を注入し、keep-review には判定入力バンドルも注入する。全 judge の完了後、オーケストレータが5軸の軸ファイルの実在を確かめる。
 
 | 軸 | agent | 見るもの | 見ないもの（決定論ゲートの領分） |
 |---|---|---|---|
@@ -846,6 +875,8 @@ judge に「何を見るか」を**決定論的に確定**させる。judge が�
 - **出力**: `work/<ts>/eval-bundle/<axis>/<case>.md`（1 keep/merge レコード＝1バンドル）。
 - **宣言除去規約（最重要・恒真バグの構造的封鎖）**: バンドルから **designer が立てた `keep_conditions` の boolean とその rationale を機械的に除去**する。除去しなければ judge は「C2: true」という**判定対象自身の主張**に自己一致して常に clean と答え、検査が恒真（vacuous）になる。これは G6 の experimental 開示検査が環境変数名 `..._EXPERIMENTAL_...` に自己一致した恒真バグと同型であり、同じ手法（判定対象の主張を本文から除去してから判定条件を当てる）で塞ぐ。merge レコードも同様に「統合元 → 統合先」の対応のみを渡し、妥当性の主張は落とす。
 - 除去が効いていることは**テストで固定**する（バンドル本文に `keep_conditions` / `C2:` 等が現れないことを検査）。
+- **生成物からの逆引き（S2-5）**: 宣言を除去した結果、judge は「keep 対象の緩和措置が他の生成物に在るか」を確かめる材料を持たず、実在する記述を「無い」と断定して事実に反する violation を出した（run 20260922）。そこでバンドルに、**keep 対象を名指ししている生成物の箇所を `file:line` で機械的に逆引きして同梱する**。designer の主張ではなく生成物の実体なので恒真にならない。言及が見つからなければ「Grep で確かめてから不在と言う」旨を出す。`quality-checklist` にも「不在を根拠にする前に探す」を置く。
+- **書き出し前に出力先を掃除する（S2-2）**: 差し戻しで keep が減ったあと、前 round のバンドルが残って judge が判定対象外のファイルを判定していた（2 run 連続）。`eval:bundle` は書き出し前にバンドルディレクトリを空にする。
 
 **4軸への一般化**: バンドル生成を4軸（correctness / security / canon / context）へ広げる。各軸が「何を見るか」（§16.2 の「見るもの」列）を決定論で確定してから judge に渡す原則は keep-review と同じである。
 
@@ -876,12 +907,12 @@ judge に「何を見るか」を**決定論的に確定**させる。judge が�
 
 ### 16.5 `eval-report.md` とカバレッジ規約（`eval/report.js`）
 
-`eval-reviewer` が全軸の verdict を `output/<ts>/eval-report.md` へ集約する（基本設計書 §14）。harness は次を決定論的に検査する:
+**集約はコードが決定論で行う**: `npm run eval:report -- <ts> --write` が、各軸の verdict から `output/<ts>/eval-report.md` を組み立てる（`eval/aggregate.js`）。judge の判定内容は1文字も変えず（rationale は全文転記）、violation を1件も落とさない。round 2 以降は判定の由来（その round で判定したか・前 round から引き継いだか）を併記する（§16.9）。`--write` なしは検査だけを行う。検査を通り全軸が判定済みなら、その判定を「有効な判定」（`work/<ts>/eval-bundle/effective-r<N>.json`）として保存し、次 round の土台にする（判定不能の軸があれば保存しない）。harness は次を決定論的に検査する:
 
 - **カバレッジ**: G2 が回付した対象（design-map の `disposition: keep` 全件 × C2/C4、`merge` 全件 × 統合先）が keep-review の `coverage` に**全件**現れること。未判定を pass と読まない。
 - **回付0件を「eval 実施済み」と誤認しない**: keep 0件・design-map 不在は G2 と同じく成功と扱わない（§11.2 G2 実装契約の vacuous 規約と同一）。
 - 軸ファイルの欠落・スキーマ違反は eval の失敗であり、**「判定不能（judge が判定できなかった）」として `notes` と `violations` の両方に現れる**（軸名は戻り値の `undecided` に載る）。判定不能な軸は `forcedReview` に1件も寄与しないため、**violation 0件を「違反なし」と読んではならない**——`ok` を見ずに `forcedReview` だけ読む経路の誤読を防ぐのが notes の役割である。keep-review が判定不能なら coverage 検査そのものが成立しないので、回付対象を条件単位で全件名指しして「全て未判定」と報告する（沈黙すると「回付されたのに誰も見ていない対象」が出力のどこにも現れなくなる）。
-- `verdict: violation` の findings を **P5/P7 の強制表示リスト**として抽出する（基本設計書 §8.4「C2 が eval 未通過の維持は P5 で強制表示」の実体）。
+- `verdict: violation` の findings を **P5/P6+7 の強制表示リスト**として抽出する（基本設計書 §8.4「C2 が eval 未通過の維持は P5 で強制表示」の実体）。
 
 ### 16.6 メタ評価 — judge の較正（`eval/meta-eval.js`）
 
@@ -905,19 +936,38 @@ judge に「何を見るか」を**決定論的に確定**させる。judge が�
 
 - **eval-\* は `work/<ts>/.requests/` に何も書かない**。工程9 は「マーカー書かない・G バッチ非発火」（基本設計書 §2）である。
 - eval-\* の完了で **SubagentStop は発火する**が、`.requests/` に残留があっても基本設計書 §4.5 ① の冪等演算（マーカー有 → 判定を再実行せず削除のみ）により**ブロックラッチの偽陽性は生じない**。この性質は配線テストで固定する（残留 request を置いて stage-guard / gen-guard を起動し、マーカー鋳造0・ラッチ0 を確認）。
-- **P7 の表現**: 対話で承認を取り、要旨を `work/<ts>/state.md` に記録する（基本設計書 §4.4）。eval 承認はどのガード・ゲートの条件にも使わない（eval はマーカーを持たない・工程10 は run 外の CLI 工程・§10.2）。
+- **P6+7 の表現**: 生成物一式と `eval-report.md` を1回で提示し、対話で承認を取り、要旨を `npm run state:record` で `work/<ts>/state.md` に記録する（基本設計書 §4.4・§4.7）。eval 承認はどのガード・ゲートの条件にも使わない（eval はマーカーを持たない・工程10 は run 外の CLI 工程・§10.2）。
 - **eval ハーネス（`eval/`）は hooks から発火しない**。`gates/` が「hooks が発火させる不変土台」であるのに対し、`eval/` は CLI と `npm test` から回る別系統であり、ゆえに別ツリーに置く（基本設計書 §14）。
-- **eval ハーネスの起動経路**: `output/<ts>/eval-report.md` の集約検証（`eval/report.js` `checkEvalReport`）は `npm run eval:report -- <ts>` として CLI 起動できる（`main()` を持つ）。違反があれば exit 2。オーケストレータは工程9 の手順3（`.claude/skills/canon/SKILL.md`）でこれを実行し、5軸ファイルの欠落・`eval-report.md` の不在／空／集約漏れを検出する。
+- **eval ハーネスの起動経路**: `output/<ts>/eval-report.md` の集約と検証（`eval/report.js` `checkEvalReport`）は `npm run eval:report -- <ts> [--write]` として CLI 起動できる（`main()` を持つ）。違反があれば exit 2。オーケストレータは工程9 の手順3（`.claude/skills/canon/SKILL.md`）で `--write` 付きで実行し、`eval-report.md` を書き出したうえで5軸ファイルの欠落・集約漏れを検出する。`eval-report.md` の生成主体はこの CLI であり、LLM ではない。
 
 ### 16.8 スクリプト構成
 
 | ファイル | 責務 | 決定論 |
 |---|---|---|
-| `eval/bundle.js` | 判定入力バンドル生成（§16.3・宣言除去） | ○ |
+| `eval/bundle.js` | 判定入力バンドル生成（§16.3・宣言除去・逆引き・出力先の掃除）。round 1 の開始処理と `--round N` の入口 | ○ |
+| `eval/round.js` | round の計画（再判定する軸・対象）・判定の引き継ぎと合成（`mergeVerdict`）・生成物スナップショット（§16.9） | ○ |
+| `eval/referred.js` | eval へ回付される対象の導出（report.js・round.js が共有） | ○ |
 | `eval/verdict.js` | verdict のパース＋スキーマ検証（§16.4） | ○ |
-| `eval/report.js` | eval-report 集約検証・カバレッジ・強制表示リスト抽出（§16.5） | ○ |
+| `eval/aggregate.js` | eval-report.md の決定論集約（§16.5） | ○ |
+| `eval/report.js` | eval-report 集約検証・カバレッジ・強制表示リスト抽出（§16.5）。`--write` で aggregate を呼び有効な判定を保存 | ○ |
 | `eval/meta-eval.js` | メタ評価スコアラ・閾値判定（§16.6） | ○ |
-| `.claude/agents/eval-*` | 意味判断（judge） | ✕（LLM） |
-| `.claude/skills/quality-checklist` | 5軸の観点定義・決定論ゲートとの境界（`eval-reviewer` に preload） | — |
+| `.claude/agents/eval-*` | 意味判断（judge）。各定義に「round 2（再判定）モード」節を持つ | ✕（LLM） |
+| `.claude/skills/quality-checklist` | 5軸の観点定義・決定論ゲートとの境界・「不在を根拠にする前に探す」（各 `eval-*` に preload） | — |
 
-`npm run eval:bundle -- <ts>` / `npm run eval:meta -- [--verdicts <dir>]` で起動する。
+`npm run eval:bundle -- <ts> [--round N]` / `npm run eval:report -- <ts> [--write]` / `npm run eval:meta -- [--verdicts <dir>]` で起動する。
+
+### 16.9 round 2 以降 — 差分だけを再判定する（`eval/round.js`）
+
+P6+7 の指摘で生成物を直したあとの再 eval は、「直した箇所」の確認が目的である。実測（run 20260919・20260922）で eval 5軸＋eval-reviewer の2周分は約12.3M・13.4M、総入力の約16〜20%を占めたため（`design/canon-token-baseline-20260924.md`）、2周目で全量を繰り返さない。
+
+- **round 1**（`npm run eval:bundle -- <ts>`）: `work/<ts>/eval-bundle/`・前の試行の `output/<ts>/eval/*.md`・`eval-report.md` を消し（前の試行の判定が新しい判定に見えないように）、`generated/` の sha256 スナップショット `.snapshot-r1.json` を保存する。
+- **round N ≥ 2**（`npm run eval:bundle -- <ts> --round N`）: 前 round の有効な判定（`effective-r<N-1>.json`）が無ければ拒否する。スナップショット差分（追加・内容変更・削除）から計画 `round.json` を作る:
+  - **security 軸**: 変更があれば常に再判定（前 round が clean でも、変更が新たな違反を持ち込みうる最も見落としのコストが高い軸）。
+  - **他の軸**: 前 round に違反があった軸だけ再判定する。対象は前 round の違反対象＋変更ファイル。
+  - **keep-review**: 上記に加え、回付対象（keep/merge）の生成物が変わったとき、または前 round の `coverage` に無い回付対象が現れたとき（差し戻しで keep/merge の集合が変わった場合）にも再判定する。
+  - 変更も違反も無ければ何も再判定しない（全軸を引き継ぐ）。
+- **ファイルの扱い**: 再判定する軸のファイルと `eval-report.md` は round 開始時に消し、前 round のものは `output/<ts>/eval/round<N-1>/` へ退避する。judge がファイルを書き直さなければ、その軸は古い判定を読まずに判定不能になる。
+- **合成（`mergeVerdict`）**: 再判定対象の判定は新しい verdict に置き換え、それ以外は前 round のまま残す。**再判定すべき対象が新しい verdict の `coverage` に無ければ未判定として落とす**（未判定を pass と読まない・§16.5）。合成した判定から `eval:report --write` が `eval-report.md` を組み立て、`effective-r<N>.json` を更新する。
+- **judge 側**: 再判定する軸の judge だけを起動し、`round.json` を注入して「round 2（再判定）モード」で動かす——変更ファイルと前 round の違反対象だけを見て、再判定した対象を `coverage` に**すべて**列挙する。
+- **既知のトレードオフ**: 前 round が clean だった correctness・canon・context（と回付対象に変更の無い keep-review）は、変更で新たな違反が生じても再判定されない。見落としのコストが最も高い security だけを常時再判定の対象にし、残りは P6+7 の人間の確認に委ねる。
+- 回帰テストは `tests/eval_round.test.js`（計画の各分岐・合成・未判定の脱落・判定ファイル未更新時の判定不能の違反注入）。
