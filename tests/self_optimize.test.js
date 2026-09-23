@@ -76,7 +76,7 @@ test('self-optimize-scope-guard: sanctioned（output/<ts>/・work/<ts>/）は al
   );
   assert.equal(decide(GUARD, { tool_name: 'Write', tool_input: { file_path: abs(`work/${TS}/target.txt`) } }), 'allow');
   assert.equal(
-    decide(GUARD, { tool_name: 'Write', tool_input: { file_path: abs(`output/${TS}/.gate/approvals/generation.approved`) } }),
+    decide(GUARD, { tool_name: 'Write', tool_input: { file_path: abs(`output/${TS}/.gate/markers/generation.done`) } }),
     'deny',
     '.gate/** は deny-all（§4.4 と同じ規律）'
   );
@@ -128,9 +128,9 @@ function mintGenerationDone(outputDir) {
   mkdirSync(path.join(outputDir, '.gate', 'markers'), { recursive: true });
   writeFileSync(path.join(outputDir, '.gate', 'markers', 'generation.done'), '{}\n', 'utf8');
 }
-function mintGenerationApproved(outputDir) {
-  mkdirSync(path.join(outputDir, '.gate', 'approvals'), { recursive: true });
-  writeFileSync(path.join(outputDir, '.gate', 'approvals', 'generation.approved'), '{}\n', 'utf8');
+// 承認サイドカーは持たない。stage の前提は「ブロックラッチ0件」と「工程9 eval を経たこと（eval-report.md）」。
+function mintEvalReport(outputDir) {
+  writeFileSync(path.join(outputDir, 'eval-report.md'), '# eval-report\n', 'utf8');
 }
 
 test('stage-candidate: generation.done が無ければ拒否', (t) => {
@@ -140,18 +140,30 @@ test('stage-candidate: generation.done が無ければ拒否', (t) => {
   assert.match(r.reason, /generation\.done/);
 });
 
-test('stage-candidate: generation.approved が無ければ拒否（done のみでは不十分）', (t) => {
+test('stage-candidate: eval-report.md が無ければ拒否（done のみでは不十分・工程9 を経ていない生成物は候補にできない）', (t) => {
   const { scratch, outputDir } = makeStageScratch(t);
   mintGenerationDone(outputDir);
   const r = stageCandidate({ outputDir, label: 'demo', canonRoot: scratch });
   assert.equal(r.ok, false);
-  assert.match(r.reason, /generation\.approved/);
+  assert.match(r.reason, /eval-report\.md/);
+});
+
+test('stage-candidate: ブロックラッチが残っていれば拒否（違反を抱えたまま候補にしない）', (t) => {
+  const { scratch, outputDir } = makeStageScratch(t);
+  mintGenerationDone(outputDir);
+  mintEvalReport(outputDir);
+  mkdirSync(path.join(outputDir, '.gate', 'blocks'), { recursive: true });
+  writeFileSync(path.join(outputDir, '.gate', 'blocks', 'gen.blocked'), '{}\n', 'utf8');
+  const r = stageCandidate({ outputDir, label: 'demo', canonRoot: scratch });
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /ブロックラッチ/);
+  assert.match(r.reason, /gen\.blocked/);
 });
 
 test('stage-candidate: .claude/ 配下でないファイルが混入していれば拒否', (t) => {
   const { scratch, outputDir } = makeStageScratch(t);
   mintGenerationDone(outputDir);
-  mintGenerationApproved(outputDir);
+  mintEvalReport(outputDir);
   writeFileSync(path.join(outputDir, 'generated', 'CLAUDE.md'), '# root claude.md\n', 'utf8');
   const r = stageCandidate({ outputDir, label: 'demo', canonRoot: scratch });
   assert.equal(r.ok, false);
@@ -161,7 +173,7 @@ test('stage-candidate: .claude/ 配下でないファイルが混入していれ
 test('stage-candidate: uncaptured を検出したら拒否（稼働中の資産が候補で消える恐れ）', (t) => {
   const { scratch, outputDir } = makeStageScratch(t);
   mintGenerationDone(outputDir);
-  mintGenerationApproved(outputDir);
+  mintEvalReport(outputDir);
   // 「稼働中」の .claude/ に候補側が持たない管理ファイルを置く（取りこぼしの模擬）。
   writeAgent(scratch, 'orphan', { description: 'uncaptured fixture', tools: 'Read', model: 'sonnet', body: 'orphan' });
   const r = stageCandidate({ outputDir, label: 'demo', canonRoot: scratch });
@@ -173,7 +185,7 @@ test('stage-candidate: uncaptured を検出したら拒否（稼働中の資産�
 test('stage-candidate: 正常系はステージング成功し SOURCE_RUN を記録する', (t) => {
   const { scratch, outputDir } = makeStageScratch(t);
   mintGenerationDone(outputDir);
-  mintGenerationApproved(outputDir);
+  mintEvalReport(outputDir);
   const r = stageCandidate({ outputDir, label: 'demo', canonRoot: scratch });
   assert.equal(r.ok, true, r.reason);
   assert.ok(existsSync(path.join(scratch, 'generations', 'candidate-demo', '.claude', 'agents', 'foo', 'foo.md')));
@@ -186,7 +198,7 @@ test('stage-candidate: 正常系はステージング成功し SOURCE_RUN を記
 test('stage-candidate: 既存候補は --force 無しでは上書き拒否、--force 有りなら上書き成功', (t) => {
   const { scratch, outputDir } = makeStageScratch(t);
   mintGenerationDone(outputDir);
-  mintGenerationApproved(outputDir);
+  mintEvalReport(outputDir);
   const first = stageCandidate({ outputDir, label: 'demo', canonRoot: scratch });
   assert.equal(first.ok, true, first.reason);
 

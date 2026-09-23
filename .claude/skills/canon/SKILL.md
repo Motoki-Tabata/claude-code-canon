@@ -22,13 +22,13 @@ argument-hint: "<target_project_path>"
 
 1. **G13（preflight）は本 Skill の展開時に自動発火する**。`/canon` の `UserPromptExpansion` で `gates/g13_worker_privilege.js` が走り、claude-canon 自身のワーカー定義（`.claude/agents/**`）の `tools:` にコマンド実行系ツール（Bash/PowerShell/Monitor）が1つでもあれば **exit 2 で run の開始自体がブロックされる**。本 Skill 本文はその後に実行される。
 2. **ガードは run in-flight のときのみ有効**（§11.3・ガードの有効条件）。`<ts>` を採番して `work/.session-ts` が置かれた瞬間から、`output/<ts>/.gate/**`・`docs/`・`gates/`・`.claude/` への書込が deny される。採番前は素通りする。
-3. **承認は CLI が唯一の鋳造経路**（§4.4・承認鋳造経路の一本化）。`.gate/**` はエージェント書込 deny-all。人間ゲート通過後、オーケストレータ（＝本 Skill を実行するメイン Claude）が `npm run approve -- <ts> <kind>` を **Bash で実行**する。ワーカーはコマンド実行系ツールを持たないので承認を捏造できない。
+3. **承認は対話で取り、`work/<ts>/state.md` に記録する**（承認サイドカー・`npm run approve` は廃止済み）。`.gate/**` はエージェント書込 deny-all で、工程の完了マーカー（`markers/<stage>.done`）は決定論ゲートだけが鋳造する。**工程順の機械担保は承認でなくこのマーカーの順序**（G1 が前段マーカーを要求し、advance-guard が `spec.done` なしの design-map 書込・`design.done` なしの generated/** 書込を deny する）。state.md は LLM が書ける記録なので、ゲートの判定材料にしない。
 4. **工程間の状態はファイルが持つ**（§4.2）。各ワーカーは入力ファイルを読み、出力ファイルを書き、最後に `work/<ts>/.requests/<stage>` を書いて完了を告げる。`SubagentStop` で `stage-guard`/`gen-guard` が発火し、通過時のみ `output/<ts>/.gate/markers/<stage>.done` を鋳造する。
 5. **run in-flight 中は一時ファイルも `work/<ts>/` に置く**（S3-4）。環境（ハーネス）は「一時ファイルはセッション固有の scratchpad ディレクトリを使え」と指示することがあるが、write-scope-guard は sanctioned ツリー（`output/<ts>/`・`work/<ts>/`）外への書込を一律 deny するため、scratchpad は run 中は使えない（ライブ run `20260910_220906` で実測）。大きな応答をファイルへ永続化する必要があるとき（例: Write を持たないワーカーの応答を代筆する）は `work/<ts>/` に一時フラグメントを作り、使用後に削除すること。
 
 ## `subagent_type` マッピング（§4.1）
 
-全ワーカーは、環境に登録されているネイティブの `subagent_type`（例: `Agent(subagent_type="spec-writer")`）を優先して起動する。**ネイティブ起動では `model` 引数を渡さない**——起動時の `model` 引数は frontmatter より優先されるため、渡すと定義のモデルを上書きする（run `20260919_023121` で実測: `spec-writer`・`generator` が frontmatter sonnet のまま Opus で走り、`eval-keep-review` は frontmatter opus のまま sonnet で走った）。モデルの正は各 agent の frontmatter の一箇所に置く。環境によっては `.claude/agents/` 配下の canon agent が `subagent_type` として未登録のことがあり（`docs/L3_AGENTS.md §2.1` 運用ノート）、その場合に限り **`Agent(subagent_type="general-purpose", model=<対象 agent の frontmatter の model>)`**（フォールバックでは frontmatter が効かないので、定義を読んだ上で同じ値を渡す）＋「`.claude/agents/<name>/<name>.md` を Read して定義に従うこと」＋ `<ts>`・入出力の絶対パス・前段の結果の明示注入へフォールバックする。**`general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13（基本設計書 §5.3）が強制するワーカーのコマンド実行系ツール剥奪を無効化する**——フォールバックを使った run では §4.4「ワーカーはコマンド実行系ツールを持たないので承認を捏造できない」という前提が成立しないため、使った場合はユーザーに明示する。この起動主体はメイン Claude に一元化し、ワーカーに多段委譲を指示しない（investigator の系統A/B spawn を除く）。
+全ワーカーは、環境に登録されているネイティブの `subagent_type`（例: `Agent(subagent_type="spec-writer")`）を優先して起動する。**ネイティブ起動では `model` 引数を渡さない**——起動時の `model` 引数は frontmatter より優先されるため、渡すと定義のモデルを上書きする（run `20260919_023121` で実測: `spec-writer`・`generator` が frontmatter sonnet のまま Opus で走り、`eval-keep-review` は frontmatter opus のまま sonnet で走った）。モデルの正は各 agent の frontmatter の一箇所に置く。環境によっては `.claude/agents/` 配下の canon agent が `subagent_type` として未登録のことがあり（`docs/L3_AGENTS.md §2.1` 運用ノート）、その場合に限り **`Agent(subagent_type="general-purpose", model=<対象 agent の frontmatter の model>)`**（フォールバックでは frontmatter が効かないので、定義を読んだ上で同じ値を渡す）＋「`.claude/agents/<name>/<name>.md` を Read して定義に従うこと」＋ `<ts>`・入出力の絶対パス・前段の結果の明示注入へフォールバックする。**`general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13（基本設計書 §5.3）が強制するワーカーのコマンド実行系ツール剥奪を無効化する**——フォールバックを使った run では §4.4「ワーカーはコマンド実行系ツールを持たないので承認を捏造できない」という前提が成立しないため、使った場合はユーザーに明示する。この起動主体はメイン Claude に一元化し、ワーカーに多段委譲を指示しない（`generator` の builder 群への spawn を除く）。調査ワーカー（系統A/B）は中継役を挟まずメイン Claude が直接起動する——中継役（旧 investigator）は深さ2の子の報告が呼び出し元に届かず、メイン会話を経由した逐語転記が必要になった（run 20260919・20260922 で連続して発生）ため廃止した。
 
 ---
 
@@ -49,8 +49,8 @@ argument-hint: "<target_project_path>"
 
 ### 工程1: プロジェクト調査1（浅く広く・2系統）→ P1
 
-1. `investigator` を起動（ネイティブ `subagent_type`。未登録環境のみ `general-purpose` フォールバック・sonnet）。investigator は系統A `existing-customization-analyzer` と系統B `project-profiler` を**並列 spawn**し（深さ3・§4.4）、`work/<ts>/existing_customizations.md`（系統A）と `work/<ts>/project_profile.md`（系統B の profile 節）を書く。読取専用。
-2. investigator が `work/<ts>/.requests/investigation` を書いて完了。`SubagentStop` で `stage-guard` が G1（調査1・両ファイルの実在を含む）を検査しマーカー鋳造。**investigator が完了リクエストを書かずに turn を終えた場合**（配下 spawn 直後に中断する failure mode・詳細設計書 §11.5）、`work/<ts>/existing_customizations.md`・`project_profile.md`・`.requests/investigation` の実在を確認し、欠けていれば investigator を再開させて完走させる。
+1. 系統A `existing-customization-analyzer` と系統B `project-profiler`（`profile` モード）を、**メイン Claude が同一 turn で並列に直接起動する**（中継役は置かない）。プロンプトに `<ts>`・`target_root`・書き出し先の絶対パスを注入する。各ワーカーは対象を read-only で調べ、**自分の成果物を自分で書く**: 系統A → `work/<ts>/existing_customizations.md`、系統B → `work/<ts>/project_profile.md`（`## profile` 節のみ）。応答テキストは「書いた旨」だけの短いものになる（本文は会話に流れない）。
+2. **両ワーカーの完了後**、メイン Claude が2ファイルの実在を確かめ、**系統Aの `## サマリ` の総数が本文の `- path:` 行数と一致するか数え直す**（件数は転記・提示の前に数え直す規律・`.claude/rules/workflow.md`）。確認できたら `npm run recheck -- <ts> investigation` を実行する（完了リクエストを書いてゲートを hook 経路と同じ形で起動し、G1（調査1・両ファイルの実在・件数照合）を検査してマーカーを鋳造する）。G1 が違反を返したら、違反内容を渡して該当ワーカーを**新規に起動し直して**書き直させる。
 3. **P1**: 調査サマリをユーザーに提示し、続行を確認して停止。
 
 ### 工程2: 要件ヒアリング（inline・ワーカー化しない）→ P2
@@ -58,36 +58,36 @@ argument-hint: "<target_project_path>"
 1. `requirement-elicitation` Skill を **inline ロード**（Subagent に委譲しない・会話履歴継承のため）。
 2. 工程1の調査結果を提示し、**新規/既存改修モードを確認**。質問リストと用語誤マッピング検知チェックリストに沿って AskUserQuestion で往復対話し、要件と制約（hooks/mcp/plugins/experimental の可否）を収集する。
 3. 合意後、`requirements-recorder`（機械的直列化。model は暫定 sonnet・S3-1 参照）を起動し `work/<ts>/requirements.md` を書かせる。`.requests/requirements` → `stage-guard` が G1（req: strength_needed/priority の enum・conflicts）を検査。
-4. **P2**: 確定要件をユーザーに提示し承認を得る。承認後 `npm run approve -- <ts> requirements` を実行。
+4. **P2**: 確定要件をユーザーに提示し承認を得る。承認の要旨を `work/<ts>/state.md` に追記する。
 
 ### 工程3: プロジェクト調査2（深く狭く）→ P3
 
-1. `project-profiler` を `focused` モードで再起動し、確定要件に関係する箇所だけ深掘りさせる（注入: `requirements.md` の確定要件と、系統A `existing_customizations.md` の `depends_on.project_refs` 一覧）。
-2. **profiler の返答をオーケストレータが `work/<ts>/project_profile.md` の `## focused` 節へ永続化する**。`project-profiler` は `tools: Read Grep Glob` で **Write を持たない**（read-only 専任・agent 定義の制約節）ため、profiler 自身は書けない。工程1では `investigator` が代筆するが、工程3は profiler を**直接**起動するので代筆者がいない——ここを「追記させる」と読むと profiler が「Write を持たないので永続化できません」と正しく報告して止まる（実測: run `20260909_003820`）。
-   - **永続化は `project-profiler` の agent 定義にある `focused` の出力テンプレートと「値の語彙契約」に従って行う**（`findings:` キー配下に `- topic` / `evidence_paths` / `summary`、`ref_resolution:` は `- ref: <値>  kind: <語>  resolved: <true|false>` をこの順で1行に）。この形式は G1 が正規表現で機械照合する。**profiler の応答を要約・整形せず逐語で写し、書き終えたらパーサへ通す**（`.claude/rules/worker-definitions.md`）。
+1. `project-profiler` を `focused` モードで直接起動し、確定要件に関係する箇所だけ深掘りさせる（注入: `requirements.md` の確定要件、系統A `existing_customizations.md` の `depends_on.project_refs` 一覧、`<ts>`・`target_root`・`work/<ts>/project_profile.md` の絶対パス）。
+2. **profiler が `work/<ts>/project_profile.md` の末尾へ `## focused` 節を自分で追記する**（Edit。`project-profiler` は `Write`/`Edit` を持ち、書き込み先はこの1ファイルだけ）。オーケストレータは書き写さない——書き写しは応答の要約・整形によるずれとコストの二重払いを生む（実測: run 20260919・20260922 で逐語転記が必要になった）。
+   - **書式は `project-profiler` の agent 定義にある `focused` の出力テンプレートと「値の語彙契約」に従う**（`findings:` キー配下に `- topic` / `evidence_paths` / `summary`、`ref_resolution:` は `- ref: <値>  kind: <語>  resolved: <true|false>` をこの順で1行に）。この形式は G1 が正規表現で機械照合する。
    - **`evidence_paths` は対象リポジトリからの相対パスを裸で書く**（バッククォート・絶対パス不可）。G1 は `work/<ts>/target.txt` のルートから解決して実在照合する（幻覚防止）。
-3. `.requests/investigation`（調査2）→ G1（focused 空欄違反・evidence_paths 実在）。**完了リクエストをオーケストレータ自身が書いた場合**、`Stop` フック経由で `stage-guard` が走る配線はあるが、走ったかどうかは `output/<ts>/.gate/markers/investigation.focused.done` の実在で確かめる。鋳造されていなければ `npm run recheck -- <ts> investigation` で明示的に再検査する。
+3. profiler の完了後、オーケストレータが `project_profile.md` を Read して `## profile` 節が残っていること・`## focused` 節が追記されていることを確かめ、`npm run recheck -- <ts> investigation` を実行する（完了リクエストを書いてゲートを起動し、G1（focused 空欄違反・evidence_paths 実在）を検査する）。マーカー `output/<ts>/.gate/markers/investigation.focused.done` の実在で通過を確かめる。
 4. **P3**: 深掘り結果を提示し続行確認。
 
 ### 工程4: 要件定義 = spec → P4（最重要）
 
 1. `spec-writer` を起動し、系統A・系統B・requirements を統合入力に `output/<ts>/spec.md` を書かせる（§7 テンプレート）。
 2. `.requests/spec` → G1（open_questions 残存で前進不可・受け入れ基準の存在）。
-3. **P4**: spec.md の絶対パスを提示し、**内容を精査して承認**を得る（最重要ゲート）。承認後 `npm run approve -- <ts> spec` を実行。これが無いと次工程の `design-map.md` 書込が approval-guard に deny される（前進ゲート a）。
+3. **P4**: spec.md の絶対パスを提示し、**内容を精査して承認**を得る（最重要ゲート）。承認の要旨を `work/<ts>/state.md` に追記する。次工程の `design-map.md` 書込は `spec.done`（G1 通過で鋳造されるマーカー）を前提とし、advance-guard の順序ガードが強制する。
 
 ### 工程5+6: 機能選定 → 設計 = design-map → P5
 
 1. `selector`（feature-selection preload）を起動し、constraints で機能選択フローを刈り込んで L1〜L5 の使用機能を決める。
 2. 続けて `designer`（opus・layer-design/orchestration-patterns/model-selection/existing-disposition preload）を起動し、`output/<ts>/design-map.md` を書かせる（§9）。**新規シナリオ(1) では既存が無いので keep 判定は発生しない**（G2 は空パス）。
 3. `.requests/design` → `stage-guard` が G2（維持判定・シナリオ1は空）＋ G1（design）を検査。
-4. **P5**: design-map をユーザーに提示（廃止判定があれば強調）。承認後 `npm run approve -- <ts> design` を実行。これが無いと生成物書込が deny される（前進ゲート b）。
-   - **P5 差し戻し**（design-map をやり直す場合）: `design.done` マーカーが残っていると差し戻し後の design-map に対して G1・G2 が再実行されない。工程9→工程7 の巻き戻し手順（下記）と同型の手順を踏む: 下流承認（`generation`・`eval` 等、鋳造済みなら）を先に取り消す → `npm run reopen -- <ts> design` → design-map を書き直し完了リクエストを再度書かせる → `stage-guard` が G1・G2 を再実行 → P5 を取り直す。
+4. **P5**: design-map をユーザーに提示（廃止判定があれば強調）。承認の要旨を `work/<ts>/state.md` に追記する。生成物書込は `design.done`（G1・G2 通過で鋳造されるマーカー）を前提とし、advance-guard の順序ガードが強制する。
+   - **P5 差し戻し**（design-map をやり直す場合）: `design.done` マーカーが残っていると差し戻し後の design-map に対して G1・G2 が再実行されない。`npm run reopen -- <ts> design` を実行する（`design.done` と、あれば下流の `generation.done` を連鎖で削除する）→ design-map を書き直し完了リクエストを再度書かせる → `stage-guard` が G1・G2 を再実行 → P5 を取り直す。
 
 ### 工程7: 生成（全量・README/MANIFEST を最終ステップ）→ P6
 
 1. `generator` を起動し、design-map を唯一の設計入力に `output/<ts>/generated/**` を生成させる。generator は必要な builder（`l1-builder`/`skill-builder`/`agent-builder`）と、最終ステップで `readme-writer`（`generated/.claude/README.md` のみ）を統括する。**MANIFEST.md・`.deploy/*.list`・L4 成果物（`.claude/settings.json`・`.mcp.json`）は generator 自身が書く**（`readme-writer` の責務ではない）（深さ: orchestrator→generator→builder・5以内）。
 2. 書込ごとに **PostToolUse で G3〜G6 が助言**（違反はラッチへ転写）。generator が `.requests/generation` を書いて完了 → `SubagentStop` で `gen-guard` が **snapshot ゲート G7〜G12** を検査（G12 が全 output に G3〜G6 を権威再検証）。**generator が完了リクエストを書かずに turn を終えた場合、および成果物の完成を報告せずに turn を終えた場合**（詳細設計書 §11.5）、`output/<ts>/generated/`・`MANIFEST.md`・`.deploy/managed-paths.list`・`.deploy/retired.list` の実在を確認し、欠けていれば generator を再開させて完走させる。**generator の応答が「待機中」等で完走を報告していなくても、それを未完了の証拠と読まない**——実測（run `20260909_003820`）では `(待機中。人間からの明示的な指示があるまで操作は行いません。)` とだけ返しながら、`generated/**` 28ファイル・`MANIFEST.md`・`.deploy/*` と `.requests/generation` を全て書き終えていた。判断材料はワーカーの自己申告ではなく**ディスクの実在**である（`.claude/rules/worker-definitions.md`「ワーカーの『書いた』は裏取りする」の裏返しで、『書いていない』も裏取りする）。
-3. **P6**: 生成物一式（generated/・MANIFEST・README）をユーザーに提示。承認後 `npm run approve -- <ts> generation` を実行。
+3. **P6**: 生成物一式（generated/・MANIFEST・README）をユーザーに提示。承認の要旨を `work/<ts>/state.md` に追記する。
    - 補足: generator が書くのは `.deploy/managed-paths.list`・`retired.list`（配置スクリプトの入力）まで。配置手順書 `.deploy/RUN.md` は工程10でオーケストレータが `emit-run-manifest.js` から出力する（配置先 `<target>` が定まるのが工程10のため）。
 
 ### 工程8: 検証
@@ -107,15 +107,14 @@ argument-hint: "<target_project_path>"
    **書式違反のうち判定内容を毀損しない3種**（未知のトップレベルキー・`condition` の enum 外・`findings[].target` の `coverage` 不記載）は `eval/verdict.js` が自動補正するため、**軸は判定不能にならず (a)〜(c) の復旧作業自体が不要**になった（S2-1）。`npm run eval:report` の出力（`notes`）に「書式を自動補正した」旨が出るので、それを見て `quality-checklist` の NG 例を judge へ次 round で指摘するだけでよい。それでも欠けている（フェンス不在・必須キー欠落等）なら上記 (a)〜(c) で復旧する。
    書き出し後に手順3 を再実行し、判定不能が解消したことを確かめる。
 3. **ハーネスで集約を機械検証する**: `npm run eval:report -- <ts>`（`eval/report.js` `checkEvalReport` の CLI 起動・違反があれば exit 2）。スキーマ・カバレッジ・集約漏れを検査する。回付対象（keep×C2/C4・merge×統合先）に未判定があれば eval の失敗として扱う。**判定対象0件は「品質を確認した」ではない**（§16.5）。
-4. **P7**: `eval-report.md` を提示する。`verdict: violation` は**1件残らず提示**する（§8.4 の強制表示）。とくに **C2 の violation は P5 の再確認事項**として扱う。承認後 `npm run approve -- <ts> eval`。
+4. **P7**: `eval-report.md` を提示する。`verdict: violation` は**1件残らず提示**する（§8.4 の強制表示）。とくに **C2 の violation は P5 の再確認事項**として扱う。承認の要旨を `work/<ts>/state.md` に追記する。
 
 **eval は決定論ゲートの代替ではない**。eval が clean でも決定論ゲートのブロックラッチが立っていれば前進しない。逆に eval の指摘で生成物を書き換える場合は工程7へ戻る（自己修復はデータプレーン限定・§3.3）。judge が verdict を書けなかった／形式が壊れていた場合は、**「違反なし」と読まずに「judge が判定できなかった」と報告する**（§16.4）。
 
 **工程7へ戻る具体手順**（重要: `generation.done` はガードの有効条件そのものであり、残ったままだと再検査もガードも働かない・基本設計書 §4.5 巻き戻し・詳細設計書 §11.3）:
-1. `eval.approved`（鋳造済みなら）・`generation.approved` を取り消す: `npm run approve -- <ts> eval --revoke` → `npm run approve -- <ts> generation --revoke`。
-2. `npm run reopen -- <ts> generation` を実行する。write-scope-guard／approval-guard／advance-guard が再武装され、`generation.done` が削除される。
-3. `generator` を再起動して生成物を書き直させ、`.requests/generation` を再度書かせる。`gen-guard` が G1・G7〜G12 を実際に再実行する（冪等スキップに入らない）。
-4. 通過したら P6 を取り直し、`npm run approve -- <ts> generation` → 工程9 を再実行 → P7 を取り直す。
+1. `npm run reopen -- <ts> generation` を実行する。`generation.done` が削除され、write-scope-guard／advance-guard が再武装される（承認サイドカーは無いので、承認の取消手順は要らない）。
+2. `generator` を再起動して生成物を書き直させ、`.requests/generation` を再度書かせる。`gen-guard` が G1・G7〜G12 を実際に再実行する（冪等スキップに入らない）。
+3. 通過したら P6 を取り直し（対話承認を state.md に記録）→ 工程9 を再実行 → P7 を取り直す。
 
 ### 工程10: デプロイ → P8
 
@@ -131,4 +130,4 @@ argument-hint: "<target_project_path>"
 
 ## 各ゲートで停止する（自動遷移しない）
 
-各人間ゲート P1〜P8 で**必ずチャット上でユーザー確認を取り停止する**（§4.1）。承認は口頭でなく `npm run approve` の実行で表す。ブロックラッチが立っていれば、原因を提示して人間の判断を仰ぐ（無限再生成しない・§3.3）。
+各人間ゲート P1〜P8 で**必ずチャット上でユーザー確認を取り停止する**（§4.1）。承認は対話で取り、`work/<ts>/state.md` に記録する。ブロックラッチが立っていれば、原因を提示して人間の判断を仰ぐ（無限再生成しない・§3.3）。

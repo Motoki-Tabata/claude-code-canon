@@ -101,8 +101,9 @@ npm run smoke:check    # 的にファイルが在れば「配線が死んでい�
      「配線が死んでいる」と判断して run を中断**する。ここで中断したら手順3（配線の実発火確認・
      書式ミス→再起動の順に切り分け）に戻る。
 2. **工程1〜7**（P1〜P6）: 調査 → ヒアリング → 深掘り → spec → 選定+設計 → 生成。
-   各工程の承認は `npm run approve -- <ts> <kind>` で鋳造されます（`.gate/**` への直接書込は
-   deny-all のため、承認 CLI が唯一の経路）。
+   各人間ゲートの承認はオーケストレータとの対話で取り、要旨と日時を `work/<ts>/state.md` に
+   記録します（ゲートの判定材料には使いません）。工程順は決定論ゲートが鋳造する完了マーカー
+   （`spec.done`・`design.done` 等。`.gate/**` はエージェント書込 deny-all）で機械的に担保されます。
 3. **工程8**（検証）: 決定論ゲートが真偽で確定。
 4. **工程9**（品質検査＝eval）: judge が5軸で意味判断し `eval-report.md` を提示（P7）。
    決定論ゲートの代替ではありません（eval が clean でもラッチが立てば前進しません）。
@@ -142,7 +143,7 @@ node deploy/deploy.js <output/ts> <対象> --confirm
 
 ## 8. npm scripts 一覧
 
-`package.json` の全18スクリプト。上記1〜6で個別に触れなかったものを含め、用途と実行タイミング別に整理します。
+`package.json` の全19スクリプト。上記1〜6で個別に触れなかったものを含め、用途と実行タイミング別に整理します。
 
 **日常（`/canon` run の前後・随時）**
 
@@ -152,20 +153,19 @@ node deploy/deploy.js <output/ts> <対象> --confirm
 | `npm test` | 配線テスト・必須の帯域外検証（手順2） |
 | `npm run smoke:arm` / `smoke:check` | hooks の実発火確認（手順3） |
 | `npm run unblock -- <ts>` | ブロックラッチの人間による解除（§7） |
-| `npm run reopen -- <ts> <stage>` | 権威マーカー取消の唯一の経路。工程9→工程7・P5 差し戻し等の巻き戻しでガードと再検査を再武装する（§4.5 巻き戻し。下流の人間承認の事前取消が前提） |
+| `npm run reopen -- <ts> <stage>` | 権威マーカー取消の唯一の経路。工程9→工程7・P5 差し戻し等の巻き戻しでガードと再検査を再武装する（§4.5 巻き戻し。`<stage>` 以降の工程マーカーを連鎖で削除する。巻き戻した工程の承認は対話で取り直す） |
 
 **`/canon` run 中（内部から呼ばれる・通常は手動実行しない）**
 
 | script | 用途 |
 |---|---|
 | `npm run ts` | `<ts>` の採番（`tools/new-ts.js`）。run 開始で自動発行 |
-| `npm run approve -- <ts> <kind>` | 承認鋳造の唯一の経路（§4.4）。人間ゲート通過後にオーケストレータが実行 |
 
 **機能X（正典更新・`/update-docs`）**
 
 | script | 用途 |
 |---|---|
-| `npm run canon:ts` | 機能X 専用 `<ts>` の採番（`tools/new-canon-ts.js`）。`/canon` run の `.session-ts` とは別名前空間 |
+| `npm run canon:ts` | 機能X 専用 `<ts>` の採番（`tools/new-canon-ts.js`）。`/canon` run の `.session-ts` とは別名前空間。採番時に `docs/` の sha256 スナップショット（`work/<ts>/.docs-snapshot.json`）を保存し、提案フェーズの `docs/` 無変更照合に使う |
 
 **機能Y（自己最適化・`/self-optimize` と実昇格）**
 

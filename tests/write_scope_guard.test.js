@@ -3,7 +3,7 @@
  *
  * 中心的な関心は **シェル経路の封鎖**。当初の実装は `Bash` のみを検査しており、
  * 正典 TOOLS.md の44種（2026-08-19時点。旧42種）に実在する `PowerShell`（Windows の主シェル）が素通りしていた。
- * その結果 `PowerShell: Set-Content <ts>/.gate/approvals/spec.approved ''` で
+ * その結果 `PowerShell: Set-Content <ts>/.gate/markers/spec.done ''` で
  * **承認サイドカーを捏造でき、承認鋳造経路の一本化の deny-all と前進ゲートのラチェットが崩壊**した。
  *
  * このテストは「列挙の網羅性が単一障害点」であることを固定する。
@@ -23,15 +23,15 @@ const TS = tsFor(import.meta.url, 0);
 const SESSION_TS_FILE = path.join(ROOT, 'work', '.session-ts');
 
 test('シェル経路の封鎖: PowerShell 経由の保護パス書込を deny する（Bash だけでは不十分）', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   assert.equal(decide(GUARD, { tool_name: 'PowerShell', tool_input: { command: "Set-Content docs/foo.md 'x'" } }), 'deny');
   assert.equal(decide(GUARD, { tool_name: 'PowerShell', tool_input: { command: "'x' | Out-File gates/g5_tool_names.js" } }), 'deny');
   assert.equal(decide(GUARD, { tool_name: 'PowerShell', tool_input: { command: 'Remove-Item .claude/settings.json' } }), 'deny');
 });
 
 test('シェル経路の封鎖×承認鋳造経路の一本化: PowerShell で承認サイドカーを捏造できないこと（最重要）', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
-  const forge = `Set-Content output/${TS}/.gate/approvals/spec.approved ''`;
+  withRun(t, TS, { dirs: ['markers'] });
+  const forge = `Set-Content output/${TS}/.gate/markers/spec.done ''`;
   assert.equal(
     decide(GUARD, { tool_name: 'PowerShell', tool_input: { command: forge } }),
     'deny',
@@ -40,12 +40,12 @@ test('シェル経路の封鎖×承認鋳造経路の一本化: PowerShell で�
 });
 
 test('シェル経路の封鎖: Bash も引き続き封鎖されている（退行防止）', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: 'echo x > docs/foo.md' } }), 'deny');
 });
 
 test('シェルの読取・承認 CLI は誤検出しない', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   assert.equal(decide(GUARD, { tool_name: 'PowerShell', tool_input: { command: 'Get-Content docs/00_INDEX.md' } }), 'allow');
   // 承認の正規経路。ここを弾くと §4.4 の承認鋳造が不可能になり設計が破綻する。
   assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: `npm run approve -- ${TS} spec` } }), 'allow');
@@ -53,8 +53,8 @@ test('シェルの読取・承認 CLI は誤検出しない', (t) => {
 });
 
 test('承認鋳造経路の一本化: .gate/** への Write は deny-all', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
-  const p = `${ROOT.replace(/\\/g, '/')}/output/${TS}/.gate/approvals/spec.approved`;
+  withRun(t, TS, { dirs: ['markers'] });
+  const p = `${ROOT.replace(/\\/g, '/')}/output/${TS}/.gate/markers/spec.done`;
   assert.equal(decide(GUARD, { tool_name: 'Write', tool_input: { file_path: p } }), 'deny');
 });
 
@@ -69,7 +69,7 @@ test('シェル経路の封鎖: Monitor 経由の保護パス書込を deny す�
   // 公式 tools-reference: Monitor は "Runs a command in the background" であり、
   // permission rule 対応表で `Bash(npm run *)` ルールが Bash と Monitor の両方に適用される。
   // 公式自身が Bash と同じコマンド実行系として扱っている。
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   assert.equal(decide(GUARD, { tool_name: 'Monitor', tool_input: { command: "Set-Content docs/foo.md 'x'" } }), 'deny');
   assert.equal(decide(GUARD, { tool_name: 'Monitor', tool_input: { command: 'echo x > gates/g5_tool_names.js' } }), 'deny');
   assert.equal(decide(GUARD, { tool_name: 'Monitor', tool_input: { command: 'npm run build' } }), 'allow', '誤検出しないこと');
@@ -86,7 +86,7 @@ test('シェル経路の封鎖: Monitor 経由の保護パス書込を deny す�
 // ---------------------------------------------------------------------------
 
 test('宛先ベース判定: ライブ run 20260903_091044 の偽陽性2件を回帰させない', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   // 偽陽性1（heredoc 本文の混入）: 書込先は sanctioned（work/<ts>/）で、保護パス文字列は
   // heredoc の**データ本文**にしか現れない → allow。
   const heredocFp = `cat > work/${TS}/project_profile.md <<'EOF'\n- .claude/rules/*.md を参照\n- .claude/settings.json あり\nEOF`;
@@ -108,7 +108,7 @@ test('宛先ベース判定: ライブ run 20260903_091044 の偽陽性2件を�
 });
 
 test('宛先ベース判定: 出現ベースが見落としていた既存ホールを新たに締める（副産物・正味では網羅性が増す）', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   // 末尾スラッシュ無しの保護ディレクトリ名（旧 PROTECTED_TOKEN_RE は "docs/" 前提で "docs" 単体を見落としていた）。
   assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: 'rm -rf docs' } }), 'deny');
   // cd による相対パス化（旧実装はコマンド文字列に "docs" という語自体が出現しないため素通りしていた）。
@@ -116,7 +116,7 @@ test('宛先ベース判定: 出現ベースが見落としていた既存ホー
 });
 
 test('宛先ベース判定: 読取コマンドの引数・null シンクは誤検出しない', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: "sed -n '1,5p' gates/g1_evidence.js" } }), 'allow', '-i 無し sed は読取専用');
   assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: 'cat docs/00_INDEX.md' } }), 'allow');
   assert.equal(decide(GUARD, { tool_name: 'PowerShell', tool_input: { command: 'Get-Content .claude/settings.json' } }), 'allow');
@@ -124,7 +124,7 @@ test('宛先ベース判定: 読取コマンドの引数・null シンクは誤�
 });
 
 test('宛先ベース判定: sanctioned 配下の .claude/ をシェル経由で作っても誤検出しない（偽陽性3の解消）', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   // 旧実装は "output/<ts>/generated/.claude/agents/foo" のような sanctioned 配下の .claude/ も
   // 出現ベースで deny していた（未報告だった偽陽性）。宛先を repo-relative に正規化して
   // 判定することで、トップレベルの .claude/ とは区別できる。
@@ -135,7 +135,7 @@ test('宛先ベース判定: sanctioned 配下の .claude/ をシェル経由で
 });
 
 test('宛先ベース判定: 同定不能な書込構文は従来どおり広域スキャンへフォールバックする（網羅性の非後退）', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   // node -e は文字列として渡されたコードを実行するため宛先を静的に解決できない → unresolved
   // → 出現ベース広域スキャンへフォールバックし、従来どおり deny する。
   assert.equal(
@@ -183,7 +183,7 @@ test('コマンド実行系ツールの列挙が正典の全ツール集合と�
 // ---------------------------------------------------------------------------
 
 test('読取専用の node -e は allow する（保護パス文字列の出現だけで落とさない）', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   // 実測（ライブ run 20260909_003820）: JSON の構文検査（読取のみ）が
   // 「広域スキャン（宛先同定不能）」で deny され、書き方の試行錯誤を強いられた。
   const readOnly =
@@ -197,7 +197,7 @@ test('読取専用の node -e は allow する（保護パス文字列の出現�
 });
 
 test('node -e 経由の実書込は引き続き deny する（緩和による検出力の非後退・故意の違反注入）', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   const cases = [
     `node -e "require('fs').writeFileSync('docs/forged.md','x')"`,
     // --input-type=module 等のフラグを挟む形も同じ扱い（従来の OPAQUE_EXEC_RE は
@@ -215,7 +215,7 @@ test('node -e 経由の実書込は引き続き deny する（緩和による検
 });
 
 test('読取専用 node -e からのリダイレクトは宛先で deny する（緩和が書込経路を開けていない）', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   assert.equal(
     decide(GUARD, { tool_name: 'Bash', tool_input: { command: `node -e "console.log(1)" > docs/out.md` } }),
     'deny',
@@ -226,7 +226,7 @@ test('読取専用 node -e からのリダイレクトは宛先で deny する�
 // --- S3-3: tokenize() のクォート無視により「宛先同定不能」に落ちていた実際のコマンド ---
 
 test('S3-3: sed -i のクォート内データに <>/ が含まれても宛先を正しく同定する（ライブ run 20260910_220906 の再現）', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   const cmd =
     "sed -i '65{/^<\/content>$/d}' work/" +
     TS +
@@ -245,7 +245,7 @@ test('S3-3: sed -i のクォート内データに <>/ が含まれても宛先�
 });
 
 test('S3-3 緩めた対: sed -i のクォート内データに <>/ を隠しても実書込先が保護パスなら deny を維持する', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   assert.equal(
     decide(GUARD, { tool_name: 'Bash', tool_input: { command: "sed -i '65{/^<x>$/d}' docs/foo.md" } }),
     'deny',
@@ -254,7 +254,7 @@ test('S3-3 緩めた対: sed -i のクォート内データに <>/ を隠して�
 });
 
 test('S3-3 緩めた対: sed -i の宛先引数がクォートされておらず <>/ を含む場合は従来どおり引数走査を打ち切る', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   // クォートされていない `<`/`>` は引き続きリダイレクト演算子として扱われ、引数走査を打ち切る
   // （今回の緩和は「クォート済みトークンの中身」に限る・検出力の非後退）。
   assert.equal(
@@ -265,7 +265,7 @@ test('S3-3 緩めた対: sed -i の宛先引数がクォートされておらず
 });
 
 test('S3-3: 別セグメントの .gate/ 読取（ls）は resolved セグメントの本文をフォールバック走査に含めない', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   // node -e 等の不透明構文で unresolved になった別セグメントに保護パス文字列が無い場合、
   // resolved セグメント（.gate/ の ls）の本文だけを理由に deny してはならない。
   const cmd = `ls output/${TS}/.gate/markers/ && node -e "console.log(1)"`;
@@ -277,7 +277,7 @@ test('S3-3: 別セグメントの .gate/ 読取（ls）は resolved セグメン
 });
 
 test('S3-3: 不透明セグメント自体に保護パス文字列があれば、そのセグメント単体で従来どおり deny する', (t) => {
-  withRun(t, TS, { dirs: ['approvals'] });
+  withRun(t, TS, { dirs: ['markers'] });
   const cmd = `ls output/${TS}/.gate/markers/ && bash -c "echo x > docs/foo.md"`;
   assert.equal(
     decide(GUARD, { tool_name: 'Bash', tool_input: { command: cmd } }),

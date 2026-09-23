@@ -30,12 +30,12 @@ const GUARDS = [
   {
     name: 'write-scope-guard',
     file: 'write-scope-guard.js',
-    setup: (t, ts) => withRun(t, ts, { dirs: ['approvals'] }),
+    setup: (t, ts) => withRun(t, ts, { dirs: ['markers'] }),
   },
   {
     name: 'canon-update-scope-guard',
     file: 'canon-update-scope-guard.js',
-    setup: (t, ts) => withCanonUpdateRun(t, ts, { dirs: ['approvals'] }),
+    setup: (t, ts) => withCanonUpdateRun(t, ts, { dirs: ['markers'] }),
   },
   {
     name: 'self-optimize-scope-guard',

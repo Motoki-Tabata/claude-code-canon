@@ -39,7 +39,7 @@ function write(c, rel, text) {
 // ---------------------------------------------------------------------------
 
 test('G11: 制約強め fixture（hooks/mcp/plugins/experimental 全禁止）は違反0で通過する', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   const r = checkG11({ ts: c.ts });
   assert.equal(r.ok, true, JSON.stringify(r.violations, null, 2));
   // 「0件で通った」だけを根拠にしない: 4能力すべてを実際に照合したことを確認する。
@@ -56,7 +56,7 @@ test('G11: 制約強め fixture（hooks/mcp/plugins/experimental 全禁止）は
 // ---------------------------------------------------------------------------
 
 test('A4 G11: hooks allowed:true + reason「既存維持・新規追加なし」× 既存 hooks 実体 → 通過', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   patchRequirements(c, (text) =>
     text
       .replace(
@@ -79,7 +79,7 @@ test('A4 G11: hooks allowed:true + reason「既存維持・新規追加なし」
 });
 
 test('A4 G11: 同じ生成物で hooks allowed:false のままなら違反（対比・requirement-elicitation SKILL.md の書き分けが実ゲートと一致する根拠）', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   write(
     c,
     '.claude/settings.json',
@@ -95,7 +95,7 @@ test('A4 G11: 同じ生成物で hooks allowed:false のままなら違反（対
 // ---------------------------------------------------------------------------
 
 test('G11: hooks 禁止 × generated の settings.json に hook（経路①）を検出', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   write(
     c,
     '.claude/settings.json',
@@ -112,7 +112,7 @@ test('G11: hooks 禁止 × generated の settings.json に hook（経路①）�
 
 test('G11: hooks 禁止 × plugin 同梱 hooks（settings.json 以外の経路③）を検出', (t) => {
   // L005 の核心: 「hooks 禁止」を settings.json だけで見る実装はこのケースを素通りさせる。
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   write(c, 'plugin/hooks/on-write.js', '// hook script\n');
   const r = checkG11({ ts: c.ts });
   assert.equal(r.ok, false);
@@ -123,7 +123,7 @@ test('G11: hooks 禁止 × plugin 同梱 hooks（settings.json 以外の経路�
 });
 
 test('G11: hooks 禁止 × plugin.json 内の hooks 宣言（経路①の別ファイル）を検出', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   write(c, 'plugin/.claude-plugin/plugin.json', JSON.stringify({ name: 'p', hooks: './hooks/hooks.json' }));
   const r = checkG11({ ts: c.ts });
   assert.equal(r.ok, false);
@@ -135,7 +135,7 @@ test('G11: hooks 禁止 × plugin.json 内の hooks 宣言（経路①の別フ�
 // ---------------------------------------------------------------------------
 
 test('G11: experimental 禁止 × frontmatter context: fork を検出', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   write(
     c,
     '.claude/skills/forked/SKILL.md',
@@ -148,7 +148,7 @@ test('G11: experimental 禁止 × frontmatter context: fork を検出', (t) => {
 
 test('G11: experimental 禁止 × AGENT_TEAMS 以外の CLAUDE_CODE_EXPERIMENTAL_* を検出（接頭辞導出）', (t) => {
   // G6 は AGENT_TEAMS の1変数しか見ない。G11 は接頭辞で導出するため未知の実験フラグも捕まえる。
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   write(
     c,
     '.claude/rules/flags.md',
@@ -160,7 +160,7 @@ test('G11: experimental 禁止 × AGENT_TEAMS 以外の CLAUDE_CODE_EXPERIMENTAL
 });
 
 test('G11: experimental 禁止 × design-map の Experimental Dependencies 箇条書き宣言を検出', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   const p = path.join(c.out, 'design-map.md');
   writeFileSync(
     p,
@@ -176,7 +176,7 @@ test('G11: experimental 禁止 × design-map の Experimental Dependencies 箇�
 
 test('G11: 「なし」と書かれた Experimental Dependencies 節を違反にしない（偽陽性の封鎖）', (t) => {
   // 機能名を並べた否定の散文（「context:fork / Agent Teams とも不使用」）で落ちてはならない。
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   const r = checkG11({ ts: c.ts });
   assert.equal(r.ok, true, JSON.stringify(r.violations));
 });
@@ -186,7 +186,7 @@ test('G11: 「なし」と書かれた Experimental Dependencies 節を違反に
 // ---------------------------------------------------------------------------
 
 test('G11: mcp 禁止 × .mcp.json の実在を検出', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   write(c, '.mcp.json', JSON.stringify({ mcpServers: { fs: { command: 'npx', args: [] } } }));
   const r = checkG11({ ts: c.ts });
   assert.equal(r.ok, false);
@@ -195,7 +195,7 @@ test('G11: mcp 禁止 × .mcp.json の実在を検出', (t) => {
 });
 
 test('G11: mcp 禁止 × frontmatter tools の mcp__ ツール名を検出', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   write(
     c,
     '.claude/agents/fetcher/fetcher.md',
@@ -207,7 +207,7 @@ test('G11: mcp 禁止 × frontmatter tools の mcp__ ツール名を検出', (t)
 });
 
 test('G11: plugins 禁止 × plugin/ 配下の生成物を検出（管理パス集合の L5 パターン）', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   write(c, 'plugin/skills/packaged/SKILL.md', '---\nname: packaged\ndescription: x\n---\n本文\n');
   const r = checkG11({ ts: c.ts });
   assert.equal(r.ok, false);
@@ -219,7 +219,7 @@ test('G11: plugins 禁止 × plugin/ 配下の生成物を検出（管理パス�
 // ---------------------------------------------------------------------------
 
 test('G11: 未知の constraints キーが allowed:false なら「検査不能」で違反', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   patchRequirements(c, (text) =>
     text.replace('  organization_policy:', '  agent_teams:  { allowed: false, reason: "禁止" }\n  organization_policy:')
   );
@@ -232,7 +232,7 @@ test('G11: 未知の constraints キーが allowed:false なら「検査不能�
 });
 
 test('G11: 未知キーでも allowed:true なら違反にしない（禁止していない制約は検査不要）', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   patchRequirements(c, (text) =>
     text.replace('  organization_policy:', '  agent_teams:  { allowed: true }\n  organization_policy:')
   );
@@ -245,7 +245,7 @@ test('G11: 未知キーでも allowed:true なら違反にしない（禁止し�
 // ---------------------------------------------------------------------------
 
 test('G11: deterministic 要件 × hooks 禁止 で conflicts 未登録なら違反（縮退の記録漏れ）', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   patchRequirements(c, (text) => text.replace(/conflicts:[\s\S]*$/, 'conflicts:\n  (なし)\n'));
   const r = checkG11({ ts: c.ts });
   assert.equal(r.ok, false);
@@ -253,7 +253,7 @@ test('G11: deterministic 要件 × hooks 禁止 で conflicts 未登録なら違
 });
 
 test('G11: conflicts ブロック自体が無い場合も登録漏れとして違反', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   patchRequirements(c, (text) => text.replace(/## 制約と要件の衝突[\s\S]*$/, ''));
   const r = checkG11({ ts: c.ts });
   assert.equal(r.ok, false);
@@ -265,7 +265,7 @@ test('G11: conflicts ブロック自体が無い場合も登録漏れとして�
 // 承認済みの requirements.md を落とし、承認済み成果物を後から書き換える羽目になったため。
 // 判定ロジックは gates/lib/requirements.js の checkConflictsIntegrity が SSoT。
 test('G1(移設): 実在しない要件 id を指す conflicts を虚偽として検出（記録直後＝承認前に落ちる）', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   patchRequirements(c, (text) => text.replace('- requirement: R1（deterministic 希望）', '- requirement: R9（存在しない）'));
   const r = checkG1({ ts: c.ts, stage: 'requirements' });
   assert.equal(r.ok, false);
@@ -273,7 +273,7 @@ test('G1(移設): 実在しない要件 id を指す conflicts を虚偽とし�
 });
 
 test('G1(移設): 禁止されていない制約との「衝突」を主張する conflicts を検出', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   patchRequirements(c, (text) =>
     text
       .replace('hooks:        { allowed: false', 'hooks:        { allowed: true')
@@ -287,7 +287,7 @@ test('G1(移設): 禁止されていない制約との「衝突」を主張す�
 test('G11(移設後の非回帰): 整合違反だけの requirements で generation はブロックされない', (t) => {
   // 移設の眼目は「生成物に問題が無いのに generation が止まる」ことの解消。
   // 登録漏れ検査(1)は G11 に残るので、そちらが引き続き効くことは上の2テストが担保する。
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   patchRequirements(c, (text) => text.replace('- requirement: R1（deterministic 希望）', '- requirement: R9（存在しない）'));
   const r = checkG11({ ts: c.ts });
   assert.ok(
@@ -301,7 +301,7 @@ test('G11(移設後の非回帰): 整合違反だけの requirements で generat
 // ---------------------------------------------------------------------------
 
 test('G11: requirements.md 不在を「制約なし＝合格」と読まない', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   rmSync(c.req);
   const r = checkG11({ ts: c.ts });
   assert.equal(r.ok, false);
@@ -309,7 +309,7 @@ test('G11: requirements.md 不在を「制約なし＝合格」と読まない',
 });
 
 test('G11: constraints ブロック不在を合格と読まない', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   patchRequirements(c, (text) => text.replace(/## 使用可能なカスタマイズ機能[\s\S]*?\n\n/, '\n'));
   const r = checkG11({ ts: c.ts });
   assert.equal(r.ok, false);
@@ -317,7 +317,7 @@ test('G11: constraints ブロック不在を合格と読まない', (t) => {
 });
 
 test('G11: constraints キー0件を合格と読まない', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   patchRequirements(c, (text) => text.replace(/constraints:\n(?:.+\n)+/, 'constraints:\n\n'));
   const r = checkG11({ ts: c.ts });
   assert.equal(r.ok, false);
@@ -325,7 +325,7 @@ test('G11: constraints キー0件を合格と読まない', (t) => {
 });
 
 test('G11: allowed が真偽値でない制約を合格と読まない', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   patchRequirements(c, (text) => text.replace('hooks:        { allowed: false', 'hooks:        { allowed: "no"'));
   const r = checkG11({ ts: c.ts });
   assert.equal(r.ok, false);
@@ -333,7 +333,7 @@ test('G11: allowed が真偽値でない制約を合格と読まない', (t) => 
 });
 
 test('G11: generated/ が空なら「検査対象ゼロ＝合格」と読まない', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   rmSync(c.gen, { recursive: true, force: true });
   mkdirSync(c.gen, { recursive: true });
   const r = checkG11({ ts: c.ts });
@@ -342,7 +342,7 @@ test('G11: generated/ が空なら「検査対象ゼロ＝合格」と読まな�
 });
 
 test('G11: allowed を持たない未知キーは機械判定不能として違反（黙って通さない）', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   patchRequirements(c, (text) => text.replace('  organization_policy:', '  audit_rule: "自由文"\n  organization_policy:'));
   const r = checkG11({ ts: c.ts });
   assert.equal(r.ok, false);

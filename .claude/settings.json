@@ -42,7 +42,7 @@
 
     "PreToolUse": [
       {
-        "$comment": "3ガード（§11.3）＋機能X 専用ガード（canon-update-scope-guard・§13.1）＋機能Y 自己再生成専用ガード（self-optimize-scope-guard・§13.2.1・§11.3「ガードの3系統」）。matcher にコマンド実行系（Bash|PowerShell|Monitor）を含めるのが要点。Bash のみだと PowerShell/Monitor で全ガードを迂回できる（実測済み）。各ガードは run in-flight のときのみ deny する（ガードの有効条件）ので、run 外・他系統の run 中は素通りする。write-scope-guard は `/canon` run（.session-ts）用、canon-update-scope-guard は機能X run（.canon-update-ts）用、self-optimize-scope-guard は自己最適化 run（.self-optim）用で判定材料・保護対象の極性が入れ替わる（3系統は相互排他・§13.1・§13.2.1）。self-optimize-scope-guard だけは終端マーカー後も sentinel が在る限り保護を解かない。",
+        "$comment": "2ガード（write-scope-guard・advance-guard。advance-guard は前進ラッチ＋マーカー由来の順序ガード・§11.3）＋機能X 専用ガード（canon-update-scope-guard・§13.1）＋機能Y 自己再生成専用ガード（self-optimize-scope-guard・§13.2.1・§11.3「ガードの3系統」）。matcher にコマンド実行系（Bash|PowerShell|Monitor）を含めるのが要点。Bash のみだと PowerShell/Monitor で全ガードを迂回できる（実測済み）。各ガードは run in-flight のときのみ deny する（ガードの有効条件）ので、run 外・他系統の run 中は素通りする。write-scope-guard は `/canon` run（.session-ts）用、canon-update-scope-guard は機能X run（.canon-update-ts）用、self-optimize-scope-guard は自己最適化 run（.self-optim）用で判定材料・保護対象の極性が入れ替わる（3系統は相互排他・§13.1・§13.2.1）。self-optimize-scope-guard だけは終端マーカー後も sentinel が在る限り保護を解かない。",
         "matcher": "Write|Edit|NotebookEdit|Bash|PowerShell|Monitor",
         "hooks": [
           {
@@ -58,11 +58,6 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR}/gates/self-optimize-scope-guard.js\"",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/gates/approval-guard.js\"",
             "timeout": 10
           },
           {

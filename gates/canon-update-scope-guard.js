@@ -17,8 +17,9 @@
  *   - `work/<ts>/`（機能X run の作業領域・canon-diff-proposal.md・impact-report.md 等）
  *   - `output/<ts>/`（`.gate/**` を除く。マーカー・承認・ラッチは §4.4 と同じく
  *     tools/ CLI とゲートスクリプトのみが鋳造する＝deny-all）
- *   - `docs/`（ただし `output/<ts>/.gate/approvals/canon-update.approved` が
- *     存在するまでは deny＝更新ゲート。§13.1「安全制約」の機械強制）
+ *   - `docs/`（機能X の書込対象。更新ゲートの承認は対話で取りチャットで確認する。提案フェーズが
+ *     docs/ を書き換えていないことは事前 deny でなく、canon-guard が採番時点の docs スナップショット
+ *     との照合で事後に検出する・§13.1「安全制約」）
  *
  * 保護（deny）: 上記以外の全て（`.claude/`・`gates/`・`tests/`・`design/`（設計書2冊）を含む）。
  * write-scope-guard と同じく sanctioned 外はデフォルト deny の規律を踏襲する。
@@ -26,13 +27,13 @@
 
 import path from 'node:path';
 import { CANON_ROOT, posix } from './lib/canon.js';
-import { readHookInput, toRepoRelative, hasApproval, gateDir, allow, deny, isMainModule } from './lib/run.js';
+import { readHookInput, toRepoRelative, gateDir, allow, deny, isMainModule } from './lib/run.js';
 import { currentCanonUpdateRunTs } from './lib/canon-run.js';
 import { SHELL_TOOLS, looksLikeWriteCommand, analyzeShellWrite, underAnyDir, containsGateSegment } from './lib/shell-write.js';
 
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit']);
 
-// 保護対象（システム本体）。docs/ はここに含めない（sanctioned だが承認ゲート付き・別扱い）。
+// 保護対象（システム本体）。docs/ はここに含めない（機能X の書込対象＝sanctioned）。
 // design/ は設計書2冊（基本設計書・詳細設計書）のディレクトリ（gates/lib/canon.js の DESIGN_DOCS）。
 const PROTECTED_DIRS = ['.claude', 'gates', 'tests', 'design'];
 const DOCS_DIRS = ['docs'];
@@ -40,7 +41,6 @@ const DOCS_DIRS = ['docs'];
 // unresolved 時のフォールバック専用（出現ベースの広域スキャン・保険）。宛先を静的に同定できた
 // 通常時は analyzeShellWrite() の宛先ベース判定を使う（下記シェル分岐）。
 const PROTECTED_TOKEN_RE = /(^|["'\s/\\])(\.claude|gates|tests|design)[\\/]/i;
-const DOCS_TOKEN_RE = /(^|["'\s/\\])docs[\\/]/i;
 const GATE_TOKEN_RE = /\.gate[\\/]/i;
 
 function main() {
@@ -73,15 +73,7 @@ function main() {
       return;
     }
 
-    const approved = hasApproval(ts, 'canon-update');
-    const docsHit = !approved && targets.some((t) => underAnyDir(t, DOCS_DIRS));
-    const docsFallback = !approved && unresolved && looksLikeWrite && DOCS_TOKEN_RE.test(unresolvedText);
-    if (docsHit || docsFallback) {
-      deny(`${toolName} 経由での docs/ 書込を検出（更新ゲート未承認・§13.1）: ${command}`);
-      return;
-    }
-
-    allow(`${toolName}: 保護パスへの書込を示唆するパターンなし（またはゲート通過済み）`);
+    allow(`${toolName}: 保護パスへの書込を示唆するパターンなし`);
     return;
   }
 
@@ -110,11 +102,7 @@ function main() {
     return;
   }
   if (underAnyDir(rel, DOCS_DIRS)) {
-    if (!hasApproval(ts, 'canon-update')) {
-      deny(`更新ゲート未承認のため docs/ へ書込不可（§13.1・npm run approve -- ${ts} canon-update）: ${rel}`);
-      return;
-    }
-    allow(`docs/: 更新ゲート承認済み: ${rel}`);
+    allow(`docs/: 機能X run の書込対象: ${rel}`);
     return;
   }
   if (underAnyDir(rel, PROTECTED_DIRS)) {

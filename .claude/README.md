@@ -41,9 +41,8 @@
 
 | Subagent | メインが自動的に使う場面 |
 |---|---|
-| `investigator` | 調査工程1（ヒアリング前・浅く広く）の入口で、系統A・系統Bの並列調査を統括するために使われる。 |
-| `existing-customization-analyzer` | `investigator` が系統A（既存カスタマイズの棚卸し）を必要とするときに使われる。 |
-| `project-profiler` | `investigator` が系統B（プロジェクト実態の調査）を必要とするとき（工程1の "profile" モード）、および要件確定後の深掘り調査（工程3の "focused" モード）で使われる。 |
+| `existing-customization-analyzer` | 調査工程1（ヒアリング前・浅く広く）で、系統A（既存カスタマイズの棚卸し）を行い `work/<ts>/existing_customizations.md` を書くために、メインが直接使う。 |
+| `project-profiler` | 調査工程1（"profile" モード・系統Aと並列）でプロジェクト実態を調べ `work/<ts>/project_profile.md` を書くとき、および要件確定後の深掘り調査（工程3の "focused" モード）で `## focused` 節を追記するときに、メインが直接使う。 |
 | `requirements-recorder` | ヒアリングでユーザーと合意済みの要件を `work/<ts>/requirements.md` に書き出す、工程2の最終アクションとして使われる。 |
 | `spec-writer` | 調査結果と確定要件を統合して `output/<ts>/spec.md` を書く、工程4で使われる。 |
 | `selector` | 承認済み仕様から使用するレイヤー機能を選ぶ、工程5で使われる。 |

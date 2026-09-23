@@ -33,6 +33,6 @@ user-invocable: false
 | 完了リクエスト（エージェントが書く・Hook が消費削除） | `work/<ts>/.requests/<stage>` |
 
 ## 重要な制約
-- **`output/<ts>/.gate/**` にエージェントが書いてはならない**（deny-all・§11.3）。承認は `npm run approve -- <ts> <kind>` のみが鋳造する（§4.4）。
+- **`output/<ts>/.gate/**` にエージェントが書いてはならない**（deny-all・§11.3）。工程の完了マーカー（`.gate/markers/<stage>.done`）は決定論ゲートだけが鋳造し、`npm run reopen` だけが取り消す（§4.4・§4.5）。人間の承認は対話で取り、`work/<ts>/state.md` に記録する（承認サイドカーは廃止済み）。
 - ワーカーは自分の成果物（`generated/`・`spec.md` 等）と完了リクエスト（`work/<ts>/.requests/<stage>`）のみを書く。
 - 既存 `<ts>` の解決は `work/.session-ts` を読む（`$ARGUMENTS` で明示されればそれを優先）。

@@ -173,9 +173,9 @@ maintained_by: canon-updater（/update-docs 実行時に自動更新）
 1. このファイル（`docs/SOURCES.md`）を Read で読み込む
 2. `priority: high` の URL から順に WebFetch（失敗時は WebSearch で補う）で内容を取得する
 3. 対応する `docs/` ファイルの現在の内容と比較し、変更差分**候補**を特定する（採否は判定しない）
-4. `work/<ts>/canon-diff-proposal.md`（固定フォーマット・`.claude/agents/canon-updater/canon-updater.md` 参照）を書く。**この時点では `docs/` を書き換えない**（`canon-update-scope-guard` が更新ゲート承認前の `docs/` 書込を機械的に deny する）
+4. `work/<ts>/canon-diff-proposal.md`（固定フォーマット・`.claude/agents/canon-updater/canon-updater.md` 参照）を書く。**この時点では `docs/` を書き換えない**（提案完了時に `canon-guard` が、採番時点の `docs/` スナップショットとの差分がないことを照合し、差分があれば停止をブロックする）
 
-**更新ゲート（人間承認・唯一の関門）**: `npm run approve -- <ts> canon-update` で採否と breaking 判定を確定する。
+**更新ゲート（人間承認・唯一の関門）**: ユーザーとの対話で採否と breaking 判定を確定し、`work/<ts>/state.md` に記録する。
 
 **フェーズ2（承認差分の反映）**:
 5. 承認された差分のみを正典ファイルへ反映し、`last_verified`／確認バージョン欄を今日の日付・値に書き換える

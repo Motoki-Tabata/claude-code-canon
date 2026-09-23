@@ -35,7 +35,7 @@ user-invocable: false
 
 ## 本システムでの確定割当（参考・詳細設計書 §9.4）
 - `opus`（1体）: `designer`（既存4判定・keep_conditions・設計判断）
-- `sonnet`（多数）: `investigator` / `existing-customization-analyzer` / `project-profiler` / `spec-writer` / `selector` / `generator` / 各 builder / `readme-writer` / `requirements-recorder` / eval-*
+- `sonnet`（多数）: `existing-customization-analyzer` / `project-profiler` / `spec-writer` / `selector` / `generator` / 各 builder / `readme-writer` / `requirements-recorder` / eval-*
 - `haiku`（0体・暫定）: `requirements-recorder` は3基準を充足する機械的タスクの実例だったが、
   `subagent_type` として未登録になる症状と1対1で相関したため（S3-1・ライブ run
   `20260910_220906`。当該環境で `model: haiku` の agent がこの1体だけだった）、原因切り分けの

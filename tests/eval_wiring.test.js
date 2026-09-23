@@ -77,17 +77,6 @@ test('eval の完了リクエスト（.requests/eval）を置いても G バッ�
   assert.deepEqual(listBlocks(ts), [], 'eval リクエストでブロックラッチが立った');
 });
 
-test('eval 承認（P7）は approve CLI が鋳造する（.gate/** は deny-all・§4.4）', (t) => {
-  const ts = tsFor(import.meta.url, 3);
-  withRun(t, ts, { dirs: ['markers'] });
-  execFileSync(process.execPath, [path.join(ROOT, 'tools', 'approve.js'), ts, 'eval', '--approved-by=test'], {
-    encoding: 'utf8',
-  });
-  const p = path.join(outputDir(ts), '.gate', 'approvals', 'eval.approved');
-  assert.ok(existsSync(p), 'eval.approved が鋳造されていない');
-  assert.ok(readFileSync(p, 'utf8').includes('test'));
-});
-
 test('eval ハーネスは hooks 配線に現れない（gates/ とは別系統・§16.7）', () => {
   const settings = readFileSync(path.join(ROOT, '.claude', 'settings.json'), 'utf8');
   assert.ok(!settings.includes('eval/'), 'settings.json が eval/ を hook から呼んでいる（工程9 は非発火が設計）');

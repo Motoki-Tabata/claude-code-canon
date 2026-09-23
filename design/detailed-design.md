@@ -162,7 +162,7 @@ conflicts:
 `output/<ts>/spec.md`。plan がこれだけで design-map を引け、検証／品質検査が受け入れ基準の出典にできる2条件を満たす。
 
 主要セクション:
-- **§0 メタ**: spec_id / canon_version / inputs（系統A・B 成果物のパス）。**`canon_version` の出典は正典 `docs/` のメタ情報表「確認したClaude Codeバージョン」のみ**とし、`gates/conformance_tables/*.json` の `canon_version` フィールドから読む（`extractCanonVersion()` が生成した値・§11.4）。**両設計書の frontmatter から複写してはならない**——設計書側の値は人手保守であり正典に対して遅れうる（§13.1）。承認状態は spec.md 内に持たせず、サイドカー `output/<ts>/.gate/approvals/spec.approved`（存在マーカー）で表す（§11）。このサイドカーは **`npm run approve -- <ts> spec` が鋳造する**（エージェントは `.gate/**` を書けない・基本設計書 §4.4）。
+- **§0 メタ**: spec_id / canon_version / inputs（系統A・B 成果物のパス）。**`canon_version` の出典は正典 `docs/` のメタ情報表「確認したClaude Codeバージョン」のみ**とし、`gates/conformance_tables/*.json` の `canon_version` フィールドから読む（`extractCanonVersion()` が生成した値・§11.4）。**両設計書の frontmatter から複写してはならない**——設計書側の値は人手保守であり正典に対して遅れうる（§13.1）。承認状態は spec.md 内に持たせない。P4 の承認は対話で取り `work/<ts>/state.md` に記録し、ゲートの判定材料にしない。次工程への前進は G1 通過で鋳造される `output/<ts>/.gate/markers/spec.done` が担保する（エージェントは `.gate/**` を書けない・§11.3 順序ガード・基本設計書 §4.4）。
 - **§1 目的とあるべき全体像**: purpose / strength 内訳 / scope_layer。
 - **§2 新要件**: id / want / rationale / project_grounding（系統B focused から接地・evidence 付き）。
 - **§3 既存資産の棚卸し**: 系統A 全レコードを参照。**維持/改修は決めない**（事実のみ）。
@@ -265,7 +265,7 @@ existing_disposition:
 <nesting 段数・isolation:worktree の要否>
 ```
 
-肝: `keep_conditions` の5条件を明示的に並べ、1つでも false なら keep を選べない構造にする（判定を裁量でなく規則適用に近づける）。承認状態は design-map 内に持たせず、サイドカー `output/<ts>/.gate/approvals/design.approved` で表す（§11）。このサイドカーは **P5 の人間ゲート通過後に `npm run approve -- <ts> design` が鋳造する**（エージェントは `.gate/**` を書けない・基本設計書 §4.4）。
+肝: `keep_conditions` の5条件を明示的に並べ、1つでも false なら keep を選べない構造にする（判定を裁量でなく規則適用に近づける）。承認状態は design-map 内に持たせない。P5 の承認は対話で取り `work/<ts>/state.md` に記録し、ゲートの判定材料にしない。生成工程への前進は G1・G2 通過で鋳造される `output/<ts>/.gate/markers/design.done` が担保する（エージェントは `.gate/**` を書けない・§11.3 順序ガード・基本設計書 §4.4）。
 
 **`interface_change`**: `modify` レコードにのみ意味を持つ任意フィールド。値語彙は `none`（対外インタフェース＝frontmatter `name` を変えない）| `breaking`（変える、または不明）の2値で、**未記載は `breaking` とみなす**（現行挙動を既定として保つ）。`retire`/`merge` レコードへの宣言は誤解を招くため違反（disposition 自体が実体消失を意味するため `interface_change` は無意味）。designer は design 段階で生成物がまだ存在しないため、この宣言を**実照合できない**——強制は generator 完了後の G8 が担う(§11.2)。
 
@@ -395,13 +395,13 @@ pre-deploy-check / deploy は `deploy/` 正本（基本設計書 §14）の**ス
 - **stage 系統**: 工程規律・設計時点の検証。**SubagentStop / Stop**（各ステージの完了リクエストで分岐発火）。
 - **preflight 系統**: **メタシステム自身の健全性**を run 開始前に確定するもの。**`UserPromptExpansion`**（`/canon` の展開時）で発火し、違反なら exit 2 で **run の開始自体をブロック**する。`L4_AUTOMATION.md §2.1` の一覧で `UserPromptExpansion`（スラッシュコマンド展開時）は **Block可（✅）**。他の3系統が「その run の成果物」を対象にするのに対し、本系統だけは**対象が claude-canon 自身**である（§11.4・G13）。
 - **バッチ発火は冪等**（基本設計書 §4.5 消費規約）: マーカー既存のリクエストは判定を再実行せず削除のみ。ゆえにリクエスト残留による G バッチ再発火はブロックラッチの偽陽性を生まない（基本設計書 §2 工程9 の「eval は G バッチ非発火」の担保）。
-- 破壊的失敗・書込先/承認/前進の違反は **PreToolUse** で `permissionDecision: deny`（後述の3ガード）。**exit 2 のみがブロッキング**（exit 0＝成功パース、1/その他＝非ブロッキング）。
+- 破壊的失敗・書込先/工程順/前進の違反は **PreToolUse** で `permissionDecision: deny`（後述の2ガード）。**exit 2 のみがブロッキング**（exit 0＝成功パース、1/その他＝非ブロッキング）。
 
 ### 11.2 ゲート一覧
 
 | ゲート | 内容 | spec 対応 | 系統 | 発火契機 |
 |---|---|---|---|---|
-| **G1** 工程順・状態 | focused 空欄違反／evidence_paths 実在／open_questions 残存／requirements の enum（strength_needed・priority）／承認サイドカーの存在＋approved_by／work/<ts>/existing_customizations.md 実在（系統A成果物・§6.1） | 規律 | stage | SubagentStop@各リクエスト |
+| **G1** 工程順・状態 | focused 空欄違反／evidence_paths 実在／open_questions 残存／requirements の enum（strength_needed・priority）／前段工程の完了マーカーの実在（design ステージで `spec.done`・generation ステージで `design.done`。advance-guard の順序ガードが事前に強制する工程順を停止時点で権威再検証する・§11.3）／work/<ts>/existing_customizations.md 実在（系統A成果物・§6.1） | 規律 | stage | SubagentStop@各リクエスト |
 | **G2** 維持判定妥当性 | keep 全レコードで keep_conditions C1〜C5 が true／**実照合**: C1（対象原本が正典 frontmatter/tools 適合）・C3（keep の依存先が同 design-map で retire/modify されない）・C5（対象原本の project 参照が対象リポジトリで解決）／**形式検査のみ**: C2・C4 が true 宣言（意味判断は eval へ回付・基本設計書 §8.4）／廃止の manifest_note | A2 | stage | SubagentStop@design |
 | **G3** パス規約準拠 | 許可パス合致／拡張子・種別整合／skill ディレクトリ名＝name 一致※／**skill パッケージ配下の supporting files は違反にしない**（正典 `L2_SKILLS.md §2.1` ディレクトリ構造の明示的許可） | A3 | per-file | PostToolUse |
 | **G4** frontmatter スキーマ | 必須キー存在（Subagent: name＋description）／未知キー検出／型・語彙照合 | A3 | per-file | PostToolUse |
@@ -530,24 +530,21 @@ G14〜G16 は機能X（§13.1）の run が消費する完了リクエスト `wo
 - **vacuous pass 封鎖**: 次は違反とする。①`work/<ts>/canon-diff-proposal.md` 不在 ②`## メタ` 節に調査日・確認バージョン・`[要確認]` 実数のいずれか欠落 ③`impact-report.md` 不在（G15 の判定条件そのもの）。「差分が無かった」ことと「レポートを生成しなかった」ことは別事象であり、後者は常に違反。
 - **eval に回さない**: G14〜G16 は真偽が機械的に決まる（版一致・レポート実在・台帳形式）ため、判定を eval へ回付しない。波及の当否・`[要確認]` 解消の妥当性という**意味判断**は人間ゲート（更新ゲート・§13.1）が担う。
 
-### 11.3 PreToolUse 3ガード（決定論の担保・`tool_input` で判定＝エージェント同一性に依存しない）
+### 11.3 PreToolUse 2ガード（決定論の担保・`tool_input` で判定＝エージェント同一性に依存しない）
 
-書込先・承認・前進とも `tool_input`（パス、およびコマンド実行系ツールはコマンド文字列）＋サイドカー／ラッチの存在だけで判定でき、エージェント同一性に依存しない（`L4_AUTOMATION.md §2.1` の `permissionDecision: deny`）。
+書込先・工程順・前進とも `tool_input`（パス、およびコマンド実行系ツールはコマンド文字列）＋マーカー／ラッチの存在だけで判定でき、エージェント同一性に依存しない（`L4_AUTOMATION.md §2.1` の `permissionDecision: deny`）。`/canon` run の書込先ガードは write-scope-guard と advance-guard の2本である（旧設計の承認ガード approval-guard は承認サイドカーとともに廃止済み）。
 
-- **書込先ガード（write-scope-guard）**: `Write`/`Edit` 等のパスが sanctioned ツリー（`output/<ts>/`・`work/<ts>/`）外なら deny。特に `docs/`・`gates/`・`.claude/`（システム本体）を保護。**`output/<ts>/.gate/**` はエージェント書込を一律 deny（deny-all）**（エージェントは `work/<ts>/.requests/<stage>` に完了リクエストを書くだけ。承認・マーカーの鋳造は `tools/` CLI とゲートスクリプトのみ・基本設計書 §4.4）。**matcher にコマンド実行系ツール（`Bash`・`PowerShell`）を含め、コマンド文字列も検査する**（下記「シェル経路の封鎖」）。
-- **承認ガード（approval-guard・前進ゲート＋凍結）**: 「承認を待ってから次工程」を書込で強制する。
-  - 前進ゲート(a): `design-map.md` 書込は `output/<ts>/.gate/approvals/spec.approved` が存在しなければ deny（spec 未承認では designer が設計を書けない）。
-  - 前進ゲート(b): 生成物書込（`output/<ts>/generated/**`）は `design.approved` が存在しなければ deny（design-map 未承認では generator が生成物を書けない）。
-  - 凍結(c): `spec.md` 書込は `spec.approved` が存在すれば deny（承認済み spec を改変させない。変更は**承認取り消し CLI** `npm run approve -- <ts> spec --revoke` で・基本設計書 §4.4）。
-  - 凍結(d): `design-map.md` 書込は `design.approved` が存在すれば deny（取り消しは同じく CLI 経由）。
-- **前進ガード（advance-guard）**: PostToolUse の per-file 違反はブロック不可のため run 全体の `.gate/blocks/gen.blocked` に転写し、本ガードがラッチ存在中は当該 `<ts>` の output 前進書込を deny する。**唯一の硬遮断は PreToolUse deny**（PostToolUse/SubagentStop の exit 2 は握り潰され得る）。ラッチはゲート再通過でも自動解除されず、解除は人間 CLI（`npm run unblock -- <ts>`）のみ。
+- **書込先ガード（write-scope-guard）**: `Write`/`Edit` 等のパスが sanctioned ツリー（`output/<ts>/`・`work/<ts>/`）外なら deny。特に `docs/`・`gates/`・`.claude/`（システム本体）を保護。**`output/<ts>/.gate/**` はエージェント書込を一律 deny（deny-all）**（エージェントは `work/<ts>/.requests/<stage>` に完了リクエストを書くだけ。マーカー・ブロックの鋳造はゲートスクリプトと `tools/` CLI のみ・基本設計書 §4.4）。**matcher にコマンド実行系ツール（`Bash`・`PowerShell`）を含め、コマンド文字列も検査する**（下記「シェル経路の封鎖」）。
+- **前進ガード（advance-guard）**: 次の2つを `Write`/`Edit` のパスで判定する。
+  - **順序ガード**: 工程順を完了マーカーで強制する。`design-map.md` 書込は `markers/spec.done` が無ければ deny（spec 工程が G1 を通って完了する前に designer が設計を書けない）、`output/<ts>/generated/**` 書込は `markers/design.done` が無ければ deny（design 工程が G1・G2 を通って完了する前に generator が生成物を書けない）。マーカーはゲートだけが鋳造し `.gate/**` は deny-all なので、エージェントは前提を捏造できない。人間の承認は対話で取り `work/<ts>/state.md` に記録するが、LLM が書ける記録なので判定材料にしない（基本設計書 §4.4）。**承認後の `spec.md`・`design-map.md` を書換不可にする凍結は持たない**（廃止済み）——差し戻しで成果物を書き直せるようにするためで、書き直した成果物は reopen で再検査される（後述「巻き戻し時の再武装」）。
+  - **ラッチ**: PostToolUse の per-file 違反はブロック不可のため run 全体の `.gate/blocks/gen.blocked` に転写し、ラッチ存在中は当該 `<ts>` の `generated/**` への前進書込を deny する。**唯一の硬遮断は PreToolUse deny**（PostToolUse/SubagentStop の exit 2 は握り潰され得る）。ラッチはゲート再通過でも自動解除されず、解除は人間 CLI（`npm run unblock -- <ts>`）のみ。
 
-**シェル経路の封鎖**: `Write`/`Edit` の `tool_input` パスのみを見るガードは、**シェルのリダイレクト（`echo x > docs/foo.md`）や `node` 実行を捕捉できない**。「唯一の硬遮断は PreToolUse deny」という主張は、シェルを持つエージェントが1体でも居れば崩れる。しかも承認の鋳造がシェル経由（`npm run approve`）になる（§4.4）ため、放置すれば**ワーカーが自己承認 CLI を叩ける**ことになり連動して致命化する。
+**シェル経路の封鎖**: `Write`/`Edit` の `tool_input` パスのみを見るガードは、**シェルのリダイレクト（`echo x > docs/foo.md`）や `node` 実行を捕捉できない**。「唯一の硬遮断は PreToolUse deny」という主張は、シェルを持つエージェントが1体でも居れば崩れる。しかも `.gate/` を操作する CLI（`npm run reopen`・`unblock`・`recheck` 等）はシェル経由で叩く（基本設計書 §4.4）ため、放置すれば**ワーカーが権威記録を操作する CLI を叩ける**ことになり連動して致命化する。
 
 > **対象は「コマンド実行系ツール」であって `Bash` 単体ではない**: 正典 `TOOLS.md §2` の正規44種には **`PowerShell` が別ツールとして実在**し（権限要）、**Windows では主シェル**である。`Bash` のみを見る実装では次が実測で素通りした:
 >
 > - `PowerShell: Set-Content docs/foo.md 'x'` → allow（`docs/`＝SSoT を改変できる）
-> - `PowerShell: Set-Content output/<ts>/.gate/approvals/spec.approved ''` → allow ← **承認サイドカーの捏造が成立し、deny-all と前進ゲートのラチェットが崩壊する**
+> - `PowerShell: Set-Content output/<ts>/.gate/approvals/spec.approved ''` → allow ← **承認サイドカー（当時。現在は廃止済み）の捏造が成立し、deny-all と前進ゲートのラチェットが崩壊する**。同じ漏れがあれば現行の `.gate/markers/<stage>.done` も同様に捏造できる
 >
 > ゆえに対象は **`Bash` ＋ `PowerShell`**（＝正典44種のうち任意コマンドを実行できるツール全部）とする。**ここに漏れがあると、そのツール経由で全ガードを迂回できる**。正典にツールが追加された際は、コマンド実行系が増えていないかを `/update-docs` の手順で必ず確認すること。
 >
@@ -559,17 +556,17 @@ G14〜G16 は機能X（§13.1）の run が消費する完了リクエスト `wo
 |---|---|---|
 | **剥奪＋機械強制** | **全ワーカーの `tools:` にコマンド実行系ツール（`Bash`・`PowerShell`）を含めない**。系統A/B は既に `Read Grep Glob` のみ（基本設計書 §5.3）だが、これを spec-writer・selector・designer・generator・各 builder・readme-writer・eval-* を含む**全ワーカーへ拡張**する。execute を要する処理はゲートと `tools/` CLI が持つ（基本設計書 §4.3）。**この剥奪は人手のレビュー観点に頼らず G13（preflight）が決定論的に強制する**（§11.2） | 基本設計書 §5.3・§11.2 G13・`L3_AGENTS.md §2.1`（tools は最小権限） |
 | **検査** | **write-scope-guard の matcher にコマンド実行系ツール（`Bash`・`PowerShell`）を追加**し、`tool_input.command` の文字列を検査して保護パス（`docs/`・`gates/`・`.claude/`・`output/<ts>/.gate/**`）への書込コマンドを deny する | `L4_AUTOMATION.md §2.1` の matcher は PreToolUse でツール名にマッチし、公式例（`block-rm.sh`）が `.tool_input.command` を検査して `permissionDecision: deny` を返す形と同一 |
-| **承認 CLI の非対称** | 承認 CLI（`npm run approve`）は **run 中でも通る**（承認は工程の途中で起きるため通らねばならない・基本設計書 §4.4）。**ワーカーが叩けない根拠はシェルの剥奪**であって、ガードの有効条件ではない。オーケストレータはシェルを持つので叩ける | 基本設計書 §4.4・詳細設計書 §11.2 G13 |
+| **CLI の非対称** | `.gate/` を操作する CLI（`npm run reopen`・`recheck` 等）は **run 中でも通る**（巻き戻し・再検査は工程の途中で起きるため通らねばならない・基本設計書 §4.4・§4.5）。**ワーカーが叩けない根拠はシェルの剥奪**であって、ガードの有効条件ではない。オーケストレータはシェルを持つので叩ける | 基本設計書 §4.4・詳細設計書 §11.2 G13 |
 
 剥奪が主防御（そもそもコマンド実行系ツールを持たない）、検査が多層防御（万一発行されても保護パスへの書込を捕捉する）。検査は文字列検査ゆえ完全ではない（難読化された書込は捕捉しきれない）ため、**剥奪を正とし検査を保険とする**。この非対称を承知のうえで両方置く。
 
-肝: **剥奪が正である以上、剥奪こそ機械で守らねばならない**。`tools:` に1語 `Bash` を足すだけで防御線全体が無効化され、しかもその改変は diff に出るが**ゲートは何も言わない**——設計の方針が実装時に守られたことを、方針の明記だけでは証明できない。これは基本設計書 §8.2 が「維持は diff に出ないから厳しい条件を課す」としたのと同型の危険であり、さらに悪いことに**破れても静か**である。ゆえに G13 で run 開始をブロックする（§11.2）。オーケストレータ `/canon` は `.claude/agents/**` でなく `.claude/skills/canon/` に置かれる Skill なので **G13 の対象外＝コマンド実行系ツールを使える**。この非対称は基本設計書 §4.4 の承認経路と整合する: 承認 CLI（`npm run approve`）を実行するのはオーケストレータであり、**ワーカーはコマンド実行系ツールを持たないので承認 CLI を叩けない**。「承認を鋳造できるのはオーケストレータと人間だけ」がこの機械強制によって初めて構造的に保証される。
+肝: **剥奪が正である以上、剥奪こそ機械で守らねばならない**。`tools:` に1語 `Bash` を足すだけで防御線全体が無効化され、しかもその改変は diff に出るが**ゲートは何も言わない**——設計の方針が実装時に守られたことを、方針の明記だけでは証明できない。これは基本設計書 §8.2 が「維持は diff に出ないから厳しい条件を課す」としたのと同型の危険であり、さらに悪いことに**破れても静か**である。ゆえに G13 で run 開始をブロックする（§11.2）。オーケストレータ `/canon` は `.claude/agents/**` でなく `.claude/skills/canon/` に置かれる Skill なので **G13 の対象外＝コマンド実行系ツールを使える**。この非対称は基本設計書 §4.4 の権威記録の経路と整合する: `.gate/` を操作する CLI を実行するのはオーケストレータであり、**ワーカーはコマンド実行系ツールを持たないので叩けない**。「権威記録を操作できるのはゲート・オーケストレータ・人間だけ」がこの機械強制によって初めて構造的に保証される。
 
-**ガードの有効条件**: 上記3ガードは **run が in-flight のときのみ有効**とする。
+**ガードの有効条件**: 上記2ガードは **run が in-flight のときのみ有効**とする。
 
 - **判定材料**: `work/.session-ts` が指す `output/<ts>/` に**終端マーカーが無い間**だけ deny する。終端マーカーがある（run 完了）／`.session-ts` が無い（run 未開始）場合、ガードは素通りさせる。
 
-**巻き戻し時の再武装**: `tools/reopen.js` が `markers/<stage>.done` を削除すると、`currentRunTs()` は再び非 null を返し3ガードが再武装される。同時に `hasMarker` の冪等スキップ（§4.5①）が外れ、次の SubagentStop で G1・G7〜G12 等が実際に再実行される（`.claude/settings.json` の SessionStart 採番禁止と同型の誤判定事故——run が実質終わっていないのに保護が解ける事故——を、意図的操作の側から塞ぐ）。取消後に run を放棄すると `.session-ts` 残置と同じ事故になるため、CLI は次の一手（再生成→再承認）を出力に明記する。
+**巻き戻し時の再武装**: `tools/reopen.js` は `markers/<stage>.done` とそれ以降の工程マーカー（`gates/lib/run.js` の `MARKER_ORDER`＝`investigation`・`requirements`・`investigation.focused`・`spec`・`design`・`generation` の順・`markerKeysFrom()`）を**連鎖で削除**し、連鎖分は `processed.log` に `cascade_from` を記録する。`generation.done` が消えると `currentRunTs()` は再び非 null を返し2ガードが再武装される。同時に `hasMarker` の冪等スキップ（§4.5①）が外れ、次の SubagentStop で G1・G7〜G12 等が実際に再実行される（`.claude/settings.json` の SessionStart 採番禁止と同型の誤判定事故——run が実質終わっていないのに保護が解ける事故——を、意図的操作の側から塞ぐ）。上流の `spec.done`／`design.done` も消えるので、順序ガードは書き直し中の下流工程の書込を再び止める。取消後に run を放棄すると `.session-ts` 残置と同じ事故になるため、CLI は次の一手（再生成→対話承認の取り直し・state.md への記録）と「終端マーカー前は run 中・後は run の外」の区別を出力に明記する。
 
 > **`.session-ts` の書き手**: **`tools/new-ts.js`（`npm run ts`）のみ**が採番して書く。オーケストレータが工程1の直前に実行する。**`SessionStart` hook は採番してはならない**（足場作りのみ）。理由:
 >
@@ -579,23 +576,23 @@ G14〜G16 は機能X（§13.1）の run が消費する完了リクエスト `wo
 >
 > 肝: 採番の契機は「セッションの開始」ではなく「**run の開始**」である。両者を同一視するとガードの有効条件が無効化される。
 - **理由**: ガードが常時有効だと、基本設計書 §13.1 が「保守ループとして温存する」とした `/update-docs`（`docs/` を書く）・`/update-system`（`.claude/` を書く）が**両方とも deny 対象になり全滅**する。claude-canon 自身の実装・保守作業（`.claude/`・`gates/` の編集）も、機能X の canon-updater（`docs/` を書き換える・§13.1）も同じく全滅する。保守セッション・実装作業は run 外なので、条件化すれば通る。
-- **安全性**: ガードが守る対象は「**run 中のワーカーが sanctioned 外を汚さないこと**」であって、人間が主導する run 外の保守作業ではない。run 外に守るべき in-flight の成果物は存在しない。機能X の `docs/` 書換は更新ゲート（人間承認）が別途唯一の関門として機能する（§13.1）ので、本ガードの条件化で保護が抜けることはない。
+- **安全性**: ガードが守る対象は「**run 中のワーカーが sanctioned 外を汚さないこと**」であって、人間が主導する run 外の保守作業ではない。run 外に守るべき in-flight の成果物は存在しない。機能X の `docs/` 書換は更新ゲート（人間承認）が別途唯一の関門として機能し、提案フェーズが承認前に `docs/` を書き換えていないことは採番時スナップショットとの照合で機械担保する（§13.1）ので、本ガードの条件化で保護が抜けることはない。
 - **副作用と受容**: この条件化により「run 外なら誰でも `docs/` を書ける」状態になるが、run 外の書き手は人間かその直接の指示下にあるセッションであり、**ガードでなく人間ゲートが担保する層**である（§13.1 の更新ゲート）。in-flight 判定が誤って false になる（＝終端マーカーが早期に立つ）と run 中もガードが無効化されるため、**終端マーカーの鋳造は `.gate/` 専有＝ゲートのみ**（基本設計書 §4.4）とし、エージェントが立てられないようにする。
 
-**ガードの3系統**: 上記3ガード（write-scope-guard・approval-guard・advance-guard）は `/canon` run（`work/.session-ts`）専用であり、`docs/` を含む「システム本体」を**保護対象**として deny する。機能X（正典更新・§13.1）は逆に `docs/` を**書込対象**とするため、極性が逆の別ガード `canon-update-scope-guard`（`work/.canon-update-ts` を判定材料とする）を新設する。自己再生成（§13.2.1）は `/canon` run と同じ極性（`.claude/` を保護）だが、**終端マーカーで保護が解けない**点が異なるため、3本目 `self-optimize-scope-guard`（`work/.self-optim` を判定材料とする）を新設する。
+**ガードの3系統**: 上記2ガード（write-scope-guard・advance-guard）は `/canon` run（`work/.session-ts`）専用であり、`docs/` を含む「システム本体」を**保護対象**として deny する。機能X（正典更新・§13.1）は逆に `docs/` を**書込対象**とするため、極性が逆の別ガード `canon-update-scope-guard`（`work/.canon-update-ts` を判定材料とする）を新設する。自己再生成（§13.2.1）は `/canon` run と同じ極性（`.claude/` を保護）だが、**終端マーカーで保護が解けない**点が異なるため、3本目 `self-optimize-scope-guard`（`work/.self-optim` を判定材料とする）を新設する。
 
 | | write-scope-guard（`/canon` 用） | canon-update-scope-guard（機能X 用） | self-optimize-scope-guard（自己再生成用・§13.2.1） |
 |---|---|---|---|
 | in-flight 判定材料 | `work/.session-ts` | `work/.canon-update-ts` | `work/.self-optim` |
 | sanctioned（書込許可） | `output/<ts>/`・`work/<ts>/` | `docs/`・`work/<ts>/`・`output/<ts>/`（`.gate/**` 除く） | `output/<ts>/`・`work/<ts>/`（`.gate/**` 除く） |
 | 保護（書込 deny） | `docs/`・`gates/`・`.claude/` | `.claude/`・`gates/`・`tests/`・両設計書 | `.claude/`・`gates/`・`tests/`・`docs/`・両設計書・**`generations/`** |
-| `docs/` への追加関門 | （対象外） | `output/<ts>/.gate/approvals/canon-update.approved` 存在まで deny | （対象外・保護に含む） |
+| `docs/` への追加関門 | （対象外） | なし（run 中は常に書込可）。提案フェーズの無変更は canon-guard が採番時スナップショットと事後照合（§13.1） | （対象外・保護に含む） |
 | **終端マーカー後の扱い** | **保護を解く**（run 外は素通り） | 同左 | **保護を解かない**（sentinel が在る限り継続。§13.2.1 が理由） |
 | run 外（sentinel 不在） | 素通り | 素通り | 素通り |
 
-**相互排他**: `work/.session-ts`・`work/.canon-update-ts`・`work/.self-optim` の**いずれか2つ以上**が同時に in-flight（終端マーカー未鋳造／sentinel 存在）になることは想定しない。`tools/new-ts.js`・`tools/new-canon-ts.js`・`tools/selfopt.js` はそれぞれ他方が in-flight なら異常終了する（§13.1・§13.2.1）。これにより「一方の run 中に他方が保護対象を書き換え、判定基準が実行中に動く」という事故を構造的に防ぐ。3ガードは同一の `matcher`（`Write|Edit|NotebookEdit|Bash|PowerShell|Monitor`）に相乗りし、`.claude/settings.json` の同じ PreToolUse ブロックに並置する（基本設計書 §14）。
+**相互排他**: `work/.session-ts`・`work/.canon-update-ts`・`work/.self-optim` の**いずれか2つ以上**が同時に in-flight（終端マーカー未鋳造／sentinel 存在）になることは想定しない。`tools/new-ts.js`・`tools/new-canon-ts.js`・`tools/selfopt.js` はそれぞれ他方が in-flight なら異常終了する（§13.1・§13.2.1）。これにより「一方の run 中に他方が保護対象を書き換え、判定基準が実行中に動く」という事故を構造的に防ぐ。3系統の書込先ガード（と advance-guard）は同一の `matcher`（`Write|Edit|NotebookEdit|Bash|PowerShell|Monitor`）に相乗りし、`.claude/settings.json` の同じ PreToolUse ブロックに並置する（基本設計書 §14）。
 
-**書込操作の判定式は3ガード共有 SSoT とする**: 3ガードはそれぞれ独立に「コマンド文字列が書込操作らしいか」を判定する正規表現（`>`/`tee`/`cp`/`mv`/`rm`/`mkdir`/`sed -i`/`Set-Content`/`Out-File`/`New-Item`/`Remove-Item`/`Add-Content`/`node -e`/`writeFileSync`/`appendFileSync` 等）を持っていたが、実体はリテラルの3重複だった（§11.4 が禁じる「代表例で書く」列挙漏れの単一障害点と同型）。これを `gates/lib/shell-write.js` へ集約し、3ガードは import する。あわせて **fd 複製形（`2>&1`・`>&2`・`1>&2` 等）を書込操作と誤検知していた**問題を修正した。判定は「コマンド文字列から fd 複製トークン（`\d*>&\d?` 相当）を除去してから」既存パターンを当てる規約とする。`1>out.txt`（実ファイル書込）は fd 複製形と字面が異なるため除去対象にならず、検出力は落ちない。
+**書込操作の判定式は3系統の書込先ガード（write-scope-guard・canon-update-scope-guard・self-optimize-scope-guard）共有 SSoT とする**: 3ガードはそれぞれ独立に「コマンド文字列が書込操作らしいか」を判定する正規表現（`>`/`tee`/`cp`/`mv`/`rm`/`mkdir`/`sed -i`/`Set-Content`/`Out-File`/`New-Item`/`Remove-Item`/`Add-Content`/`node -e`/`writeFileSync`/`appendFileSync` 等）を持っていたが、実体はリテラルの3重複だった（§11.4 が禁じる「代表例で書く」列挙漏れの単一障害点と同型）。これを `gates/lib/shell-write.js` へ集約し、3ガードは import する。あわせて **fd 複製形（`2>&1`・`>&2`・`1>&2` 等）を書込操作と誤検知していた**問題を修正した。判定は「コマンド文字列から fd 複製トークン（`\d*>&\d?` 相当）を除去してから」既存パターンを当てる規約とする。`1>out.txt`（実ファイル書込）は fd 複製形と字面が異なるため除去対象にならず、検出力は落ちない。
 
 **保護パスの判定は「出現」でなく「宛先」で行う**: 上記 SSoT は当初「コマンド文字列のどこかに書込操作がある」×「どこかに保護パス文字列がある」の AND で deny していたが、両者の**位置関係を見ない**ため、(a) heredoc 本文に保護パス文字列を含む sanctioned への書込（`cat > work/<ts>/project_profile.md <<'EOF' … .claude/rules/… EOF`）、(b) `2>/dev/null` を伴う読取（`grep -rn … docs/ .claude/ 2>/dev/null | head`）を誤って deny した（2026-09-04・ライブ run `20260903_091044` で実測）。§11.4 の「判定対象の識別子自身への自己一致を疑う」（`WRITE_OP_RE` が `2>&1` の `>` に誤反応した L023）と同系統の変種である。ゆえに判定規約を次へ改める。
 
@@ -624,7 +621,7 @@ G14〜G16 は機能X（§13.1）の run が消費する完了リクエスト `wo
 
 | 手段 | いつ | 何を証明するか | 限界 |
 |---|---|---|---|
-| **配線テスト**（`npm test`・§15.3） | run の前（開発・CI・セットアップ時） | 3ガードと G バッチが違反入力に対し期待どおり deny／exit 2 すること | テスト実行後に `settings.json` が壊れた場合を救えない |
+| **配線テスト**（`npm test`・§15.3） | run の前（開発・CI・セットアップ時） | PreToolUse ガードと G バッチが違反入力に対し期待どおり deny／exit 2 すること | テスト実行後に `settings.json` が壊れた場合を救えない |
 | **ランタイム・カナリア**（本節） | 各 run の工程1の直前 | **その run の実行中に**ガードが現に生きていること | ガードの有無のみを見る（判定内容の正しさは配線テストの担当） |
 
 **カナリアの仕様**:
@@ -646,7 +643,7 @@ G14〜G16 は機能X（§13.1）の run が消費する完了リクエスト `wo
 
 順序は **G13 →（`<ts>` 採番）→ カナリア → 工程1**。G13 が先なのは、`UserPromptExpansion` が `/canon` の展開時＝採番より前に発火する自然な帰結であり、かつ**カナリアはガードの生存しか見ない**ため、ワーカーの権限逸脱を先に潰しておく必要があるからである。逆にカナリアが G13 より前に来ることはできない（採番前は run 外と判定されガードが素通りする・§11.3）。
 
-**コーディネータの turn 中断（vacuous pass の送り側）**: G13 との2重の門（本節上記）は「ガードが生きているか」を守るが、**ガードの前段——完了リクエストと成果物そのものが書かれるか——は別の脆弱点である**。`investigator`／`eval-reviewer`／`generator`（唯一 `Agent` ツールを持つ3コーディネータ）が配下ワーカーを spawn した直後、結果を回収せずに turn を終えると、`.requests/<stage>` が書かれないまま SubagentStop が発火し、stage-guard/gen-guard は「対象リクエストなし」として exit 0 で通過する（実測: run 20260903_091044 で investigator・eval-reviewer が各1回）。G13 が「ワーカーの外側からガードを迂回する経路」を塞ぐのと対称に、この経路は「ガードの内側（判定ロジック）に判定対象を渡さない」ことで検査を沈黙させる——G13 と同様に**発火機会が構造的にゼロ**になる帰結だが、成因は逆（G13は権限の逸脱・本件はコーディネータの turn 完走義務の欠如）である。ゲートは呼ばれて初めて判定できるため、この経路をゲート自身では検出できない。ゆえに帯域外の契約（`.claude/agents/{investigator,eval-reviewer,generator}/*.md` の完走義務・`.claude/rules/worker-definitions.md`）とオーケストレータ側の実在確認（`.claude/skills/canon/SKILL.md` の各工程末尾）で塞ぐ。G1 の investigation 段（`existing_customizations.md` 実在検査）は「リクエストは書かれたが成果物が無い」場合を機械的に捕らえるが、「リクエストも成果物も書かれない」場合は機械検査の射程外であり、オーケストレータの確認と人間ゲート P1・P6・P7 が最終防波堤となる。
+**コーディネータの turn 中断（vacuous pass の送り側）**: G13 との2重の門（本節上記）は「ガードが生きているか」を守るが、**ガードの前段——完了リクエストと成果物そのものが書かれるか——は別の脆弱点である**。`eval-reviewer`／`generator`（`Agent` ツールを持つコーディネータ。かつては `investigator` も該当したが、深さ2の中継が報告を失う failure mode があり廃止した・基本設計書 §4.6）が配下ワーカーを spawn した直後、結果を回収せずに turn を終えると、`.requests/<stage>` が書かれないまま SubagentStop が発火し、stage-guard/gen-guard は「対象リクエストなし」として exit 0 で通過する（実測: run 20260903_091044 で investigator・eval-reviewer が各1回）。G13 が「ワーカーの外側からガードを迂回する経路」を塞ぐのと対称に、この経路は「ガードの内側（判定ロジック）に判定対象を渡さない」ことで検査を沈黙させる——G13 と同様に**発火機会が構造的にゼロ**になる帰結だが、成因は逆（G13は権限の逸脱・本件はコーディネータの turn 完走義務の欠如）である。ゲートは呼ばれて初めて判定できるため、この経路をゲート自身では検出できない。ゆえに帯域外の契約（`.claude/agents/{eval-reviewer,generator}/*.md` の完走義務・`.claude/rules/worker-definitions.md`）とオーケストレータ側の実在確認（`.claude/skills/canon/SKILL.md` の各工程末尾）で塞ぐ。G1 の investigation 段（`existing_customizations.md` 実在検査）は「リクエストは書かれたが成果物が無い」場合を機械的に捕らえるが、「リクエストも成果物も書かれない」場合は機械検査の射程外であり、オーケストレータの確認と人間ゲート P1・P6・P7 が最終防波堤となる。
 
 ---
 
@@ -725,13 +722,13 @@ experimental 禁止プロジェクトなら該当フラグを使う設計は G11
 
 - **実行系統**: `/update-docs` Skill（`.claude/skills/update-docs/`・`disable-model-invocation:true`・`user-invocable:true`。`context: fork` は付与しない＝Subagent を起動するため）が `canon-updater` を起動する。`canon-updater` の `tools:` は **`WebFetch WebSearch Read Write Edit`** のみ（コマンド実行系ツールを持たない＝G13 適合）。
 - **名前空間**: `/canon` の run（`work/.session-ts`）とは別系統の `work/.canon-update-ts`（`tools/new-canon-ts.js`・`npm run canon:ts` が採番）。**両系統は相互排他**——一方が in-flight（終端マーカー未鋳造）のとき、他方の新規採番は異常終了する。
-- **更新フロー（フェーズ）**: ① 相互排他確認・`npm run canon:ts` で `<ts>` 採番 ② `canon-updater` が `docs/SOURCES.md` の一次ソースを WebFetch/WebSearch で調査し `work/<ts>/canon-diff-proposal.md`（下記フォーマット）へ差分候補を列挙（**判定しない・`docs/` にはまだ書かない**）③ **更新ゲート**（人間が `npm run approve -- <ts> canon-update` で採否と breaking 判定を確定・`docs/` 書換の唯一の関門）④ 承認後、`canon-updater` が承認差分のみ `docs/` へ反映し `gates/build-conformance-tables.js` を再生成 ⑤ 完了リクエスト `work/<ts>/.requests/canon-update` → G14〜G16（§11.2）→ 通過で `output/<ts>/.gate/markers/canon-update.done` 鋳造（機能X run の終端マーカー）。
+- **更新フロー（フェーズ）**: ① 相互排他確認・`npm run canon:ts` で `<ts>` 採番 ② `canon-updater` が `docs/SOURCES.md` の一次ソースを WebFetch/WebSearch で調査し `work/<ts>/canon-diff-proposal.md`（下記フォーマット）へ差分候補を列挙（**判定しない・`docs/` にはまだ書かない**）③ **更新ゲート**（人間が対話で採否と breaking 判定を確定し、要旨を `work/<ts>/state.md` に記録・`docs/` 書換の唯一の関門）④ 承認後、`canon-updater` が承認差分のみ `docs/` へ反映し `gates/build-conformance-tables.js` を再生成 ⑤ 完了リクエスト `work/<ts>/.requests/canon-update` → G14〜G16（§11.2）→ 通過で `output/<ts>/.gate/markers/canon-update.done` 鋳造（機能X run の終端マーカー）。
 - **`work/<ts>/canon-diff-proposal.md` の固定フォーマット**（G14〜G16 の判定入力契約）:
   `## メタ`（調査日・確認バージョン・`[要確認]` 実マーカー総数）／`## 差分候補`（採否は人間・列挙のみ）／`## 旧表現→新表現`（表・G15 の走査対象）／`## 一次ソースとの矛盾`（判定せず明示するのみ）。
 - **`work/<ts>/impact-report.md`**: G15 が生成する波及 stale の検出結果（`.claude/**`・`gates/**`・`tests/**`・両設計書中の旧値残存）と、影響のある過去 `output/*/` への通知を集約する。**機能X は検出のみ**——修正するか・過去成果物を再生成するかは人間が判断する（するなら通常の工程パイプラインを新規実行）。
 - **安全制約**: edit 範囲を `docs/`・`work/<ts>/` に限定（`.claude/`・`gates/`・`tests/`・両設計書を絶対に書き換えない・PreToolUse で deny）／差分抽出は読むだけ／食い違いは矛盾として明示するのみ。
 - **両設計書の frontmatter `canon_version` は機能X が更新しない**（上の安全制約の帰結）。この値は正典 `docs/` の「確認したClaude Codeバージョン」を指す（基本設計書 冒頭「正典の位置づけ」）。正典バージョンが上がったとき、両設計書に残る旧値は G15 が `impact-report.md` へ**検出するのみ**であり、追従は impact-report を読んだ**人間が手で行う**。機能X 側にこれを自動化する余地は無い——自動化すれば `canon-update-scope-guard.js` が deny する設計であり、それが意図である。
-- **ガードとの関係**: 専用の逆極性ガード **`gates/canon-update-scope-guard.js`** が機構的に強制する（§11.3「ガードの3系統」）。write-scope-guard（`/canon` 用）とは判定材料・保護対象が入れ替わっており、`docs/` への書込自体は更新ゲート承認まで deny、`.claude/`・`gates/`・`tests/`・両設計書は常時 deny（機能X run 中は「システム本体」がそのまま保護対象になる）。**「判定しない・人間ゲート必須」は規律だけでなくガードと G14〜G16 で機械強制される**。
+- **ガードとの関係**: 専用の逆極性ガード **`gates/canon-update-scope-guard.js`** が機構的に強制する（§11.3「ガードの3系統」）。write-scope-guard（`/canon` 用）とは判定材料・保護対象が入れ替わっており、`docs/` は機能X run 中は常に書込可、`.claude/`・`gates/`・`tests/`・両設計書は常時 deny（機能X run 中は「システム本体」がそのまま保護対象になる）。承認前の `docs/` 書込は事前 deny でなく事後照合で塞ぐ: `tools/new-canon-ts.js` が採番時に `docs/` の sha256 スナップショット `work/<ts>/.docs-snapshot.json` を保存し（`gates/lib/canon-run.js` の `snapshotDocs`／`writeDocsSnapshot`）、canon-updater がフェーズ②の完了時に書く提案完了リクエスト `work/<ts>/.requests/canon-update-proposal` を `gates/canon-guard.js` が消費する際、`docs/` が採番時点から無変更であることを照合する（`checkProposalLeftDocsUntouched`・`diffDocsAgainstSnapshot`）。差分があれば停止をブロックして `canon-update.blocked` を鋳造し、リクエストは残して再照合させる（`git restore docs/` で戻す）。スナップショットが無ければ比較不能として違反とする（vacuous pass を作らない）。このリクエストは G14〜G16 を発火させず、フェーズ④以降は従来どおり G14〜G16 が検査する。承認サイドカー `canon-update.approved` による事前 deny は廃止済み——承認を機械的な記録にしても人間の承認そのものは証明できず、提案フェーズが `docs/` を触っていないことは照合で直接確かめられるためである。**「判定しない・人間ゲート必須」は規律だけでなくガード・提案時照合・G14〜G16 で機械強制される**。
 - **調査手順の実測知見（`docs/SOURCES.md` へ反映必須）**: WebFetch は長大な公式ページの網羅列挙で不安定（実在しないコマンド名の混入を複数回観測済み）。単発の WebFetch 結果を鵜呑みにせず、複数回の突合または公式が総数を明記するページを優先する。ツール総数・Hook イベント数などの**数え値**は毎回再計数する（`docs/TOOLS.md` が既に明記する規律を全数え値へ拡張）。
 
 ### 13.2 機能Y（自己最適化・コントロールプレーン）
@@ -753,7 +750,7 @@ experimental 禁止プロジェクトなら該当フラグを使う設計は G11
 - **起動経路**: `/canon` は「claude-canon 自身のリポジトリを棚卸ししない」ことを前提にしており（基本設計書 §5.1）、対象を自己に向ける経路を持たない。ゆえに**専用 Skill** `.claude/skills/self-optimize/`（`disable-model-invocation:true`・`user-invocable:true`・`context: fork` 不付与＝基本設計書 §4.1 と同じ理由）を新設する。工程1〜9 は `/canon` と同一（対象は claude-canon 自身のルート）。**工程10（デプロイ）は行わない**——対象自身への退避スワップは稼働中の実行体を破壊しうるため、工程10 を「世代ステージング」（下記）に差し替える。
 - **名前空間**: `work/.self-optim`（`tools/selfopt.js`・`npm run selfopt:begin -- <label>` / `selfopt:end`）。判定材料は sentinel ファイル1個（label を記録）。**`/canon` run・機能X run と3方向で相互排他**——いずれかが in-flight なら他の開始を拒否する（`tools/new-ts.js`・`tools/new-canon-ts.js`・`tools/selfopt.js` が相互に確認）。
 - **第3の極性ガード（`gates/self-optimize-scope-guard.js`・PreToolUse）**: `write-scope-guard`・`canon-update-scope-guard` に続く3本目。判定材料は `work/.self-optim`。sanctioned は `output/<ts>/`（`.gate/**` 除く）・`work/<ts>/`。保護（deny）は `.claude/`・`gates/`・`tests/`・`docs/`・両設計書・**`generations/`**（候補の取り込みは CLI 一本化・下記）。**write-scope-guard と異なり、終端マーカー（`generation`）到達後も sentinel が在る限り保護を続ける**——自己最適化では工程7通過の直後こそ「直接 `.claude/` を直したくなる」局面であり（3リスク(1)の露出点）、通常の run 外緩和はここでは適用しない。§11.3「ガードの3系統」に対照表がある。
-- **世代ステージング（工程10 の代替・`tools/stage-candidate.js`・`npm run stage -- <output-dir> <label>`）**: `output/<ts>/.gate/markers/generation.done` と `.gate/approvals/generation.approved`（G7〜G12 通過済み・P6 承認済み）を前提条件とし、`deploy/pre-deploy-check.js` が export する `computeVanishing(outputDir, targetDir)`（§10.2・既存 SSoT を再利用）で `targetDir = CANON_ROOT` として取りこぼしを照合、**uncaptured ≥ 1 なら候補への取り込みを拒否**する。通過したら `generated/.claude/` を `generations/candidate-<label>/.claude/` へコピーする（`generations/candidate-*/` は run の sanctioned 外のため、この CLI だけが書ける）。
+- **世代ステージング（工程10 の代替・`tools/stage-candidate.js`・`npm run stage -- <output-dir> <label>`）**: `output/<ts>/.gate/markers/generation.done`（G7〜G12 通過済み）・ブロックラッチ（`.gate/blocks/*.blocked`）0件・`output/<ts>/eval-report.md` の実在（工程9 実施済み）を前提条件とし（人間の承認は機械的に確かめられないため、P6・P7 の承認は対話で取ってからオーケストレータがこの CLI を実行する）、`deploy/pre-deploy-check.js` が export する `computeVanishing(outputDir, targetDir)`（§10.2・既存 SSoT を再利用）で `targetDir = CANON_ROOT` として取りこぼしを照合、**uncaptured ≥ 1 なら候補への取り込みを拒否**する。通過したら `generated/.claude/` を `generations/candidate-<label>/.claude/` へコピーする（`generations/candidate-*/` は run の sanctioned 外のため、この CLI だけが書ける）。
 - **`--resync-keep <label>`**: `promote.js` の乖離検出（§13.2）が拒否した場合の**定義上正しい修復手段**。design-map で disposition が `keep` のファイルのうち、候補と稼働中 `.claude/` が差分を持つものだけを **live → 候補** へ再同期する（keep＝「変更しない」なので、この方向の同期だけが定義と整合する）。実施した各ファイルを1件ずつ標準出力に出す。候補へ書ける CLI を増やさない（`stage-candidate.js` への機能追加に留める）。
 - **`deploy/` の自己指定拒否**: `deploy/deploy.js`・`deploy/pre-deploy-check.js`・`deploy/emit-run-manifest.js` は `<target-repo-dir>` が `CANON_ROOT` と一致する場合 exit 1 で拒否する（§10.2 に追記）。**世代ステージングと退避スワップ配置は別経路**であり、対象自身への退避スワップは promote の G13・`npm test`・自動ロールバックを丸ごと迂回して稼働中の実行体を破壊しうるため、経路として存在させない。
 - **`tools/promote.js` の追加前提**（既存の G13・G3〜G6 検査に追加）: 候補に `.claude/settings.json` が無ければ拒否（配線消滅時の vacuous pass を事前封鎖）。`work/.self-optim` sentinel が在る間は拒否（run 途中の昇格を防ぐ）。`--dry-run` を追加し、スワップ・`npm test` を伴わずに検査のみ行えるようにする（実昇格せずに候補の健全性を確認する手段）。
@@ -783,11 +780,11 @@ G1〜G12 は**生成物**の検証であり、claude-canon 自身の正しさは
 ### 15.3 claude-canon 自身の検証（受け入れテスト）
 
 - **工程単体テスト（ゴールデン方式）**: `fixtures/sample-repos/` の固定入力に各工程ワーカーを単独実行し、出力を同ディレクトリ配下の `expected-output/`・`expected-work/`（`tests/helpers/fixtures.js` ほかが参照する期待値）と突合。LLM 非決定性を考慮し、完全一致でなく**構造・キー・機械検証可能な不変条件**で判定する。
-- **配線テスト（ガードの発火確認）＝ `npm test`・必須**: 違反入力を与え、PreToolUse 3ガードと G バッチが期待どおり deny／exit 2 することを確認する。**settings.json の自己検証は原理的に不可能**（壊れれば hooks が発火せず、SessionStart self-check すら走らない・§11.5）ため、これを帯域外の必須手続きとする。最低限のケース:
+- **配線テスト（ガードの発火確認）＝ `npm test`・必須**: 違反入力を与え、PreToolUse ガード（write-scope-guard・advance-guard と機能X・Y の極性ガード）と G バッチが期待どおり deny／exit 2 することを確認する。**settings.json の自己検証は原理的に不可能**（壊れれば hooks が発火せず、SessionStart self-check すら走らない・§11.5）ため、これを帯域外の必須手続きとする。最低限のケース:
   - sanctioned 外書込（`Write`）→ write-scope deny
   - **`Bash` による保護パス書込（`echo x > docs/foo.md`）→ write-scope deny**（§11.3）
   - **`.gate/**` への書込（Write/Edit/Bash いずれも）→ deny-all**（§4.4）
-  - spec 未承認で design-map 書込 → approval deny／spec 承認済みで spec.md 書込 → 凍結 deny
+  - `spec.done` 無しで design-map 書込・`design.done` 無しで `generated/**` 書込 → advance-guard の順序ガード deny（凍結は廃止済みのため、マーカー後の spec.md・design-map.md 書込は deny しないこと）
   - 旧ツール名を含む生成物 → G5 検出
   - **run 外（`.session-ts` 不在／終端マーカー有）では上記が素通りすること**（ガードの有効条件の確認・§11.3。保守ループが通ることの確認）
   - **リクエスト残留時に G バッチが再判定せず削除のみ行うこと**（`.requests/` 消費規約の冪等性・基本設計書 §4.5）
@@ -814,7 +811,7 @@ G1〜G12 は**生成物**の検証であり、claude-canon 自身の正しさは
 | 意味を要する | eval（`.claude/agents/eval-*`） | **C2 要件非抵触・C4 強度整合**の意味的妥当性・merge 統合先の妥当性・受け入れ基準 `functional`(A1)・コンテキスト効率 |
 
 - **eval は決定論ゲートが既に見た項目を再判定しない**。再判定は「非決定論の判定が決定論の判定を上書きしうる」経路を作り、真偽の権威を壊すからである。
-- **eval の出力は前進ゲートの権威にならない**。eval はマーカーを鋳造せず（基本設計書 §2・§16.7）、その結果は P7（および C2 については P5）で**人間が読む材料**である（基本設計書 §8.4 の三段担保の中段）。
+- **eval の出力は工程前進の権威にならない**。eval はマーカーを鋳造せず（基本設計書 §2・§16.7）、その結果は P7（および C2 については P5）で**人間が読む材料**である（基本設計書 §8.4 の三段担保の中段）。
 - **eval が沈黙しても決定論ゲートは無傷**である（逆は成り立たない。決定論ゲートが沈黙すれば eval は生成物の正しさを担保できない）。
 
 ### 16.2 判定5軸（基本設計書 §3.2 の具体化）
@@ -908,7 +905,7 @@ judge に「何を見るか」を**決定論的に確定**させる。judge が�
 
 - **eval-\* は `work/<ts>/.requests/` に何も書かない**。工程9 は「マーカー書かない・G バッチ非発火」（基本設計書 §2）である。
 - eval-\* の完了で **SubagentStop は発火する**が、`.requests/` に残留があっても基本設計書 §4.5 ① の冪等演算（マーカー有 → 判定を再実行せず削除のみ）により**ブロックラッチの偽陽性は生じない**。この性質は配線テストで固定する（残留 request を置いて stage-guard / gen-guard を起動し、マーカー鋳造0・ラッチ0 を確認）。
-- **P7 の表現**: `npm run approve -- <ts> eval`（承認の唯一の鋳造経路・基本設計書 §4.4）。eval 承認は前進ゲート（approval-guard）の条件には使わない（工程10 は run 外の CLI 工程・§10.2）。
+- **P7 の表現**: 対話で承認を取り、要旨を `work/<ts>/state.md` に記録する（基本設計書 §4.4）。eval 承認はどのガード・ゲートの条件にも使わない（eval はマーカーを持たない・工程10 は run 外の CLI 工程・§10.2）。
 - **eval ハーネス（`eval/`）は hooks から発火しない**。`gates/` が「hooks が発火させる不変土台」であるのに対し、`eval/` は CLI と `npm test` から回る別系統であり、ゆえに別ツリーに置く（基本設計書 §14）。
 - **eval ハーネスの起動経路**: `output/<ts>/eval-report.md` の集約検証（`eval/report.js` `checkEvalReport`）は `npm run eval:report -- <ts>` として CLI 起動できる（`main()` を持つ）。違反があれば exit 2。オーケストレータは工程9 の手順3（`.claude/skills/canon/SKILL.md`）でこれを実行し、5軸ファイルの欠落・`eval-report.md` の不在／空／集約漏れを検出する。
 

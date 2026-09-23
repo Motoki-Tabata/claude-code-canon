@@ -45,7 +45,7 @@ async function runGenerationGates(ts) {
 }
 
 test('代表シナリオ(3): 制約強め fixture が generation の決定論ゲートを全通過する', async (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   const results = await runGenerationGates(c.ts);
   const failed = Object.entries(results).filter(([, r]) => r.ok !== true);
   assert.deepEqual(
@@ -57,7 +57,7 @@ test('代表シナリオ(3): 制約強め fixture が generation の決定論ゲ
 });
 
 test('代表シナリオ(3): 制約違反を注入するとバッチが落ちる（通過だけを根拠にしない）', async (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   // hooks 禁止の環境に、生成物として hook 設定を注入する。
   const p = path.join(c.gen, '.claude', 'settings.json');
   mkdirSync(path.dirname(p), { recursive: true });
@@ -71,7 +71,7 @@ test('代表シナリオ(3): 制約違反を注入するとバッチが落ちる
 });
 
 test('代表シナリオ(3): keep の style-guide が原本と sha256 同一（G8・縮退しても既存は保全）', async (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs(), { approvals: ['spec', 'design'] });
+  const c = setupSampleRepo(t, 'constrained', nextTs(), { markers: ['spec', 'design'] });
   const results = await runGenerationGates(c.ts);
   assert.equal(results['g8_non_regression.js'].ok, true, JSON.stringify(results['g8_non_regression.js'].violations));
 });

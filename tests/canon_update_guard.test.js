@@ -2,7 +2,7 @@
  * canon-update-scope-guard の回帰テスト（詳細設計書 §13.1・§11.3「ガードの2系統」）。
  *
  * write-scope-guard（`/canon` run 用）と極性が逆であることを固定する:
- *   - `docs/` は sanctioned（ただし更新ゲート承認まで deny）
+ *   - `docs/` は sanctioned（承認サイドカーは持たない。提案フェーズの無変更は canon-guard が事後照合する）
  *   - `.claude/`・`gates/`・`tests/`・`design/`（設計書2冊）は常時保護
  *   - 判定材料は `work/.canon-update-ts`（`work/.session-ts` とは別名前空間）
  *
@@ -22,19 +22,15 @@ import { tsFor } from './helpers/ts.js';
 const GUARD = path.join(ROOT, 'gates', 'canon-update-scope-guard.js');
 const TS = tsFor(import.meta.url, 0);
 
-test('逆極性: docs/ への書込は sanctioned（更新ゲート承認まで deny）', (t) => {
-  withCanonUpdateRun(t, TS, { dirs: ['approvals'] });
+test('逆極性: docs/ への書込は sanctioned（承認サイドカー無しで allow・機能X の書込対象）', (t) => {
+  withCanonUpdateRun(t, TS, { dirs: ['markers'] });
   const p = `${ROOT.replace(/\\/g, '/')}/docs/00_INDEX.md`;
-  assert.equal(decide(GUARD, { tool_name: 'Write', tool_input: { file_path: p } }), 'deny', '承認前は deny');
-
-  // 更新ゲート承認を鋳造（tools/approve.js と同じサイドカー形式）。
-  const approvalPath = path.join(outputDir(TS), '.gate', 'approvals', 'canon-update.approved');
-  writeFileSync(approvalPath, JSON.stringify({ kind: 'canon-update', approved_at: new Date().toISOString() }), 'utf8');
-  assert.equal(decide(GUARD, { tool_name: 'Write', tool_input: { file_path: p } }), 'allow', '承認後は allow');
+  assert.equal(decide(GUARD, { tool_name: 'Write', tool_input: { file_path: p } }), 'allow');
+  assert.equal(decide(GUARD, { tool_name: 'Edit', tool_input: { file_path: p } }), 'allow');
 });
 
 test('逆極性: .claude/・gates/・tests/・design/（設計書2冊）は常時保護（docs/ とは真逆）', (t) => {
-  withCanonUpdateRun(t, TS, { dirs: ['approvals'] });
+  withCanonUpdateRun(t, TS, { dirs: ['markers'] });
   const cases = [
     `${ROOT.replace(/\\/g, '/')}/.claude/settings.json`,
     `${ROOT.replace(/\\/g, '/')}/gates/g5_tool_names.js`,
@@ -54,7 +50,7 @@ test('回帰ロック: DESIGN_DOCS が指すファイルが実在し、ガード
         '設計書を改名・移動した場合は DESIGN_DOCS も追従させ、ファイル本体を伴わない参照だけの改名を防ぐ。'
     );
   }
-  withCanonUpdateRun(t, TS, { dirs: ['approvals'] });
+  withCanonUpdateRun(t, TS, { dirs: ['markers'] });
   for (const d of DESIGN_DOCS) {
     assert.equal(
       decide(GUARD, { tool_name: 'Write', tool_input: { file_path: `${ROOT.replace(/\\/g, '/')}/${d}` } }),
@@ -65,7 +61,7 @@ test('回帰ロック: DESIGN_DOCS が指すファイルが実在し、ガード
 });
 
 test('work/<ts>/・output/<ts>/（.gate/** 除く）は sanctioned', (t) => {
-  withCanonUpdateRun(t, TS, { dirs: ['approvals'] });
+  withCanonUpdateRun(t, TS, { dirs: ['markers'] });
   assert.equal(
     decide(GUARD, { tool_name: 'Write', tool_input: { file_path: `${ROOT.replace(/\\/g, '/')}/work/${TS}/canon-diff-proposal.md` } }),
     'allow'
@@ -77,22 +73,21 @@ test('work/<ts>/・output/<ts>/（.gate/** 除く）は sanctioned', (t) => {
 });
 
 test('.gate/** は機能X run 中も deny-all', (t) => {
-  withCanonUpdateRun(t, TS, { dirs: ['approvals'] });
-  const p = `${ROOT.replace(/\\/g, '/')}/output/${TS}/.gate/approvals/canon-update.approved`;
+  withCanonUpdateRun(t, TS, { dirs: ['markers'] });
+  const p = `${ROOT.replace(/\\/g, '/')}/output/${TS}/.gate/markers/canon-update.done`;
   assert.equal(decide(GUARD, { tool_name: 'Write', tool_input: { file_path: p } }), 'deny');
 });
 
-test('シェル経由でも docs/ 未承認書込・.claude 書込を deny する', (t) => {
-  withCanonUpdateRun(t, TS, { dirs: ['approvals'] });
-  assert.equal(decide(GUARD, { tool_name: 'PowerShell', tool_input: { command: "Set-Content docs/foo.md 'x'" } }), 'deny');
+test('シェル経由でも docs/ は書込可、.claude・gates 書込は deny する', (t) => {
+  withCanonUpdateRun(t, TS, { dirs: ['markers'] });
+  assert.equal(decide(GUARD, { tool_name: 'PowerShell', tool_input: { command: "Set-Content docs/foo.md 'x'" } }), 'allow');
   assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: 'echo x > .claude/settings.json' } }), 'deny');
   assert.equal(decide(GUARD, { tool_name: 'Monitor', tool_input: { command: 'echo x > gates/g5_tool_names.js' } }), 'deny');
 });
 
 test('シェルの読取は誤検出しない', (t) => {
-  withCanonUpdateRun(t, TS, { dirs: ['approvals'] });
+  withCanonUpdateRun(t, TS, { dirs: ['markers'] });
   assert.equal(decide(GUARD, { tool_name: 'PowerShell', tool_input: { command: 'Get-Content docs/00_INDEX.md' } }), 'allow');
-  assert.equal(decide(GUARD, { tool_name: 'Bash', tool_input: { command: `npm run approve -- ${TS} canon-update` } }), 'allow');
 });
 
 // L023（fd 複製の誤検知・退行防止）は3ガード共通の SSoT（gates/lib/shell-write.js）に

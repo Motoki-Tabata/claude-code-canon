@@ -6,7 +6,7 @@
  * 兼ねているため、reopen 前後で write-scope-guard の判定が実際に反転すること、
  * および gen-guard が実際に再判定すること（対照実験つき）を固定する。
  *
- * `.claude/rules/gates-and-tests.md` の規律に従い、故意の違反注入（承認チェーン未取消・
+ * `.claude/rules/gates-and-tests.md` の規律に従い、故意の違反注入（連鎖削除の対象を残す・
  * 別 run への誤爆・語彙外 stage）で reopen が実際に拒否することを示してから、
  * 正規経路が通ることを確認する。
  */
@@ -19,7 +19,6 @@ import {
   ROOT,
   outputDir,
   markersDir,
-  approvalsDir,
   blocksDir,
   requestsDir,
   hasMarker,
@@ -27,7 +26,7 @@ import {
 import { decide, runToolCli, runNodeScript } from './helpers/hook.js';
 import { withRun, cleanupTs } from './helpers/run-state.js';
 import { tsFor } from './helpers/ts.js';
-import { mintMarker, mintApproval, mintBlockLatch, appendProcessedLog } from '../gates/lib/run.js';
+import { mintMarker, mintBlockLatch, appendProcessedLog } from '../gates/lib/run.js';
 
 const GUARD = path.join(ROOT, 'gates', 'write-scope-guard.js');
 const GEN_GUARD = path.join(ROOT, 'gates', 'gen-guard.js');
@@ -91,34 +90,56 @@ test('対照実験: reopen しなければ同じ入力で gen-guard は冪等ス
   );
 });
 
-test('承認チェーンの強制（違反注入）: generation.approved が残っていれば reopen は拒否し、マーカーは残る', (t) => {
+test('連鎖削除: design を reopen すると下流の generation.done も消え、上流の spec.done は残る', (t) => {
   const ts = tsFor(import.meta.url, 4);
-  withRun(t, ts, { dirs: ['markers', 'approvals'] });
-  mintMarker(ts, 'generation');
-  const approveResult = runToolCli('approve.js', [ts, 'generation', '--approved-by=test']);
-  assert.equal(approveResult.code, 0, `approve.js が失敗した: ${approveResult.stderr}`);
+  withRun(t, ts, { dirs: ['markers'] });
+  for (const stage of ['requirements', 'spec', 'design', 'generation']) mintMarker(ts, stage);
 
-  const r = runToolCli('reopen.js', [ts, 'generation']);
-  assert.notEqual(r.code, 0, 'generation.approved が残ったままの reopen は拒否されるべき');
-  assert.equal(hasMarker(ts, 'generation'), true, '拒否された reopen はマーカーを削除してはならない');
-
-  const revoke = runToolCli('approve.js', [ts, 'generation', '--revoke']);
-  assert.equal(revoke.code, 0, `approve --revoke が失敗した: ${revoke.stderr}`);
-
-  const r2 = runToolCli('reopen.js', [ts, 'generation']);
-  assert.equal(r2.code, 0, `承認取消後の reopen は成功するべき: ${r2.stderr}`);
-  assert.equal(hasMarker(ts, 'generation'), false);
+  const r = runToolCli('reopen.js', [ts, 'design']);
+  assert.equal(r.code, 0, `reopen が失敗した: ${r.stderr}`);
+  assert.equal(hasMarker(ts, 'design'), false, 'design.done が残っている');
+  assert.equal(hasMarker(ts, 'generation'), false, '下流の generation.done が残ると、書き換え前の設計に対して「通過済み」のままになる');
+  assert.equal(hasMarker(ts, 'spec'), true, '上流の spec.done を消してはならない');
+  assert.equal(hasMarker(ts, 'requirements'), true, '上流の requirements.done を消してはならない');
 });
 
-test('承認チェーンの強制: generation を reopen するとき eval.approved も残っていれば拒否する', (t) => {
+test('連鎖削除: spec を reopen すると spec・design・generation を消し、investigation.focused 以前は残る', (t) => {
   const ts = tsFor(import.meta.url, 5);
-  withRun(t, ts, { dirs: ['markers', 'approvals'] });
-  mintMarker(ts, 'generation');
-  mintApproval(ts, 'eval', { approved_by: 'test' });
+  withRun(t, ts, { dirs: ['markers'] });
+  for (const stage of ['investigation', 'requirements', 'investigation.focused', 'spec', 'design', 'generation']) mintMarker(ts, stage);
 
-  const r = runToolCli('reopen.js', [ts, 'generation']);
-  assert.notEqual(r.code, 0, 'generation より後工程の eval.approved が残っていれば拒否するべき');
-  assert.match(r.stderr, /eval/, 'どの承認が残っているか理由に含めるべき');
+  const r = runToolCli('reopen.js', [ts, 'spec']);
+  assert.equal(r.code, 0, `reopen が失敗した: ${r.stderr}`);
+  for (const gone of ['spec', 'design', 'generation']) assert.equal(hasMarker(ts, gone), false, `${gone}.done が残っている`);
+  for (const kept of ['investigation', 'requirements', 'investigation.focused']) assert.equal(hasMarker(ts, kept), true, `${kept}.done を消してはならない`);
+});
+
+test('連鎖削除: 巻き戻す工程自身のマーカーが無くても、下流に残っていれば消す（下流だけ通過済みの不整合を作らない）', (t) => {
+  const ts = tsFor(import.meta.url, 12);
+  withRun(t, ts, { dirs: ['markers'] });
+  mintMarker(ts, 'generation'); // design.done は無い
+
+  const r = runToolCli('reopen.js', [ts, 'design']);
+  assert.equal(r.code, 0, `reopen が失敗した: ${r.stderr}`);
+  assert.equal(hasMarker(ts, 'generation'), false, 'design 自身が無くても下流の generation.done は消えるべき');
+});
+
+test('連鎖削除の監査: 下流のログ行に cascade_from が記録される', (t) => {
+  const ts = tsFor(import.meta.url, 13);
+  withRun(t, ts, { dirs: ['markers'] });
+  mintMarker(ts, 'design');
+  mintMarker(ts, 'generation');
+
+  const r = runToolCli('reopen.js', [ts, 'design']);
+  assert.equal(r.code, 0, `reopen が失敗した: ${r.stderr}`);
+  const log = processedLog(ts).filter((l) => l.action === 'reopen');
+  assert.equal(log.find((l) => l.stage === 'design').cascade_from, undefined, '起点自身に cascade_from は付かない');
+  assert.equal(log.find((l) => l.stage === 'generation').cascade_from, 'design');
+});
+
+test('承認サイドカーは廃止済み: approve.js は存在しない（承認は対話で取り state.md に記録する）', () => {
+  assert.equal(existsSync(path.join(ROOT, 'tools', 'approve.js')), false);
+  assert.equal(existsSync(path.join(ROOT, 'gates', 'approval-guard.js')), false);
 });
 
 test('別 run への誤爆の封鎖（違反注入）: <ts> が現在の .session-ts と一致しなければ拒否する', (t) => {

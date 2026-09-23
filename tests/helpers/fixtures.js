@@ -11,6 +11,7 @@ import { mkdirSync, writeFileSync, cpSync, mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { ROOT, outputDir, workDir } from './paths.js';
+import { mintMarker } from '../../gates/lib/run.js';
 
 // ---------------------------------------------------------------------------
 // frontmatter 文字列生成
@@ -79,10 +80,10 @@ export function sampleRepoDir(name) {
  * `fixtures/sample-repos/<name>/expected-output/**` を実 `output/<ts>/` へ、
  * `expected-work/**` を実 `work/<ts>/` へ配置し、`target.txt`（対象リポの絶対パス）を書く。
  * `scenario2_helpers.setupScenario2` と `scenario3_helpers.setupScenario3` を統合したもの
- * （両者は `approvals` の有無以外は同一規約——`expected-output/` の中身をそのまま複写する）。
+ * （両者は `markers` の有無以外は同一規約——`expected-output/` の中身をそのまま複写する）。
  * t.after() で実 output/work の当該 <ts> を削除する。
  */
-export function setupSampleRepo(t, name, ts, { approvals = [] } = {}) {
+export function setupSampleRepo(t, name, ts, { markers = [] } = {}) {
   const caseDir = sampleRepoDir(name);
   const o = outputDir(ts);
   const w = workDir(ts);
@@ -92,16 +93,8 @@ export function setupSampleRepo(t, name, ts, { approvals = [] } = {}) {
   cpSync(path.join(caseDir, 'expected-work'), w, { recursive: true });
   writeFileSync(path.join(w, 'target.txt'), caseDir + '\n');
 
-  if (approvals.length > 0) {
-    const approvalsDir = path.join(o, '.gate', 'approvals');
-    mkdirSync(approvalsDir, { recursive: true });
-    for (const kind of approvals) {
-      writeFileSync(
-        path.join(approvalsDir, `${kind}.approved`),
-        JSON.stringify({ approved_by: 'fixture', approved_at: '2026-07-24T00:00:00Z' }) + '\n'
-      );
-    }
-  }
+  // 前段工程の完了マーカー（G1 の design／generation ステージは前段の done を前提とする）。
+  for (const stage of markers) mintMarker(ts, stage, { fixture: true });
 
   t.after(() => {
     rmSync(o, { recursive: true, force: true });

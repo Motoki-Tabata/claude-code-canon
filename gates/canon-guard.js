@@ -23,14 +23,44 @@ import {
   readHookInput,
   listRequests,
   hasMarker,
+  hasRequest,
+  deleteRequest,
+  mintBlockLatch,
+  appendProcessedLog,
   processStageRequests,
   isMainModule,
   blockStop,
   passStop,
 } from './lib/run.js';
-import { readCanonUpdateTs, CANON_UPDATE_TERMINAL_STAGE } from './lib/canon-run.js';
+import { readCanonUpdateTs, CANON_UPDATE_TERMINAL_STAGE, diffDocsAgainstSnapshot } from './lib/canon-run.js';
 
 const CANON_UPDATE_STAGES = [CANON_UPDATE_TERMINAL_STAGE]; // = ['canon-update']
+
+// フェーズ1（調査・差分提案）の完了リクエスト。ステージ（マーカーを持つ工程）ではなく、
+// 「提案フェーズは docs/ を書き換えない」ことの事後照合の合図（§13.1 安全制約）。
+const PROPOSAL_REQUEST = 'canon-update-proposal';
+
+/**
+ * 提案フェーズ完了時の docs/ 無変更照合。旧設計の「更新ゲート承認まで docs/ 書込を deny」の代替。
+ * 採番時のスナップショットが無い場合は「比較不能」であり、差分なしと読まず違反として扱う
+ * （vacuous pass を作らない）。違反でもリクエストは残し、次の停止で再照合する。
+ */
+function checkProposalLeftDocsUntouched(ts) {
+  const diff = diffDocsAgainstSnapshot(ts);
+  if (diff === null) {
+    return { ok: false, violations: [`docs スナップショット（work/${ts}/.docs-snapshot.json）が無く、提案フェーズの無変更を照合できない`] };
+  }
+  if (diff.clean) return { ok: true, violations: [] };
+  const parts = [
+    ...diff.changed.map((n) => `変更: docs/${n}`),
+    ...diff.added.map((n) => `追加: docs/${n}`),
+    ...diff.removed.map((n) => `削除: docs/${n}`),
+  ];
+  return {
+    ok: false,
+    violations: [`提案フェーズ（承認前）に docs/ が書き換えられた（${parts.join('、')}）。docs/ を採番時点へ戻してから完了を告げること（git restore docs/）`],
+  };
+}
 
 const GATE_MODULES = {
   'canon-update': ['g14_canon_consistency.js', 'g15_propagation.js', 'g16_ledger.js'],
@@ -79,6 +109,18 @@ async function main() {
   if (!ts) {
     passStop('canon-guard: .canon-update-ts 不在のため対象なし');
     return;
+  }
+
+  if (hasRequest(ts, PROPOSAL_REQUEST)) {
+    const r = checkProposalLeftDocsUntouched(ts);
+    if (!r.ok) {
+      mintBlockLatch(ts, CANON_UPDATE_TERMINAL_STAGE, r.violations.join(' / '), { source: PROPOSAL_REQUEST });
+      appendProcessedLog(ts, { stage: PROPOSAL_REQUEST, action: 'proposal-docs-check', ok: false, violations: r.violations });
+      blockStop(`canon-guard: ${r.violations.join(' / ')}`);
+      return;
+    }
+    deleteRequest(ts, PROPOSAL_REQUEST);
+    appendProcessedLog(ts, { stage: PROPOSAL_REQUEST, action: 'proposal-docs-check', ok: true });
   }
 
   const precomputed = {};

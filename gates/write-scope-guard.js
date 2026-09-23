@@ -10,8 +10,8 @@
  *   (i) の剥奪＋G13 が正）。
  *   **PowerShell を落としてはならない**: 正典 docs/TOOLS.md の正規ツール名に PowerShell が
  *   実在し（権限要）、Windows では主シェルである。Bash のみを見る実装だと
- *   `PowerShell: Set-Content <ts>/.gate/approvals/spec.approved ''` で承認を捏造でき、
- *   承認鋳造経路の一本化の deny-all と前進ゲートのラチェットが崩壊する（実測で確認済み）。
+ *   `PowerShell: Set-Content <ts>/.gate/markers/spec.done ''` でゲート通過を捏造でき、
+ *   マーカー鋳造経路の一本化の deny-all と順序ガードのラチェットが崩壊する（実測で確認済み）。
  * - ガードは run が in-flight のときのみ有効（ガードの有効条件）。run 外は素通り。
  *
  * 入力（stdin JSON）: docs/L4_AUTOMATION.md §2.1

@@ -14,7 +14,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { hasBlockLatch } from '../gates/lib/run.js';
+import { hasBlockLatch, mintMarker } from '../gates/lib/run.js';
 import { advisoryReverifyFile } from '../gates/g12_output_perfile.js';
 import { ROOT, posix, genDir } from './helpers/paths.js';
 import { hookRun, decide } from './helpers/hook.js';
@@ -76,14 +76,20 @@ test('PostToolUse: generated 外の書込ではラッチしない', (t) => {
 
 test('PreToolUse 統合: PostToolUse でラッチ後は generated/** への前進書込を deny する', (t) => {
   const ts = tsFor(import.meta.url, 5);
-  withRun(t, ts, { dirs: ['generated'] });
+  withRun(t, ts, { dirs: ['generated', 'markers'] });
+  mintMarker(ts, 'design'); // 順序ガードを通しておく（deny の理由をラッチだけに絞る）
+  const next = posix(abs(ts, '.claude', 'skills', 'nextskill', 'SKILL.md'));
+  assert.equal(
+    decideGuard({ hook_event_name: 'PreToolUse', tool_name: 'Write', tool_input: { file_path: next } }),
+    'allow',
+    '対照: ラッチが無ければ同じ書込は通る（下の deny がラッチ起因であることの証拠）'
+  );
   // 1) 違反ファイルの PostToolUse でラッチを立てる。
   const bad = writeAgentFile(ts, 'bad', 'Read Task');
   runGuard({ hook_event_name: 'PostToolUse', tool_name: 'Write', tool_input: { file_path: posix(bad) } });
   assert.equal(hasBlockLatch(ts, 'gen'), true);
 
   // 2) 以降の generated/** への前進書込は PreToolUse で deny される。
-  const next = posix(abs(ts, '.claude', 'skills', 'nextskill', 'SKILL.md'));
   assert.equal(
     decideGuard({ hook_event_name: 'PreToolUse', tool_name: 'Write', tool_input: { file_path: next } }),
     'deny',
@@ -137,4 +143,43 @@ test('advisoryReverifyFile: 違反のある schema ファイルは違反配列�
   const p = writeAgentFile(ts, 'w', 'Read Task');
   const v = advisoryReverifyFile(p, ts);
   assert.ok(v.length > 0, '旧称 Task を含む agent は per-file 違反を返す');
+});
+
+// ---- 順序ガード（承認サイドカーの代わりに、工程の完了マーカーで事前に工程順を強制する）----
+
+const designMapPath = (ts) => posix(path.join(ROOT, 'output', ts, 'design-map.md'));
+const preWrite = (file_path) => ({ hook_event_name: 'PreToolUse', tool_name: 'Write', tool_input: { file_path } });
+
+test('順序ガード: spec.done が無ければ design-map.md への書込を deny し、有れば allow する', (t) => {
+  const ts = tsFor(import.meta.url, 10);
+  withRun(t, ts, { dirs: ['markers'] });
+  assert.equal(decideGuard(preWrite(designMapPath(ts))), 'deny', 'spec 工程を通らずに設計へ進めてはならない');
+  mintMarker(ts, 'spec');
+  assert.equal(decideGuard(preWrite(designMapPath(ts))), 'allow', 'spec.done があれば設計に進める');
+});
+
+test('順序ガード: design.done が無ければ generated/** への書込を deny し、有れば allow する', (t) => {
+  const ts = tsFor(import.meta.url, 11);
+  withRun(t, ts, { dirs: ['generated', 'markers'] });
+  const target = posix(abs(ts, '.claude', 'skills', 'x', 'SKILL.md'));
+  mintMarker(ts, 'spec'); // spec.done だけでは生成に進めない
+  assert.equal(decideGuard(preWrite(target)), 'deny', 'design 工程を通らずに生成へ進めてはならない');
+  mintMarker(ts, 'design');
+  assert.equal(decideGuard(preWrite(target)), 'allow', 'design.done があれば生成に進める');
+});
+
+test('順序ガード: 凍結はしない（spec.done・design.done が在っても spec.md・design-map.md は書き直せる＝差し戻しを妨げない）', (t) => {
+  const ts = tsFor(import.meta.url, 12);
+  withRun(t, ts, { dirs: ['markers'] });
+  mintMarker(ts, 'spec');
+  mintMarker(ts, 'design');
+  assert.equal(decideGuard(preWrite(designMapPath(ts))), 'allow', 'design.done が在っても design-map.md を書き直せること');
+  assert.equal(decideGuard(preWrite(posix(path.join(ROOT, 'output', ts, 'spec.md')))), 'allow', 'spec.md も同様');
+});
+
+test('順序ガード: run 外では素通りする（ガードの有効条件）', (t) => {
+  const ts = tsFor(import.meta.url, 13);
+  withoutSentinel(t, path.join(ROOT, 'work', '.session-ts'));
+  cleanupTs(t, ts);
+  assert.equal(decideGuard(preWrite(designMapPath(ts))), 'allow');
 });

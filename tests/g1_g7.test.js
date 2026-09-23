@@ -10,7 +10,9 @@ import assert from 'node:assert/strict';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
-import { checkG1 } from '../gates/g1_stage_order.js';
+import { mintMarker } from '../gates/lib/run.js';
+import { checkG1, checkSystemASummaryCounts } from '../gates/g1_stage_order.js';
+import { parseSystemA } from '../gates/lib/investigation.js';
 import { checkG7 } from '../gates/g7_ref_integrity.js';
 import { ROOT } from './helpers/paths.js';
 import { cleanupTs } from './helpers/run-state.js';
@@ -22,27 +24,35 @@ const out = (ts) => path.join(ROOT, 'output', ts);
 function setup(t, ts) {
   cleanupTs(t, ts);
   mkdirSync(path.join(work(ts), '.requests'), { recursive: true });
-  mkdirSync(path.join(out(ts), '.gate', 'approvals'), { recursive: true });
+  mkdirSync(path.join(out(ts), '.gate', 'markers'), { recursive: true });
   mkdirSync(path.join(out(ts), 'generated', '.claude', 'agents'), { recursive: true });
   mkdirSync(path.join(out(ts), 'generated', '.claude', 'skills'), { recursive: true });
-  // 系統A成果物（investigator.md の集約・永続化契約）。investigation ステージ以外のテストにも
+  // 系統A成果物（existing-customization-analyzer が自分で書く契約）。investigation ステージ以外のテストにも
   // 無害に存在させ、既存の投入手順を崩さない。
-  // 系統A成果物（investigator.md の集約・永続化契約）。G1 の調査工程スキーマ検査（§6.1）が
+  // 系統A成果物（existing-customization-analyzer が自分で書く契約）。G1 の調査工程スキーマ検査（§6.1）が
   // `- path:` レコードと canon_conformance 4キー・project_refs 節を要求するので、
   // 契約に適合する最小レコードを1件置く（stub でも契約を破らない）。
   writeFileSync(path.join(work(ts), 'existing_customizations.md'), '## サマリ\n総数 1\n\n## レコード（1ファイル1件）\n- path: .claude/skills/stub/SKILL.md\n  layer: L2\n  kind: skill\n  depends_on:\n    customization_refs: []\n    project_refs: []\n  canon_conformance:\n    frontmatter_keys_valid: true\n    unknown_frontmatter_keys: []\n    tool_names_valid: true\n    deprecated_notation: []\n');
 }
 
-test('G1 design ステージ: spec.approved が無ければ違反、有れば通過', (t) => {
+test('G1 design ステージ: 前段 spec.done が無ければ違反、有れば通過', (t) => {
   const ts = tsFor(import.meta.url, 1);
   setup(t, ts);
-  assert.equal(checkG1({ ts, stage: 'design' }).ok, false, 'spec 未承認で design は通ってはならない');
-  // 実際の鋳造経路（tools/approve.js）を使う。G1 と approve.js が承認サイドカーの
-  // フォーマット（JSON・approved_by 必須）で一致していることも同時に検証する。
-  execFileSync(process.execPath, [path.join(ROOT, 'tools', 'approve.js'), ts, 'spec', '--approved-by=test'], {
-    encoding: 'utf8',
-  });
-  assert.equal(checkG1({ ts, stage: 'design' }).ok, true, 'spec 承認済みなら design は通る');
+  assert.equal(checkG1({ ts, stage: 'design' }).ok, false, 'spec 工程が完了していない（spec.done 無し）のに design は通ってはならない');
+  // 実際の鋳造経路（mintMarker＝ゲートが使う唯一の鋳造）でマーカーを置く。
+  mintMarker(ts, 'spec');
+  assert.equal(checkG1({ ts, stage: 'design' }).ok, true, 'spec.done があれば design は通る');
+});
+
+test('G1 generation ステージ: 前段 design.done が無ければ違反、有れば通過（spec.done だけでは足りない）', (t) => {
+  const ts = tsFor(import.meta.url, 31);
+  setup(t, ts);
+  mintMarker(ts, 'spec');
+  const r = checkG1({ ts, stage: 'generation' });
+  assert.equal(r.ok, false, 'design 工程が完了していない（design.done 無し）のに generation は通ってはならない');
+  assert.match(JSON.stringify(r), /design\.done/);
+  mintMarker(ts, 'design');
+  assert.equal(checkG1({ ts, stage: 'generation' }).ok, true);
 });
 
 test('G1 investigation: requirements.md が無ければ focused 空欄でも正当（調査1段目）', (t) => {
@@ -55,7 +65,7 @@ test('G1 investigation: requirements.md が無ければ focused 空欄でも正�
   assert.equal(r.ok, true, '要件確定前は focused 空でも通る');
 });
 
-test('G1 investigation: existing_customizations.md が無ければ調査1段目でも違反（investigator が配下 spawn 直後に turn を終える failure mode の検出・実測 run 20260903_091044）', (t) => {
+test('G1 investigation: existing_customizations.md が無ければ調査1段目でも違反（ワーカーが成果物を書かずに完了する failure mode の検出・実測 run 20260903_091044）', (t) => {
   const ts = tsFor(import.meta.url, 20);
   cleanupTs(t, ts);
   mkdirSync(path.join(work(ts), '.requests'), { recursive: true });
@@ -633,4 +643,43 @@ test('S1-1 G1 investigation: path に layer:/kind: 残骸が混入していれ�
     r.violations.some((v) => v.message.includes('キー残骸')),
     JSON.stringify(r.violations)
   );
+});
+
+// ---- 系統A サマリの件数照合（S2-4）----
+
+const rec = (p, layer) => `- path: ${p}\n  layer: ${layer}\n  kind: skill\n`;
+const sysA = (summary, ...records) => `## サマリ\n${summary}\n\n## レコード（1ファイル1件）\n${records.join('')}`;
+const counts = (text) => checkSystemASummaryCounts(text, parseSystemA(text));
+
+test('件数照合: 総数・レイヤー内訳が本文と一致すれば問題なし', () => {
+  const t = sysA('総数 3 / L2 2 / L4 1 / 正典逸脱の疑い: なし', rec('a', 'L2'), rec('b', 'L2'), rec('c', 'L4'));
+  assert.deepEqual(counts(t), []);
+});
+
+test('件数照合（違反注入）: 実際は3件なのに総数を2と書けば検出する（実測: 30 と書いて本文は 31）', () => {
+  const t = sysA('総数 2 / L2 2', rec('a', 'L2'), rec('b', 'L2'), rec('c', 'L2'));
+  const problems = counts(t);
+  assert.ok(problems.some((p) => /総数が 2/.test(p) && /3 件/.test(p)), JSON.stringify(problems));
+});
+
+test('件数照合（違反注入）: 総数は合っていてもレイヤー内訳が本文と違えば検出する', () => {
+  const t = sysA('総数 3 / L2 3', rec('a', 'L2'), rec('b', 'L2'), rec('c', 'L4'));
+  const problems = counts(t);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /L2 が 3/);
+});
+
+test('件数照合: 総数行が無ければ照合しない（散文中の「L3 3階層」等は総数行でないので誤検知しない）', () => {
+  assert.deepEqual(counts(sysA('L3 3階層の依存がある', rec('a', 'L2'))), []);
+});
+
+test('件数照合が G1 の investigation ステージで実際に発火する（本文1件・総数5）', (t) => {
+  const ts = tsFor(import.meta.url, 32);
+  setup(t, ts);
+  writeFileSync(path.join(work(ts), 'existing_customizations.md'), sysA('総数 5', rec('.claude/skills/x/SKILL.md', 'L2')) + '  depends_on:\n    customization_refs: []\n    project_refs: []\n  canon_conformance:\n    frontmatter_keys_valid: true\n    unknown_frontmatter_keys: []\n    tool_names_valid: true\n    deprecated_notation: []\n');
+  writeFileSync(path.join(work(ts), 'project_profile.md'), '## profile\nlanguages: js\n');
+  writeFileSync(path.join(work(ts), 'target.txt'), ROOT.replace(/\\/g, '/') + '\n');
+  const r = checkG1({ ts, stage: 'investigation' });
+  assert.equal(r.ok, false);
+  assert.match(JSON.stringify(r), /サマリの件数が本文と一致しない/);
 });

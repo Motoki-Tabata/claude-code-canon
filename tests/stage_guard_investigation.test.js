@@ -38,8 +38,8 @@ function setup(t, ts) {
   mkdirSync(path.join(workDir(ts), '.requests'), { recursive: true });
   // target.txt は evidence_paths 実在照合用（本テストは evidence_paths を書かないため実害なし）。
   writeFileSync(path.join(workDir(ts), 'target.txt'), posix(ROOT) + '\n');
-  // 系統A成果物（investigator.md の集約・永続化契約）。
-  // 系統A成果物（investigator.md の集約・永続化契約）。G1 の調査工程スキーマ検査（§6.1）が
+  // 系統A成果物（existing-customization-analyzer が自分で書く契約）。
+  // 系統A成果物（existing-customization-analyzer が自分で書く契約）。G1 の調査工程スキーマ検査（§6.1）が
   // `- path:` レコードと canon_conformance 4キー・project_refs 節を要求するので、
   // 契約に適合する最小レコードを1件置く（stub でも契約を破らない）。
   writeFileSync(path.join(workDir(ts), 'existing_customizations.md'), '## サマリ\n総数 1\n\n## レコード（1ファイル1件）\n- path: .claude/skills/stub/SKILL.md\n  layer: L2\n  kind: skill\n  depends_on:\n    customization_refs: []\n    project_refs: []\n  canon_conformance:\n    frontmatter_keys_valid: true\n    unknown_frontmatter_keys: []\n    tool_names_valid: true\n    deprecated_notation: []\n');
@@ -103,7 +103,7 @@ test('F1 ③調査2 focused 欠落＝回帰ロック: phase1 マーカー在で�
   assert.equal(existsSync(requestPath(ts, 'investigation')), true, 'fail 時はリクエストを残す（再判定の契機）');
 });
 
-test('F1 ④ existing_customizations.md 不在＝investigator が配下 spawn 直後に turn を終える failure mode の dispatch 層回帰ロック（実測 run 20260903_091044）', (t) => {
+test('F1 ④ existing_customizations.md 不在＝ワーカーが成果物を書かずに完了する failure mode の dispatch 層回帰ロック（実測 run 20260903_091044）', (t) => {
   const ts = tsFor(import.meta.url, 4);
   cleanupTs(t, ts);
   mkdirSync(path.join(workDir(ts), '.requests'), { recursive: true });

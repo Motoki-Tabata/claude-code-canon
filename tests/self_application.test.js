@@ -228,7 +228,6 @@ test('L035: designer/existing-disposition の C3 説明が interface_change 機�
 test('L035: 系統A/B・eval-keep-review の調査スコープ説明が /self-optimize 例外（§5.1）に追従している', () => {
   const targets = [
     path.join(SELF, 'agents', 'existing-customization-analyzer', 'existing-customization-analyzer.md'),
-    path.join(SELF, 'agents', 'investigator', 'investigator.md'),
     path.join(SELF, 'agents', 'project-profiler', 'project-profiler.md'),
     path.join(SELF, 'agents', 'eval-keep-review', 'eval-keep-review.md'),
   ];
@@ -301,9 +300,9 @@ test('検出器の素振り: ネイティブ起動の例示に model 引数が�
   assert.equal(hit, true);
 });
 
-// investigator・eval-reviewer は廃止予定（investigator: 深さ2の中継役、eval-reviewer: judge の集約役。
-// どちらもオーケストレータ直接起動へ置き換える）ため、effort の明示対象から一時的に外す。廃止時にこの除外も消す。
-const EFFORT_EXEMPT = new Set(['investigator', 'eval-reviewer']);
+// eval-reviewer は廃止予定（judge の集約役。オーケストレータ直接起動＋eval:report の決定論集約へ置き換える）
+// ため、effort の明示対象から一時的に外す。廃止時にこの除外も消す。
+const EFFORT_EXEMPT = new Set(['eval-reviewer']);
 
 test('全 agent が effort を明示している（未指定だとセッションの effort を継承し、高 effort が伝播する）', () => {
   const missing = [];
@@ -314,4 +313,18 @@ test('全 agent が effort を明示している（未指定だとセッショ�
     if (!/^effort:\s*(low|medium|high|xhigh|max)\s*$/m.test(fm)) missing.push(n);
   }
   assert.deepEqual(missing, []);
+});
+
+// ---- 調査ワーカーの直接起動（中継役 investigator の廃止）----
+
+test('investigator（深さ2の中継役）は廃止済み。系統A/B は自分の成果物を書ける（Write）が、コマンド実行系ツールは持たない', () => {
+  assert.equal(existsSync(path.join(SELF, 'agents', 'investigator')), false, 'investigator を復活させない（深さ2の報告が呼び出し元に届かない failure mode の再発）');
+  const toolsOf = (n) => (/^tools:\s*(.+)$/m.exec(readFileSync(path.join(SELF, 'agents', n, `${n}.md`), 'utf8').split('---')[1])?.[1] ?? '').split(/\s+/);
+  for (const n of ['existing-customization-analyzer', 'project-profiler']) {
+    const tools = toolsOf(n);
+    assert.ok(tools.includes('Write'), `${n} は自分の成果物を書くために Write が要る`);
+    for (const banned of ['Bash', 'PowerShell', 'Monitor']) {
+      assert.ok(!tools.includes(banned), `${n} がコマンド実行系ツール ${banned} を持っている（G13・承認の偽造経路）`);
+    }
+  }
 });

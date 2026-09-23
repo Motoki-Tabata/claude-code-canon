@@ -9,8 +9,9 @@
  *
  *   - stage=investigation: existing_customizations.md 実在／focused 空欄違反／evidence_paths 実在
  *       （work/<ts>/existing_customizations.md 実在・§6.1。系統A（existing-customization-analyzer）
- *        の成果物を investigator が集約・永続化してから完了リクエストを書く契約（investigator.md）
- *        の実照合であり、調査1・調査2の両 phase で要求する（早期 return の対象にしない）。
+ *        が自分の成果物を書いてから完了リクエストを書く契約（analyzer.md）の実照合であり、
+ *        調査1・調査2の両 phase で要求する（早期 return の対象にしない）。あわせて、
+ *        サマリの総数・レイヤー内訳が本文のレコード数と一致することを照合する（S2-4）。
  *        work/<ts>/project_profile.md ## focused・§6.2。調査は1段目と2段目の両方が
  *        同じ 'investigation' 完了リクエストを書く（§4.3 の既知の語彙に "investigation2"
  *        は無い）ため、"要件確定後か" を work/<ts>/requirements.md の有無で判別する。
@@ -20,11 +21,13 @@
  *       （work/<ts>/requirements.md ## 確定要件・§6.3）
  *   - stage=spec: open_questions 残存
  *       （output/<ts>/spec.md §9 未決事項・§7）
- *   - stage=design: 承認サイドカーの存在＋approved_by（spec 側）
- *       （design-map.md 書込は spec.approved 前提で承認ガードが既に強制するが、G1 は
- *        権威再検証として構造を再確認する＝停止時点で改めて機械照合する）
- *   - stage=generation: 承認サイドカーの存在＋approved_by（design 側）
- *       （同様に generated/** 書込は design.approved 前提）
+ *   - stage=design: 前段（spec）工程の完了マーカーの実在
+ *       （design-map.md 書込は spec.done 前提で advance-guard の順序ガードが事前に強制するが、
+ *        G1 は権威再検証として停止時点で改めて機械照合する）
+ *   - stage=generation: 前段（design）工程の完了マーカーの実在
+ *       （同様に generated/** 書込は design.done 前提）
+ *   承認は対話で取りチャット上で確認する（state.md に記録）。承認サイドカーは持たない——
+ *   LLM が書ける記録は判定材料にせず、工程順は決定論ゲートが鋳造するマーカーの順序で担保する。
  *
  * 純関数。副作用（fs 書込・process.exit）なし。
  */
@@ -43,7 +46,7 @@ import {
   stripLineSuffix,
   mentionsIdentifier,
 } from './lib/markdown.js';
-import { workDir, outputDir, approvalPath, resolveTargetRoot } from './lib/run.js';
+import { workDir, outputDir, resolveTargetRoot, hasMarker, markerPath } from './lib/run.js';
 import { parseSystemA, CANON_CONFORMANCE_KEYS } from './lib/investigation.js';
 import { walkManaged } from './lib/managed-paths.js';
 import { parseRequirementsDoc, RequirementsError, checkConflictsIntegrity } from './lib/requirements.js';
@@ -91,9 +94,52 @@ function formatViolation(v) {
  * カスタマイズファイルが実在するのに系統Aが1件も構造化できていないなら、それは
  * 出力契約の不履行である。
  */
+/**
+ * サマリの件数照合（S2-4）。系統Aは自分の要約を数え間違える（実測: run 20260922 で
+ * 「総数 30・L2 11」と書いたが本文を数えると 31・12 件）。誤った要約は下流（spec-writer・designer）が
+ * そのまま信用するので、**書かれた総数・レイヤー内訳を、本文の `- path:` レコードを数えた結果と
+ * 突き合わせる**。
+ *
+ * 照合するのは `総数` を含む1行（`総数 4 / L2 4 / L4 1 / …`）だけ。総数は常に、レイヤー内訳は
+ * その行に `L<n> <件数>` の形で書かれたレイヤーだけを見る（散文中の「L3 3階層」等の誤検知を避けるため、
+ * 総数行に限る）。総数行が無い場合は照合できないので何も言わない（存在の要求は別契約）。
+ */
+export function checkSystemASummaryCounts(text, records) {
+  const summaryLine = text.split(/\r?\n/).find((l) => /総数/.test(l));
+  if (!summaryLine) return [];
+  const problems = [];
+  const total = /総数\s*[:：]?\s*(\d+)/.exec(summaryLine);
+  if (total && Number(total[1]) !== records.size) {
+    problems.push(`総数が ${total[1]} と書かれているが、本文の \`- path:\` レコードは ${records.size} 件`);
+  }
+  const actual = {};
+  for (const r of records.values()) {
+    const m = /L([1-5])/.exec(String(r.layer ?? ''));
+    if (m) actual[`L${m[1]}`] = (actual[`L${m[1]}`] ?? 0) + 1;
+  }
+  for (const m of summaryLine.matchAll(/\b(L[1-5])\s*[:：]?\s*(\d+)(?!\d)/g)) {
+    const got = actual[m[1]] ?? 0;
+    if (Number(m[2]) !== got) problems.push(`${m[1]} が ${m[2]} 件と書かれているが、本文のレコードは ${got} 件`);
+  }
+  return problems;
+}
+
 function checkSystemASchema(ts, absPath) {
   const violations = [];
-  const records = parseSystemA(readFileSync(absPath, 'utf8'));
+  const text = readFileSync(absPath, 'utf8');
+  const records = parseSystemA(text);
+
+  for (const problem of checkSystemASummaryCounts(text, records)) {
+    violations.push(
+      violation(
+        GATE,
+        rel(absPath),
+        `サマリの件数が本文と一致しない: ${problem}。要約は書き終えたレコードを数えて書くこと` +
+          '（誤った件数は spec-writer・designer にそのまま信用される・S2-4）。',
+        '§6.1'
+      )
+    );
+  }
 
   if (records.size === 0) {
     const targetRoot = resolveTargetRoot(ts);
@@ -180,16 +226,16 @@ function checkSystemASchema(ts, absPath) {
 function checkInvestigationStage(ts) {
   const violations = [];
 
-  // 系統A成果物の実在（investigator.md の集約・永続化契約の実照合）。project_profile.md の
+  // 系統A成果物の実在（analyzer が自分で書く契約の実照合）。project_profile.md の
   // 早期 return より前に置き、両方が欠けているときに一方しか報告されない事態を避ける
-  // （investigator が配下 spawn 直後に turn を終える failure mode・詳細設計書 §11.5）。
+  // （ワーカーが書かずに turn を終える failure mode・詳細設計書 §11.5）。
   const existingCustomizationsPath = path.join(workDir(ts), 'existing_customizations.md');
   if (!existsSync(existingCustomizationsPath)) {
     violations.push(
       violation(
         GATE,
         rel(existingCustomizationsPath),
-        'work/<ts>/existing_customizations.md が存在しない（系統A成果物欠落。investigator が集約・永続化せずに完了リクエストを書いた疑い）。',
+        'work/<ts>/existing_customizations.md が存在しない（系統A成果物欠落。existing-customization-analyzer が書き出さずに完了した疑い）。',
         '§6.1'
       )
     );
@@ -412,36 +458,24 @@ function checkSpecStage(ts) {
 }
 
 // ---------------------------------------------------------------------------
-// stage=design / generation: 承認サイドカーの存在＋approved_by
+// stage=design / generation: 前段工程の完了マーカーの実在
 // ---------------------------------------------------------------------------
 
-function checkApprovalSidecar(ts, kind) {
-  const violations = [];
-  const p = approvalPath(ts, kind);
-  if (!existsSync(p)) {
-    violations.push(
-      violation(
-        GATE,
-        rel(p),
-        `承認サイドカー .gate/approvals/${kind}.approved が存在しない（${kind === 'spec' ? 'design' : 'generation'} 工程はこの承認を前提とする）。`,
-        '§4.4・§7 §0メタ・§9.2'
-      )
-    );
-    return violations;
-  }
-  let data;
-  try {
-    data = JSON.parse(readFileSync(p, 'utf8'));
-  } catch (err) {
-    violations.push(violation(GATE, rel(p), `${kind}.approved が正当な JSON として解析できない: ${err.message}`, '§4.4'));
-    return violations;
-  }
-  if (!data.approved_by || typeof data.approved_by !== 'string' || data.approved_by.trim() === '') {
-    violations.push(
-      violation(GATE, rel(p), `${kind}.approved に approved_by（承認者）が記録されていない（監査不能）。`, '§4.4・tools/approve.js')
-    );
-  }
-  return violations;
+/**
+ * 前段工程（`prev`）が完了している（ゲートを通って done マーカーが鋳造されている）ことを検査する。
+ * マーカーは決定論ゲートだけが鋳造する（.gate/** はエージェント書込 deny-all）ので、
+ * LLM が書ける記録（state.md 等）と違って偽造できない。
+ */
+function checkPredecessorMarker(ts, prev, next) {
+  if (hasMarker(ts, prev)) return [];
+  return [
+    violation(
+      GATE,
+      rel(markerPath(ts, prev)),
+      `前段工程の完了マーカー .gate/markers/${prev}.done が存在しない（${next} 工程は ${prev} 工程の完了を前提とする）。`,
+      '§4.3・§4.5・§9.2'
+    ),
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -462,10 +496,10 @@ export function checkG1({ ts, stage }) {
       violations = checkSpecStage(ts);
       break;
     case 'design':
-      violations = checkApprovalSidecar(ts, 'spec');
+      violations = checkPredecessorMarker(ts, 'spec', 'design');
       break;
     case 'generation':
-      violations = checkApprovalSidecar(ts, 'design');
+      violations = checkPredecessorMarker(ts, 'design', 'generation');
       break;
     default:
       violations = [

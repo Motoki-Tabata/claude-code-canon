@@ -133,13 +133,15 @@ test('PreToolUse の matcher がコマンド実行系ツールを漏れなく含
   }
 });
 
-test('3ガードが全て PreToolUse に配線されていること', () => {
+test('2ガード（write-scope-guard・advance-guard）が PreToolUse に配線され、廃止した approval-guard は配線されていないこと', () => {
   const pre = wiredEntries(loadSettings())
     .filter((e) => e.event === 'PreToolUse')
     .map((e) => e.command);
-  for (const g of ['write-scope-guard.js', 'approval-guard.js', 'advance-guard.js']) {
-    assert.ok(pre.some((c) => c.includes(g)), `3ガードの ${g} が PreToolUse に配線されていない（§11.3）`);
+  for (const g of ['write-scope-guard.js', 'advance-guard.js']) {
+    assert.ok(pre.some((c) => c.includes(g)), `${g} が PreToolUse に配線されていない（§11.3）`);
   }
+  // 廃止したガードの配線が残ると、存在しないスクリプトを毎回 hook が起動して落ちる。
+  assert.ok(!pre.some((c) => c.includes('approval-guard.js')), 'approval-guard は廃止済み。配線を残してはならない');
 });
 
 test('§13.2.1: self-optimize-scope-guard（第3の極性ガード）が PreToolUse に配線されていること', () => {

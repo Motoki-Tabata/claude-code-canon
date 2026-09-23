@@ -34,7 +34,7 @@ argument-hint: "<label>"
 
 ### 工程1: プロジェクト調査1（浅く広く・2系統）→ P1
 
-`/canon` と同一（`investigator` → 系統A・系統B 並列 spawn）。ただし対象が claude-canon 自身なので、系統Aは現行の `.claude/agents/**`（19体）・`.claude/skills/**`（14件）・`.claude/settings.json` を、系統Bは `gates/`・`tools/`・`tests/`・`docs/` を含むプロジェクト全体の構造を調べる。
+`/canon` と同一（メイン Claude が系統A・系統B を直接並列 spawn し、各ワーカーが自分の成果物を書く）。ただし対象が claude-canon 自身なので、系統Aは現行の `.claude/agents/**`（19体）・`.claude/skills/**`（14件）・`.claude/settings.json` を、系統Bは `gates/`・`tools/`・`tests/`・`docs/` を含むプロジェクト全体の構造を調べる。
 
 ### C1/C5 事前確認（工程1直後・試し打ち）
 
@@ -58,7 +58,7 @@ argument-hint: "<label>"
 
 配置（デプロイ）は行わない。代わりに候補世代として `generations/candidate-<label>/` へ取り込む。
 
-1. **ステージング**: `npm run stage -- output/<ts> <label>` を Bash で実行する。前提（`generation.done`・`generation.approved`・uncaptured 0件・生成物が `.claude/` 配下のみ）を1件でも満たさなければ拒否され、候補は無傷のまま残る。
+1. **ステージング**: `npm run stage -- output/<ts> <label>` を Bash で実行する。前提（`generation.done`・ブロックラッチ0件・`eval-report.md` の実在・uncaptured 0件・生成物が `.claude/` 配下のみ。P6+7 の承認は対話で取ってから実行する）を1件でも満たさなければ拒否され、候補は無傷のまま残る。
 2. **run の終了**: `npm run selfopt:end` を Bash で実行し、`work/.self-optim` を削除する（self-optimize-scope-guard が非適用に戻る）。**`--dry-run` より先に行うこと**——`tools/promote.js` は自己最適化 run が in-flight（`.self-optim` 在中）の間は `--dry-run` も含め昇格検査そのものを拒否する（§13.2.1「run 途中の昇格を防ぐ」・実測で確認済み）。
 3. **候補の健全性確認（検査のみ・スワップしない）**: `npm run promote -- <label> --dry-run` を Bash で実行する。G13（自己欺瞞封鎖）＋G3〜G6＋`.claude/settings.json` 必須検査だけを行い、現行 `.claude/` には一切触れない。
 4. **人間へ報告して停止**: 生成された候補（`generations/candidate-<label>/.claude/`）の内容・`--dry-run` の結果・工程9 の eval-report を提示する。**実昇格（`npm run promote -- <label>`）は行わない**——着手はユーザー判断（詳細設計書 §13.2「前提」）。実昇格を試すかどうかは本 Skill の範囲外の、別の明示的な依頼として扱う。

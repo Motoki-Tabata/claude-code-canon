@@ -60,7 +60,7 @@ skills: [quality-checklist]
    マーカーも無いため、この自己確認と、オーケストレータが実行する
    `npm run eval:report -- <ts>`（詳細設計書 §16.7）が集約漏れを検出する唯一の手段になる。
 7. 確認できたら完了を親へ返す。**`work/<ts>/.requests/` には何も書かない**（工程9 はマーカーを鋳造せず
-   G バッチを発火させない・§2・§16.7）。P7 の承認は人間が `npm run approve -- <ts> eval` で行う。
+   G バッチを発火させない・§2・§16.7）。P7 の承認は人間がオーケストレータとの対話で行う（記録は `work/<ts>/state.md`）。
 
 ## `output/<ts>/eval-report.md` のフォーマット
 

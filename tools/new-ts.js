@@ -2,7 +2,7 @@
 /**
  * tools/new-ts.js（npm run ts）。
  *
- * <ts> を新規採番し、output/<ts>/・work/<ts>/ の骨格（.gate/{markers,approvals,blocks}・
+ * <ts> を新規採番し、output/<ts>/・work/<ts>/ の骨格（.gate/{markers,blocks}・
  * .requests/）を作り、work/.session-ts を更新する。
  *
  * 実行主体はオーケストレータ（/canon・Bash を持つ Skill）。詳細設計書 §11.5 の
@@ -24,7 +24,6 @@ import {
   outputDir,
   workDir,
   markersDir,
-  approvalsDir,
   blocksDir,
   requestsDir,
   ensureDir,
@@ -61,7 +60,6 @@ function main() {
   ensureDir(outputDir(ts));
   ensureDir(workDir(ts));
   ensureDir(markersDir(ts));
-  ensureDir(approvalsDir(ts));
   ensureDir(blocksDir(ts));
   ensureDir(requestsDir(ts));
   writeSessionTs(ts);

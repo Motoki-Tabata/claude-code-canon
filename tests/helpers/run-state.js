@@ -16,7 +16,6 @@ import {
   outputDir,
   workDir,
   markersDir,
-  approvalsDir,
   requestsDir,
   genDir,
 } from './paths.js';
@@ -52,12 +51,11 @@ export function withoutSentinel(t, file) {
 /**
  * `/canon` run（`work/.session-ts`）を in-flight にする。
  * `dirs` で `.gate/` 配下に作るサブディレクトリを選ぶ（既定: 無し＝`.requests/` のみ）。
- * `'approvals'`／`'markers'`／`'generated'`（`output/<ts>/generated/`）を必要に応じて渡す。
+ * `'markers'`／`'generated'`（`output/<ts>/generated/`）を必要に応じて渡す。
  */
 export function withRun(t, ts, { dirs = [] } = {}) {
   stashFile(t, SESSION_TS_FILE);
   cleanupTs(t, ts);
-  if (dirs.includes('approvals')) mkdirSync(approvalsDir(ts), { recursive: true });
   if (dirs.includes('markers')) mkdirSync(markersDir(ts), { recursive: true });
   if (dirs.includes('generated')) mkdirSync(genDir(ts), { recursive: true });
   mkdirSync(requestsDir(ts), { recursive: true });
@@ -65,10 +63,9 @@ export function withRun(t, ts, { dirs = [] } = {}) {
 }
 
 /** 機能X run（`work/.canon-update-ts`）を in-flight にする。極性は write-scope-guard と逆。 */
-export function withCanonUpdateRun(t, ts, { dirs = ['approvals'] } = {}) {
+export function withCanonUpdateRun(t, ts, { dirs = [] } = {}) {
   stashFile(t, CANON_UPDATE_SESSION_TS_FILE);
   cleanupTs(t, ts);
-  if (dirs.includes('approvals')) mkdirSync(approvalsDir(ts), { recursive: true });
   if (dirs.includes('markers')) mkdirSync(markersDir(ts), { recursive: true });
   mkdirSync(requestsDir(ts), { recursive: true });
   writeFileSync(CANON_UPDATE_SESSION_TS_FILE, ts + '\n', 'utf8');
@@ -83,7 +80,6 @@ export function withCanonUpdateRun(t, ts, { dirs = ['approvals'] } = {}) {
 export function withSelfOptim(t, ts, { label = 'demo-label', mintTerminalMarker = false } = {}) {
   stashFile(t, SELF_OPTIM_FILE);
   cleanupTs(t, ts);
-  mkdirSync(approvalsDir(ts), { recursive: true });
   mkdirSync(markersDir(ts), { recursive: true });
   mkdirSync(requestsDir(ts), { recursive: true });
   writeFileSync(SELF_OPTIM_FILE, `${label}\n${ts}\n`, 'utf8');

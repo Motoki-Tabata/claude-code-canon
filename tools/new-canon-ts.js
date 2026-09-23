@@ -24,7 +24,6 @@ import {
   outputDir,
   workDir,
   markersDir,
-  approvalsDir,
   blocksDir,
   requestsDir,
   ensureDir,
@@ -33,6 +32,7 @@ import {
   readCanonUpdateTs,
   writeCanonUpdateTs,
   hasCanonUpdateTerminalMarker,
+  writeDocsSnapshot,
 } from '../gates/lib/canon-run.js';
 import { readSelfOptim } from '../gates/lib/self-optim.js';
 
@@ -74,9 +74,10 @@ function main() {
   ensureDir(outputDir(ts));
   ensureDir(workDir(ts));
   ensureDir(markersDir(ts));
-  ensureDir(approvalsDir(ts));
   ensureDir(blocksDir(ts));
   ensureDir(requestsDir(ts));
+  // 提案フェーズが docs/ を書き換えていないことの事後照合の基準（canon-guard が使う・§13.1）。
+  writeDocsSnapshot(ts);
   writeCanonUpdateTs(ts);
 
   process.stdout.write(ts + '\n');

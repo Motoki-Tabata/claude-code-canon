@@ -9,6 +9,14 @@
  * 握り潰され得る）。ラッチはゲート再通過でも自動解除されず、解除は
  * 人間 CLI（npm run unblock -- <ts>）のみ。
  *
+ * 【順序ガード】承認サイドカー（旧 approval-guard の前進ゲート）の代わりに、工程の完了マーカーを
+ * 根拠にした事前ガードを持つ。マーカーは決定論ゲートだけが鋳造する（.gate/** は deny-all）ので、
+ * LLM が書ける記録と違って偽造できない:
+ *   - design-map.md への書込は spec.done が無ければ deny（spec 工程を通らずに設計へ進めない）
+ *   - generated/** への書込は design.done が無ければ deny（design 工程を通らずに生成へ進めない）
+ * 凍結（承認後の成果物を書き換え不可にする機能）は持たない——差し戻しで成果物を直すことを
+ * 妨げないため。人間の承認は対話で取る（state.md に記録）ので、ここは工程順の機械担保に限る。
+ *
  * ラッチの鋳造（PostToolUse 側で G3〜G6 を実行し違反を検出する処理）は本スクリプトの
  * PostToolUse 分岐で行う（settings.json の PostToolUse@Write|Edit|NotebookEdit で発火）。
  * 書かれた1ファイルへ per-file ゲートを best-effort で当て（advisory・§11.1）、明確な違反が
@@ -24,6 +32,7 @@ import {
   currentRunTs,
   toRepoRelative,
   hasBlockLatch,
+  hasMarker,
   mintBlockLatch,
   appendProcessedLog,
   allow,
@@ -100,6 +109,16 @@ function main() {
 
   const rel = toRepoRelative(filePath, cwd);
   const generatedPrefix = posix(path.join('output', ts, 'generated')) + '/';
+  const designMapPath = posix(path.join('output', ts, 'design-map.md'));
+
+  if (rel === designMapPath && !hasMarker(ts, 'spec')) {
+    deny('順序ガード: spec.done が無いため design-map.md へ書込不可（spec 工程が G1 を通って完了してから設計へ進む）');
+    return;
+  }
+  if (rel.startsWith(generatedPrefix) && !hasMarker(ts, 'design')) {
+    deny('順序ガード: design.done が無いため generated/** へ書込不可（design 工程が G1・G2 を通って完了してから生成へ進む）');
+    return;
+  }
 
   if (rel.startsWith(generatedPrefix) && hasBlockLatch(ts, GEN_STAGE)) {
     deny(

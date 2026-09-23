@@ -10,7 +10,10 @@
  *
  * 前提検査（1件でも満たさなければステージング拒否・candidate は無傷）:
  *   1. `<output-dir>/.gate/markers/generation.done` の実在（G7〜G12 通過済み）
- *   2. `<output-dir>/.gate/approvals/generation.approved` の実在（P6 承認済み）
+ *   2. ブロックラッチ（`.gate/blocks/*.blocked`）が0件、かつ `<output-dir>/eval-report.md` が実在
+ *      （承認サイドカーは持たない。P6+7 の承認は対話で取り、その後にオーケストレータがこの CLI を
+ *      実行することで表す。人間の承認自体は機械的に確かめられないため、決定論ゲートが鋳造できる
+ *      証跡＝ラッチ不在と eval の実施を前提とする。実昇格 `npm run promote` は別途人間が行う）
  *   3. `generated/` が空でない
  *   4. `generated/` の全ファイルが `.claude/` 配下（root CLAUDE.md・.mcp.json・plugin/ は
  *      管理パス集合として正当だが、candidate レイアウトは `.claude/` のみを取り込む契約
@@ -65,9 +68,14 @@ export function stageCandidate({ outputDir, label, canonRoot = CANON_ROOT, force
   if (!existsSync(markerPath)) {
     return { ok: false, reason: `前提未達: ${markerPath} が無い（G7〜G12 通過済みの生成物のみ候補にできる・§13.2.1）` };
   }
-  const approvalPath = path.join(outputDir, '.gate', 'approvals', 'generation.approved');
-  if (!existsSync(approvalPath)) {
-    return { ok: false, reason: `前提未達: ${approvalPath} が無い（P6 未承認の生成物は候補にできない・§13.2.1）` };
+  const blocksDir = path.join(outputDir, '.gate', 'blocks');
+  const latches = existsSync(blocksDir) ? readdirSync(blocksDir).filter((f) => f.endsWith('.blocked')) : [];
+  if (latches.length > 0) {
+    return { ok: false, reason: `前提未達: ブロックラッチが残っている（${latches.join(', ')}）。原因を解消するまで候補にできない・§13.2.1` };
+  }
+  const evalReportPath = path.join(outputDir, 'eval-report.md');
+  if (!existsSync(evalReportPath)) {
+    return { ok: false, reason: `前提未達: ${evalReportPath} が無い（工程9 eval を経ていない生成物は候補にできない・§13.2.1）` };
   }
 
   const allFiles = walkAllFiles(genRoot);

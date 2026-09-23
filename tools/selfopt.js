@@ -23,7 +23,6 @@ import {
   outputDir,
   workDir,
   markersDir,
-  approvalsDir,
   blocksDir,
   requestsDir,
   ensureDir,
@@ -73,7 +72,6 @@ function begin(label) {
   ensureDir(outputDir(ts));
   ensureDir(workDir(ts));
   ensureDir(markersDir(ts));
-  ensureDir(approvalsDir(ts));
   ensureDir(blocksDir(ts));
   ensureDir(requestsDir(ts));
   writeSessionTs(ts);

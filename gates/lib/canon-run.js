@@ -7,14 +7,16 @@
  * どちらの session-ts ファイルが指したかに依存しない）ため、ここでは
  * 「どの ts が in-flight か」を判定する部分のみを機能X 用に新設する。
  * 二重実装を避けるため、パス解決系（outputDir/workDir/gateDir/...）・
- * 承認/マーカー/ラッチ（hasApproval/mintMarker/mintBlockLatch/...）・
+ * マーカー/ラッチ（mintMarker/mintBlockLatch/...）・
  * .requests/ 消費（processStageRequests）は run.js からそのまま re-export せず、
  * 呼び出し側が run.js から直接 import する（SSoT・L005 の同期漏れを避ける）。
  */
 
-import { existsSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
-import { WORK_ROOT, ensureDir, isValidTs, hasMarker } from './run.js';
+import { CANON_ROOT } from './canon.js';
+import { WORK_ROOT, ensureDir, isValidTs, hasMarker, workDir } from './run.js';
+import { sha256File } from './managed-paths.js';
 
 export const CANON_UPDATE_SESSION_TS_FILE = path.join(WORK_ROOT, '.canon-update-ts');
 
@@ -55,4 +57,54 @@ export function currentCanonUpdateRunTs() {
 
 export function isCanonUpdateRunInFlight() {
   return currentCanonUpdateRunTs() !== null;
+}
+
+// ---------------------------------------------------------------------------
+// docs/ スナップショット（承認サイドカーの代替・§13.1 安全制約の機械担保）
+// ---------------------------------------------------------------------------
+//
+// 旧設計は「更新ゲート承認まで docs/ への書込を deny」で、提案フェーズ（調査・差分提案）が
+// docs/ を書き換えないことを事前に強制していた。承認サイドカーの廃止（承認は対話で取り
+// state.md に記録する）に伴い、事前 deny を「提案フェーズ完了時に docs/ が採番時点から
+// 無変更であることの事後照合」へ置き換える。docs/ は git 管理下なので、逸脱は復旧できる。
+
+export const DOCS_DIR = path.join(CANON_ROOT, 'docs');
+
+export function docsSnapshotPath(ts) {
+  return path.join(workDir(ts), '.docs-snapshot.json');
+}
+
+/** docs/ 直下ファイル（正典9本＋SOURCES 等・平坦）の {ファイル名: sha256}。 */
+export function snapshotDocs(docsDir = DOCS_DIR) {
+  const out = {};
+  if (!existsSync(docsDir)) return out;
+  for (const entry of readdirSync(docsDir, { withFileTypes: true })) {
+    if (entry.isFile()) out[entry.name] = sha256File(path.join(docsDir, entry.name));
+  }
+  return out;
+}
+
+export function writeDocsSnapshot(ts, docsDir = DOCS_DIR) {
+  ensureDir(workDir(ts));
+  writeFileSync(docsSnapshotPath(ts), JSON.stringify(snapshotDocs(docsDir), null, 2) + '\n', 'utf8');
+}
+
+/**
+ * 採番時点のスナップショットと現在の docs/ を比べる。スナップショットが無ければ null
+ * （比較不能を「差分なし」と読ませない——呼び出し側は違反として扱う）。
+ */
+export function diffDocsAgainstSnapshot(ts, docsDir = DOCS_DIR) {
+  const p = docsSnapshotPath(ts);
+  if (!existsSync(p)) return null;
+  const before = JSON.parse(readFileSync(p, 'utf8'));
+  const after = snapshotDocs(docsDir);
+  const changed = [];
+  const added = [];
+  const removed = [];
+  for (const [name, hash] of Object.entries(after)) {
+    if (!(name in before)) added.push(name);
+    else if (before[name] !== hash) changed.push(name);
+  }
+  for (const name of Object.keys(before)) if (!(name in after)) removed.push(name);
+  return { changed, added, removed, clean: changed.length + added.length + removed.length === 0 };
 }

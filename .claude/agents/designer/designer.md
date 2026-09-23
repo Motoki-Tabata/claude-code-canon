@@ -109,6 +109,6 @@ existing_disposition:
   （対象プロジェクトでの実測事故: `docs/L3_AGENTS.md` の権限強度4段階のうち advisory な役割別スコープに
   ビルド設定ファイルが欠落し、自己チェックの tripwire が発火しなかった）。宣言駆動の例外（対象ファイル一覧
   ＋許可条件＋強度＋代替担保）として別立てするか、常設に含めるかを明示的に選び、選ばなかった方の理由も書く。
-- 承認状態は `design-map.md` 内に持たせない（`output/<ts>/.gate/approvals/design.approved` サイドカーで表す。書き込みは `npm run approve` のみ）。
+- 承認状態は `design-map.md` 内に持たせない（承認は対話で取られ、オーケストレータが `work/<ts>/state.md` に記録する）。
 - `output/<ts>/` 配下にのみ書き込む。
 - **別の Subagent を起動しない**（nesting は既定の深度上限3階層（可変）まで可能だが、本エージェントは設計上 spawn しない。Builder の起動は `generator` が行う）。

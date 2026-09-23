@@ -55,13 +55,19 @@ export const KNOWN_STAGES = ['investigation', 'requirements', 'spec', 'design', 
 export const REOPENABLE_MARKER_KEYS = [...KNOWN_STAGES, 'investigation.focused'];
 
 /**
- * 承認 kind の前後関係（P2〜P7 の順）。`tools/reopen.js` が「<stage> 以降の承認が
- * 残っていれば拒否」を判定する材料。`eval` はステージ（マーカー・完了リクエスト）を
- * 持たない承認 kind（工程9 は G バッチを再発火させない・§16.7）だが、P7 の承認として
- * 順序の末尾に置く——generation を reopen するなら、その後工程である eval の承認も
- * 当然に前提が崩れるため事前取消を要求する。
+ * 終端・工程マーカーの前後関係（工程順）。`tools/reopen.js` が「<stage> を巻き戻すとき、
+ * それ以降の工程のマーカーも連鎖して取り消す」判定の材料、および G1 が「前段の工程が
+ * 完了している（マーカーがある）」ことを検査する材料。承認サイドカーの廃止に伴い、
+ * 工程順の決定論検査は承認でなくこのマーカーの順序で成り立たせる。
+ * `investigation.focused` は工程3（要件確定後の深掘り）なので requirements の後ろに置く。
  */
-export const APPROVAL_ORDER = ['requirements', 'spec', 'design', 'generation', 'eval'];
+export const MARKER_ORDER = ['investigation', 'requirements', 'investigation.focused', 'spec', 'design', 'generation'];
+
+/** `stage` 以降（stage 自身を含む）の工程マーカーキー。未知の stage は空配列。 */
+export function markerKeysFrom(stage) {
+  const i = MARKER_ORDER.indexOf(stage);
+  return i === -1 ? [] : MARKER_ORDER.slice(i);
+}
 
 /** write-scope-guard が保護するシステム本体トップレベルツリー（§11.3 書込先ガード）。 */
 export const PROTECTED_DIRS = ['docs', 'gates', '.claude'];
@@ -115,9 +121,6 @@ export function gateDir(ts) {
 export function markersDir(ts) {
   return path.join(gateDir(ts), 'markers');
 }
-export function approvalsDir(ts) {
-  return path.join(gateDir(ts), 'approvals');
-}
 export function blocksDir(ts) {
   return path.join(gateDir(ts), 'blocks');
 }
@@ -164,30 +167,6 @@ export function mintMarker(ts, stage, meta = {}) {
  */
 export function revokeMarker(ts, stage) {
   const p = markerPath(ts, stage);
-  if (existsSync(p)) {
-    unlinkSync(p);
-    return true;
-  }
-  return false;
-}
-
-export function approvalPath(ts, kind) {
-  return path.join(approvalsDir(ts), `${kind}.approved`);
-}
-export function hasApproval(ts, kind) {
-  return existsSync(approvalPath(ts, kind));
-}
-/** 承認サイドカーの鋳造。唯一の鋳造経路は tools/approve.js（§4.4）。 */
-export function mintApproval(ts, kind, meta = {}) {
-  ensureDir(approvalsDir(ts));
-  writeFileSync(
-    approvalPath(ts, kind),
-    JSON.stringify({ kind, approved_at: new Date().toISOString(), ...meta }, null, 2) + '\n',
-    'utf8'
-  );
-}
-export function revokeApproval(ts, kind) {
-  const p = approvalPath(ts, kind);
   if (existsSync(p)) {
     unlinkSync(p);
     return true;
