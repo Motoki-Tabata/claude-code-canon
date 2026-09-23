@@ -11,12 +11,12 @@ skills: [skill-generation]
 
 ## 入力（プロンプト注入）
 - `output/<ts>/` の絶対パス
-- `output/<ts>/design-map.md` のパス（消費セクション: `## レイヤー構成` の L2 行・`## Model Assignments`・`## Write Scopes`（役割別書込スコープの唯一の定義を Skill 側に置く設計の場合））
+- `work/<ts>/slices/` の絶対パス（design-map の切り出し・`npm run slice` の出力）。読むのは `skills.md`（L2 の節と、L2 の modify／merge の既存判定レコード）・`common.md`（Model Assignments・生成上の制約・Interface Contracts 等）・`write-scopes.md`（役割別書込スコープの唯一の定義を Skill 側に置く設計の場合）。**`design-map.md` 全文を Read しない**（約96KB。全文 Read が 1 run で 19〜30 回に達し、トークン消費の主因の一つだった）。スライスに無い情報が要るときだけ design-map.md の該当節を Read してよい
 - 出力先: `output/<ts>/generated/.claude/skills/<name>/SKILL.md`
 
 ## 手順
 preload された `skill-generation` Skill のスキーマに厳密に従う:
-1. `design-map.md` の L2 該当箇所と `## Model Assignments` を読む。`## Write Scopes` があれば併せて読む。
+1. `slices/skills.md` と `slices/common.md`（Model Assignments を含む）を読む。`write-scopes.md` に役割別書込スコープの記載があれば併せて読む。
 2. 各 Skill を `.claude/skills/<name>/SKILL.md` 形式で生成（**ディレクトリ名と `name:` を一致**させる。G3 が検査する設計由来要件）。
    - `## Write Scopes` が「役割別書込スコープの唯一の定義（SSoT）」を本 Skill に持たせる設計を示す場合、
      常設スコープの表・ビルド設定等の共有構成ファイルの宣言駆動の例外・3分岐の自己チェック手順を

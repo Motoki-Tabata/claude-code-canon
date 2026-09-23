@@ -7,7 +7,7 @@
  * パースする（依存ゼロ・§14）。「見つからない／0件」は黙って通さず throw する（§11.5）。
  */
 
-import { findHeading, sectionSlice, firstFencedBlock, matchPathHeading } from './markdown.js';
+import { findHeading, sectionSlice, firstFencedBlock, matchPathHeading, computeFenceMask } from './markdown.js';
 
 export class DesignMapError extends Error {
   constructor(message) {
@@ -161,4 +161,139 @@ export function parseExistingDisposition(text) {
     );
   }
   return records;
+}
+
+// ---------------------------------------------------------------------------
+// 宣言された生成物の一覧（design-map ⇒ generated の逆方向突合・G9 と slice の共有 SSoT）
+// ---------------------------------------------------------------------------
+
+/**
+ * design-map の層ごとの節。`kind` は `### \`X\`` の X が名前だけのとき、どのパスへ展開するか。
+ * L1・L4・L5 の見出しは実パスで書かれる。Skills・Agents は名前だけの見出しがありうる
+ * （`### \`contract-agent\`` → `.claude/agents/contract-agent/contract-agent.md`）。
+ */
+export const LAYER_SECTIONS = [
+  { heading: 'L1', layer: 'L1', bareName: null },
+  { heading: 'Skills', layer: 'L2', bareName: (n) => `.claude/skills/${n}/SKILL.md` },
+  { heading: 'Agents', layer: 'L3', bareName: (n) => `.claude/agents/${n}/${n}.md` },
+  { heading: 'L4', layer: 'L4', bareName: null },
+  { heading: 'L5', layer: 'L5', bareName: null },
+];
+
+/** 見出しレベル2のちょうど `name` の節（コードブロック内は無視）。無ければ null。 */
+export function h2Section(lines, name, mask = computeFenceMask(lines)) {
+  for (let i = 0; i < lines.length; i++) {
+    if (mask[i]) continue;
+    const m = lines[i].match(/^##\s+(.*?)\s*$/);
+    if (m && m[1] === name) {
+      const { start, end } = sectionSlice(lines, i, mask);
+      return { start, end };
+    }
+  }
+  return null;
+}
+
+/**
+ * design-map が「生成される」と宣言している成果物のパス一覧。次の和集合:
+ *   (a) 層ごとの節（`## L1`・`## Skills`・`## Agents`・`## L4`・`## L5`）の見出し ``### `パス` ``
+ *   (b) existing_disposition のうち keep／modify のレコード（keep は原本の verbatim コピーとして
+ *       generated/ に置かれる。retire・merge（統合される側）・out_of_scope は generated/ に置かれない）
+ * 見出しの注記に `retire`／`廃止` が含まれるものは除く。ディレクトリ・glob 表記は除く。
+ *
+ * @returns {{ path: string, source: 'layer-heading'|'disposition', layer: string|null, annotation: string }[]}
+ *   path は重複排除済み・posix・先頭 `./` 無し。
+ */
+export function listDeclaredArtifacts(text) {
+  const lines = text.split(/\r?\n/);
+  const mask = computeFenceMask(lines);
+  const seen = new Map();
+  const add = (p, source, layer, annotation) => {
+    const key = norm(p);
+    if (!key || key.endsWith('/') || /[*?]/.test(key)) return;
+    if (!seen.has(key)) seen.set(key, { path: key, source, layer, annotation });
+  };
+
+  for (const sec of LAYER_SECTIONS) {
+    const range = h2Section(lines, sec.heading, mask);
+    if (!range) continue;
+    for (let i = range.start + 1; i < range.end; i++) {
+      if (mask[i]) continue;
+      const m = lines[i].match(/^###\s+`([^`]+)`\s*(.*)$/);
+      if (!m) continue;
+      const annotation = m[2];
+      if (/retire|廃止/.test(annotation)) continue;
+      const token = m[1].trim();
+      const isPathLike = token.includes('/') || /\.[A-Za-z0-9]+$/.test(token);
+      if (isPathLike) add(token, 'layer-heading', sec.layer, annotation);
+      else if (sec.bareName) add(sec.bareName(token), 'layer-heading', sec.layer, annotation);
+    }
+  }
+
+  let records = [];
+  try {
+    records = parseExistingDisposition(text);
+  } catch (err) {
+    if (!(err instanceof DesignMapError)) throw err;
+    // existing_disposition が無い design-map（新規シナリオ）は disposition 由来の宣言が無いだけ。
+  }
+  for (const r of records) {
+    if (r.disposition === 'keep' || r.disposition === 'modify') add(r.path, 'disposition', null, r.disposition);
+  }
+  return [...seen.values()];
+}
+
+// ---------------------------------------------------------------------------
+// design-map の節の切り出し（tools/slice-design-map.js の材料）
+// ---------------------------------------------------------------------------
+
+/**
+ * existing_disposition の YAML ブロックを、レコードごとの**生テキスト**へ分割する
+ * （再シリアライズしない——ビルダーが読む記述を1文字も変えないため）。
+ * @returns {{ path: string, raw: string }[]} 見つからない／0件のときは空配列（呼び出し側が扱いを決める）。
+ */
+export function splitDispositionRecords(text) {
+  const lines = text.split(/\r?\n/);
+  const h = findHeading(lines, 'existing_disposition');
+  if (h === -1) return [];
+  const { start, end } = sectionSlice(lines, h);
+  const block = firstFencedBlock(lines, start, end);
+  if (!block) return [];
+  const body = block.body;
+  const out = [];
+  let cur = null;
+  for (const raw of body) {
+    const head = matchPathHeading(raw.replace(/\s+$/, ''));
+    if (head) {
+      if (cur) out.push({ path: cur.path, raw: cur.lines.join('\n') });
+      cur = { path: norm(head.path), lines: [raw] };
+    } else if (cur) {
+      cur.lines.push(raw);
+    }
+  }
+  if (cur) out.push({ path: cur.path, raw: cur.lines.join('\n') });
+  return out;
+}
+
+/** パスがどの層のビルダー／担当に属するか（層の節の見出しが無いパスの分類に使う）。 */
+export function layerOfPath(p) {
+  const q = norm(p);
+  if (q === 'CLAUDE.md' || q.startsWith('.claude/rules/')) return 'L1';
+  if (q.startsWith('.claude/skills/')) return 'L2';
+  if (q.startsWith('.claude/agents/')) return 'L3';
+  if (q === '.claude/README.md') return 'L5';
+  if (q === '.claude/settings.json' || q === '.mcp.json' || q.startsWith('.claude/hooks/')) return 'L4';
+  return 'other';
+}
+
+/** `## <prefix>…` で始まる（レベル2）節の全文（見出し行を含む）。無ければ null。 */
+export function h2SectionText(lines, prefix, mask = computeFenceMask(lines)) {
+  for (let i = 0; i < lines.length; i++) {
+    if (mask[i]) continue;
+    const m = lines[i].match(/^##\s+(.*?)\s*$/);
+    if (m && m[1].startsWith(prefix)) {
+      const { start, end } = sectionSlice(lines, i, mask);
+      return lines.slice(start, end).join('\n').replace(/\s+$/, '');
+    }
+  }
+  return null;
 }

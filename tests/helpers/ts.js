@@ -38,6 +38,7 @@ export const TS_NAMESPACES = {
   canon_update_docs_snapshot: '29991111',
   run_status: '29991201',
   resume: '29991202',
+  slice_design_map: '29991204',
 };
 
 function nameFromUrl(importMetaUrl) {

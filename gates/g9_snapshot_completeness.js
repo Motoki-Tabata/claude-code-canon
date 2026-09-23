@@ -13,10 +13,15 @@
  * §10.1 の肝: 管理パス集合の**外**（.github/workflows・CODEOWNERS 等）が list に混入すると、
  * 退避スワップで集合外を破壊しうる。集合外パスの検出は破壊防止の最終防波堤である。
  *
- * 注（現行スコープ）: design-map ⇔ output の完全な双方向突合（design-map の各
- * コンポーネント宣言と output の1対1照合）は design-map パーサを要するため現行実装では
- * 「生成物が managed-paths に含まれる」方向の検査に絞る。逆方向（design-map 宣言が
- * すべて output に在る）は not_yet に明示する。
+ * design-map ⇒ output（S1-4）: design-map が「生成される」と宣言した成果物
+ * （gates/lib/design-map.js の listDeclaredArtifacts: 層ごとの節の見出しと keep/modify の
+ * disposition）が、すべて generated/ に実在することを照合する。委譲先ビルダーがファイルを
+ * 1件落としても、他のゲートは見つけられなかった（run 20260922 で generator が自分で数えて気づいた）。
+ * 照合元は design-map（ビルダーや MANIFEST の自己申告ではない）。
+ *
+ * MANIFEST ⇔ output（S1-3）: MANIFEST の `## 全ファイル` 節（gates/lib/manifest.js）が
+ * generated/ の実ファイル集合と双方向に一致することを照合する。MANIFEST の存在だけを見ると、
+ * 1行欠落した MANIFEST が全ゲートを通過する。
  */
 
 import path from 'node:path';
@@ -24,6 +29,8 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { outputDir, isMainModule, readHookInput, readSessionTs, blockStop, passStop } from './lib/run.js';
 import { listGeneratedArtifacts } from './g12_output_perfile.js';
 import { isManaged, parseListText, checkConcreteEntries } from './lib/managed-paths.js';
+import { parseManifestFiles, MANIFEST_FILES_HEADING } from './lib/manifest.js';
+import { listDeclaredArtifacts } from './lib/design-map.js';
 
 /** generated/ 配下の【全ファイル】を列挙する（型で絞らない）。§10.1 の集合内包は全型が対象。 */
 function walkAllFiles(root) {
@@ -41,7 +48,7 @@ function walkAllFiles(root) {
 }
 
 const GATE = 'G9';
-const NOT_YET = ['design-map⇔output の逆方向突合（design-map パーサ要・MVP強化）'];
+const NOT_YET = [];
 
 // 管理パス集合パターン（MANAGED_PATTERNS/isManaged）は gates/lib/managed-paths.js の SSoT を
 // 共有する（§10.1・破壊防止の網羅性が単一障害点ゆえ deploy と定義を一元化する）。
@@ -127,6 +134,40 @@ export function checkG9({ ts }) {
     const rel = path.relative(genRoot, f).replace(/\\/g, '/');
     if (!isManaged(rel)) {
       violations.push(`${GATE}: generated/ に管理パス集合外のファイル "${rel}" がある（§10.1）。`);
+    }
+  }
+
+  // 5. MANIFEST ⇔ generated/（S1-3）: 全ファイル節が実ファイル集合と双方向に一致する。
+  const actual = new Set(walkAllFiles(genRoot).map((f) => path.relative(genRoot, f).replace(/\\/g, '/')));
+  if (existsSync(manifestPath)) {
+    const listed = parseManifestFiles(readFileSync(manifestPath, 'utf8'));
+    if (!listed.found) {
+      violations.push(
+        `${GATE}: MANIFEST.md に \`## ${MANIFEST_FILES_HEADING}\` 節が無い。generated/ の全ファイルを1行1件（バッククォート付きの` +
+          '相対パス）で列挙すること（MANIFEST の欠落を機械照合するための契約・S1-3）。'
+      );
+    } else {
+      const listedSet = new Set(listed.files);
+      for (const f of actual) {
+        if (!listedSet.has(f)) violations.push(`${GATE}: generated/${f} が MANIFEST の全ファイル節に載っていない（MANIFEST の1行欠落・S1-3）。`);
+      }
+      for (const f of listedSet) {
+        if (!actual.has(f)) violations.push(`${GATE}: MANIFEST の全ファイル節の "${f}" が generated/ に実在しない（余剰な行・S1-3）。`);
+      }
+    }
+  }
+
+  // 6. design-map ⇒ generated/（S1-4）: design-map が宣言した成果物がすべて実在する。
+  //    design-map が無いときは照合元が無いので行わない（その不在は G1（generation は design.done 前提）の担当）。
+  const designMapPath = path.join(outDir, 'design-map.md');
+  if (existsSync(designMapPath)) {
+    for (const d of listDeclaredArtifacts(readFileSync(designMapPath, 'utf8'))) {
+      if (!actual.has(d.path)) {
+        violations.push(
+          `${GATE}: design-map が宣言した ${d.path}（${d.source === 'layer-heading' ? `${d.layer} の見出し` : `disposition: ${d.annotation}`}）が generated/ に実在しない` +
+            '（ビルダーへの委譲で1件脱落した疑い・S1-4）。'
+        );
+      }
     }
   }
 

@@ -12,7 +12,7 @@ import { checkG10, deriveLaunchMethod } from '../gates/g10_readme.js';
 import { checkG12 } from '../gates/g12_output_perfile.js';
 import { ROOT, outputDir, genDir } from './helpers/paths.js';
 import { cleanupTs } from './helpers/run-state.js';
-import { writeSkill, writeAgent } from './helpers/fixtures.js';
+import { writeSkill, writeAgent, writeManifest } from './helpers/fixtures.js';
 import { tsFor } from './helpers/ts.js';
 
 const out = outputDir;
@@ -96,7 +96,7 @@ test('G9: managed-paths.list の集合外パス混入は違反（§10.1 破壊�
   skill(ts, 's');
   const dep = path.join(out(ts), '.deploy');
   mkdirSync(dep, { recursive: true });
-  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeManifest(ts);
   writeFileSync(
     path.join(dep, 'managed-paths.list'),
     '.claude/skills/s/SKILL.md\n.github/workflows/ci.yml\n'
@@ -114,7 +114,7 @@ test('G9: generated/ の集合外ファイル型（.yml）を検出する', (t) 
   mkdirSync(dep, { recursive: true });
   mkdirSync(path.join(gen(ts), '.github', 'workflows'), { recursive: true });
   writeFileSync(path.join(gen(ts), '.github', 'workflows', 'ci.yml'), 'x\n');
-  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeManifest(ts);
   writeFileSync(path.join(dep, 'managed-paths.list'), '.claude/skills/s/SKILL.md\n');
   const r = checkG9({ ts });
   assert.equal(r.ok, false, '型で絞ると .yml が逃げる。全型を見ること');
@@ -127,7 +127,7 @@ test('G9: 集合内のみ・MANIFEST 有・managed-paths 有 → 通過', (t) =>
   skill(ts, 's');
   const dep = path.join(out(ts), '.deploy');
   mkdirSync(dep, { recursive: true });
-  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeManifest(ts);
   writeFileSync(path.join(dep, 'managed-paths.list'), '.claude/skills/s/SKILL.md\n');
   assert.equal(checkG9({ ts }).ok, true);
 });
@@ -141,7 +141,7 @@ test('G9: managed-paths.list の glob 行は違反（deploy が展開せず roll
   skill(ts, 's');
   const dep = path.join(out(ts), '.deploy');
   mkdirSync(dep, { recursive: true });
-  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeManifest(ts);
   writeFileSync(path.join(dep, 'managed-paths.list'), '.claude/skills/**\n');
   const r = checkG9({ ts });
   assert.equal(r.ok, false, 'glob 行を生成段階で止めないと配置まで持ち越される');
@@ -154,7 +154,7 @@ test('G9: managed-paths.list に列挙したのに generated/ に無いパスは
   skill(ts, 's');
   const dep = path.join(out(ts), '.deploy');
   mkdirSync(dep, { recursive: true });
-  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeManifest(ts);
   writeFileSync(
     path.join(dep, 'managed-paths.list'),
     '.claude/skills/s/SKILL.md\n.claude/agents/ghost/ghost.md\n'
@@ -170,7 +170,7 @@ test('G9: retired.list の glob 行は違反（G8・pre-deploy が完全一致�
   skill(ts, 's');
   const dep = path.join(out(ts), '.deploy');
   mkdirSync(dep, { recursive: true });
-  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeManifest(ts);
   writeFileSync(path.join(dep, 'managed-paths.list'), '.claude/skills/s/SKILL.md\n');
   writeFileSync(path.join(dep, 'retired.list'), '.claude/skills/old/**\n');
   const r = checkG9({ ts });
@@ -184,7 +184,7 @@ test('G9: 実ファイル1行1件の list は通過する（緩めすぎてい�
   skill(ts, 's');
   const dep = path.join(out(ts), '.deploy');
   mkdirSync(dep, { recursive: true });
-  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeManifest(ts);
   writeFileSync(path.join(dep, 'managed-paths.list'), '.claude/skills/s/SKILL.md\n');
   writeFileSync(path.join(dep, 'retired.list'), '.claude/skills/old/SKILL.md\n');
   assert.equal(checkG9({ ts }).ok, true, '正しい形式まで落とすと生成が回らない');
@@ -215,7 +215,7 @@ test('構造 e2e: 完全な生成物は G7/G9/G10/G12 を全通過する', async
     // §12.4: listed な Skill は `/名前` を書く。Subagent（reviewer）・Rule（esm）には書かない。
     '# 使い方\n`/todo-helper` で起動。reviewer エージェント・esm ルールは自動。\n'
   );
-  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# MANIFEST\n新規4件\n');
+  writeManifest(ts, { extra: '新規4件\n' });
   writeFileSync(
     path.join(out(ts), '.deploy', 'managed-paths.list'),
     'CLAUDE.md\n.claude/rules/esm.md\n.claude/skills/todo-helper/SKILL.md\n.claude/agents/reviewer/reviewer.md\n.claude/README.md\n'
@@ -277,7 +277,7 @@ test('G9/G12: skill パッケージの supporting files は通り、skills ル�
   writeFileSync(path.join(skillDir, 'template.md'), '# テンプレート\nfrontmatter を持たない supporting file。\n');
   writeFileSync(path.join(skillDir, 'examples', 'sample.md'), '# 出力例\n');
   writeFileSync(path.join(skillDir, 'scripts', 'validate.mjs'), 'process.exit(0);\n');
-  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeManifest(ts);
   writeFileSync(
     path.join(out(ts), '.deploy', 'managed-paths.list'),
     '.claude/skills/demo/SKILL.md\n.claude/skills/demo/template.md\n' +
@@ -324,7 +324,7 @@ test('G9: .claude/hooks/ の hook ハンドラ実体は管理パス集合内、.
       2
     )
   );
-  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n');
+  writeManifest(ts);
   writeFileSync(
     path.join(out(ts), '.deploy', 'managed-paths.list'),
     '.claude/skills/s/SKILL.md\n.claude/settings.json\n.claude/hooks/block-rm.sh\n'
@@ -473,4 +473,67 @@ test('G10: 内部専用 Skill 名が公開名の部分文字列でも誤検出�
     after.violations.some((v) => v.includes('"scope"') && v.includes('一覧')),
     after.violations.join(' / ')
   );
+});
+
+// ---- G9: MANIFEST ⇔ generated/（S1-3）と design-map ⇒ generated/（S1-4）----
+
+/** G9 が他の検査で落ちないよう、最小の正常な出力（skill 1件・list・MANIFEST）を用意する。 */
+function baseline(t, n) {
+  const ts = tsFor(import.meta.url, n);
+  cleanupTs(t, ts);
+  skill(ts, 's');
+  mkdirSync(path.join(out(ts), '.deploy'), { recursive: true });
+  writeFileSync(path.join(out(ts), '.deploy', 'managed-paths.list'), '.claude/skills/s/SKILL.md\n');
+  return ts;
+}
+const violationsOf = (ts) => checkG9({ ts }).violations.join('\n');
+
+test('G9 MANIFEST: 全ファイル節が無ければ違反（存在だけを見ると1行欠落が通過する・S1-3）', (t) => {
+  const ts = baseline(t, 40);
+  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n新規1件\n');
+  assert.match(violationsOf(ts), /全ファイル/);
+});
+
+test('G9 MANIFEST（違反注入）: 実ファイルが1件 MANIFEST に載っていなければ検出する', (t) => {
+  const ts = baseline(t, 41);
+  skill(ts, 'extra'); // generated/ には2件あるが
+  writeFileSync(path.join(out(ts), '.deploy', 'managed-paths.list'), '.claude/skills/s/SKILL.md\n.claude/skills/extra/SKILL.md\n');
+  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n\n## 全ファイル\n- `.claude/skills/s/SKILL.md`\n'); // MANIFEST は1件だけ
+  assert.match(violationsOf(ts), /skills\/extra\/SKILL\.md が MANIFEST の全ファイル節に載っていない/);
+});
+
+test('G9 MANIFEST（違反注入）: MANIFEST に実在しないファイルが載っていれば検出する', (t) => {
+  const ts = baseline(t, 42);
+  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n\n## 全ファイル\n- `.claude/skills/s/SKILL.md`\n- `.claude/skills/ghost/SKILL.md`\n');
+  assert.match(violationsOf(ts), /ghost\/SKILL\.md" が generated\/ に実在しない/);
+});
+
+test('G9 design-map（違反注入）: 宣言した成果物が generated/ に無ければ検出し、retire 注記と実在するものは要求しない', (t) => {
+  const ts = baseline(t, 43);
+  writeManifest(ts);
+  writeFileSync(
+    path.join(out(ts), 'design-map.md'),
+    [
+      '# dm',
+      '## Skills',
+      '### `.claude/skills/s/SKILL.md`（新規）',
+      '### `.claude/skills/dropped/SKILL.md`（新規）', // 脱落したファイル
+      '### `.claude/skills/old/SKILL.md`（retire）', // 廃止は generated/ に無くてよい
+      '## Agents',
+      '### `lost-agent`', // 名前だけの見出し → .claude/agents/lost-agent/lost-agent.md
+      '',
+    ].join('\n')
+  );
+  const v = violationsOf(ts);
+  assert.match(v, /skills\/dropped\/SKILL\.md/);
+  assert.match(v, /agents\/lost-agent\/lost-agent\.md/);
+  assert.doesNotMatch(v, /skills\/old\/SKILL\.md/, 'retire 注記の成果物は generated/ に無くてよい');
+  assert.doesNotMatch(v, /skills\/s\/SKILL\.md が/, '実在するものを違反にしない');
+});
+
+test('G9 design-map: 宣言がすべて実在すれば通過（対照。上の違反が vacuous でない証拠）', (t) => {
+  const ts = baseline(t, 44);
+  writeManifest(ts);
+  writeFileSync(path.join(out(ts), 'design-map.md'), '# dm\n## Skills\n### `.claude/skills/s/SKILL.md`（新規）\n');
+  assert.equal(checkG9({ ts }).ok, true, violationsOf(ts));
 });

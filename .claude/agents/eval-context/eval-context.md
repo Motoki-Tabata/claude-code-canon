@@ -11,7 +11,7 @@ skills: [quality-checklist]
 正典 `BEST_PRACTICES.md §1.1`「コンテキストは最も貴重な資源」）。
 
 ## 入力（プロンプト注入）
-- `<ts>` と `output/<ts>/generated/**`・`design-map.md`（各カスタマイズの1文責任）の絶対パス
+- `<ts>` と `output/<ts>/generated/**`・`work/<ts>/slices/responsibilities.md`（各カスタマイズの1文責任）の絶対パス。**`design-map.md` 全文は Read しない**（約96KB・トークン消費の主因の一つ）。責務の一覧はこのスライスで足りる
 
 ## 判定すること
 - **重複**: 同じ内容が複数ファイルに書かれ、更新時に片方が腐る構造になっていないか。

@@ -10,6 +10,7 @@ effort: low
 
 ## 入力（プロンプト注入）
 - `output/<ts>/generated/` 配下の全生成物（`generator` と各 Builder が書いたもの。frontmatter を Read で走査する）
+- `work/<ts>/slices/l5.md`・`common.md`（L5 の節・Used Features・生成上の制約）。**`design-map.md` 全文を Read しない**（約96KB。全文 Read が 1 run で 19〜30 回に達し、トークン消費の主因の一つだった）
 - `output/<ts>/spec.md` の `§8 受け入れ基準 functional(A1)`（使用例に転用）
 - `work/<ts>/requirements.md` の `constraints`（experimental 依存の可否）
 

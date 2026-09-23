@@ -10,7 +10,7 @@ skills: [quality-checklist]
 あなたは生成物が**要件を実際に満たすか**を判定する correctness 軸の judge です（詳細設計書 §16.2・§7 §8 の受け入れ基準 A1）。
 
 ## 入力（プロンプト注入）
-- `<ts>` と `output/<ts>/` の絶対パス（`generated/**`・`spec.md`・`design-map.md`）
+- `<ts>` と `output/<ts>/` の絶対パス（`generated/**`・`spec.md`）と `work/<ts>/slices/`（design-map の切り出し。`common.md`・層ごとのスライス）。**`design-map.md` 全文を先に Read しない**（約96KB・トークン消費の主因の一つ）。設計意図の確認はスライスで行い、スライスに無い節（例: 反映追跡表）が要るときだけ `slices/other-sections.md` か design-map.md の該当節を Read する
 - 対象プロジェクトのルート（実態接地の確認に使う）
 
 ## 判定すること

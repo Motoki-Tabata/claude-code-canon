@@ -406,8 +406,11 @@ export function buildAxisBundle({ axis, ts, caseId, write = true, roots = {} }) 
       const body = section(reqText, '使用可能なカスタマイズ機能');
       return body ? body : null;
     })(),
-    // design-map の rationale は含めない。責務は別ファイル（responsibilities.md）から取る。
-    responsibilities: readIfExists(path.join(oDir, 'responsibilities.md')),
+    // design-map の rationale は含めない。責務は `npm run slice` が切り出す Responsibility Map
+    // （work/<ts>/slices/responsibilities.md）から取る。旧パス output/<ts>/responsibilities.md は
+    // どの工程も書かない不在ファイルだった（責務欄が常に空だった既存の穴）が、互換のため後ろに残す。
+    responsibilities:
+      readIfExists(path.join(wDir, 'slices', 'responsibilities.md')) ?? readIfExists(path.join(oDir, 'responsibilities.md')),
   };
 
   const cid = caseId ?? caseIdFor(rels[0]);

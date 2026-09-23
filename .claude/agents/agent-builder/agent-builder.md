@@ -11,12 +11,12 @@ skills: [agent-generation]
 
 ## 入力（プロンプト注入）
 - `output/<ts>/` の絶対パス
-- `output/<ts>/design-map.md` のパス（消費セクション: `## レイヤー構成` の L3 行・`## Model Assignments`・`## Write Scopes`（該当時））
+- `work/<ts>/slices/` の絶対パス（design-map の切り出し・`npm run slice` の出力）。読むのは `agents.md`（L3 の節と、L3 の modify／merge の既存判定レコード）・`common.md`（Model Assignments・生成上の制約・Interface Contracts 等）・`write-scopes.md`（該当時）。**`design-map.md` 全文を Read しない**（約96KB。全文 Read が 1 run で 19〜30 回に達し、トークン消費の主因の一つだった）。スライスに無い情報が要るときだけ design-map.md の該当節を Read してよい
 - 出力先: `output/<ts>/generated/.claude/agents/<name>/<name>.md`
 
 ## 手順
 preload された `agent-generation` Skill のスキーマに厳密に従う:
-1. `design-map.md` の L3 該当箇所と `## Model Assignments` を読む。`## Write Scopes` があれば併せて読む。
+1. `slices/agents.md` と `slices/common.md`（Model Assignments を含む）を読む。`write-scopes.md` に役割別書込スコープの記載があれば併せて読む。
 2. 各 Subagent を生成する。**`name` フィールドを必ず付与する**（正規の必須フィールド）。`description` は「何をするか + Delegate when」を具体的トリガーで記述。
    - `## Write Scopes` に当該役割の記載がある場合、生成する Subagent 本文の「書込スコープ」節は
      その内容の**逐語射影**とする（要約・言い換えで情報を落とさない）。常設スコープと、ビルド設定・

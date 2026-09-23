@@ -11,3 +11,9 @@
 ## 廃止（retire）
 - .claude/settings.json — hooks 禁止により Hooks 設定を廃止。R1 は Rules(advisory) へ縮退
 - .claude/skills/fork-runner/SKILL.md — experimental 禁止により context:fork 依存を廃止
+
+## 全ファイル
+- `.claude/README.md`
+- `.claude/rules/schema-review.md`
+- `.claude/skills/style-guide/SKILL.md`
+- `CLAUDE.md`

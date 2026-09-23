@@ -11,12 +11,12 @@ skills: [l1-generation]
 
 ## 入力（プロンプト注入）
 - `output/<ts>/` の絶対パス
-- `output/<ts>/design-map.md` のパス（消費セクション: `## レイヤー構成` の L1 行）
+- `work/<ts>/slices/` の絶対パス（design-map の切り出し・`npm run slice` の出力）。読むのは `l1.md`（L1 の節と、L1 の modify／merge の既存判定レコード）・`common.md`（Model Assignments・生成上の制約・Interface Contracts 等）・`write-scopes.md`。**`design-map.md` 全文を Read しない**（約96KB。全文 Read が 1 run で 19〜30 回に達し、トークン消費の主因の一つだった）。スライスに無い情報が要るときだけ design-map.md の該当節を Read してよい
 - 出力先: `output/<ts>/generated/CLAUDE.md`・`output/<ts>/generated/.claude/rules/*.md`
 
 ## 手順
 preload された `l1-generation` Skill のスキーマに厳密に従う:
-1. `design-map.md` の L1 該当箇所を読む。
+1. `slices/l1.md` と `slices/common.md`（必要なら `write-scopes.md`）を読む。
 2. CLAUDE.md を **200行以下**で生成（常時必要な静的事実のみ・`@import` で構造化可）。
 3. パス別ルールは `.claude/rules/<topic>.md` に `paths:` frontmatter 付きで生成。
 

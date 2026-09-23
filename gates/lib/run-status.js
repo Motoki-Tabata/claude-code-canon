@@ -193,7 +193,7 @@ function ladder(ts) {
     { id: 'P4', gate: 'P4', session: 'S1', done: gateApproved(ts, 'P4'), action: 'P4（最重要）: spec.md を提示し、内容を精査して対話承認を取る' },
     { id: 'design', session: 'S2', done: M('design'), action: '工程5+6: selector → designer を起動して design-map.md を書かせる（SKILL.md「工程5+6」）' },
     { id: 'P5', gate: 'P5', session: 'S2', done: gateApproved(ts, 'P5'), action: 'P5: design-map を提示し（廃止判定は強調）対話承認を取る' },
-    { id: 'generation', session: 'S3', done: M('generation'), action: '工程7: generator を起動して generated/** を生成させる（SKILL.md「工程7」）' },
+    { id: 'generation', session: 'S3', done: M('generation'), action: '工程7: まず npm run slice -- <ts> で design-map をスライスに切り出し、generator を起動して generated/** を生成させる（SKILL.md「工程7」）' },
     { id: 'eval', session: 'S3', done: evalComplete(ts), action: '工程9: eval を実施し、5軸の verdict と eval-report.md を揃える（SKILL.md「工程9」）' },
     { id: 'P6+7', gate: 'P6+7', session: 'S3', done: gateApproved(ts, 'P6+7'), action: 'P6+7: 生成物と eval-report を1回で提示し（violation は全件）対話承認を取る' },
     ...(isSelfOptimizeRun(ts)

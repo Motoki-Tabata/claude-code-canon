@@ -7,7 +7,7 @@
  * expected-work→work/<ts>/ という同一規約）を統合する。
  */
 
-import { mkdirSync, writeFileSync, cpSync, mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, writeFileSync, cpSync, mkdtempSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { ROOT, outputDir, workDir } from './paths.js';
@@ -120,4 +120,27 @@ export function setupTmpCase(t, name, ts = '20260722_000000') {
   cpSync(path.join(caseDir, 'expected-output'), output, { recursive: true });
   t.after(() => rmSync(tmp, { recursive: true, force: true }));
   return { tmp, target, output };
+}
+
+/**
+ * `output/<ts>/MANIFEST.md` を、その時点の generated/ の全ファイルを `## 全ファイル` 節に列挙して書く
+ * （G9 が MANIFEST ⇔ generated/ を双方向に照合する契約・S1-3）。generated/ を書き終えてから呼ぶこと。
+ * `extra` は節の外（差分サマリ）に足す本文。
+ */
+export function writeManifest(ts, { extra = '' } = {}) {
+  const root = path.join(outputDir(ts), 'generated');
+  const files = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, name.name);
+      if (name.isDirectory()) walk(p);
+      else files.push(path.relative(root, p).replace(/\\/g, '/'));
+    }
+  };
+  if (existsSync(root)) walk(root);
+  mkdirSync(outputDir(ts), { recursive: true });
+  writeFileSync(
+    path.join(outputDir(ts), 'MANIFEST.md'),
+    `# 差分\n${extra}\n## 全ファイル\n${files.sort().map((f) => `- \`${f}\``).join('\n')}\n`
+  );
 }

@@ -11,7 +11,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import os from 'node:os';
 import { buildKeepReviewBundles, collectKeepReviewCases, caseIdFor, buildAxisBundle, AXES_4 } from '../eval/bundle.js';
 import { ROOT } from './helpers/paths.js';
 import { tsFor } from './helpers/ts.js';
@@ -177,4 +178,21 @@ test('バンドル生成は決定論（4軸でも同じ入力で同じ出力）'
   const a = buildAxis('security', 'sec-minimal').text;
   const b = buildAxis('security', 'sec-minimal').text;
   assert.equal(a, b);
+});
+
+test('責務欄は npm run slice が書く work/<ts>/slices/responsibilities.md から取る（旧 output/<ts>/responsibilities.md は不在ファイルだった）', (t) => {
+  const tmp = mkdtempSync(path.join(os.tmpdir(), 'bundle-resp-'));
+  t.after(() => rmSync(tmp, { recursive: true, force: true }));
+  mkdirSync(path.join(tmp, 'slices'), { recursive: true });
+  writeFileSync(path.join(tmp, 'slices', 'responsibilities.md'), '# dm\n\nSLICE-RESP-MARKER: 責務1文\n');
+  const gen = path.join(AXIS_CORPUS, 'context', 'cases', 'ctx-tight', 'generated');
+  // outputDir は責務ファイルを持たない場所（旧パスに何も無い）を指す。責務欄がスライスから来ることを確かめる。
+  const { text } = buildAxisBundle({
+    axis: 'context',
+    ts: TS,
+    caseId: 'ctx-slice',
+    write: false,
+    roots: { outputDir: tmp, workDir: tmp, generatedRoot: gen },
+  });
+  assert.ok(text.includes('SLICE-RESP-MARKER'), 'slices/responsibilities.md の内容がバンドルに入っていない（責務欄が空のまま）');
 });
