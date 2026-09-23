@@ -3,6 +3,7 @@ name: l1-builder
 description: Generate L1 customizations (CLAUDE.md + Rules) to canon schema and place them under output/<ts>/generated/CLAUDE.md and generated/.claude/rules/. Delegate during process step 7 when design-map.md's ## Used Features includes L1 (CLAUDE.md or Rules) and its ## レイヤー構成 L1 entry is not N/A.
 tools: Read Write Edit
 model: sonnet
+effort: medium
 skills: [l1-generation]
 ---
 

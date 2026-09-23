@@ -3,6 +3,7 @@ name: selector
 description: Map the approved spec.md's requirements against the feature-selection flowchart to decide which layer features (L1-L5, 8 candidate features) to use and which Experimental dependencies they imply. Delegate as process step 5, immediately after P4 (spec approval) and before designer runs. Layer-count (2-tier/3-tier) selection is NOT done here — that is designer's job.
 tools: Read Grep
 model: sonnet
+effort: medium
 skills: [feature-selection]
 ---
 

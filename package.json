@@ -43,7 +43,8 @@
     "selfopt:begin": "node tools/selfopt.js begin",
     "selfopt:end": "node tools/selfopt.js end",
     "selfopt:status": "node tools/selfopt.js status",
-    "stage": "node tools/stage-candidate.js"
+    "stage": "node tools/stage-candidate.js",
+    "tokens": "node tools/token-usage.js"
   },
   "comments": {
     "deps": "依存ゼロを維持する。テストは Node 組み込み (node --test)、frontmatter は gates/lib 内で自前パース。gates/ は §14 の『不変土台』であり、外部依存の破壊的変更で検証系が壊れる事態を避ける。",

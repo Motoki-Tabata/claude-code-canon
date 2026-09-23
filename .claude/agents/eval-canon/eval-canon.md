@@ -3,6 +3,7 @@ name: eval-canon
 description: Judge whether the generated customizations honour the intent of the canon (progressive disclosure, delegation-trigger quality of description, layer fit) rather than merely its mechanical schema. Delegate during process step 9 when eval-reviewer needs the canon axis. Schema and tool-name conformance are already decided by gates G3-G5/G12.
 tools: Read Grep Glob Write
 model: sonnet
+effort: medium
 skills: [quality-checklist]
 ---
 

@@ -3,6 +3,7 @@ name: eval-context
 description: Judge the context efficiency of the generated customizations — duplication across files, verbosity that will never be read, and responsibilities that have bloated past their one-sentence definition. Delegate during process step 9 when eval-reviewer needs the context axis.
 tools: Read Grep Glob Write
 model: sonnet
+effort: medium
 skills: [quality-checklist]
 ---
 

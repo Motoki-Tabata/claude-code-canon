@@ -270,3 +270,48 @@ test('L035: G13 matcher を引用する SKILL.md が .claude/settings.json の�
   }
   assert.ok(quoted > 0, 'matcher を引用する SKILL.md が1件も見つからない（検査が発火していない＝vacuous）');
 });
+
+// ── モデルルーティング（run 20260919 の実測欠陥の回帰） ─────────────────────────
+// ネイティブ起動で Agent の model 引数を渡すと frontmatter を上書きする（正典 L3 §2.1）。
+// オーケストレータ系の定義が例示で固定のモデル名を渡すと LLM が真似て、spec-writer・generator が
+// frontmatter sonnet のまま Opus で走った。ネイティブ起動の例示に model 引数を書かない。
+const ORCHESTRATOR_DOCS = [
+  ...readdirSync(path.join(SELF, 'agents')).map((n) => path.join(SELF, 'agents', n, `${n}.md`)),
+  ...['canon', 'self-optimize', 'update-docs'].map((n) => path.join(SELF, 'skills', n, 'SKILL.md')),
+].filter((p) => existsSync(p));
+
+test('ネイティブ起動の Agent 例示が model 引数を渡していない（frontmatter を唯一の正にする）', () => {
+  const offenders = [];
+  for (const p of ORCHESTRATOR_DOCS) {
+    const text = readFileSync(p, 'utf8');
+    for (const m of text.matchAll(/Agent\(([^)]*)\)/g)) {
+      const args = m[1];
+      if (/subagent_type="general-purpose"/.test(args)) continue; // フォールバックだけは model が要る
+      if (/\bmodel\s*=/.test(args)) offenders.push(`${path.relative(ROOT, p)}: ${m[0]}`);
+    }
+  }
+  assert.deepEqual(offenders, []);
+});
+
+test('検出器の素振り: ネイティブ起動の例示に model 引数があれば上の検査が拾う', () => {
+  const bad = 'Agent(subagent_type="spec-writer", model="opus")';
+  const hit = [...bad.matchAll(/Agent\(([^)]*)\)/g)].some(
+    (m) => !/subagent_type="general-purpose"/.test(m[1]) && /\bmodel\s*=/.test(m[1])
+  );
+  assert.equal(hit, true);
+});
+
+// investigator・eval-reviewer は廃止予定（investigator: 深さ2の中継役、eval-reviewer: judge の集約役。
+// どちらもオーケストレータ直接起動へ置き換える）ため、effort の明示対象から一時的に外す。廃止時にこの除外も消す。
+const EFFORT_EXEMPT = new Set(['investigator', 'eval-reviewer']);
+
+test('全 agent が effort を明示している（未指定だとセッションの effort を継承し、高 effort が伝播する）', () => {
+  const missing = [];
+  for (const n of readdirSync(path.join(SELF, 'agents'))) {
+    const def = path.join(SELF, 'agents', n, `${n}.md`);
+    if (EFFORT_EXEMPT.has(n) || !existsSync(def)) continue; // agent 以外のディレクトリ（サンドボックスのマウント点等）は対象外
+    const fm = readFileSync(def, 'utf8').split('---')[1] || '';
+    if (!/^effort:\s*(low|medium|high|xhigh|max)\s*$/m.test(fm)) missing.push(n);
+  }
+  assert.deepEqual(missing, []);
+});

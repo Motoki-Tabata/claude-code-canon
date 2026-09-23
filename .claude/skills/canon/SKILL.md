@@ -28,7 +28,7 @@ argument-hint: "<target_project_path>"
 
 ## `subagent_type` マッピング（§4.1）
 
-全ワーカーは、環境に登録されているネイティブの `subagent_type`（例: `Agent(subagent_type="spec-writer", model=<各 agent の model>)`）を優先して起動する。環境によっては `.claude/agents/` 配下の canon agent が `subagent_type` として未登録のことがあり（`docs/L3_AGENTS.md §2.1` 運用ノート）、その場合に限り **`Agent(subagent_type="general-purpose", model=<各 agent の model>)`** ＋「`.claude/agents/<name>/<name>.md` を Read して定義に従うこと」＋ `<ts>`・入出力の絶対パス・前段の結果の明示注入へフォールバックする。**`general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13（基本設計書 §5.3）が強制するワーカーのコマンド実行系ツール剥奪を無効化する**——フォールバックを使った run では §4.4「ワーカーはコマンド実行系ツールを持たないので承認を捏造できない」という前提が成立しないため、使った場合はユーザーに明示する。この起動主体はメイン Claude に一元化し、ワーカーに多段委譲を指示しない（investigator の系統A/B spawn を除く）。
+全ワーカーは、環境に登録されているネイティブの `subagent_type`（例: `Agent(subagent_type="spec-writer")`）を優先して起動する。**ネイティブ起動では `model` 引数を渡さない**——起動時の `model` 引数は frontmatter より優先されるため、渡すと定義のモデルを上書きする（run `20260919_023121` で実測: `spec-writer`・`generator` が frontmatter sonnet のまま Opus で走り、`eval-keep-review` は frontmatter opus のまま sonnet で走った）。モデルの正は各 agent の frontmatter の一箇所に置く。環境によっては `.claude/agents/` 配下の canon agent が `subagent_type` として未登録のことがあり（`docs/L3_AGENTS.md §2.1` 運用ノート）、その場合に限り **`Agent(subagent_type="general-purpose", model=<対象 agent の frontmatter の model>)`**（フォールバックでは frontmatter が効かないので、定義を読んだ上で同じ値を渡す）＋「`.claude/agents/<name>/<name>.md` を Read して定義に従うこと」＋ `<ts>`・入出力の絶対パス・前段の結果の明示注入へフォールバックする。**`general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13（基本設計書 §5.3）が強制するワーカーのコマンド実行系ツール剥奪を無効化する**——フォールバックを使った run では §4.4「ワーカーはコマンド実行系ツールを持たないので承認を捏造できない」という前提が成立しないため、使った場合はユーザーに明示する。この起動主体はメイン Claude に一元化し、ワーカーに多段委譲を指示しない（investigator の系統A/B spawn を除く）。
 
 ---
 

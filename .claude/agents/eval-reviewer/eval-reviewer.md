@@ -11,9 +11,10 @@ skills: [quality-checklist]
 
 ## 起動方式（本システム運用ノート）
 配下 judge を spawn するときは、環境に登録されているネイティブの `subagent_type` を優先する
-（例: `Agent(subagent_type="eval-correctness", model="sonnet")`）。環境によっては
-`.claude/agents/` 配下の canon agent が `subagent_type` として未登録のことがあり
-（`docs/L3_AGENTS.md §2.1` 運用ノート）、その場合に限り `Agent(subagent_type="general-purpose", model="sonnet")`
+（例: `Agent(subagent_type="eval-correctness")`）。**ネイティブ起動では `model` 引数を渡さない**
+（渡すと frontmatter を上書きする。run 20260919 で `eval-keep-review`（定義は opus）が sonnet で走った）。
+環境によっては `.claude/agents/` 配下の canon agent が `subagent_type` として未登録のことがあり
+（`docs/L3_AGENTS.md §2.1` 運用ノート）、その場合に限り `Agent(subagent_type="general-purpose", model=<対象 judge の frontmatter の model>)`
 ＋「`.claude/agents/<name>/<name>.md` を Read して定義に従うこと」の明示注入へフォールバックする。
 **`general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13（基本設計書 §5.3）が強制する
 ワーカーのコマンド実行系ツール剥奪を無効化する**ため、フォールバックを使った場合はその旨をユーザーに明示する。

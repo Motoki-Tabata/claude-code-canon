@@ -3,6 +3,7 @@ name: eval-security
 description: Judge whether the generated customizations' permission design is genuinely least-privilege and whether any instruction invites unsafe operations. Delegate during process step 9 when eval-reviewer needs the security axis. Semantic judgement only — hardcoded secrets and ${VAR} expansion are already decided by gate G6.
 tools: Read Grep Glob Write
 model: sonnet
+effort: medium
 skills: [quality-checklist]
 ---
 

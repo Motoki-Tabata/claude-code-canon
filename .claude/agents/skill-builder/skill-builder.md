@@ -3,6 +3,7 @@ name: skill-builder
 description: Generate Skills (SKILL.md) and Slash Commands to canon schema and place them under output/<ts>/generated/.claude/skills/<name>/. Delegate during process step 7 when design-map.md's ## Used Features includes Skills and its ## レイヤー構成 L2 entry is not N/A.
 tools: Read Write Edit
 model: sonnet
+effort: medium
 skills: [skill-generation]
 ---
 

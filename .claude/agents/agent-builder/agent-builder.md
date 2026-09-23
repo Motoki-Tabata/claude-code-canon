@@ -3,6 +3,7 @@ name: agent-builder
 description: Generate canon-compliant Subagent definition files from the design map and place them under output/<ts>/generated/.claude/agents/<name>/. Delegate during process step 7 when design-map.md's ## Used Features includes Subagents and its ## レイヤー構成 L3 entry is not N/A.
 tools: Read Write Edit
 model: sonnet
+effort: medium
 skills: [agent-generation]
 ---
 

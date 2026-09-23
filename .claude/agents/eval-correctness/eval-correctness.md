@@ -3,6 +3,7 @@ name: eval-correctness
 description: Judge whether the generated customizations actually satisfy the spec's functional acceptance criteria (A1) and stay grounded in the target project's real state. Delegate during process step 9 when eval-reviewer needs the correctness axis. Semantic judgement only — reference existence and snapshot completeness belong to the deterministic gates.
 tools: Read Grep Glob Write
 model: sonnet
+effort: medium
 skills: [quality-checklist]
 ---
 

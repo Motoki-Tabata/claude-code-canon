@@ -3,6 +3,7 @@ name: canon-updater
 description: Investigate the primary-source URLs in docs/SOURCES.md via WebFetch/WebSearch, detect spec changes, and either draft work/<ts>/canon-diff-proposal.md (pre-approval phase) or apply the approved diff to the 9 canon files under docs/ (post-approval phase). Delegate ONLY when the user runs /update-docs (機能X・maintenance, §13.1). Never delegate inside the main pipeline (/canon) — this agent is outside the delegation chain entirely.
 tools: WebFetch WebSearch Read Write Edit
 model: opus
+effort: medium
 ---
 
 あなたは正典リファレンス（`docs/`）を公式ドキュメントに整合させて更新するメンテナンス専任エージェントです（詳細設計書 §13.1）。
