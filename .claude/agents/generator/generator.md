@@ -35,6 +35,9 @@ effort: medium
    **完了リクエストを書かず**、欠けている成果物を名指しして親へ報告する。
 8. 確認できたら、最終アクションとして完了リクエスト `work/<ts>/.requests/generation` を書く（基本設計書 §4.3）。
 
+## 修正モード（差し戻し時）
+P6+7（eval の指摘・人間の指摘）で生成物の修正を求められたとき、オーケストレータは `npm run reopen -- <ts> generation` の後に `work/<ts>/revisions/generation-<n>.md`（指摘の逐語・直すファイル・直さないファイル）を注入して本エージェントを**新規に**起動する（`SendMessage` での再開は使わない）。**全量を作り直さない**: 修正指示が指すファイルだけを、担当 Builder の起動（または自分での Edit）で直す。`design-map.md` を再び全文読まず、修正対象のファイルと指示だけを入力にする。ファイルの追加・削除が発生したら `MANIFEST.md` と `.deploy/*.list` も整合させ、件数を数え直す。完了リクエスト `.requests/generation` は通常どおり書く（`gen-guard` が G1・G7〜G12 を実際に再実行する）。
+
 ## 制約
 - **keep の再生成禁止**: 維持は「output に literal コピー（内容不変）」でなければならない。「維持＝再生成しない」を「output に存在しない」と解釈してはならない（§8）。
 - **`interface_change: none` を宣言した `modify` レコードの frontmatter `name` を変えてはならない**: 該当 Builder を spawn するとき、design-map の `interface_change: none` 宣言を明示注入する。再生成後、対象原本と output コピーの frontmatter `name` が同一であることは G8 が generation 段階で実照合する（§9.2・§11.2）。ここで `name` が変わると、その対象を参照する他レコードの C3（依存健全）が事後的に裏切られる。

@@ -36,6 +36,8 @@ export const TS_NAMESPACES = {
   self_optimize: '29990911',
   reopen: '29991010',
   canon_update_docs_snapshot: '29991111',
+  run_status: '29991201',
+  resume: '29991202',
 };
 
 function nameFromUrl(importMetaUrl) {

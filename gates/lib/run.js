@@ -378,3 +378,23 @@ export function processStageRequests({ ts, stages, runChecks, markerKey = (_ts, 
   // ③ marker 有 & request 無 は listRequests(ts) に出てこないので自然に「何もしない」になる。
   return results;
 }
+
+/**
+ * マーカー／ブロックラッチのキー名（§4.5 investigation phase 別マーカー）。
+ *
+ * 調査工程は1段目（要件確定前）と2段目 focused（要件確定後）が同じ 'investigation' 完了
+ * リクエストを書く（§4.3 の既知語彙に "investigation2" は無い）。既定でリクエスト名を
+ * マーカーキーにすると、1段目で investigation.done が鋳造された後、2段目の SubagentStop が
+ * §4.5 ①の冪等スキップに入り、G1 の focused 検査（focused 空欄・evidence_paths 実在・§6.2）が
+ * 実 hook 経路で一度も走らない。そこで investigation に限り、work/<ts>/requirements.md が
+ * 存在するとき（＝2段目）キーを 'investigation.focused' にし、2段目に別マーカーを与える。
+ * リクエストの消費（削除）は processStageRequests がリクエスト名で行う（リクエストは1つ）。
+ * 他ステージは phase を持たないためキー＝ステージ名のまま。
+ */
+export function investigationMarkerKey(ts, stage) {
+  if (stage === 'investigation' && existsSync(path.join(workDir(ts), 'requirements.md'))) {
+    return 'investigation.focused';
+  }
+  return stage;
+}
+

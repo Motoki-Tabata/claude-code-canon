@@ -32,7 +32,7 @@ argument-hint: "<label>"
 3. **ランタイム・カナリア**（§11.5・`/canon` と同一手順）: `node gates/canary.js target <ts>` で的パスを得て Write ツールで実書込を試み、`.gate/**` の deny-all で deny されることを確認する。allowed だった場合は配線が死んでいるので run を即座に中断する。
 4. **対象の確定**: `work/<ts>/target.txt` に **claude-canon 自身のルート（`CANON_ROOT`）** を記録する。系統A/B はこれ以降 claude-canon 自身の `.claude/agents/**`・`.claude/skills/**`・`.claude/settings.json` を調査対象にする（`/canon` の「自身を棚卸ししない」原則の唯一の例外・§5.1）。
 
-### 工程1: プロジェクト調査1（浅く広く・2系統）→ P1
+### 工程1: プロジェクト調査1（浅く広く・2系統）→ P1（報告のみ）
 
 `/canon` と同一（メイン Claude が系統A・系統B を直接並列 spawn し、各ワーカーが自分の成果物を書く）。ただし対象が claude-canon 自身なので、系統Aは現行の `.claude/agents/**`（19体）・`.claude/skills/**`（14件）・`.claude/settings.json` を、系統Bは `gates/`・`tools/`・`tests/`・`docs/` を含むプロジェクト全体の構造を調べる。
 
@@ -52,7 +52,7 @@ argument-hint: "<label>"
 
 ### 工程3〜9
 
-`/canon` と完全に同一（工程3: 深掘り調査 → P3、工程4: spec → P4、工程5+6: 機能選定+設計 → P5、工程7: 生成 → P6、工程8: 検証、工程9: eval → P7）。判断内容はすべて既存の Skill/Subagent（`spec-writer`・`selector`・`designer`・`generator`・`eval-reviewer` 等）に委ねる。既存カスタマイズがある前提（§8）なので keep/modify/merge/retire 判定（G2・C1〜C5）と G8（keep のバイト同一非退行）が働く。
+`/canon` と完全に同一（工程3: 深掘り調査 → P3（報告のみ）、工程4: spec → P4、工程5+6: 機能選定+設計 → P5、工程7: 生成、工程8: 検証、工程9: eval → P6+7（生成物と eval を1回で提示））。**4セッション分割（S1〜S3）と `/canon resume <ts>` による再開・`npm run state:record` での承認記録・差し戻しの新規 spawn も `/canon` と同じ**（`npm run resume` は自己最適化 run の `<ts>` も再開できる）。判断内容はすべて既存の Skill/Subagent（`spec-writer`・`selector`・`designer`・`generator`・`eval-reviewer` 等）に委ねる。既存カスタマイズがある前提（§8）なので keep/modify/merge/retire 判定（G2・C1〜C5）と G8（keep のバイト同一非退行）が働く。
 
 ### 工程10（代替）: 世代ステージング → 人間へ差し戻し
 
@@ -67,4 +67,4 @@ argument-hint: "<label>"
 
 ## 各ゲートで停止する（自動遷移しない）
 
-`/canon` と同じ規律（P1〜P7 で必ずチャット上でユーザー確認を取り停止する・§4.1）。ブロックラッチが立っていれば原因を提示し人間の判断を仰ぐ（無限再生成しない・§3.3）。工程10 の代替手順（ステージング・`--dry-run`・`selfopt:end`）は人間ゲートではないが、**いずれかが失敗したら run を中断し状態をそのまま報告する**（`work/.self-optim` を残したまま黙って別作業に移らない——次回セッションが in-flight と誤認する）。
+`/canon` と同じ規律（人間ゲート P2・P4・P5・P6+7 で必ずチャット上でユーザー確認を取り停止する。P1・P3 は報告のみ・§4.1）。承認は対話で取り、`npm run state:record` で記録する。ブロックラッチが立っていれば原因を提示し人間の判断を仰ぐ（無限再生成しない・§3.3）。工程10 の代替手順（ステージング・`--dry-run`・`selfopt:end`）は人間ゲートではないが、**いずれかが失敗したら run を中断し状態をそのまま報告する**（`work/.self-optim` を残したまま黙って別作業に移らない——次回セッションが in-flight と誤認する）。

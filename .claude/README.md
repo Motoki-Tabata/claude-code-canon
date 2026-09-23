@@ -8,7 +8,7 @@
 
 この一式は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules・Skills・Subagents・設定）を、対象プロジェクトの要件に合わせて調査・設計・生成・検証するための claude-canon 本体です。ユーザーが直接使う入口は次の3つの Slash Command です。
 
-- `/canon` — 対象プロジェクトのパスを渡すと、調査・要件確定・仕様策定・設計・生成・検証・品質検査・配置までの10工程を、各人間ゲート（P1〜P8）で立ち止まりながら進めます。
+- `/canon` — 対象プロジェクトのパスを渡すと、調査・要件確定・仕様策定・設計・生成・検証・品質検査・配置までの10工程を、人間ゲート（P2・P4・P5・P6+7・P8）で立ち止まりながら進めます。5時間枠を使い切らないよう工程を4区間（S1 調査〜spec／S2 設計／S3 生成〜eval／S4 配置）に分け、区間の終わりで停止して案内します。次の区間は新しいセッションで `/canon resume <ts>` を実行して続けます。
 - `/self-optimize` — claude-canon 自身の `.claude/` を対象に同じ工程を回し、`generations/candidate-<label>/` に次世代候補を用意します。候補を作るところまでで、現行 `.claude/` への実昇格（`npm run promote` の本実行）は行いません。
 - `/update-docs` — `docs/` 配下の正典リファレンスを公式ドキュメントの一次ソースに照らして更新します。`/canon`・`/self-optimize` の実行フローには組み込まれていません。
 
@@ -24,7 +24,7 @@
 
 | コマンド | 引数 | 起動方式 |
 |---|---|---|
-| `/canon <target_project_path>` | 対象プロジェクトのパス | `/canon <target_project_path>` で明示起動。自動では発動しない。 |
+| `/canon <target_project_path>` / `/canon resume <ts>` | 対象プロジェクトのパス、または再開する run の `<ts>` | `/canon <target_project_path>` で新規開始、`/canon resume <ts>` で別セッションからの再開。明示起動のみで、自動では発動しない。 |
 | `/update-docs` | なし | `/update-docs` で明示起動。自動では発動しない。 |
 | `/self-optimize <label>` | 候補世代のラベル（英数字と `-`/`_`） | `/self-optimize <label>` で明示起動。自動では発動しない。 |
 
@@ -90,7 +90,7 @@
 
 ## 5. 注意・制約
 
-- **PreToolUse はブロックする**: `Write`・`Edit`・`NotebookEdit`・`Bash`・`PowerShell`・`Monitor` の実行時に、書込範囲チェック（`/canon` 用・`/update-docs` 用・`/self-optimize` 用の3系統）・承認チェック・前進チェックが自動で走り、範囲外の操作はブロックされます。
+- **PreToolUse はブロックする**: `Write`・`Edit`・`NotebookEdit`・`Bash`・`PowerShell`・`Monitor` の実行時に、書込範囲チェック（`/canon` 用・`/update-docs` 用・`/self-optimize` 用の3系統）・前進チェック（前段工程の完了マーカーがない書込の拒否を含む）が自動で走り、範囲外の操作はブロックされます。
 - **UserPromptExpansion はブロックする**: `/canon`・`/update-docs`・`/self-optimize` の展開時に、ワーカー権限検査が自動で走ります。違反があれば run の開始自体がブロックされます。
 - **PostToolUse はブロックしない**: `Write`・`Edit`・`NotebookEdit` の後に前進チェックが走りますが、この段階では止まりません。違反は記録され、`Stop` 時に権威判定されます。
 - **SubagentStop・Stop はブロックする**: Subagent 終了時・ターン終了時に、完了リクエストの処理が自動で走ります。`Stop` は連続8回ブロックするとターンが強制終了します。

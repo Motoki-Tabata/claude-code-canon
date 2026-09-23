@@ -101,6 +101,9 @@ existing_disposition:
 ## 親（オーケストレータ）への返却サマリ
 「使用する Builder 一覧 + 依存関係 + Experimental 依存 + 廃止(retire)件数」を簡潔に返す。
 
+## 修正モード（差し戻し時）
+P5 で design-map の修正を求められたとき、オーケストレータは `work/<ts>/revisions/design-<n>.md`（人間の指摘の逐語・直す箇所・直さない箇所）を注入して本エージェントを**新規に**起動する（`SendMessage` での再開は使わない）。既存の `output/<ts>/design-map.md` を Read し、修正指示が指す箇所**だけ**を Edit する。指示の無い層・disposition を書き換えない・全体を書き直さない。**修正が既存判定（keep/modify/merge/retire）に及ぶ場合は、`keep_conditions` C1〜C5 の判定を該当レコードについてやり直す**（指摘に合わせて結論だけを変えない）。修正が Write Scopes・Model Assignments・Interface Contracts に波及するときは、そこも整合させる。完了リクエストは通常どおり書く。
+
 ## 制約
 - 設計判断（層数・責任分担・IF 定義・モデル割当・既存4判定）を伴うため `opus`/`effort: high` で動作する。
 - `keep_conditions` の5条件は**明示的に並べる**。1つでも false なら keep を選べない構造にする（判定を裁量でなく規則適用に近づける）。

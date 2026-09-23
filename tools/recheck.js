@@ -33,52 +33,13 @@
  */
 
 import path from 'node:path';
-import { existsSync, mkdirSync, writeFileSync, statSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { CANON_ROOT, posix } from '../gates/lib/canon.js';
-import { workDir, outputDir, readSessionTs, isValidTs, markerPath, hasMarker } from '../gates/lib/run.js';
+import { workDir, readSessionTs, isValidTs, investigationMarkerKey } from '../gates/lib/run.js';
+import { checkStaleness } from '../gates/lib/run-status.js';
 
 const STAGES = ['investigation', 'requirements', 'spec', 'design', 'generation'];
-
-// ステージ→成果物（S2-2）: マーカーが既に存在するとき、その成果物の mtime がマーカーより
-// 新しければ「直したのに再検査していない」ことを機械的に拾う。ディレクトリは配下の
-// 最大 mtime を取る（generation の generated/** は多数ファイルへ分散するため）。
-const STAGE_ARTIFACTS = {
-  investigation: (ts) => [path.join(workDir(ts), 'existing_customizations.md'), path.join(workDir(ts), 'project_profile.md')],
-  requirements: (ts) => [path.join(workDir(ts), 'requirements.md')],
-  spec: (ts) => [path.join(outputDir(ts), 'spec.md')],
-  design: (ts) => [path.join(outputDir(ts), 'design-map.md')],
-  generation: (ts) => [path.join(outputDir(ts), 'generated')],
-};
-
-/** path が存在すればその mtimeMs、ディレクトリなら配下ファイルの最大 mtimeMs を返す。無ければ null。 */
-function maxMtimeMs(p) {
-  if (!existsSync(p)) return null;
-  const st = statSync(p);
-  if (!st.isDirectory()) return st.mtimeMs;
-  let max = st.mtimeMs;
-  for (const entry of readdirSync(p, { withFileTypes: true })) {
-    const child = path.join(p, entry.name);
-    const m = maxMtimeMs(child);
-    if (m !== null && m > max) max = m;
-  }
-  return max;
-}
-
-/**
- * マーカーが既に存在するのに、成果物が鋳造後に更新されているか（S2-2）。
- * @returns {{stale: boolean, artifact: string|null}}
- */
-function checkStaleness(ts, stage) {
-  if (!hasMarker(ts, stage)) return { stale: false, artifact: null };
-  const markerMtime = statSync(markerPath(ts, stage)).mtimeMs;
-  const artifacts = (STAGE_ARTIFACTS[stage] ?? (() => []))(ts);
-  for (const a of artifacts) {
-    const m = maxMtimeMs(a);
-    if (m !== null && m > markerMtime) return { stale: true, artifact: a };
-  }
-  return { stale: false, artifact: null };
-}
 
 function fail(msg) {
   process.stderr.write(`[recheck] ${msg}\n`);
@@ -107,12 +68,14 @@ if (!existsSync(workDir(ts))) fail(`work/${ts}/ が無い。`);
 
 // マーカーが既に存在するのに成果物が後から更新されているか（S2-2）。ここで検出しても
 // recheck 自体は続行する（下の idempotent-cleanup 分岐が同じ状況を最終メッセージでも警告する）。
-const staleness = checkStaleness(ts, stage);
+// investigation は2段（profile／focused）でマーカーキーが違う。要件確定後は focused 側で鮮度を見る（S3-1）。
+const markerKey = investigationMarkerKey(ts, stage);
+const staleness = checkStaleness(ts, markerKey);
 if (staleness.stale) {
   process.stdout.write(
-    `[recheck] 警告: ${stage}.done が既に存在するのに、成果物（${posix(path.relative(CANON_ROOT, staleness.artifact))}）が` +
+    `[recheck] 警告: ${markerKey}.done が既に存在するのに、成果物（${posix(path.relative(CANON_ROOT, staleness.artifact))}）が` +
       'マーカーより新しく更新されている。直したのに再検査していない状態の疑いがある。' +
-      `npm run reopen -- ${ts} ${stage} を先に実行してから再度 recheck すること。\n`
+      `npm run reopen -- ${ts} ${markerKey}（下流の工程マーカーも連鎖で消える）を先に実行してから再度 recheck すること。\n`
   );
 }
 
@@ -164,7 +127,7 @@ if (blocked) {
 if (combinedOut.includes(`${stage}:idempotent-cleanup`)) {
   process.stdout.write(
     `[recheck] 検査していない（${stage}.done が既に存在するため冪等スキップされた・§4.5①）。` +
-      `成果物を直したのなら npm run reopen -- ${ts} ${stage} を先に実行してから再度 recheck すること。\n`
+      `成果物を直したのなら npm run reopen -- ${ts} ${markerKey} を先に実行してから再度 recheck すること。\n`
   );
   process.exit(3);
 }
