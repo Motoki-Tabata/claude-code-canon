@@ -5,12 +5,12 @@
 
 | 項目 | 値 |
 |---|---|
-| 確認したClaude Codeバージョン | v2.1.251 |
-| 正規ツール総数 | 45種（権限要 14 ＋ 権限不要 31） |
+| 確認したClaude Codeバージョン | v2.1.280 |
+| 正規ツール総数 | 46種（権限要 14 ＋ 権限不要 32） |
 | 一次ソース（Tools reference） | https://code.claude.com/docs/en/tools-reference |
 | 一次ソース（Subagents の tools 制御・旧称） | https://code.claude.com/docs/en/sub-agents |
 | 一次ソース（MCP 命名規約） | https://code.claude.com/docs/en/permissions |
-| 調査日 | 2026-08-29 |
+| 調査日 | 2026-09-23 |
 
 ---
 
@@ -26,11 +26,11 @@
 **重要な留保**（公式が明示）:
 > "Your exact tool set depends on your provider, platform, and settings."
 
-肝: 45種は**「正規な名前の全集合」であって「任意の環境で利用可能な集合」ではない**。G5 はこの区別を守らねばならない。「この名前は正規か」は判定してよいが、「この環境で使えるか」は本表からは判定できない。
+肝: 46種は**「正規な名前の全集合」であって「任意の環境で利用可能な集合」ではない**。G5 はこの区別を守らねばならない。「この名前は正規か」は判定してよいが、「この環境で使えるか」は本表からは判定できない。
 
-## 2. 正規ツール名（全45種）
+## 2. 正規ツール名（全46種）
 
-#### 全ツール（45種）
+#### 全ツール（46種）
 
 「Permission required」列は公式表の値をそのまま転記したものである。各ツールの説明は一次ソース（`tools-reference`）を参照すること（本ファイルは名前の同定を責務とし、説明の複製は行わない）。
 
@@ -68,6 +68,7 @@
 | `SendUserFile` | No |
 | `ShareOnboardingGuide` | Yes |
 | `Skill` | Yes |
+| `SubagentHandback` | No |
 | `TaskCreate` | No |
 | `TaskGet` | No |
 | `TaskList` | No |
@@ -82,15 +83,15 @@
 | `Workflow` | Yes |
 | `Write` | Yes |
 
-**自己検算**: 権限要 14 ＋ 権限不要 31 ＝ 45。この2つの直交した数がいずれも表の実測と一致しない場合、本表は破損している（`gates/build-conformance-tables.js` が検査する）。
+**自己検算**: 権限要 14 ＋ 権限不要 32 ＝ 46。この2つの直交した数がいずれも表の実測と一致しない場合、本表は破損している（`gates/build-conformance-tables.js` が検査する）。
 
 ### 2.1 旧称・非推奨・既定無効
 
 | 名前 | 区分 | 現在の扱い | 出典 |
 |---|---|---|---|
 | `Task` | **旧称（改名）** | `Agent` に改名済み。`Task(...)` は現在もエイリアスとして機能する（＝エラーにはならない。ただし正規名は `Agent`） | **sub-agents**（下記公式引用） |
-| `TaskOutput` | **非推奨** | ツール自体は現存（§2 の45種に含む）。公式は `Read` での代替を推奨 | tools-reference |
-| `TodoWrite` | **既定無効** | ツール自体は現存（§2 の45種に含む）。既定で無効 | tools-reference |
+| `TaskOutput` | **非推奨** | ツール自体は現存（§2 の46種に含む）。公式は `Read` での代替を推奨 | tools-reference |
+| `TodoWrite` | **既定無効** | ツール自体は現存（§2 の46種に含む）。既定で無効 | tools-reference |
 | `EndConversation` | **permission rule の例外** | Claude が呼び出し可能な他のツールを1件以上保持している限り、`EndConversation` には deny/ask ルールが適用されない（誤って会話終了を封じられないための設計） | permission-modes |
 
 `Task` → `Agent` の公式引用（`sub-agents` ページ）:
@@ -126,21 +127,20 @@
 公式引用（`sub-agents`）:
 > "These tools are never available to any subagent, even if listed in the `tools` field:"
 
-Subagent に提供されないツール（9種）:
+Subagent に提供されないツール（8種）:
 
 | ツール名 | 条件 |
 |---|---|
 | `Agent` | Subagent nesting の深度上限に達した場合のみ不可（fork を除く。深度上限の fork では呼び出すとエラーを返す） |
 | `AskUserQuestion` | 常に不可 |
-| `EndConversation` | 常に不可 |
+| `EndConversation` | 常に不可（メイン会話のみを終了できるツールであるため） |
 | `EnterPlanMode` | 常に不可 |
 | `ExitPlanMode` | Subagent の `permissionMode` が `plan` の場合のみ可（それ以外は不可） |
 | `ScheduleWakeup` | 常に不可 |
-| `TaskOutput` | 常に不可 |
 | `WaitForMcpServers` | 常に不可 |
 | `Workflow` | 常に不可 |
 
-**background Subagent への追加制限**（多くの委譲作業の既定である background 実行時のみ適用。fork は対象外）: 保持されるビルトインツールは `Read`・`Grep`・`Glob`・`Bash`・`PowerShell`・`Edit`・`Write`・`NotebookEdit`・`WebFetch`・`WebSearch`・`TodoWrite`・`Skill`・`ToolSearch`・`EnterWorktree`・`ExitWorktree`・`Monitor`・`TaskStop`・`SendMessage`・`Artifact` のみ（MCP ツールは全保持）。詳細は [L3_AGENTS.md §2.1](./L3_AGENTS.md) を参照。
+**background Subagent への追加制限**（多くの委譲作業の既定である background 実行時のみ適用。fork は対象外）: `Agent` と `ExitPlanMode` は subagent がどこで動くかに関わらず上表の条件に従う。それ以外について、保持されるビルトインツールは `Read`・`Grep`・`Glob`・`LSP`・`Bash`・`PowerShell`・`Edit`・`Write`・`NotebookEdit`・`WebFetch`・`WebSearch`・`TodoWrite`・`Skill`・`ToolSearch`・`EnterWorktree`・`ExitWorktree`・`Monitor`・`TaskStop`・`SendMessage`・`Artifact` と、`SubagentHandback` で報告する subagent の `SubagentHandback` のみ（MCP ツールは全保持）。詳細は [L3_AGENTS.md §2.1](./L3_AGENTS.md) を参照。
 
 公式引用（`sub-agents`・`tools` フィールド）:
 > "`tools` | No | Tools the subagent can use. **Inherits every tool available to subagents if omitted.** If no entry in the list resolves to a tool, the subagent usually fails to launch with an error naming the entries. To preload Skills into context, use the `skills` field rather than listing `Skill` here"
@@ -153,7 +153,7 @@ Subagent に提供されないツール（9種）:
 |---|---|---|
 | ツール名の大文字小文字の厳密性 | **不明**。公式は "the exact strings" と述べるが `Read` と `read` の可否を明示していない。「exact strings」から case-sensitive を導くのは解釈であり断定しない | 実機で `tools: read` を与えた Subagent が起動するか |
 | `Task` 以外の過去の改名の有無 | **不明**。公式が明記する改名は `Task`→`Agent` の1件のみ。`MultiEdit`・`NotebookRead` 等が過去に存在したかは公式から判定不能（存在した/しなかったのいずれも断定しない） | changelog の全走査 |
-| 45種の網羅性の恒久性 | 公式は総数を宣言していない。**45 は本リファレンスが数えた値**である。公式が行を追加すると本表は黙って古くなり、G5 が新ツールを誤検出する。**実測**: 同一ページを複数回取得すると、要約モデル経由の**総数の集計回答**は取得のたびに値が揺れるが、**全行を列挙させた行単位照合は安定して一致する**。集計値を鵜呑みにせず行単位で照合する規律が要る（数え値は行単位列挙でのみ確定すること） | `/update-docs` のたびに再計数する（手順として固定・行単位列挙で照合すること） |
+| 46種の網羅性の恒久性 | 公式は総数を宣言していない。**46 は本リファレンスが数えた値**である。公式が行を追加すると本表は黙って古くなり、G5 が新ツールを誤検出する。**実測**: 同一ページを複数回取得すると、要約モデル経由の**総数の集計回答**は取得のたびに値が揺れるが、**全行を列挙させた行単位照合は安定して一致する**。**ページの自己申告する合計値と実列挙が食い違う場合は実列挙を優先する**。集計値を鵜呑みにせず行単位で照合する規律が要る（数え値は行単位列挙でのみ確定すること） | `/update-docs` のたびに再計数する（手順として固定・行単位列挙で照合すること） |
 
 ## 公式ドキュメント参照
 

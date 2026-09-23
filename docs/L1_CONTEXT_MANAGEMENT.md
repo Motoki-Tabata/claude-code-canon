@@ -6,10 +6,10 @@
 ## メタ情報
 | 項目 | 値 |
 |---|---|
-| 確認したClaude Codeバージョン | v2.1.251 |
+| 確認したClaude Codeバージョン | v2.1.280 |
 | 一次ソース（英語） | https://code.claude.com/docs/en/memory |
 | 一次ソース | https://code.claude.com/docs/en/best-practices |
-| 調査日 | 2026-08-29 |
+| 調査日 | 2026-09-23 |
 
 ---
 
@@ -131,7 +131,60 @@ See @README.md for project overview and @package.json for npm commands.
 
 #### AGENTS.md の扱い
 
-公式は「**Claude Code が読むのは `CLAUDE.md` であって `AGENTS.md` ではない**」と明言している。取り込むには次の2手段がある:
+Claude Code は `AGENTS.md` をプロジェクト指示として**直接読む**。他のコーディングエージェント向けに整備済みのリポジトリは、`CLAUDE.md` もインポートも設定も足さずにそのまま動く。
+
+**既定の読み分け**:
+
+| リポジトリの状態 | Claude が読むもの |
+|---|---|
+| `AGENTS.md` があり、作業ディレクトリとその上位に `CLAUDE.md` / `CLAUDE.local.md` が無い | `AGENTS.md` |
+| `AGENTS.md` があり、作業ディレクトリまたはその上位に `CLAUDE.md` / `CLAUDE.local.md` がある | `CLAUDE.md` 系のみ |
+| `CLAUDE.md` が既に `@AGENTS.md` をインポートしている | `CLAUDE.md`（インポート経由で `AGENTS.md` を含む） |
+
+**判定に数えるファイル**:
+
+- **数える**（あると `AGENTS.md` の代わりにそちらが読まれる）: 作業ディレクトリとその上位の `CLAUDE.md` / `.claude/CLAUDE.md` / `CLAUDE.local.md`
+- **数えない**（`AGENTS.md` と併存してロードされる）: `~/.claude/CLAUDE.md`、組織の managed `CLAUDE.md`、`.claude/rules/` の各ファイル
+
+**読まれる範囲**:
+
+- **セッション開始時**: 作業ディレクトリとその上位にある全ての `AGENTS.md` と `.claude/AGENTS.md`。対話セッションでは `no CLAUDE.md found; AGENTS.md loaded: <path>` の行が会話に出る
+- **サブディレクトリ作業中**: そのサブディレクトリが3種の `CLAUDE.md` をいずれも持たない場合に限り、Claude が Read でファイルを開いた時点で当該 `AGENTS.md` がロードされる
+- **各 `AGENTS.md` の中**: `@path` インポートは展開され、`claudeMdExcludes` のパターンが適用され、プロジェクト指示をスキップする subagent はこれらのファイルもスキップする
+- **読まれない**: `AGENTS.local.md`、`AGENTS.override.md`、`.agents/` ディレクトリ配下
+
+> ⚠ `CLAUDE.local.md` は判定に数えられる。`AGENTS.md` に依存するプロジェクトへ自分用の未コミット指示として `CLAUDE.local.md` を置くと、`AGENTS.md` が読まれなくなる。両方読ませるには **Project instructions** を `claude-md-and-agents-md` にすること。
+
+**読み込むファイルの選択（Project instructions 設定）**:
+
+セッション内で `/config` を開き **Project instructions** を次のいずれかに設定する。
+
+| 値 | Claude が読むもの |
+|---|---|
+| `claude-md-or-agents-md` | `CLAUDE.md` 系。作業ディレクトリとその上位に `CLAUDE.md` / `CLAUDE.local.md` が無いときは `AGENTS.md` 系（**既定**） |
+| `claude-md-and-agents-md` | `CLAUDE.md` と `AGENTS.md` の両方。各ディレクトリで `CLAUDE.md` 群が先、`AGENTS.md` が後。既にロード済みの `AGENTS.md`（`CLAUDE.md` がインポート／symlink しているもの）は二重に読まれない |
+| `claude-md` | `CLAUDE.md` 系のみ |
+| `managed-only` | 起動時は組織の managed `CLAUDE.md` と auto memory のみ。project / local / user の `CLAUDE.md`、`.claude/rules/`、全 `AGENTS.md` を除外する。サブディレクトリの `CLAUDE.md`・`.claude/rules/`・path-scoped rules は、Claude がそこでファイルを読むときに従来どおりロードされる |
+
+設定ファイルで指定する場合は、ビルトインの `agents-md` プラグインの ID 配下に `pluginConfigs` として書く。**user（`~/.claude/settings.json`）・`--settings`・managed settings でのみ有効**で、project / local の設定ファイルでは無視される。
+
+```json
+{
+  "pluginConfigs": {
+    "agents-md@builtin": {
+      "options": { "instructionFiles": "claude-md-and-agents-md" }
+    }
+  }
+}
+```
+
+**`AGENTS.md` の直接読み込みが使えない環境**: 次のセッションでは `CLAUDE.md` のみが読まれ、`/config` に **Project instructions** も現れない。
+
+- Anthropic から feature flag を取得しないセッション（Amazon Bedrock 等のサードパーティプロバイダ利用時、テレメトリ無効時）
+- インストールまたはアップグレード直後の初回セッション（次のセッションからは読まれる）
+- `/plugin` でビルトインの `agents-md` プラグインを無効化している場合
+
+これらの環境では、次の2手段で `AGENTS.md` を取り込む:
 
 | 手段 | 書き方 | 注意 |
 |---|---|---|
@@ -244,6 +297,14 @@ paths:
 - frontmatter なし → 無条件ロード（CLAUDE.md と同等）。**ロード順は `.claude/CLAUDE.md` と同順位**で、セッション起動時に読まれる
 - `paths` あり → 該当ファイル読取時のみロード
 
+**rule frontmatter リファレンス**:
+
+| フィールド | 必須 | 内容 |
+|---|---|---|
+| `paths` | No | ルールを該当ファイルへスコープする glob パターン。YAML リストまたはカンマ区切り文字列を受け付ける |
+
+肝: **`paths` は Claude Code がルールから読む唯一のフィールド**であり、それ以外のフィールドはエラーを出さずに無視される。frontmatter はコンテキストへロードする前に取り除かれる。`---` の間の YAML がパースできない場合、Claude Code は frontmatter を無視して `paths` が無いものとしてルールをロードする（パースエラーは `claude --debug` で確認する）。
+
 **`paths` の展開予算**:
 
 | 項目 | 仕様 |
@@ -260,7 +321,8 @@ paths:
 #### Symlink サポート
 - `.claude/rules/` 内で symlink 可
 - 循環参照は自動検出される
-- **`claudeMdExcludes` の symlink 除外**: symlink された `.claude/rules` のファイル／ディレクトリも `claudeMdExcludes` で除外できる（§3.3 参照）
+- **作業ディレクトリ外を指す symlink は external import と同じ扱い**: プロジェクトで external import を承認するまでリンク先のルールはロードされず、承認後も **`paths` フィールドを持たないものだけ**がロードされる。承認ダイアログが出るのは project の memory file が `@path` で作業ディレクトリ外を import したときだけで、**symlink の存在だけではダイアログは出ない**。承認なしで共有ルールを使いたい場合は `~/.claude/rules/`（マシン上の全プロジェクトへ適用）に置く
+- **`claudeMdExcludes` の symlink 除外**: symlink された `.claude/rules` のファイル／ディレクトリも `claudeMdExcludes` で除外できる。パターンは **`.claude/rules/` 配下のパスとリンク先のパスのどちらに書いてもよく、いずれかに一致すれば除外**される（§3.3 参照）
 
 #### CLAUDE.md との優先順位（ロード順）
 ```
@@ -424,5 +486,6 @@ Claude が **自身の判断で書き込む** 永続的メモリ機構。修正�
 |---|---|
 | Memory and instructions（L1全体） | https://code.claude.com/docs/en/memory |
 | Best practices（CLAUDE.md書き方） | https://code.claude.com/docs/en/best-practices |
-| Settings リファレンス [要確認] | https://code.claude.com/docs/en/settings |
+| Settings（ファイルと優先順位） | https://code.claude.com/docs/en/settings |
+| All settings（全フィールドの横断リファレンス） | https://code.claude.com/docs/en/settings-reference |
 | 日本語版 | https://code.claude.com/docs/ja/memory |

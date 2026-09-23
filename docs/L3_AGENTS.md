@@ -6,14 +6,15 @@
 ## メタ情報
 | 項目 | 値 |
 |---|---|
-| 確認したClaude Codeバージョン | v2.1.251 |
+| 確認したClaude Codeバージョン | v2.1.280 |
 | 一次ソース（Subagents） | https://code.claude.com/docs/en/sub-agents |
 | 一次ソース（Agent View） | https://code.claude.com/docs/en/agent-view |
 | 一次ソース（Agent Teams） | https://code.claude.com/docs/en/agent-teams |
 | 一次ソース（Worktrees） | https://code.claude.com/docs/en/worktrees |
 | 一次ソース（環境変数） | https://code.claude.com/docs/en/env-vars |
 | 一次ソース（/batch） | https://code.claude.com/docs/en/commands |
-| 調査日 | 2026-08-29 |
+| 一次ソース（モデルエイリアス解決） | https://code.claude.com/docs/en/model-config |
+| 調査日 | 2026-09-23 |
 
 ---
 
@@ -149,9 +150,9 @@ tools: Read Grep Bash                    # スペース/カンマ/YAMLリスト
 disallowedTools: Write Edit              # deny list（公式キー名は disallowedTools のみ。`disallowed-tools` は不可・後述の補足参照）
 
 # === モデル ===
-model: sonnet                            # sonnet, opus, haiku, fable, full ID（例 claude-opus-5 / claude-sonnet-5 / claude-opus-4-8）, inherit（既定: inherit）
+model: sonnet                            # sonnet, opus, haiku, fable, full ID（例 claude-opus-5-5）, inherit（既定: inherit）
                                          # haiku は「機械的・正典非参照・下流検証あり」を全て満たす場合のみ（後述）
-                                         # fable = Claude Fable 5（Mythos クラス）
+                                         # fable = Claude Fable 5.1（Mythos クラス）
 effort: high                             # low, medium, high, xhigh, max
 maxTurns: 20                             # 停止までの最大エージェンティックターン数
                                          # 上限到達時は出力が partial としてマークされて返り、Claude は継続を再開できる
@@ -166,6 +167,7 @@ permissionMode: default                  # default/acceptEdits/auto/dontAsk/bypa
                                          # manual は default のエイリアス
 isolation: worktree                      # 独立 worktree で実行（既定で default branch から分岐）
 background: false                         # true で常に background 実行。未指定時は Claude が判断（既定 background）
+omitClaudeMd: false                       # true で user / project / local の CLAUDE.md を読まずに起動する
 
 # === コンポーネント preload ===
 skills: [skill-name]                     # Preload Skills（disable-model-invocation:true は不可）
@@ -200,12 +202,13 @@ author: name
 | `description` | Claude が delegation 判断に使う。最大1536文字 |
 | `tools` | 許可ツール（spaces/commas/YAMLリスト）。未指定は**subagent が使える全ツール**を継承。`Agent(type1, type2)` 構文で spawn 可能な subagent 型を allowlist 化（`--agent` 主スレッド時のみ有効）。**リスト中のどのエントリもツールに解決できない場合、subagent は通常そのエントリ名を挙げたエラーで起動に失敗する**。**Skill を context に preload する目的で `Skill` をここに列挙しないこと——preload は `skills` フィールドで行う** |
 | `disallowedTools` | 禁止ツール（公式キー名。`disallowed-tools`（ハイフン形）は不可・G4 が未知キーとして検出）。`tools` と併用時は先に deny を適用 |
-| `model` | モデル override。値: `sonnet`/`opus`/`haiku`/`fable`/full ID（例 `claude-opus-5`）/`inherit`。未指定時の既定は `inherit`（メイン会話と同一モデル）。**新規セッションの既定モデル自体は `ANTHROPIC_DEFAULT_MODEL` で指定できる**——`/model` でのユーザー選択が優先され、その選択は再起動をまたいで残る点が `ANTHROPIC_MODEL`（常に強制）と異なる（出典 `env-vars`）。`CLAUDE_CODE_SUBAGENT_MODEL` との解決順序は **`[要確認]`**（直後の注記を参照） |
+| `model` | モデル override。値: `sonnet`/`opus`/`haiku`/`fable`/full ID（例 `claude-opus-5-5`）/`inherit`。未指定時は後述の解決順序で決まる。**新規セッションの既定モデル自体は `ANTHROPIC_DEFAULT_MODEL` で指定できる**——`/model` でのユーザー選択が優先され、その選択は再起動をまたいで残る点が `ANTHROPIC_MODEL`（常に強制）と異なる（出典 `model-config`）。`CLAUDE_CODE_SUBAGENT_MODEL` との解決順序は直後の注記を参照 |
 | `effort` | 推論努力レベルの override: `low`/`medium`/`high`/`xhigh`/`max`。未指定時はセッションの effort を継承 |
 | `permissionMode` | パーミッション挙動: `default`/`acceptEdits`/`auto`/`dontAsk`/`bypassPermissions`/`plan`（`manual` は `default` のエイリアス。UI 上は「default」モードが "Manual" と表示される）。plugin agent では無視。親が `bypassPermissions`/`acceptEdits`/`auto` の場合は親が優先 |
 | `maxTurns` | 停止までの最大エージェンティックターン数。**上限到達時は出力が partial としてマークされて返り、Claude はそれを再開して継続できる**（公式: *"When the subagent reaches the limit, Claude Code returns its output marked as partial, and Claude can resume it to continue. The partial marking requires Claude Code v2.1.246 or later"*） |
 | `experimental` | **実験オプションのマップ**。公式: *"Map of experimental options. Set its `cacheTtl` key to `5m` or `1h` to choose the prompt cache lifetime for this subagent's requests. Claude Code ignores any other value, ignores `1h` while your Claude subscription is using usage credits, and reads the field only from subagent files. Requires Claude Code v2.1.248 or later"*。YAML はネスト形（`experimental:` / `  cacheTtl: 1h`）。**セッション全体の TTL 設定（`promptCacheTtl` / `subagentPromptCacheTtl`）が未構成のときに使われる per-agent 値**と位置づけられている |
 | `isolation: worktree` | 起動時に自動的に worktree を作成（既定で default branch から分岐）、変更なしなら終了時に自動クリーンアップ |
+| `omitClaudeMd` | `true` にすると user / project / local の CLAUDE.md を読み込まずに subagent を起動する。ビルトインの `Explore` / `Plan` が CLAUDE.md を読まないのと同等の状態を、カスタム subagent で明示的に作れる |
 | `skills` | preload する Skill のリスト（後述制約あり）。**description だけでなく Skill の全文が context へ注入される**。列挙しなかった project / user / plugin の Skill も、subagent は `Skill` tool 経由で引き続き invoke できる（＝`skills` は「使える Skill の allowlist」ではなく「最初から読ませておく Skill の指定」） |
 | `mcpServers` | アクセス可能な MCP サーバー（インライン定義または既存サーバー名参照）。plugin agent では無視 |
 | `hooks` | この subagent のライフサイクルフック。plugin agent では無視 |
@@ -214,13 +217,19 @@ author: name
 | `color` | task list/transcript の表示色（`red`/`blue`/`green`/`yellow`/`purple`/`orange`/`pink`/`cyan`） |
 | `initialPrompt` | `--agent`/`agent` 設定で主スレッド起動時に自動送信される最初の user turn |
 
-> **[要確認: `CLAUDE_CODE_SUBAGENT_MODEL` の優先順位——sub-agents ページ（環境変数最優先）と changelog v2.1.251（frontmatter/per-spawn が優先）が相反。次回再検証]**
+> **モデルの解決順序**: Claude Code は subagent のモデルを次の順で解決する。
 >
-> - **`sub-agents` ページ**は「Claude Code はこの順で subagent のモデルを解決する: (1) `CLAUDE_CODE_SUBAGENT_MODEL` 環境変数（モデルエイリアスまたはモデルID指定時）、(2) per-invocation の `model` パラメータ、(3) subagent 定義の `model` frontmatter、(4) メイン会話のモデル」と明記し、「v2.1.196 以降、`inherit` を設定することは未設定と同義」と述べる（＝**環境変数が最優先**）。
-> - **`changelog` v2.1.251** は「Changed `CLAUDE_CODE_SUBAGENT_MODEL` to set the default subagent model rather than override everything: an agent definition's `model:` and an explicit per-spawn model now take precedence over it」と述べる（＝**frontmatter と per-spawn が環境変数より優先**）。
-> - **`env-vars` ページ**の purpose セルは "Model ID that subagents use by default"（"by default" の語は changelog 側と整合的だが、優先順位は明示していない）。
+> 1. **per-invocation の `model` パラメータ**（spawn 時に明示指定した値）
+> 2. **subagent 定義の `model` frontmatter**（`inherit` はメイン会話のモデルを選ぶ）
+> 3. **`CLAUDE_CODE_SUBAGENT_MODEL` 環境変数**（モデルエイリアスまたはモデル ID を設定したとき）
+> 4. **メイン会話のモデル**
 >
-> `sub-agents` ページ本文が v2.1.251 の変更に追随していない可能性と、changelog の記述が別の意味である可能性のいずれも排除できていないため、**本正典はどちらの優先順位も断定しない**。
+> 公式引用（`model-config`）:
+> > "The default model for subagents, agent team teammates, and workflow agents that aren't assigned a model another way. Accepts an alias such as `haiku` or a full model name. A per-invocation model or a definition's `model` field, including `inherit`, takes precedence."
+>
+> 肝: `CLAUDE_CODE_SUBAGENT_MODEL` は**既定値を与えるだけで、frontmatter と per-invocation 指定を上書きしない**。また、この環境変数を単独で設定してもビルトインの `Explore` / `Plan` が動くモデルは変わらない。
+>
+> **全 subagent を1つのモデルへ強制する**には `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` を `1` に設定する（この場合のみ frontmatter と per-invocation 指定を上書きする）。
 
 **プロンプトキャッシュ TTL 設定2種**: `promptCacheTtl` / `subagentPromptCacheTtl` が存在する（API キー・クラウドプロバイダ利用者が、メイン会話は1時間キャッシュ・subagent は5分に保てる）。agent 単位の `experimental.cacheTtl` は「subagent の TTL 設定が未構成のときに使われる per-agent 値」と位置づけられている。
 
@@ -232,10 +241,21 @@ author: name
 
 | ティア | 採用するタスク |
 |---|---|
-| `opus` | 設計判断・広範な文脈把握・整合性維持を伴うタスク（アーキテクチャ設計、複数ファイル横断の更新判断など）。seat-based Enterprise 契約の既定モデルでもある |
+| `opus` | 設計判断・広範な文脈把握・整合性維持を伴うタスク（アーキテクチャ設計、複数ファイル横断の更新判断など） |
 | `sonnet` | 文脈推論・文章合成・正典参照を伴う標準的な生成/レビュータスク（既定の選択肢） |
 | `haiku` | 後述の3基準を **すべて満たす** 機械的タスクに限る |
-| `fable` | Claude Fable 5（Mythos クラス。従来 GA モデルを超える能力）。本システムの canon フローでは未使用だが公式エイリアスとして指定可能 |
+| `fable` | Claude Fable 5.1（Mythos クラス）。`ANTHROPIC_DEFAULT_FABLE_MODEL` で解決先を変更できる。本システムの canon フローでは未使用だが公式エイリアスとして指定可能 |
+
+**エイリアスの解決先（プロバイダ別）**:
+
+| プロバイダ | `opus` | `sonnet` |
+|---|---|---|
+| Anthropic API | Opus 5.5 | Sonnet 5 |
+| Claude Platform on AWS | Opus 5.5 | Sonnet 4.6 |
+| Amazon Bedrock / Google Cloud's Agent Platform | Opus 5.5 | Sonnet 4.5 |
+| Microsoft Foundry | Opus 4.6 | Sonnet 4.5 |
+
+`fable` は `ANTHROPIC_DEFAULT_FABLE_MODEL` 未設定時に Fable 5.1 へ解決され、Claude apps gateway セッションでは `fable` と `best` が Fable 5 へ解決される。1M トークンのコンテキストウィンドウを持つのは Fable 5.1 / Fable 5 / Sonnet 5 / Opus 4.6 以降 / Sonnet 4.6 である。
 
 > **`model: haiku` の採用基準（以下をすべて満たす場合にのみ採用）**:
 > 1. 設計判断・文脈推論を伴わない（テンプレートの機械的充填・固定フォーマット出力に限る）
@@ -276,7 +296,7 @@ Analyze the codebase for security vulnerabilities. Check for injection, authenti
 | 制約 | 公式記述 |
 |---|---|
 | **Nesting は既定3階層・可変** | "By default, a subagent can spawn subagents of its own, up to three layers below the main conversation. At the depth limit, Claude Code withholds the `Agent` tool from every subagent except a fork [...] To change the limit, set `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`."（深さ=メイン会話より下の subagent 階層数。foreground/background を問わず数える） |
-| **並行実行は既定20** | "By default, when 20 subagents are running in a session, spawning another fails with `Concurrent subagent limit reached`."（`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` で変更可。ultracode セッションは除外） |
+| **並行実行は既定20** | "By default, when 20 subagents are running in a session, spawning another with the Agent tool fails with `Concurrent subagent limit reached`, and the error tells Claude not to retry."（`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` に正の整数で変更可。ultracode セッションは除外） |
 | **fork は fork を spawn 不可** | "A fork still cannot spawn another fork. It can spawn other subagent types, and those count toward the depth limit." |
 | **spawn 抑止の方法** | "To prevent a specific subagent from spawning others, omit `Agent` from its `tools` list or add it to `disallowedTools`." |
 | **Skill preload 制約** | "You can't preload skills that set `disable-model-invocation: true`, since preloading draws from the same set of skills Claude can invoke." |
@@ -293,7 +313,7 @@ Subagent は自身の subagent を spawn できる。委譲タスクがさらに
 | 項目 | 仕様 |
 |---|---|
 | 既定上限 | **3階層**（depth = メイン会話より下の subagent 階層数）。深度上限に達した subagent は `Agent` tool を受け取らず、それ以上 spawn 不可（**fork を除く** — fork は上限到達時も `Agent` tool 呼び出しがエラーを返す形で扱われる） |
-| 上限の可変性 | **`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` で変更可**（正の整数のみ受理。`1` で nesting を完全無効化） |
+| 上限の可変性 | **`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` で変更可**（正の整数のみ受理。`1` で nesting を完全無効化）。`settings.json` の `env` ブロックで設定できる: `{"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "2"}}` とすると、subagent は自分の下に2段目を作れるが、その2段目はそれ以上委譲できない |
 | 並行実行上限 | 既定20（`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`。ultracode セッションは除外） |
 | foreground/background | どちらでも深さに数える |
 | nested subagent の解決 | トップレベルと同じ [スコープ](#配置場所とスコープ4階層)（project/user/plugin/CLI）から解決 |

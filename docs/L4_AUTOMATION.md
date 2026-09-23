@@ -6,13 +6,13 @@
 ## メタ情報
 | 項目 | 値 |
 |---|---|
-| 確認したClaude Codeバージョン | v2.1.251 |
+| 確認したClaude Codeバージョン | v2.1.280 |
 | 一次ソース（Hooks） | https://code.claude.com/docs/en/hooks |
 | 一次ソース（MCP） | https://code.claude.com/docs/en/mcp |
 | 一次ソース（Managed MCP） | https://code.claude.com/docs/en/managed-mcp |
 | 一次ソース（Channels） | https://code.claude.com/docs/en/channels |
 | 一次ソース（Channels リファレンス） | https://code.claude.com/docs/en/channels-reference |
-| 調査日 | 2026-08-29 |
+| 調査日 | 2026-09-23 |
 
 ---
 
@@ -26,7 +26,7 @@ L4 は **イベント駆動の自動化 / 外部システム連携** を扱う�
 
 | 機能名 | 一言説明 | 主な用途 |
 |---|---|---|
-| **Hooks** | ライフサイクルイベント（31種）で自動実行（5種のhandler） | コマンドブロック、自動lint、検証、通知 |
+| **Hooks** | ライフサイクルイベント（33種）で自動実行（5種のhandler） | コマンドブロック、自動lint、検証、通知 |
 | **MCP**（Model Context Protocol） | 外部ツール・サービスをClaudeのツールとして接続 | GitHub/Jira/Slack/DB等の連携、社内API |
 | **Channels** | 外部から既存セッションへイベントPush（MCP push model） | Telegram/Discord/iMessage 経由のチャットブリッジ、Webhook受信 |
 
@@ -67,9 +67,9 @@ L4 は **イベント駆動の自動化 / 外部システム連携** を扱う�
 #### 仕組み
 セッション中のライフサイクルイベント（プロンプト送信、ツール呼び出し前後、サブエージェント起動など）に対し、`settings.json` で定義した handler（command/http/mcp_tool/prompt/agent のいずれか）を発火させる。Handler の **stdout JSON または exit code** によって Claude の動作を制御できる。
 
-#### 全 Hook イベント（31種）
+#### 全 Hook イベント（33種）
 
-現在31種のイベントが定義されている（公式 hooks ページの列挙と一致）。`MessageDisplay` は表示専用イベントで、`hookSpecificOutput.displayContent` により画面表示テキストを差し替え可能（transcript と Claude が見る内容は元のまま）。
+現在33種のイベントが定義されている（公式 hooks ページの列挙と一致）。`MessageDisplay` は表示専用イベントで、`hookSpecificOutput.displayContent` により画面表示テキストを差し替え可能（transcript と Claude が見る内容は元のまま）。
 
 **セッション層（2種）**
 
@@ -129,25 +129,21 @@ L4 は **イベント駆動の自動化 / 外部システム連携** を扱う�
 | `WorktreeCreate` | `--worktree` で worktree 作成時 | ✅ |
 | `WorktreeRemove` | worktree 削除時 | ❌ |
 
-**UI・コンテキスト層（5種）**
+**UI・コンテキスト層（7種）**
 
 | イベント | 発火タイミング | Block可 |
 |---|---|---|
 | `MessageDisplay` | アシスタントメッセージ表示中 | ❌ |
 | `PreCompact` | コンテキスト圧縮前 | ✅ |
 | `PostCompact` | コンテキスト圧縮後 | ❌ |
+| `PreModelSwitch` | ユーザーまたはクライアントが要求したモデル切替の適用前 | ✅（切替をブロックできる） |
+| `PostModelSwitch` | セッションのモデル変更後（resume 時のモデル復元など Claude Code 自身による変更を含む） | ❌ |
 | `Elicitation` | MCP serverがユーザー入力要求時 | ✅ |
 | `ElicitationResult` | ユーザー応答後 | ✅ |
 
-> **合計**: 2+2+4+9+3+6+5 = 31種。`MessageDisplay` は UI・コンテキスト層の5種に含まれており、`DirectoryAdded` はファイル・環境監視層の6種に含まれる（31種のうちの1つ）。
+> **合計**: 2+2+4+9+3+6+7 = 33種。`MessageDisplay` は UI・コンテキスト層の7種に含まれており、`DirectoryAdded` はファイル・環境監視層の6種に含まれる（33種のうちの1つ）。
 
-> **[要確認: changelog v2.1.251 は `PreModelSwitch`／`PostModelSwitch` の追加を宣言するが、`hooks` リファレンスページは3回の独立取得すべてで31件のまま両名が確認できていない。次回再検証]**
->
-> - **`changelog` v2.1.251**: "Added `PreModelSwitch` and `PostModelSwitch` hook events (block, confirm, or annotate a model switch)" と**追加を明記**。
-> - **`hooks` リファレンスページ**: 独立した3回の取得（それぞれ別プロンプト）すべてで **`SessionStart` から `SessionEnd` までの同一の31件のみ**を列挙し、`PreModelSwitch`／`PostModelSwitch` は一度も現れない。うち2回は「両名は存在しない」と明示的に否定した。3回目でモデル切替に言及する文として返ったのは無関係な一文（"A hook process inherits the parent environment, so it can read `$ANTHROPIC_MODEL` if you set it in your shell, but that value doesn't change when you switch models with `/model` during a session."）のみ。
-> - 補足: `hooks-guide` ページも取得したが、応答が大きすぎて要点抽出に至らなかったため**この観点での裏取りは未了**である。
->
-> したがって「hooks ページに無い」ことは**取得できた範囲についてのみ**成立し、イベントが存在しないことの証明ではない。**本正典は上表のイベント総数を31のまま変更せず、両イベントを表へ追加しない**（次回 `/update-docs` で再検証する）。
+> **`PreModelSwitch` / `PostModelSwitch` の仕様**: 両イベントの JSON 入力には `from_model` / `to_model` が渡される。`PreModelSwitch` は逐次実行されるスタンドアロンイベント、`PostModelSwitch` は非同期のスタンドアロンイベントとして扱われる。`PreModelSwitch` は command / http / mcp_tool ハンドラーの既定 timeout が **30秒**に引き下げられている。
 
 #### Handler 5種
 
@@ -239,7 +235,7 @@ L4 は **イベント駆動の自動化 / 外部システム連携** を扱う�
   "timeout": 60
 }
 ```
-既定 timeout 60秒。L3 Subagent と同じ実行モデル。
+既定 timeout 60秒。L3 Subagent と同じ実行モデル。Read/Grep/Glob 等のツールを使って条件を検証したうえで判断を返せる。公式はこのハンドラー種別を experimental とし、仕様が変わり得ると注記している。
 
 #### Exit code セマンティクス（command handler）
 
@@ -272,6 +268,7 @@ L4 は **イベント駆動の自動化 / 外部システム連携** を扱う�
 - `SubagentStart`/`SubagentStop`: agent type
 - `PreCompact`/`PostCompact`: `manual`/`auto`
 - `ConfigChange`: `user_settings`/`project_settings`/`local_settings`
+- `PreModelSwitch`/`PostModelSwitch`: 切替先モデルの canonical name（例: `claude-opus-5`、`claude-opus-4-6|claude-opus-5`、`.*opus.*`）
 - `CwdChanged`, `FileChanged`, `WorktreeCreate`/`Remove`: **マッチャー非対応**（常に発火）
 
 `if` 条件（tool イベントのみ）:
@@ -724,6 +721,8 @@ MCP tool を起動時にロードせず、Claude が必要時に `ToolSearch` �
 - `list_changed` notification: 動的ツール更新対応
 - 自動再接続: HTTP/SSE 5回（指数バックオフ）、初回接続 3回
 - **2分超のツール呼び出しは自動的にバックグラウンド化**: `CLAUDE_CODE_MCP_AUTO_BACKGROUND_MS` で閾値変更・無効化可
+- `CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH`: MCP ツール説明文の長さ上限を制御する（`env-vars` ページ本文での裏取りは未了のため、既定値・厳密な挙動は本リファレンスでは確定していない）
+- `CLAUDE_CODE_MCP_STARTUP_WAIT_MS`: MCP サーバー起動の待機時間を制御する（同上）
 - **診断表示のシークレットマスキング**: MCP診断はスコープ競合警告で解決済みシークレットではなく設定済みの `${VAR}` 形式のまま表示し、接続失敗の詳細もサーバーのオリジンのみを表示する
 
 #### MCP の挙動

@@ -6,15 +6,16 @@
 ## メタ情報
 | 項目 | 値 |
 |---|---|
-| 確認したClaude Codeバージョン | v2.1.251 |
+| 確認したClaude Codeバージョン | v2.1.280 |
 | 一次ソース（Plugins） | https://code.claude.com/docs/en/discover-plugins |
 | 一次ソース（Marketplaces） | https://code.claude.com/docs/en/plugin-marketplaces |
 | 一次ソース（Plugins reference） | https://code.claude.com/docs/en/plugins-reference |
 | 一次ソース（Plugin dependencies） | https://code.claude.com/docs/en/plugin-dependencies |
 | 一次ソース（Status Line） | https://code.claude.com/docs/en/statusline |
 | 一次ソース（Output Styles） | https://code.claude.com/docs/en/output-styles |
+| 一次ソース（Plugin evals） | https://code.claude.com/docs/en/plugin-evals |
 | LSP（独立ページ無し） | plugins-reference#lsp-servers と discover-plugins#code-intelligence |
-| 調査日 | 2026-08-29 |
+| 調査日 | 2026-09-23 |
 
 ---
 
@@ -39,7 +40,7 @@ L5 は **L1〜L4 で構築した拡張機能群を「パッケージ化して配
 | **Themes**（experimental） | カラーテーマ配布 | ターミナル外観カスタマイズ |
 | **Monitors**（experimental） | プラグイン同梱のバックグラウンド監視プロセス | デプロイステータス監視、ログ追跡 |
 
-> **公式に未登録の L5 関連ページ**: `https://code.claude.com/docs/en/plugin-hints` と `https://code.claude.com/docs/en/plugin-relevance` が公式に存在するが、本正典および `docs/SOURCES.md` に未登録である。次回 `/update-docs` で本文取得のうえ収録可否を判断すること。
+| **Evals** | プラグインの挙動を検証するテスト機構 | `claude plugin eval` による配布前検証（manifest の `experimental.evals` で宣言） |
 
 ### 1.3 いつ使うか（採用判断基準）
 
@@ -157,6 +158,7 @@ enterprise-plugin/
   "name": "plugin-name",
   "displayName": "Plugin Name",
   "version": "1.2.0",
+  "defaultEnabled": true,
   "description": "Brief plugin description",
   "author": {
     "name": "Author Name",
@@ -171,6 +173,7 @@ enterprise-plugin/
   "skills": "./custom/skills/",
   "commands": ["./custom/commands/special.md"],
   "agents": ["./custom/agents/reviewer.md"],
+  "workflows": "./workflows/",
   "hooks": "./config/hooks.json",
   "mcpServers": "./mcp-config.json",
   "outputStyles": "./styles/",
@@ -178,7 +181,8 @@ enterprise-plugin/
 
   "experimental": {
     "themes": "./themes/",
-    "monitors": "./monitors.json"
+    "monitors": "./monitors.json",
+    "evals": "./evals/"
   },
 
   "userConfig": {
@@ -206,6 +210,15 @@ enterprise-plugin/
 ```
 
 **必須フィールド**: `name` のみ（kebab-case、スペース不可）。manifestが無い場合、Claude Code が自動発見し、ディレクトリ名から名前を導出。
+
+**トップレベルフィールドの全体像**:
+
+| 区分 | フィールド |
+|---|---|
+| 必須 | `name` |
+| メタデータ | `$schema` / `displayName` / `version` / `description` / `author` / `homepage` / `repository` / `license` / `keywords` / `metadata` / `defaultEnabled` |
+| コンポーネントのパス | `skills` / `commands` / `agents` / `workflows` / `hooks` / `mcpServers` / `outputStyles` / `lspServers` / `experimental.themes` / `experimental.monitors` / `experimental.evals` |
+| その他 | `userConfig` / `channels` / `dependencies` |
 
 #### Path挙動規則
 - **既定を置換**: `commands`, `agents`, `outputStyles`, `experimental.themes`, `experimental.monitors`
@@ -272,9 +285,10 @@ claude plugin validate ./my-plugin --strict   # warnings = errors
 
 #### Plugin内 Component の制約
 
-**Plugin Agent の制約**（公式明記、セキュリティ理由）:
-- サポート: `name`, `description`, `model`, `effort`, `maxTurns`, `tools`, `disallowedTools`, `skills`, `memory`, `background`, `isolation`（`worktree` のみ）
-- **非対応**: `hooks`, `mcpServers`, `permissionMode`（plugin agent では禁止）
+**Plugin Agent の制約**（公式明記）:
+- サポート: `name`, `description`, `model`, `effort`, `maxTurns`, `tools`, `disallowedTools`, `skills`, `memory`, `background`, `omitClaudeMd`, `isolation`（`worktree` のみ）, `color`, `experimental`
+- **非対応（セキュリティ理由）**: `hooks`, `mcpServers`, `permissionMode`。plugin から agent をロードする際に無視される。これらを使うには agent ファイルを `.claude/agents/` または `~/.claude/agents/` へコピーする
+- **非対応**: `initialPrompt`
 
 #### Plugin Cache と Path Traversal
 
@@ -379,7 +393,17 @@ git / npm / local / URL に加え、以下3種がある:
 
 #### skills-dir plugin（新しい plugin 形態）
 
-**skill フォルダに `.claude-plugin/plugin.json` を置くと、そのフォルダは `<name>@skills-dir` という plugin としてロードされ、agents / hooks / MCP server を同梱できる。** プロジェクトの `.claude/skills/` に置く場合は **workspace trust 承認が必要**（出典: `skills` ／ `plugins-reference#skills-directory-plugins`。`plugins-reference` 本文での裏取りは未了。[L2_SKILLS.md §2.1](./L2_SKILLS.md) にも収録）。
+**skills ディレクトリ配下のフォルダが `.claude-plugin/plugin.json` マニフェストを持つと、そのフォルダは次回セッションから `<name>@skills-dir` という plugin としてロードされる。** marketplace もインストール手順も要らず、`plugin init` でスキャフォールドできる。marketplace 経由のインストールと異なり、**プラグインキャッシュへコピーされずその場で発見される**。プロジェクトの `.claude/skills/` に置く場合は **workspace trust 承認が必要**。
+
+skills ディレクトリのツリーは3つの異なるものを同時に扱える:
+
+| 置いてあるもの | 何として扱われるか |
+|---|---|
+| `<skills-dir>/foo/SKILL.md`（マニフェスト無し） | `foo` という素の skill |
+| `<skills-dir>/foo/.claude-plugin/plugin.json` | `foo@skills-dir` という plugin。自身の skills・agents・hooks 等を同梱できる |
+| `<plugin>/skills/bar/SKILL.md` | plugin に同梱された `bar` という skill |
+
+（[L2_SKILLS.md §2.1](./L2_SKILLS.md) にも収録）
 
 #### マーケットプレイス許可/拒否のオーナーワイルドカード
 
@@ -583,31 +607,34 @@ Plugin の `settings.json` で `subagentStatusLine` キーを使うと、plugin 
 公式引用（[output-styles](https://code.claude.com/docs/en/output-styles)）:
 > "Output styles change how Claude responds, not what Claude knows. They modify the system prompt to set role, tone, and output format."
 
-#### 組み込み Output Style（4種）
+#### 組み込み Output Style（Default + 4種）
 
 | Style | 内容 |
 |---|---|
 | **Default** | 既定。SE 向け system prompt |
 | **Proactive** | 即実行・推測でも進む。auto mode より強い自律性。permission mode は変えないので prompt は出る |
+| **Concise** | 結果を先に述べ、前置き・実況を省いて既定で短く応答する。エンジニアリング作業の徹底度は Default と同等で、説明や詳細を求めれば全文で答える。エラー報告・セキュリティ警告・破壊的操作の確認は常に全文を保つ |
 | **Explanatory** | 教育的 "Insights" を SE タスクの合間に挟む |
 | **Learning** | 学習モード。`TODO(human)` マーカーをコードに残し、ユーザーに小規模実装を促す |
 
 #### 切り替え
 
 ```bash
-/config              # メニュー選択
+/output-style concise   # スタイルを指定して切替
+/output-style           # 選択可能なスタイルを一覧表示し、現在のものにマークを付ける
+/config                 # メニューから Output style を選択
 ```
 
-または settings.local.json:
+`/output-style` は**非対話モード・Agent SDK セッション・Remote Control 経由のモバイル/Web でも動作する**（Remote Control では組み込みスタイルのみ一覧・選択できる）。いずれの経路でも選択は**プロジェクトローカルの `.claude/settings.local.json`** に保存される。
+
+settings ファイルの `outputStyle` を直接編集してもよい:
 ```json
 {
   "outputStyle": "Explanatory"
 }
 ```
 
-⚠ `/output-style` コマンドは存在しない。`/config` または settings 直接編集を使用。
-
-セッション開始時の system prompt に組み込まれるため、変更後は `/clear` または新セッションで反映。
+スタイルを切り替えると、**次に送るメッセージから**新しいスタイルが適用される。
 
 #### カスタム Output Style
 
@@ -615,6 +642,8 @@ Plugin の `settings.json` で `subagentStatusLine` キーを使うと、plugin 
 - User: `~/.claude/output-styles/`
 - Project: `.claude/output-styles/`
 - Managed: managed settings directory 内 `.claude/output-styles/`
+
+Project の output style は**作業ディレクトリからリポジトリルートまでの全ての `.claude/output-styles/` からロードされ**、同名が複数あるときは**作業ディレクトリに最も近いもの**が採用される。ターミナルでは起動時にスタイルファイルを読むため、セッション中に作成・編集した場合は再起動が要る。
 
 ファイル形式:
 ```markdown
@@ -639,6 +668,10 @@ Use `flowchart TD` for control flow and `sequenceDiagram` for request paths. Kee
 | `description` | なし | ピッカー説明 |
 | `keep-coding-instructions` | `false` | Claude Code 組込み SE 指示を残すか。コーディング以外用途では `false` |
 | `force-for-plugin` | `false` | Plugin output style のみ。`true` で plugin 有効中は強制適用（ユーザー設定上書き）。複数plugin が指定時は最初にロードされた方が勝つ |
+
+**全フィールドが任意**であり、フィールド名は小文字とハイフンで綴る。誤記したフィールドはエラーを出さずに無視される。YAML がパースできない場合、スタイルはファイル名を名前としてフィールド無しでロードされる（パースエラーは `claude --debug` で確認する）。
+
+**適用範囲**: output style はメイン会話と [fork](./L3_AGENTS.md)（親の会話全体と system prompt を継承する）に適用される。それ以外の subagent は自身の system prompt で動くため、output style は影響しない。
 
 #### Plugin Output Style
 - Plugin の `output-styles/` ディレクトリで配布可能
@@ -720,6 +753,8 @@ Plugin が **バックグラウンド監視プロセス** を同梱できる:
 | Output Styles | L5 | `output-styles/` |
 | Themes（experimental） | L5 | `themes/` |
 | Monitors（experimental） | L5 | `monitors/monitors.json` |
+| Evals（experimental） | L5 | `experimental.evals`（`claude plugin eval` で実行） |
+| Workflows | L3 | `workflows/`（manifest の `workflows`） |
 | Bin executables | L5 | `bin/`（Bash tool の PATH に追加） |
 
 > **skills-dir plugin**: 上表とは別の入口として、**skill フォルダに `.claude-plugin/plugin.json` を置くと `<name>@skills-dir` という plugin としてロードされ、agents・hooks・MCP サーバーを同梱できる**（§2.2 参照）。プロジェクトの `.claude/skills/` に置く場合は workspace trust 承認が必要。

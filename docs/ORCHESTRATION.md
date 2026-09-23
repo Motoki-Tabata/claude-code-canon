@@ -6,9 +6,9 @@
 ## メタ情報
 | 項目 | 値 |
 |---|---|
-| 確認したClaude Codeバージョン | v2.1.251 |
+| 確認したClaude Codeバージョン | v2.1.280 |
 | 一次ソース | Subagents / Skills / Agent Teams / Hooks / Worktrees の公式ドキュメント群（[00_INDEX.md §8](./00_INDEX.md)） |
-| 調査日 | 2026-08-29 |
+| 調査日 | 2026-09-23 |
 
 > 📌 **Subagent nesting**: 既定3階層まで自身の subagent を spawn できる（`1` で無効化を含め `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` で調整可能）。並行実行数にも既定20の上限がある（`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`）。詳細は [L3_AGENTS.md §2.1 nesting](./L3_AGENTS.md) を参照。
 >
@@ -67,7 +67,8 @@
 | **Subagent nesting は既定3階層・可変** | "By default, a subagent can spawn subagents of its own, up to three layers below the main conversation. [...] To change the limit, set `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`." | 純粋な多階層（Subagent→Subagent）は**既定3階層まで可**（環境変数で調整可）。深度上限で `Agent` tool が外れる |
 | **fork は fork を spawn 不可** | "A fork still cannot spawn another fork" | fork からは named subagent のみ spawn 可（深さに数える） |
 | **`context: fork` の actionable task 必須** | "context: fork only makes sense for skills with explicit instructions" | guideline-only skill を fork すると subagent が何もせず終了 |
-| **Plugin Agent の `hooks`/`mcpServers`/`permissionMode` 非対応** | セキュリティ上の制約 | Plugin agent は通常 subagent より制約が厳しい |
+| **Plugin Agent の `hooks`/`mcpServers`/`permissionMode` 非対応** | セキュリティ上の制約（plugin からロードする際に無視される） | Plugin agent は通常 subagent より制約が厳しい。使うには agent ファイルを `.claude/agents/` または `~/.claude/agents/` へコピーする |
+| **Plugin Agent の `initialPrompt` 非対応** | セキュリティ理由とは別枠で非対応 | plugin 由来の agent は `--agent` 主スレッド起動時の初期プロンプトを持てない |
 | **Agent Teams の nested team 不可** | "No nested teams: teammates cannot spawn their own teammates" | teammate は teammate を作れない（lead のみ管理） |
 | **`disable-model-invocation: true` skill の preload 不可** | "You can't preload skills that set `disable-model-invocation: true`, since preloading draws from the same set of skills Claude can invoke." | Subagent の `skills:` フィールドで指定不可 |
 
@@ -703,6 +704,7 @@ Q6: マーケットプレイスは？
 | Plugin agent に `hooks` 設定 | セキュリティ上非対応 |
 | Plugin agent に `mcpServers` 設定 | 同上 |
 | Plugin agent に `permissionMode` 設定 | 同上 |
+| Plugin agent に `initialPrompt` 設定 | 非対応（無視される） |
 | Skill から `..` で plugin外参照 | Cache copy で動作不能 |
 
 ---
@@ -730,7 +732,7 @@ Q6: マーケットプレイスは？
 |---|---|
 | Skill の詳細仕様 | [L2_SKILLS.md](./L2_SKILLS.md) |
 | Subagent / Agent Teams / Worktree / `/batch` | [L3_AGENTS.md](./L3_AGENTS.md) |
-| Hook イベント31種・Handler 5種 | [L4_AUTOMATION.md](./L4_AUTOMATION.md) |
+| Hook イベント33種・Handler 5種 | [L4_AUTOMATION.md](./L4_AUTOMATION.md) |
 | MCP transport / scope / OAuth | [L4_AUTOMATION.md §2.2](./L4_AUTOMATION.md) |
 | Plugin 配布 | [L5_DISTRIBUTION.md](./L5_DISTRIBUTION.md) |
 | 横断ベストプラクティス | [BEST_PRACTICES.md](./BEST_PRACTICES.md) |

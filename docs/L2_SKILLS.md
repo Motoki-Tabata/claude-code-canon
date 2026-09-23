@@ -6,12 +6,12 @@
 ## メタ情報
 | 項目 | 値 |
 |---|---|
-| 確認したClaude Codeバージョン | v2.1.251 |
+| 確認したClaude Codeバージョン | v2.1.280 |
 | 一次ソース（Skills） | https://code.claude.com/docs/en/skills |
 | 一次ソース（Commands） | https://code.claude.com/docs/en/commands |
 | 一次ソース（Subagents参考） | https://code.claude.com/docs/en/sub-agents |
 | 公式標準 | Agent Skills（オープン標準）/ agentskills.io |
-| 調査日 | 2026-08-29 |
+| 調査日 | 2026-09-23 |
 
 ---
 
@@ -309,6 +309,7 @@ Summarize this PR in 3 bullets, then list risks (missing tests, hardcoded values
 - 1パス展開のみ（再帰展開なし）
 - 出力は plain text として置換（再パースされない）
 - `settings.json` の `"disableSkillShellExecution": true` で全体禁止可能
+- **auto mode 下での扱い**: Skill / スラッシュコマンドのインライン `!` シェルコマンドは classifier ではなく **default モードの permission rule** に従う。どのルールも可否を決めないコマンドは、レビュー付きのツール呼び出しとして実行される
 
 #### Skill 完全実装例（公式）
 
@@ -453,12 +454,13 @@ agent type の代表値:
 | `/simplify` | 変更コードの reuse / simplification / efficiency 観点の整理を**適用まで行う**（品質のみ。バグ探索は `/code-review` の責務） |
 | `/batch` | 大規模並列リファクタリング（5〜30件の同パターン変換） |
 | `/debug` | デバッグログ有効化・トラブルシュート |
-| `/doctor` | 設定・スキル・コンテキスト予算の診断 |
+| `/doctor` | セットアップ診断と修正提案（インストールの健全性・重複/残留インストール・`PATH` 問題・パース不能な settings、未使用スキル/MCP/プラグインとコンテキストコストの対比、遅い hooks、リリースチャネル上の新版、`CLAUDE.md` の重複排除とトリム、auto mode 既定化と read-only コマンド事前承認の提案）。エイリアス `/checkup` |
 | `/loop` | プロンプト／スラッシュコマンドを定期実行（下記） |
 | `/schedule` | クラウド上でルーチン作成 |
 | `/claude-api` | Claude API リファレンス参照・モデル移行（サブコマンドは下記） |
 | `/dataviz` | チャート・グラフ・ダッシュボードの設計指針 |
 | `/deep-research` | 多段のリサーチワークフロー |
+| `/design` | UI モックアップ・画面フロー・ランディングページ・ポスターを1枚のキャンバス上のアートボードとして下書きし、Design artifact として公開する（artifacts が利用可能なセッションに限る。Bedrock / Google Cloud's Agent Platform / Microsoft Foundry / Claude Platform on AWS では利用不可） |
 | `/design-sync` | デザイン資産との同期 |
 | `/fewer-permission-prompts` | 過去トランスクリプトからallowlist候補抽出 |
 | `/workflow-authoring` | Dynamic Workflows のスクリプト記述リファレンス（**dynamic workflows が有効なときのみ利用可能**） |
@@ -466,7 +468,7 @@ agent type の代表値:
 **関連する設定・挙動**:
 
 - `disableBundledSkills` 設定は **`/doctor` を除く全 bundled skill を無効化**する。`skillOverrides` は `"off"` / `"user-invocable-only"` / `"name-only"` を取る。
-- `/doctor` は built-in command ではなく **bundled skill** である（`disableBundledSkills` の対象外。`DISABLE_DOCTOR_COMMAND` で非表示にできる）。
+- `/doctor` は built-in command ではなく **bundled skill** である（`disableBundledSkills` の対象外。`DISABLE_DOCTOR_COMMAND` で非表示にできる）。所見をまず報告し、何かを変更する前に確認を求める。ターミナルから `claude doctor` を実行すると、セッションを起こさずに read-only のインストール診断のみを表示する。
 - `/verify` は**自身のレシピを `.claude/skills/verify/SKILL.md` に記録**でき、リポジトリルートでは bundled `/verify` を置換する。
 - `/claude-api` は `cost-optimize`（既存プロジェクトの Claude API 支出プロファイリング）を持つほか、organization members / invites / workspaces / API keys / rate limit reports / workload identity federation / CMEK を含む Admin API カバレッジを持つ。
 - `/loop` は自己ペース dynamic モードと no-prompt autonomous 既定を Bedrock/Vertex/Foundry を含め常時利用でき、Claude が何もすることがない連続 wake-up は1行に畳まれる。`/usage` には Loops の内訳（実行回数・総トークン・回あたりトークン・最終実行）が出る。
@@ -482,14 +484,14 @@ agent type の代表値:
 |---|---|
 | effort 引数 | `low`/`medium` は高確度の少数指摘、`high`〜`max` は網羅重視（不確実な指摘も含む）、**`ultra` はクラウド上の多エージェント深掘りレビュー**。省略時は前回指定した水準を再利用 |
 | `--fix` | レビュー後、指摘をワーキングツリーへ適用する |
-| `--comment` | 指摘を PR のインラインコメントとして投稿する |
+| `--comment` | 指摘を GitHub PR または GitLab merge request のインラインコメントとして投稿する |
 | 対象 | PR 番号 / ブランチ / パス。省略時は現在の差分 |
 | `--post` | `ultra` × GitHub.com の PR 対象時、完成したレビューを PR へ単一コメントとして投稿するか確認する（`--no-post` で抑止） |
 | エイリアス | `/review` |
 
 **`/claude-api` のサブコマンド**: `migrate` / `upgrade` / `managed-agents-onboard` / `prompt-audit`。
 
-**`/loop` の詳細**: エイリアスは **`/proactive`**。`/loop 5m /foo` のように interval とプロンプト（スラッシュコマンド可）を与える。**interval / prompt を省略するとモデルが自己ペースで反復**する。反復内容は **`.claude/loop.md`** に記述できる。
+**`/loop` の詳細**: エイリアスは **`/proactive`**。`/loop 5m /foo` のように interval とプロンプト（スラッシュコマンド可）を与える。**interval を省略するとモデルが自己ペースで反復**する。**prompt を省略すると組み込みのメンテナンスプロンプト、または `loop.md` に書いた内容**で反復する。
 
 #### 組み込みコマンド主要一覧（カテゴリ別）
 
@@ -503,12 +505,12 @@ agent type の代表値:
 
 **セッション管理**: `/clear`, `/resume`, `/subtask`, `/fork`, `/branch`, `/rename`, `/background`, `/exit`
 **コンテキスト・メモリ**: `/memory`, `/context [all]`, `/compact`
-**設定**: `/config` (`/settings`), `/model`, `/effort`, `/permissions`, `/init`, `/mcp`, `/plugin`, `/hooks`
+**設定**: `/config` (`/settings`), `/model`, `/effort`, `/permissions`, `/init`, `/mcp`, `/plugin`, `/hooks`, `/output-style`
 **コード作業**: `/code-review`, `/verify`, `/run`, `/review [PR]`, `/security-review`, `/diff`
 **並列処理**: `/batch`, `/agents`, `/tasks`
 **スキル**: `/skills`, `/loop`, `/schedule`
 **診断**: `/doctor`, `/debug`, `/rewind`
-**その他**: `/help`, `/copy [N]`, `/export`, `/plan`, `/btw`, `/goal`
+**その他**: `/help`, `/copy [N]`, `/export`, `/plan`, `/btw`, `/goal`, `/advisor`
 
 完全な一覧は [公式 Commands リファレンス](https://code.claude.com/docs/en/commands) を参照。
 

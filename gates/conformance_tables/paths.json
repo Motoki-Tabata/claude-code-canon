@@ -1,55 +1,55 @@
 {
   "_generated_by": "gates/build-conformance-tables.js",
   "_do_not_edit": true,
-  "canon_version": "v2.1.251",
+  "canon_version": "v2.1.280",
   "canon_version_sources": [
     {
       "file": "docs/00_INDEX.md",
-      "version": "v2.1.251",
+      "version": "v2.1.280",
       "source": "docs/00_INDEX.md:13"
     },
     {
       "file": "docs/L1_CONTEXT_MANAGEMENT.md",
-      "version": "v2.1.251",
+      "version": "v2.1.280",
       "source": "docs/L1_CONTEXT_MANAGEMENT.md:9"
     },
     {
       "file": "docs/L2_SKILLS.md",
-      "version": "v2.1.251",
+      "version": "v2.1.280",
       "source": "docs/L2_SKILLS.md:9"
     },
     {
       "file": "docs/L3_AGENTS.md",
-      "version": "v2.1.251",
+      "version": "v2.1.280",
       "source": "docs/L3_AGENTS.md:9"
     },
     {
       "file": "docs/L4_AUTOMATION.md",
-      "version": "v2.1.251",
+      "version": "v2.1.280",
       "source": "docs/L4_AUTOMATION.md:9"
     },
     {
       "file": "docs/L5_DISTRIBUTION.md",
-      "version": "v2.1.251",
+      "version": "v2.1.280",
       "source": "docs/L5_DISTRIBUTION.md:9"
     },
     {
       "file": "docs/TOOLS.md",
-      "version": "v2.1.251",
+      "version": "v2.1.280",
       "source": "docs/TOOLS.md:8"
     },
     {
       "file": "docs/BEST_PRACTICES.md",
-      "version": "v2.1.251",
+      "version": "v2.1.280",
       "source": "docs/BEST_PRACTICES.md:10"
     },
     {
       "file": "docs/ORCHESTRATION.md",
-      "version": "v2.1.251",
+      "version": "v2.1.280",
       "source": "docs/ORCHESTRATION.md:9"
     }
   ],
-  "generated_at": "2026-09-03T16:23:13.251Z",
+  "generated_at": "2026-09-22T18:10:09.043Z",
   "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること（§11.4）。",
   "_warning": [
     "自動生成ファイル。手動編集禁止。",
@@ -68,7 +68,7 @@
             ".claude/agents/<name>/<name>.md",
             ".claude/agents/<name>.md"
           ],
-          "source": "docs/L3_AGENTS.md:87",
+          "source": "docs/L3_AGENTS.md:88",
           "deprecated": false
         },
         {
@@ -76,7 +76,7 @@
           "paths": [
             "~/.claude/agents/<name>/<name>.md"
           ],
-          "source": "docs/L3_AGENTS.md:88",
+          "source": "docs/L3_AGENTS.md:89",
           "deprecated": false
         },
         {
@@ -84,7 +84,7 @@
           "paths": [
             "<plugin>/agents/<name>.md"
           ],
-          "source": "docs/L3_AGENTS.md:89",
+          "source": "docs/L3_AGENTS.md:90",
           "deprecated": false
         }
       ],
@@ -94,8 +94,8 @@
       ],
       "dirname_must_match_name": {
         "value": false,
-        "source": "docs/L3_AGENTS.md:143",
-        "corroboration": "docs/L3_AGENTS.md:116",
+        "source": "docs/L3_AGENTS.md:144",
+        "corroboration": "docs/L3_AGENTS.md:117",
         "note": "正典は「ファイル名・ディレクトリ名と一致する必要はない（識別は name のみ）」と明言する。G3 が agent に対しディレクトリ名＝name を要求すると正典に反する誤検出になる。"
       },
       "extension": ".md"
@@ -191,12 +191,12 @@
         {
           "scope": "Project",
           "path": ".claude/rules/",
-          "source": "docs/L1_CONTEXT_MANAGEMENT.md:213"
+          "source": "docs/L1_CONTEXT_MANAGEMENT.md:266"
         },
         {
           "scope": "User",
           "path": "~/.claude/rules/",
-          "source": "docs/L1_CONTEXT_MANAGEMENT.md:214"
+          "source": "docs/L1_CONTEXT_MANAGEMENT.md:267"
         }
       ],
       "extension": ".md",

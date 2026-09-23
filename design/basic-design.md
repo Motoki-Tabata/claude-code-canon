@@ -2,7 +2,7 @@
 title: claude-canon 基本設計書
 purpose: Claude Code のカスタマイズを「調査 → 要件定義 → 設計 → 生成 → 検証 → 品質検査 → デプロイ」の一連の工程で半自律に構築するメタジェネレータの全体設計（骨格）。成果物フォーマット・ゲート実装契約は詳細設計書を参照。
 audience: [ai, human]
-canon_version: v2.1.251
+canon_version: v2.1.280
 ---
 
 # claude-canon 基本設計書

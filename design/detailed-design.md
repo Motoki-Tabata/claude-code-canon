@@ -2,7 +2,7 @@
 title: claude-canon 詳細設計書
 purpose: claude-canon の成果物フォーマット・決定論ゲートの実装契約・機能X（正典更新）／機能Y（自己最適化）の実装契約・自己検証と eval の実装契約を定める。システム全体像・工程順・オーケストレーション構造・調査工程・既存カスタマイズの全体最適化・ディレクトリ構成は基本設計書を参照。
 audience: [ai, human]
-canon_version: v2.1.251
+canon_version: v2.1.280
 ---
 
 # claude-canon 詳細設計書

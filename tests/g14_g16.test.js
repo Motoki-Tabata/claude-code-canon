@@ -205,7 +205,7 @@ test('G16: 部分的な取り消し線（未解決/解決済のいずれでも�
   withTs(t, ts);
   // §10 の表の最終行の直後に、項目だけ取り消し線・所在は取り消し線なし・解決済接頭辞欠落の
   // 壊れた行を挿入する（未解決/解決済のどちらの形式にも一致しない）。
-  const marker = '| Channels ページの正規配置（Reference vs Advanced） | §8 | WebFetch: `https://code.claude.com/docs/en/channels` |';
+  const marker = '| `env-vars` ページ由来の環境変数行の文言 | L3 §2.1, L4 §2.2 | `env-vars` は WebFetch が表の途中で truncate するため到達できていない。別経路（公式リポジトリ・ブラウザ等）での確認が要る |';
   assert.ok(original.includes(marker), 'テスト対象の挿入基準行が実在すること（正典の書式変更で失われていないか確認）');
   const malformedRow = '| ~~壊れた行のテスト~~ | 未取消線のまま | WebFetch で確認 |';
   const mutated = original.replace(marker, `${marker}\n${malformedRow}`);

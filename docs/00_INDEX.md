@@ -10,15 +10,15 @@
 
 | 項目 | 値 |
 |---|---|
-| 確認した Claude Code バージョン | **v2.1.251**（2026年8月時点） |
-| 調査日 | 2026-08-29 |
+| 確認した Claude Code バージョン | **v2.1.280**（2026年9月時点） |
+| 調査日 | 2026-09-23 |
 | 一次ソース（英語） | https://code.claude.com/docs/en/ |
 | 一次ソース（日本語） | https://code.claude.com/docs/ja/ |
 | 全体ドキュメント目次 | https://code.claude.com/docs/llms.txt |
 | GitHub リポジトリ | https://github.com/anthropics/claude-code |
 | 補助参考（独自整理） | Zenn: ino_h/2026-05-15-claude-code-skills-orchestration, Qiita: dai_chi/63b15050cc1280c45f86 |
 
-> 本リファレンスは v2.1.251 時点の Claude Code の仕様に基づきます。
+> 本リファレンスは v2.1.280 時点の Claude Code の仕様に基づきます。
 
 ---
 
@@ -64,7 +64,7 @@ Claude Code カスタマイズ機能
 │   └── /batch（大規模並列リファクタリング）
 │
 ├── [L4] 自動化・外部連携                                    → L4_AUTOMATION.md
-│   ├── Hooks（31イベント / 5ハンドラー種）
+│   ├── Hooks（33イベント / 5ハンドラー種）
 │   ├── MCP（Model Context Protocol）
 │   └── Channels（外部イベント注入）
 │
@@ -76,10 +76,6 @@ Claude Code カスタマイズ機能
     ├── Output Styles
     └── Channels（外部イベントトリガー）
 ```
-
-> **[要確認: changelog v2.1.251 は `PreModelSwitch`／`PostModelSwitch` の追加を宣言するが、`hooks` リファレンスページは3回の独立取得すべてで31件のまま両名が確認できていない。次回再検証]**
->
-> 上図 L4 の「Hooks（**31イベント** / 5ハンドラー種）」の数値は、この矛盾が未解決のため **31 のまま変更していない**（33 への更新可否は判定しない）。詳細な矛盾の内容と3回の取得結果は [L4_AUTOMATION.md §2.1 全 Hook イベント](./L4_AUTOMATION.md) の同名注記を参照。
 
 ---
 
@@ -94,7 +90,7 @@ Claude Code カスタマイズ機能
 | L5 | [L5_DISTRIBUTION.md](./L5_DISTRIBUTION.md) | Plugins, Marketplaces, LSP, Status Lines, Output Styles | 機能群を **配布・再利用** するパッケージング |
 | 横断 | [ORCHESTRATION.md](./ORCHESTRATION.md) | 2層・3層パターン | 複数レイヤーを組み合わせる **オーケストレーション設計** |
 | 横断 | [BEST_PRACTICES.md](./BEST_PRACTICES.md) | 全体設計原則 | レイヤー横断の **推奨パターンとアンチパターン** |
-| 横断 | [TOOLS.md](./TOOLS.md) | 正規ツール名45種 | L1〜L4 から参照される **ツール名の同定リファレンス** |
+| 横断 | [TOOLS.md](./TOOLS.md) | 正規ツール名46種 | L1〜L4 から参照される **ツール名の同定リファレンス** |
 
 ---
 
@@ -182,7 +178,7 @@ Claude Code カスタマイズ機能
 
 > **permission mode の表示名**: `default` permission モードは CLI / VS Code / JetBrains 上で「**Manual**」と表示される。frontmatter・設定値としては `default` が引き続き有効で、`manual` はその**エイリアス**。
 >
-> **auto mode の既定化**: Pro/Max/Team プランでは auto mode が既定の起動 permission モードになる。組織側で無効化するには managed settings の `permissions.disableAutoMode: "disable"` を設定する（設定すると auto mode が選択肢から外れる）。詳細は [BEST_PRACTICES.md §1.2](./BEST_PRACTICES.md) / [permission-modes](https://code.claude.com/docs/en/permission-modes)。
+> **auto mode の既定化**: 起動時の permission モードが `auto` になるのは **Pro / Max / Team プランのターミナルおよび VS Code 拡張のみ**である。Enterprise プラン・Claude Console API キー・Bedrock / Google Cloud's Agent Platform / Microsoft Foundry / Claude Platform on AWS / サインイン済み Claude apps gateway・`claude -p` / Agent SDK は、いずれも `default`（Manual）で始まる。組織側で無効化するには managed settings の `permissions.disableAutoMode: "disable"` を設定する（設定すると auto mode が選択肢から外れる）。詳細は [BEST_PRACTICES.md §1.2](./BEST_PRACTICES.md) / [permission-modes](https://code.claude.com/docs/en/permission-modes)。
 
 公式引用（[best-practices](https://code.claude.com/docs/en/best-practices) "Set up hooks" 節）: "Unlike CLAUDE.md instructions which are advisory, hooks are deterministic and guarantee the action happens."
 Enforced 行の根拠は `permissions` ページの tiered permission system（詳細は [BEST_PRACTICES.md §1.2](./BEST_PRACTICES.md)）。
@@ -281,12 +277,11 @@ Enforced 行の根拠は `permissions` ページの tiered permission system（�
 | L3 | Reference → Agent View | https://code.claude.com/docs/en/agent-view |
 | L4 | Reference → Hooks | https://code.claude.com/docs/en/hooks |
 | L4 | Configuration → MCP | https://code.claude.com/docs/en/mcp |
-| L4 | Advanced Topics → Channels | https://code.claude.com/docs/en/channels [要確認: Reference vs Advanced配置] |
+| L4 | Automation → Channels | https://code.claude.com/docs/en/channels |
+| L4 | Reference → Channels reference | https://code.claude.com/docs/en/channels-reference |
 | L5 | Core Features → Plugins | https://code.claude.com/docs/en/discover-plugins |
 | L5 | Core Features → Plugin marketplaces | https://code.claude.com/docs/en/plugin-marketplaces |
 | 横断 | Learning Resources → Best practices | https://code.claude.com/docs/en/best-practices |
-
-> `[要確認]` は本リファレンス作成時点で公式ページの厳密なパスを確定できなかった項目。実装時は WebFetch で再検証すること。
 
 ### 8.1 対応表に未収録だった公式ページ
 
@@ -307,28 +302,30 @@ Enforced 行の根拠は `permissions` ページの tiered permission system（�
 | 横断（大規模コードベース運用） | Work with large codebases | https://code.claude.com/docs/en/large-codebases |
 | §9 用語集 | Glossary | https://code.claude.com/docs/en/glossary |
 | L3/L4（SDK/harness 前提） | Agent SDK: Subagents / Permissions / Hooks | https://code.claude.com/docs/en/agent-sdk/subagents ／ .../agent-sdk/permissions ／ .../agent-sdk/hooks |
+| L2/L4/L5（SDK/harness 前提） | Agent SDK: Skills / Tool search / Plugins | https://code.claude.com/docs/en/agent-sdk/skills ／ .../agent-sdk/tool-search ／ .../agent-sdk/plugins |
+| L5（プラグインの評価） | Test plugins with evals | https://code.claude.com/docs/en/plugin-evals |
+| L5（プラグイン推奨） | Plugin hints ／ Plugin relevance | https://code.claude.com/docs/en/plugin-hints ／ https://code.claude.com/docs/en/plugin-relevance |
+| 横断（`/goal`・非対話実行） | Goal ／ Headless | https://code.claude.com/docs/en/goal ／ https://code.claude.com/docs/en/headless |
+| 横断（`Artifact` ツール・`/design`） | Artifacts | https://code.claude.com/docs/en/artifacts |
+| 横断（`/advisor`） | Advisor | https://code.claude.com/docs/en/advisor |
+| L4（MCP 導入） | MCP quickstart | https://code.claude.com/docs/en/mcp-quickstart |
+| 横断（週次リリースノート索引） | What's new | https://code.claude.com/docs/en/whats-new/index |
 
-> **`whats-new/<週次>` について**: changelog より粒度の粗い週次リリースノートが `https://code.claude.com/docs/en/whats-new/<週次>` に存在するが、**URL が週次で変わる**ため固定 URL としての登録は見送る。`changelog` を一次とし、必要なときに `llms.txt` から当該週のパスを解決すること。
+> **`whats-new/<週次>` について**: changelog より粒度の粗い週次リリースノートが `https://code.claude.com/docs/en/whats-new/<週次>` に存在する。**個別週の URL は週次で変わる**ため固定 URL として登録するのは索引ページ `whats-new/index` のみとし、当該週のパスは索引または `llms.txt` から解決する。粒度の細かい一次ソースは引き続き `changelog` である。
 
-#### `llms.txt` 突合で検出した未登録ページ（26件）
+#### `llms.txt` 突合で検出した未登録ページ（19件）
 
 **正典本文または一次ソース間リンクから参照されているのに、§8 対応表にも `docs/SOURCES.md` にも無い**公式ページ。次回以降の `/update-docs` で本文取得のうえ収録可否を判断すること。
 
 | ページ | 依存元・備考 |
 |---|---|
-| `goal` | BEST_PRACTICES §1.3 が依存 |
-| `headless` | §6.1 非対話実行が依存 |
 | `costs` | - |
 | `managed-settings` | - |
 | `server-managed-settings` | - |
-| `artifacts` | TOOLS.md の `Artifact` ツール |
-| `plugin-hints` | L5 関連（[L5_DISTRIBUTION.md §1.2](./L5_DISTRIBUTION.md) にも記録） |
-| `plugin-relevance` | 同上 |
 | `security-guidance` | L5 §2.2 の公式 marketplace plugin 一覧に登場 |
 | `claude-security` | - |
 | `keybindings` | - |
 | `fast-mode` | - |
-| `advisor` | - |
 | `debug-your-config` | - |
 | `feature-availability` | - |
 | `settings-example` | - |
@@ -340,10 +337,11 @@ Enforced 行の根拠は `permissions` ページの tiered permission system（�
 | `deep-links` | - |
 | `platforms` | - |
 | `third-party-integrations` | - |
-| `mcp-quickstart` | - |
 | `prompt-library` | - |
 
 （出典: https://code.claude.com/docs/llms.txt ）
+
+> **`llms.txt` に現れない参照先**: `changelog` 本文は `https://code.claude.com/docs/en/auto-mode-classifier-billing` を参照するが、このページは `llms.txt` の一覧に現れない。実在と内容を確認するまで一次ソースとして登録しない。
 
 ---
 
@@ -360,7 +358,7 @@ Enforced 行の根拠は `permissions` ページの tiered permission system（�
 | fork | fork（公式同名）"A special subagent type that inherits the entire parent conversation" | `subagent_type: "fork"`。対話セッション既定ON。手動起動は `/subtask`。詳細は [L3_AGENTS.md §2.1a](./L3_AGENTS.md) |
 | subagent_type | `Agent` tool の `subagent_type` パラメータ | **ビルトイン型に限らずカスタム agent 名（必須 `name`）も受付**（大文字小文字・区切り文字非依存）。本システムはネイティブの `subagent_type` を優先し、canon agent が未登録の環境に限り `general-purpose` + 定義ファイル Read 注入へフォールバックする（フォールバック時は `general-purpose` の `tools: *` が G13 のツール剥奪を無効化する旨をユーザーへ明示する。[L3_AGENTS.md §2.1](./L3_AGENTS.md) / [ORCHESTRATION.md §2.3 Custom Subagent の起動方式](./ORCHESTRATION.md)） |
 | Agent Team | Agent Team（公式同名）"Coordinate multiple Claude Code instances" | 実験機能 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`。`TeamCreate`/`TeamDelete` ツールは無く、セッションごとに**暗黙の1チーム**。teammate は Agent tool で直接 spawn する（`team_name` 入力は無視される）。nested team 不可（teammate は teammate を spawn できない） |
-| Fable（モデルティア） | Claude Fable 5（Mythos クラス） | `model: fable` で指定可。従来 GA モデルを超える能力。Subagent/Skill の `model` フィールドのエイリアス `sonnet`/`opus`/`haiku`/`fable` の1つ |
+| Fable（モデルティア） | Claude Fable 5.1（Mythos クラス） | `model: fable` で指定可。`ANTHROPIC_DEFAULT_FABLE_MODEL` 未設定時は Fable 5.1 に解決され、Claude apps gateway セッションでは `fable` / `best` が Fable 5 に解決される。Subagent/Skill の `model` フィールドのエイリアス `sonnet`/`opus`/`haiku`/`fable` の1つ |
 | Worktree | Worktree（公式同名）"Git worktree isolation" | `.claude/worktrees/` に自動配置 |
 | /batch | `/batch` Bundled Command | Anthropic保守の組み込みコマンド |
 | MCP | Model Context Protocol | 公式略称 MCP |
@@ -384,10 +382,13 @@ Enforced 行の根拠は `permissions` ページの tiered permission system（�
 
 | 項目 | 所在 | 検証方法 |
 |---|---|---|
-| Channels ページの正規配置（Reference vs Advanced） | §8 | WebFetch: `https://code.claude.com/docs/en/channels` |
+| ~~Channels ページの正規配置（Reference vs Advanced）~~ | ~~§8~~ | **解決済（2026-09-23）**: `llms.txt` 上で `channels.md` は Automation、`channels-reference.md` は Reference に配置 |
+| ~~`PreModelSwitch` / `PostModelSwitch` の実在~~ | ~~§2, L4~~ | **解決済（2026-09-23）**: `hooks` ページが両イベントを明記。独立した2回の全列挙が33件で一致し、Hook イベント総数を33種に確定 |
+| ~~`CLAUDE_CODE_SUBAGENT_MODEL` の優先順位~~ | ~~L3 §2.1~~ | **解決済（2026-09-23）**: `sub-agents` が解決順序（per-invocation → frontmatter → 環境変数 → メイン会話）を明記し、`model-config` の記述とも一致 |
 | 「フック内フック」の公式日本語表記 | §9 | 公式日本語ドキュメントの該当ページ確認 |
 | context:fork の詳細実装メカニズム | §9, L2 | Skills frontmatter リファレンス精読 |
 | Custom LSP plugin 作成ガイドの有無 | L5 | 公式 LSP ドキュメント精読 |
+| `env-vars` ページ由来の環境変数行の文言 | L3 §2.1, L4 §2.2 | `env-vars` は WebFetch が表の途中で truncate するため到達できていない。別経路（公式リポジトリ・ブラウザ等）での確認が要る |
 
 ---
 

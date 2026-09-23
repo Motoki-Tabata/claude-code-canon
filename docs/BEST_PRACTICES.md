@@ -7,13 +7,14 @@
 ## メタ情報
 | 項目 | 値 |
 |---|---|
-| 確認したClaude Codeバージョン | v2.1.251 |
+| 確認したClaude Codeバージョン | v2.1.280 |
 | 一次ソース | https://code.claude.com/docs/en/best-practices |
 | 関連 | https://code.claude.com/docs/en/how-claude-code-works |
 | 関連（Security） | https://code.claude.com/docs/en/security |
 | 関連（Permission modes） | https://code.claude.com/docs/en/permission-modes |
 | 関連（`/goal`） | https://code.claude.com/docs/en/goal |
-| 調査日 | 2026-08-29 |
+| 関連（モデル設定） | https://code.claude.com/docs/en/model-config |
+| 調査日 | 2026-09-23 |
 
 ---
 
@@ -58,6 +59,22 @@
 > **Auto mode の既定化**: 公式引用（`best-practices`/`how-claude-code-works`）:
 > "On Pro, Max, and Team plans, auto mode is the built-in starting permission mode for interactive terminal and VS Code sessions: a separate classifier model reviews most actions instead of you and blocks only what looks risky [...] In Manual mode, the built-in starting permission mode on other plans, Claude Code asks before actions that might modify your system."
 > つまり Manual（旧 `default`）は**もはや全プラン共通の既定ではない**。Pro/Max/Team では classifier モデル（既定 Claude Sonnet 5）が大半のアクションを自動審査し、スコープ逸脱・未知インフラ・悪意あるコンテンツ由来の操作のみブロックする。Permission allowlist・Sandboxing は Manual/Auto 双方に効く。組織側は `permissions.disableAutoMode: "disable"` で既定化そのものを無効化できる。
+>
+> **起動時に `auto` になる条件は限定的である**。`permission-modes` の "Built-in starting permission mode" 表では、`auto` で始まるのは **Pro / Max / Team プランのターミナルまたは VS Code 拡張のセッションだけ**で、次はいずれも `default`（Manual）で始まる:
+>
+> | 条件 | 起動モード |
+> |---|---|
+> | いずれかの settings ファイルが `disableAutoMode` を `"disable"` にしている | `default` |
+> | feature flag の取得が無効 | `default` |
+> | インストールまたはアップグレード直後の初回セッション | `default` |
+> | `claude -p` または Agent SDK | `default` |
+> | Amazon Bedrock / Google Cloud's Agent Platform / Microsoft Foundry / Claude Platform on AWS / サインイン済み Claude apps gateway | `default` |
+> | **Enterprise プランまたは Claude Console API キー** | `default` |
+> | Pro / Max / Team プランのターミナルまたは VS Code 拡張 | `auto` |
+>
+> flag・settings・組み込み既定のいずれかが `auto` を選んでも、そのセッションで auto mode が利用できなければ Manual で始まる。
+>
+> **分類器の実行場所と課金**: auto mode の分類器は**サーバーサイド実行が既定**であり（Claude API / Enterprise ユーザー、および Bedrock / Vertex / Foundry / gateway）、分類器のオーバーヘッドは課金されない。Bedrock / Vertex / Foundry / gateway では `CLAUDE_CODE_AUTO_MODE_SERVER=0` でオプトアウトでき、課金されるフォールバックに落ちた場合は警告が出る。`/status` の **`Auto mode server`** 行で、当該セッションの分類器がサーバー上で動いているかを確認できる。
 
 ### 1.3 検証可能性の担保
 
@@ -254,7 +271,7 @@ Subagent の `model:` は、タスクの性質に応じて3段階から選ぶ（
 
 3基準のいずれか1つでも欠ければ `sonnet` 以上を選ぶ。迷う場合の既定は `sonnet`。コスト最適化のために安易に `haiku` へ落とすと、文脈推論を要するタスクで品質が低下し、かえって手戻りコストが増える点に注意する。
 
-> **モデルエイリアスの補足**: `model:` は `opus`/`sonnet`/`haiku` に加え `fable`（Claude Fable 5, Mythos クラス）も指定可能。本システムの canon フローでは `fable` を既定採用しないが、公式エイリアスとして利用できる。**`opus` の既定モデルは Claude Opus 5（`claude-opus-5`、1M context）**（Bedrock/Vertex/Claude Platform on AWS の既定は引き続き Opus 4.8）。
+> **モデルエイリアスの補足**: `model:` は `opus`/`sonnet`/`haiku` に加え `fable`（Claude Fable 5.1, Mythos クラス）も指定可能。本システムの canon フローでは `fable` を既定採用しないが、公式エイリアスとして利用できる。**`opus` は Opus 5.5 に解決される**（Anthropic API / Claude Platform on AWS / Amazon Bedrock / Google Cloud's Agent Platform。Microsoft Foundry のみ Opus 4.6）。`sonnet` は Anthropic API で Sonnet 5、Claude Platform on AWS で Sonnet 4.6、Amazon Bedrock / Google Cloud / Microsoft Foundry で Sonnet 4.5 に解決される。1M トークンのコンテキストウィンドウを持つのは Fable 5.1 / Fable 5 / Sonnet 5 / Opus 4.6 以降 / Sonnet 4.6 である。エイリアス解決先の一覧は [L3_AGENTS.md §2.1](./L3_AGENTS.md) にも収録。
 
 #### Subagent for Investigation（探索の隔離）
 公式引用:
@@ -513,10 +530,13 @@ claude --permission-mode auto -p "fix all lint errors"
 - `sandbox.filesystem.disabled`: ネットワーク制御は維持したままファイルシステム隔離のみスキップ
 - 資格情報マスキング拡張: `extract`/`onExtractNoMatch`（構造化env）・`decode: "jwt"`/`maskClaims`（JWT）・`awsPairs`/`sigv4`（AWS SigV4）。`network.tlsTerminate` が必要で、user/managed/`--settings` からのみ有効
 - **`Write`/`NotebookEdit`/`Glob` を許可ルールに指定した場合の起動時警告**: これらは書き込み/一覧ツールであり、意図した制御には `Edit`/`Read` の方が適切な場合が多い
+- **symlink 経由の書き込みの判定**: symlink を通した書き込みは、リンク先の実パスではなくツリー内での綴りで判定されることがないよう扱われる。§7.6 の read-deny ルールと同じく、パスの見かけによる回避を許さない設計である
 
 ### 7.6 権限ルールの追加変更
 - **macOS のワイルドカード read-deny ルールの優先順位**: 例えば `**/.env` のような read-deny ルールが、許可した read 領域の**内側でも優先**される。マッチしたディレクトリ配下は許可 read の対象であっても除外され、リネームによる回避もできない
 - **auto mode 下での `Monitor` 審査**: auto mode 実行中は `Monitor` の allow ルールが脇に置かれ、`Bash` と同様に classifier の審査対象になる
+- **コマンド単位の `allowed_domains`**: `Bash` / `PowerShell` / `Monitor` はコマンドごとに `allowed_domains` を指定でき、到達先ドメインを個別に制限できる
+- **auto mode での subagent の報告経路**: auto mode 下の subagent は、最後のメッセージを事後に審査されるのではなく、**専用の hand-back 呼び出し（`SubagentHandback`）を通じて呼び出し元へ報告し、safety classifier がその報告をレビューする**（[TOOLS.md §2](./TOOLS.md)）
 
 ### 7.7 Bash 権限ルールの注意点
 
