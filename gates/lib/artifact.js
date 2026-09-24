@@ -46,7 +46,9 @@ export function violation(gate, path, message, source, severity = 'error') {
  *                    plugin スコープは G3 の既知の対象外・g3_path_convention.js 冒頭の注記参照）
  */
 export function skillPathRole(p) {
-  const m = /(^|\/)\.claude\/skills\/(.+)$/.exec(posix(p));
+  // posix() は path.sep しか置換しないため、Linux 上では Windows 形式のパスが正規化されない。
+  // パス形状のみで判定する純関数として、実行 OS に依らず `\` も区切りとして扱う。
+  const m = /(^|\/)\.claude\/skills\/(.+)$/.exec(posix(p).replace(/\\/g, '/'));
   if (!m) return null;
   const rest = m[2].split('/');
   if (rest.length < 2) return 'orphan';
