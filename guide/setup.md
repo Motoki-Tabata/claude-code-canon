@@ -138,6 +138,8 @@ claude --model opus
   指示箇所だけを直させます。
 - **区間の合間の注意**: `generation.done`（工程7の通過）までは run 中でガードが武装したままです。
   この間は claude-canon 本体（`docs/`・`gates/`・`.claude/`・`design/`）を編集できません。
+  canon 本体への改修要求（`tasks/lessons.md`）も書けないため、run 中に見つけた候補は
+  `work/<ts>/canon-issues-candidates.md` に書き、S4 の最後に台帳へ転記します。
 
 ## 6. デプロイ（工程10・output バンドルを対象へ配置する）
 

@@ -461,14 +461,15 @@ claude-canon/
 │       └─ candidate-poisoned/      ← 機能Y 自己欺瞞実証 fixture（`tools: Bash` を持つ次世代候補・詳細設計書 §13.2）
 ├─ guide/                         ← 人間向け手順（セットアップ手順のみ。§14.1a）
 ├─ generations/                   ← 【世代管理・機能Y 用】配下は全て .gitignore（実行結果。詳細設計書 §13.2 が権威。次回 `/self-optimize`/`promote` 時に自動再作成）
-├─ design/                        ← 本設計書2冊（基本設計書・詳細設計書）＋ run の記録（canon-issues-<ts>.md・対処記録・トークン基準値・改修まとめ）
+├─ design/                        ← 本設計書2冊（基本設計書・詳細設計書）＋ run の観測記録（canon-issues-<ts>.md・対処記録・トークン基準値・改修まとめ）。未対応の改修要求は置かない（tasks/lessons.md）
 │   ├─ basic-design.md             ← 本書
 │   └─ detailed-design.md          ← 詳細設計書
 ├─ package.json                   ← npm scripts 全22件（build:tables / test / ts / unblock / reopen / resume / state:record 等）。
 │                                    全件一覧は guide/setup.md §8 が権威。
 │                                    reopen = 権威マーカー取消の唯一経路（§4.5）／test = 配線テスト・必須（詳細設計書 §15.3）
 ├─ .github/workflows/ci.yml       ← 恒久 CI: 照合表の鮮度検査 → npm test（§15.2・os×node の matrix）
-├─ .gitignore                     ← output/*・work/* を除外（.gitkeep で空ディレクトリのみ追跡）・generations/・tasks/ を除外
+├─ tasks/lessons.md               ← canon 本体への改修要求の台帳（唯一の backlog。反映したコミットで項目を削除する）
+├─ .gitignore                     ← output/*・work/* を除外（.gitkeep で空ディレクトリのみ追跡）・generations/ を除外・tasks/ は lessons.md 以外を除外
 ├─ .gitattributes                 ← 改行コードを LF に統一（text=auto eol=lf）
 ├─ LICENSE                        ← MIT License
 ├─ CHANGELOG.md                   ← claude-canon 自身の変更履歴（Keep a Changelog 形式）
@@ -490,7 +491,7 @@ claude-canon/
 - **ルート `CLAUDE.md` は採用できない**: `tools/stage-candidate.js` は `generated/` の全ファイルが `.claude/` 配下であることを前提検査し、ルート `CLAUDE.md` を明示的に拒否する（候補世代レイアウト契約・詳細設計書 §13.2.1）。採用すると `/self-optimize` のステージングが構造的に落ちる。また `write-scope-guard.js`・`self-optimize-scope-guard.js` の保護対象トークンにも `CLAUDE.md`（ルート）は含まれず、run 中に無防備な書込先になる。
 - **`.claude/rules/` を採用する**: (a) 両ガードの保護対象（`.claude/` 配下）に含まれる (b) `tools/stage-candidate.js` の `.claude/` 限定契約に適合する (c) `paths:` frontmatter によるパス条件付き遅延ロード（`L1_CONTEXT_MANAGEMENT.md §2.2`）で常時コンテキスト代償がほぼゼロ。
 
-**構成**: 無条件ロードの `rules/workflow.md`（**40行以内厳守**。CLAUDE.md の200行制限よりさらに厳しくする——無条件ロードされる分量は最小限に留め、工程別の規律は `paths:` で有効域を絞る）と、`gates/**`・`docs/**`・`.claude/agents/** .claude/skills/**` にそれぞれスコープした3件の `paths:` 付き rule に分割する（§14 ディレクトリ構成参照）。教訓は都度「自分への規則」として rule 本文へ蒸留し切る。rule は要約でなく自己完結した規則として読めることを優先し、経緯・事故の詳細を rule 本文の前提にしない（当該コミット時点の git 履歴に残っていれば補助的に参照できるが、参照できることを規則の成立条件にはしない）。
+**構成**: 無条件ロードの `rules/workflow.md`（**40行以内厳守**。CLAUDE.md の200行制限よりさらに厳しくする——無条件ロードされる分量は最小限に留め、工程別の規律は `paths:` で有効域を絞る）と、`gates/**`・`docs/**`・`.claude/agents/** .claude/skills/**` にそれぞれスコープした3件の `paths:` 付き rule に分割する（§14 ディレクトリ構成参照）。教訓は都度「自分への規則」として rule 本文へ蒸留し切る。蒸留の前段として、canon 本体への改修要求（欠陥修正・効率化・規律昇華）は `tasks/lessons.md` に起票し、反映したコミットで台帳から削除する（台帳は backlog であり、rule 本文の前提にはしない）。rule は要約でなく自己完結した規則として読めることを優先し、経緯・事故の詳細を rule 本文の前提にしない（当該コミット時点の git 履歴に残っていれば補助的に参照できるが、参照できることを規則の成立条件にはしない）。
 
 **G10（README 生成）契約**: `.claude/rules/` の各ファイルは `kind: rule` として `.claude/README.md` に「自動ロード」として掲載する（`gates/g10_readme.js` の `method: 'auto-load'`）。
 

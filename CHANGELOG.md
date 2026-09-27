@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- **canon 本体への改修要求の台帳 `tasks/lessons.md`**（2026-09-27）: vehicle-intake-management と同じ軽量書式
+  （日付見出し・種別・何が起きたか・提案）で、未対応の backlog を1か所に集める。反映したコミットで項目を削除する。
+  `design/canon-issues-*-resolved.md`・`canon-optimization-20260924.md` ⑥ の未対応項目を移管し、
+  run 20260925_004359・20260927_003229 の transcript 分析から起票した。run 中は `work/<ts>/canon-issues-candidates.md` に書き、
+  S4 の最後に転記する（`.claude/rules/workflow.md`）。`.gitignore` は `tasks/lessons.md` だけを追跡する。
+
 ### Fixed
 
 - **G3 が正典の許可する skill supporting files を弾いていた**（`gates/g3_path_convention.js`）:
