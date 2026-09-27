@@ -20,11 +20,13 @@ effort: high
 - **§1 目的とあるべき全体像**: purpose / strength 内訳 / scope_layer
 - **§2 新要件**: id / want / rationale / project_grounding（系統B focused から接地・evidence 付き）
 - **§3 既存資産の棚卸し**: 系統A 全レコードを参照。**維持/改修は決めない**（事実のみ）
-- **§4 統合方針**: 既存×新要件の競合・重複の**方向づけ**（最終判定は designer）
+- **§4 統合方針**: 既存×新要件の競合・重複の**方向づけ**（最終判定は designer）。末尾に「未解決の参照」の小節を置き、系統B `ref_resolution` で `resolved: false` の参照を**1件ずつ `ref` の文字列のまま**挙げ、「是正候補（陳腐化した条文・消えたファイルへの参照等。直す方向を書く）」か「意図的な未解決（プレースホルダ・対象外のパス等。理由を書く）」かを分ける。G1 が全件の記載を照合する（黙って落とすと、実装済みの指示が未完了のまま残る陳腐化が再発する）。
 - **§5 プロジェクト接地素材**: paths_hints / model_hint / supporting_file_candidates
 - **§6 スコープ外**: やらないことの明示
 - **§7 制約**: security / cost / experimental
-- **§8 受け入れ基準**（4カテゴリ）: functional(A1) / non_regression(A2) / canon_conformance(A3) / snapshot_integrity(A4)
+- **§8 受け入れ基準**（4カテゴリ）: functional(A1) / non_regression(A2) / canon_conformance(A3) / snapshot_integrity(A4)。1行1基準で `- A1-1: …` の形に書く。
+  - **必達（mandatory）**: 要件として必ず反映させるもの（対象側の lessons の反映・ユーザーが「必ず入れる」とした項目等）は、その行の末尾に `[mandatory]` を付け、反映先の生成物と挿入位置を名指しする。designer は mandatory を取捨の対象にできず、design-map の反映追跡に載っていなければ G1 が止める。
+  - **行数・件数を合否条件に使わない**（「L1 が242行を超えない」等）。正典の上限は G 系ゲートが見る。教訓の反映は L1 を必然的に増やすので、数の条件は他の基準と衝突する。受入基準は質（同一内容が2か所に無い・振る舞い）で書き、数は参照値として本文に添えるに留める。
 - **§9 未決事項**: 人間判断が要る論点（空でなければ次工程へ進めない旨を明記）。**「なし」の場合は
   箇条書きを使わず散文で書く**——`gates/g1_stage_order.js` の `checkSpecStage` は§9本文の
   `- ` で始まる行をすべて未決項目として機械的に数えるため、内容が確定済みでも

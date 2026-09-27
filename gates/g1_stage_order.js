@@ -47,7 +47,7 @@ import {
   mentionsIdentifier,
 } from './lib/markdown.js';
 import { workDir, outputDir, resolveTargetRoot, hasMarker, markerPath } from './lib/run.js';
-import { parseSystemA, CANON_CONFORMANCE_KEYS } from './lib/investigation.js';
+import { parseSystemA, parseSystemB, CANON_CONFORMANCE_KEYS } from './lib/investigation.js';
 import { walkManaged } from './lib/managed-paths.js';
 import { layerOfPath } from './lib/design-map.js';
 import { parseRequirementsDoc, RequirementsError, checkConflictsIntegrity } from './lib/requirements.js';
@@ -486,7 +486,86 @@ function checkSpecStage(ts) {
       )
     );
   }
+
+  // 系統B が resolved:false とした参照（陳腐化した条文・プレースホルダ等）は、spec が1件ずつ扱いを決める
+  // （是正候補か、意図的な未解決か）。黙って落ちると、実装済みの指示が未完了のまま残る陳腐化が再発する
+  // （旧 canon-issues-20260919_023121「参考」・対象側 lessons R16 の付記）。
+  const profilePath = path.join(workDir(ts), 'project_profile.md');
+  if (existsSync(profilePath)) {
+    const specText = lines.join('\n');
+    const unresolved = [...parseSystemB(readFileSync(profilePath, 'utf8')).entries()].filter(([, ok]) => ok === false).map(([ref]) => ref);
+    const missing = unresolved.filter((ref) => !specText.includes(ref));
+    if (missing.length > 0) {
+      violations.push(
+        violation(
+          GATE,
+          rel(specPath),
+          `系統B の ref_resolution で resolved:false の参照 ${missing.length}件が spec に無い（例: ${missing.slice(0, 3).join(', ')}）。` +
+            '§4 統合方針の「未解決の参照」に1件ずつ載せ、是正候補か意図的な未解決（プレースホルダ等）かを書くこと。',
+          '§7'
+        )
+      );
+    }
+  }
   return violations;
+}
+
+// ---------------------------------------------------------------------------
+// stage=design: spec の mandatory 受入基準が design-map の反映追跡に載っていること
+// ---------------------------------------------------------------------------
+
+/** spec §8 の受入基準のうち `[mandatory]` を付けたものの ID（`A1-8` 等）。 */
+export function mandatoryCriteria(specText) {
+  const ids = [];
+  for (const line of specText.split(/\r?\n/)) {
+    const m = /^\s*-\s*\**\s*(A\d+-\d+)\b.*\[mandatory\]/.exec(line);
+    if (m) ids.push(m[1]);
+  }
+  return ids;
+}
+
+/** 本文に現れる受入基準 ID の集合。`A1-10〜A1-13`・`A1-10〜13` の範囲表記を展開する。 */
+export function mentionedCriteria(text) {
+  const ids = new Set();
+  for (const m of text.matchAll(/(A\d+)-(\d+)\s*[〜~]\s*(?:(A\d+)-)?(\d+)/g)) {
+    if (m[3] && m[3] !== m[1]) continue; // カテゴリをまたぐ範囲は展開しない
+    for (let n = Number(m[2]); n <= Number(m[4]); n++) ids.add(`${m[1]}-${n}`);
+  }
+  for (const m of text.matchAll(/(A\d+-\d+)/g)) ids.add(m[1]);
+  return ids;
+}
+
+function checkMandatoryTraced(ts) {
+  const specPath = path.join(outputDir(ts), 'spec.md');
+  const dmPath = path.join(outputDir(ts), 'design-map.md');
+  if (!existsSync(specPath) || !existsSync(dmPath)) return [];
+  const mandatory = mandatoryCriteria(readFileSync(specPath, 'utf8'));
+  if (mandatory.length === 0) return [];
+  const lines = readFileSync(dmPath, 'utf8').split(/\r?\n/);
+  const h = lines.findIndex((l) => /^##\s+要件→生成物の対応/.test(l));
+  if (h === -1) {
+    return [
+      violation(
+        GATE,
+        rel(dmPath),
+        `spec に mandatory の受入基準（${mandatory.join(', ')}）があるのに、design-map に「## 要件→生成物の対応（反映追跡）」節が無い。`,
+        '§9.2'
+      ),
+    ];
+  }
+  const { start, end } = sectionSlice(lines, h);
+  const traced = mentionedCriteria(lines.slice(start, end).join('\n'));
+  const missing = mandatory.filter((id) => !traced.has(id));
+  if (missing.length === 0) return [];
+  return [
+    violation(
+      GATE,
+      rel(dmPath),
+      `spec の mandatory の受入基準 ${missing.join(', ')} が design-map の反映追跡に無い（mandatory は designer の取捨の対象外・` +
+        '反映先の生成物を名指しすること）。',
+      '§9.2'
+    ),
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -528,7 +607,7 @@ export function checkG1({ ts, stage }) {
       violations = checkSpecStage(ts);
       break;
     case 'design':
-      violations = checkPredecessorMarker(ts, 'spec', 'design');
+      violations = [...checkPredecessorMarker(ts, 'spec', 'design'), ...checkMandatoryTraced(ts)];
       break;
     case 'generation':
       violations = checkPredecessorMarker(ts, 'design', 'generation');

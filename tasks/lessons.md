@@ -25,18 +25,8 @@ run 20260927_003229 = S1 `41da6176`・S2 `1122beb9`・S3 `a192b7cf`・S4 `f3dd5c
 
 ---
 
-## 2026-09-27 陳腐化した参照（ref_resolution の resolved:false）が spec の是正候補に上がらない（旧 canon-issues-20260919_023121#参考）
-- 種別: 規律昇華
-- 何が起きたか: 対象側 lessons R16 の付記。実装済みの指示が CLAUDE.md の条文に未完了のまま残る陳腐化が再発しうるが、profiler の ref_resolution で `resolved: false` になった参照は spec の是正候補に自動では上がらない（canon-issues-20260919_023121.md:164-170）。
-- 提案: spec-writer 定義に「project_profile の ref_resolution で resolved:false の参照は spec の是正候補節に列挙する」を書き、G4 系で ref_resolution の resolved:false が spec に現れることを照合する。
 
-## 2026-09-27 spec に designer の優先順位判断の対象外にする必達（mandatory）の区別が無い（旧 canon-issues-20260922_172924#参考）
+## 2026-09-27 2026-09-27 の改修の効果と実発火は、次の実 run でしか確かめられない（改修ブランチ feat/canon-optimization-20260927）
 - 種別: 規律昇華
-- 何が起きたか: 対象側 lessons の3件が反映されないリスクがあり、P4 差し戻しで spec に A1-8（反映先と挿入位置を名指しし、designer の優先順位判断の対象外と宣言する節）を手作業で足した。既存改修モードでは毎回起きうる（canon-issues-20260922_172924.md:238-245）。
-- 提案: spec-writer のテンプレートに mandatory 節を構造化し、designer 定義に「mandatory 節の項目は取捨の対象外」を書く。ゲートで「mandatory の各項目が design-map のレコード（反映追跡）に対応しているか」を機械照合する。
-
-## 2026-09-27 受入基準の合否条件に行数・件数を使ってしまう（旧 canon-issues-20260922_172924#参考）
-- 種別: 規律昇華
-- 何が起きたか: 当初 spec A1-4 は「常時ロード L1 が 242行を超えない」だったが、教訓の反映は L1 を必然的に増やすため A1-1／A1-8 と衝突し、P4 で「同一内容が2箇所以上に無いこと」＋「242行は参照値で合否条件ではない」に書き換えた（canon-issues-20260922_172924.md:246-248）。
-- 提案: spec-writer 定義に「行数・件数を合否条件に使わない（正典の上限は G 系ゲートが見る）。受入基準は質（重複の無さ・振る舞い）で書く」を書く。
-
+- 何が起きたか: 2 run の分析から入れた改修（Stop の同一違反抑止・G9 の見出し照合・copy-keep・RUN.md の逐語転記・resume の handoff_notes・generator のポーリング禁止・場当たり agent の sonnet 明示等）は、単体テストと実 run の出力への再適用でロジックを確かめただけで、hook 経路での実発火とトークン削減は未確認。
+- 提案: 次の `/canon` 実 run の各セッションで `npm run tokens -- <session-id>` を取り、`design/canon-token-baseline-20260924.md`「改修後の実測」の表に列を足す。確かめる点: S3 メインの Stop 再通知が0回か・generator の Glob ポーリングが0回か・Explore 等が sonnet で動いたか・G9 の layer-heading 由来の宣言が0件でないか・resume が handoff_notes を出し S3 が実施したか・S4 が RUN.md「2a」「4」を実行・逐語提示したか・`canon-issues-candidates.md` が S4 で台帳に転記されたか。

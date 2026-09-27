@@ -11,7 +11,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { mintMarker } from '../gates/lib/run.js';
-import { checkG1, checkSystemASummaryCounts } from '../gates/g1_stage_order.js';
+import { checkG1, checkSystemASummaryCounts, mandatoryCriteria, mentionedCriteria } from '../gates/g1_stage_order.js';
 import { parseSystemA } from '../gates/lib/investigation.js';
 import { checkG7 } from '../gates/g7_ref_integrity.js';
 import { ROOT } from './helpers/paths.js';
@@ -725,4 +725,44 @@ test('G1 investigation（違反注入）: SKILL.md の layer が L2 以外なら
   const layerV = r.violations.filter((v) => /の layer が/.test(v.message));
   assert.equal(layerV.length, 1, JSON.stringify(r.violations));
   assert.match(layerV[0].message, /stub\/SKILL\.md" の layer が L3/);
+});
+
+// --- 旧 canon-issues「参考」3件の機能化: 未解決の参照の是正候補化・mandatory 受入基準 ---
+
+test('G1 spec（違反注入）: 系統B の resolved:false の参照が spec に無ければ違反、1件ずつ載っていれば通過', (t) => {
+  const ts = tsFor(import.meta.url, 62);
+  setup(t, ts);
+  writeFileSync(
+    path.join(work(ts), 'project_profile.md'),
+    '## focused\nref_resolution:\n  - ref: "src/**/*.js"  kind: paths_glob  resolved: true\n  - ref: "docs/old-constitution.md"  kind: path_reference  resolved: false  reason: "消えた"\n'
+  );
+  const spec = (s4) => `# spec\n\n## §4 統合方針\n${s4}\n\n## 未決事項\nなし。\n`;
+  writeFileSync(out(ts) + '/spec.md', spec('方向づけのみ。'));
+  const ng = checkG1({ ts, stage: 'spec' });
+  assert.ok(ng.violations.some((v) => v.message.includes('docs/old-constitution.md')), JSON.stringify(ng.violations));
+  writeFileSync(out(ts) + '/spec.md', spec('### 未解決の参照\n- `docs/old-constitution.md`: 是正候補（CLAUDE.md の条文から参照を外す）'));
+  const ok = checkG1({ ts, stage: 'spec' });
+  assert.equal(ok.ok, true, JSON.stringify(ok.violations));
+});
+
+test('mentionedCriteria: 範囲表記（A1-10〜A1-13・A1-2〜4）を展開し、カテゴリをまたぐ範囲は展開しない', () => {
+  const ids = mentionedCriteria('A1-10〜A1-13・A1-2〜4・A2-1〜A3-2');
+  for (const id of ['A1-10', 'A1-11', 'A1-12', 'A1-13', 'A1-2', 'A1-3', 'A1-4', 'A2-1', 'A3-2']) assert.ok(ids.has(id), id);
+  assert.equal(ids.has('A2-2'), false, 'カテゴリをまたぐ範囲を展開している');
+  assert.deepEqual(mandatoryCriteria('- A1-1: 普通\n- A1-8: 必達の反映 [mandatory]\n- **A2-3**: x [mandatory]\n'), ['A1-8', 'A2-3']);
+});
+
+test('G1 design（違反注入）: spec の mandatory 受入基準が design-map の反映追跡に無ければ違反、範囲表記で載っていれば通過', (t) => {
+  const ts = tsFor(import.meta.url, 63);
+  setup(t, ts);
+  mkdirSync(path.join(out(ts), '.gate', 'markers'), { recursive: true });
+  writeFileSync(path.join(out(ts), '.gate', 'markers', 'spec.done'), '{}');
+  writeFileSync(out(ts) + '/spec.md', '# spec\n## §8 受け入れ基準\n- A1-1: x\n- A1-3: 必達 [mandatory]\n');
+  const dm = (table) => `# dm\n## 要件→生成物の対応（反映追跡）\n| 要件 | 生成物 | 受入基準 |\n|---|---|---|\n| R1 | a.md | ${table} |\n`;
+  writeFileSync(out(ts) + '/design-map.md', dm('A1-1'));
+  const ng = checkG1({ ts, stage: 'design' });
+  assert.ok(ng.violations.some((v) => v.message.includes('A1-3')), JSON.stringify(ng.violations));
+  writeFileSync(out(ts) + '/design-map.md', dm('A1-1〜A1-4'));
+  const ok = checkG1({ ts, stage: 'design' });
+  assert.equal(ok.ok, true, JSON.stringify(ok.violations));
 });
