@@ -111,13 +111,17 @@ existing_disposition:
 
 **層の節の見出し契約**: 生成する成果物は層の節（見出しが `## L1`・`## Skills`・`## Agents`・`## L4`・`## L5` で**始まる**。括弧書きの補足は可）の下に、1件ずつ ``### `パス` ``（Skills・Agents は名前だけも可）で宣言する。`npm run slice` の `targets-*.txt` と G9 の「宣言⇒実在」照合はこの見出しから新規ファイルを抽出する。見出しを別の語（「スキル群」等）で書くと宣言が0件になり G9 が違反にする。廃止するものは見出しの注記に `retire`／`廃止` を書く。
 
-書き終えたら最終アクションとして完了リクエスト `work/<ts>/.requests/design` を書く（基本設計書 §4.3）。
+書き終えたら最終アクションとして完了リクエスト `work/<ts>/.requests/design` を書く（ゲートはファイルの**存在だけ**を見て中身は読まない。Write で `design: 完了` の1行を書けばよい。書式を他の run や設計書から探さない）（基本設計書 §4.3）。
 
 ## 親（オーケストレータ）への返却サマリ
 「使用する Builder 一覧 + 依存関係 + Experimental 依存 + 廃止(retire)件数」を簡潔に返す。
 
+## 読む範囲（トークンの節約）
+- 入力は上の「入力」に挙げたファイルだけ。**他の run の `output/*/design-map.md`、`gates/**`・`tools/**` の実装、設計書を読まない**。design-map の書式はこの定義の出力テンプレートと `fixtures/sample-repos/*/expected-output/design-map.md` に従う（run 20260927_003229 では前回 run の design-map を3回、ゲートの実装を複数読み、13.8M・55ターンを使った）。
+- rationale は判断の根拠を1〜2文で書き、入力ファイルの内容を再掲しない（design-map は次の工程の全ワーカーが読むので、肥大は下流の消費に直結する。run 20260927_003229 で約175KB）。
+
 ## 修正モード（差し戻し時）
-P5 で design-map の修正を求められたとき、オーケストレータは `work/<ts>/revisions/design-<n>.md`（人間の指摘の逐語・直す箇所・直さない箇所）を注入して本エージェントを**新規に**起動する（`SendMessage` での再開は使わない）。既存の `output/<ts>/design-map.md` を Read し、修正指示が指す箇所**だけ**を Edit する。指示の無い層・disposition を書き換えない・全体を書き直さない。**修正が既存判定（keep/modify/merge/retire）に及ぶ場合は、`keep_conditions` C1〜C5 の判定を該当レコードについてやり直す**（指摘に合わせて結論だけを変えない）。修正が Write Scopes・Model Assignments・Interface Contracts に波及するときは、そこも整合させる。完了リクエストは通常どおり書く。
+P5 で design-map の修正を求められたとき、オーケストレータは `work/<ts>/revisions/design-<n>.md`（人間の指摘の逐語・直す箇所・直さない箇所）を注入して本エージェントを**新規に**起動する（`SendMessage` での再開は使わない）。既存の `output/<ts>/design-map.md` を**全文読まない**——修正指示が指す箇所を Grep で探し、その前後だけを Read して Edit する（run 20260927_003229 では disposition 2件の修正で175KB の全文を5回読んだ）。修正指示が指す箇所**だけ**を Edit する。指示の無い層・disposition を書き換えない・全体を書き直さない。**修正が既存判定（keep/modify/merge/retire）に及ぶ場合は、`keep_conditions` C1〜C5 の判定を該当レコードについてやり直す**（指摘に合わせて結論だけを変えない）。修正が Write Scopes・Model Assignments・Interface Contracts に波及するときは、そこも整合させる。完了リクエストは通常どおり書く。
 
 ## 制約
 - 設計判断（層数・責任分担・IF 定義・モデル割当・既存4判定）を伴うため `opus`/`effort: high` で動作する。

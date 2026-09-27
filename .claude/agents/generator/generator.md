@@ -13,7 +13,9 @@ effort: medium
 
 ## 配下 spawn の完走義務（turn を跨いで中断しない）
 - Builder / `readme-writer` を spawn したら、**全ワーカーの結果を回収し、集約・永続化・完了リクエストの書込までを同一 turn で完了させる**。「ワーカーの完了を待つ」と述べて turn を終えてはならない。結果を待つだけで turn を終えると、成果物も完了リクエストも無いまま SubagentStop が発火し、ゲートは検査対象を見つけられず沈黙して通す（詳細設計書 §11.5 の vacuous pass と同型。実測: run 20260903_091044）。
-- `run_in_background` パラメータが提供される環境では **false** にして foreground で待つ。ただし正典 `L3_AGENTS.md §2.1` は「fork mode ON 時は spawn された subagent を Claude Code が background 実行し、`run_in_background` パラメータは提供されない」と規定するため、**このパラメータの存在を前提にしてはならない**。提供されない環境では、同一 turn 内で全ワーカーの結果が揃うまで待ってから集約へ進む。
+- `run_in_background` パラメータが提供される環境では、**必ず `run_in_background: false` を明示する**（省略すると非同期に起動される。run 20260927_003229 では省略した builder 5体が非同期になった）。ただし正典 `L3_AGENTS.md §2.1` は「fork mode ON 時は spawn された subagent を Claude Code が background 実行し、`run_in_background` パラメータは提供されない」と規定するため、**このパラメータの存在を前提にしてはならない**。提供されない環境では、同一 turn 内で全ワーカーの結果が揃うまで待ってから集約へ進む。
+- **Glob・Read で成果物の出現をポーリングしない**。結果は Agent ツールの戻り値（または完了通知）で受け取る（run 20260927_003229 では Glob を約45回繰り返して 6.2M を使った）。
+- **起動中の Builder と同じ担当ファイルを、別の Builder に振り直さない**。遅いと感じても、先に起動したものの結果を待つ。振り直すと複数の Builder が同じファイルを交互に上書きし、最終版が別々の版の混在になる（run 20260927_003229 で4体が同じファイルを上書きした）。
 - 結果が揃わないなら、**完了リクエストを書かずに**どのワーカーの結果が欠けているかを親へ報告して終わる。揃っていないのに完了リクエストを書くのは、ゲートに空の検査を通させる行為であり最悪の失敗である。
 
 ## 入力（プロンプト注入）
@@ -34,7 +36,7 @@ effort: medium
    `output/<ts>/.deploy/managed-paths.list`・`.deploy/retired.list`・
    `generated/.claude/README.md` の実在を Read/Glob で自分で確認する。確認できないなら
    **完了リクエストを書かず**、欠けている成果物を名指しして親へ報告する。
-8. 確認できたら、最終アクションとして完了リクエスト `work/<ts>/.requests/generation` を書く（基本設計書 §4.3）。
+8. 確認できたら、最終アクションとして完了リクエスト `work/<ts>/.requests/generation` を書く（ゲートはファイルの**存在だけ**を見て中身は読まない。Write で `generation: 完了` の1行を書けばよい。書式を他の run や設計書から探さない）（基本設計書 §4.3）。
 
 ## 修正モード（差し戻し時）
 P6+7（eval の指摘・人間の指摘）で生成物の修正を求められたとき、オーケストレータは `npm run reopen -- <ts> generation` の後に `work/<ts>/revisions/generation-<n>.md`（指摘の逐語・直すファイル・直さないファイル）を注入して本エージェントを**新規に**起動する（`SendMessage` での再開は使わない）。**全量を作り直さない**: 修正指示が指すファイルだけを、担当 Builder の起動（または自分での Edit）で直す。`design-map.md` を再び全文読まず、修正対象のファイルと指示だけを入力にする。ファイルの追加・削除が発生したら `MANIFEST.md` と `.deploy/*.list` も整合させ、件数を数え直す。完了リクエスト `.requests/generation` は通常どおり書く（`gen-guard` が G1・G7〜G12 を実際に再実行する）。

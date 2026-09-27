@@ -48,6 +48,8 @@ effort: low
 | 箇条書きの先頭 | **不可**（一覧項目） |
 | `/<name>` 表記（使用例のコードブロック内を含む） | **不可**（起動不可なのに起動方法を案内することになる） |
 
+**Rules 表には `generated/.claude/rules/*.md` の全件を載せる**——design-map の keep で verbatim コピーされた rule（スライスの `disposition-other.md` にだけ現れ、`l1.md` には無い）も含む。書く前に `generated/.claude/rules/` を Glob で列挙して件数を数え、表の行数と一致させる（G10 が網羅性を照合する。run 20260925_004359 では keep の rule 8件が漏れて generation がブロックされた）。
+
 逆に **`listed` な Skill は `/名前` 表記を README に必ず書く**こと（上表 Slash Command Skill・Skill（通常）の行が要求する書き方の機械照合点）。**Subagent・Rule には `/名前` を書かない**——Subagent は「ユーザー直接起動の UI 手順は書かない」、Rule は `paths:` 一致時に自動ロードされるためです。G10 はこの3方向を照合します。
 
 ## セットアップ欄の自動導出（詳細設計書 §12.5）
