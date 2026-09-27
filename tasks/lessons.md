@@ -45,16 +45,6 @@ run 20260927_003229 = S1 `41da6176`・S2 `1122beb9`・S3 `a192b7cf`・S4 `f3dd5c
 - 何が起きたか: spec-writer 修正モードが書式を探して6回エラー（basic-design.md の上限超過 Read・過去 run の `.requests` 参照。918d6a9a a78817c:L53〜L77）。designer・generator も計約12回探した（1122beb9 aeaf6:L329〜L340・a192b7cf a6c54:L428〜L440）。
 - 提案: `.requests/<stage>` を書く全ワーカー定義に、ファイル内容の規約を実例1行で直書きする（§4.3 への参照だけにしない）。
 
-## 2026-09-27 G1 の evidence_paths 抽出が summary 本文中の語まで拾う（run 20260927_003229・S1）
-- 種別: 欠陥修正
-- 何が起きたか: `gates/g1_stage_order.js:306` の `/evidence_paths\s*:\s*(.+)/g` が行頭に固定されておらず、summary 本文の「evidence_paths …」を evidence として読み「実在しない」と誤ブロック、profiler を再起動した（41da6176:L613〜L618）。
-- 提案: 行頭固定の `/^\s*evidence_paths\s*:\s*(.+)$/gm` にし、本文中の語を拾わない回帰テストを置く。
-
-## 2026-09-27 G1 が系統A のレイヤー誤分類を検出しない（run 20260927_003229・S1）
-- 種別: 欠陥修正
-- 何が起きたか: existing_customizations.md の39件すべてのレイヤー表記が1段ずれていたが G1 を通過し、オーケストレータが目視で見つけて修正させた（41da6176:L323・L771）。
-- 提案: G1（investigation）で `gates/lib/design-map.js` の `layerOfPath` から導いたレイヤーと各レコードの `layer` を照合する。analyzer 定義にパス→レイヤーの対応表を載せる。
-
 ## 2026-09-27 resume の stale 判定がハーネスの `.cc-writes` で誤検知する（run 20260925_004359・S4）
 - 種別: 欠陥修正
 - 何が起きたか: `generated/.claude/.cc-writes`（ハーネスが作るディレクトリ）の mtime が generation.done より新しく、`stale: generation` と出た。オーケストレータが独断で「誤検知」として先へ進み、SKILL の手順が形骸化した（45b10f1a:L33・L45・L54・L79）。
@@ -164,3 +154,4 @@ run 20260927_003229 = S1 `41da6176`・S2 `1122beb9`・S3 `a192b7cf`・S4 `f3dd5c
 - 種別: 規律昇華
 - 何が起きたか: 当初 spec A1-4 は「常時ロード L1 が 242行を超えない」だったが、教訓の反映は L1 を必然的に増やすため A1-1／A1-8 と衝突し、P4 で「同一内容が2箇所以上に無いこと」＋「242行は参照値で合否条件ではない」に書き換えた（canon-issues-20260922_172924.md:246-248）。
 - 提案: spec-writer 定義に「行数・件数を合否条件に使わない（正典の上限は G 系ゲートが見る）。受入基準は質（重複の無さ・振る舞い）で書く」を書く。
+

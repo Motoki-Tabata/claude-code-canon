@@ -49,6 +49,7 @@ import {
 import { workDir, outputDir, resolveTargetRoot, hasMarker, markerPath } from './lib/run.js';
 import { parseSystemA, CANON_CONFORMANCE_KEYS } from './lib/investigation.js';
 import { walkManaged } from './lib/managed-paths.js';
+import { layerOfPath } from './lib/design-map.js';
 import { parseRequirementsDoc, RequirementsError, checkConflictsIntegrity } from './lib/requirements.js';
 
 const GATE = 'G1';
@@ -184,6 +185,35 @@ function checkSystemASchema(ts, absPath) {
     }
   }
 
+  // レイヤーの誤分類（run 20260927_003229・S1 で39件すべてが1段ずれていたのに通過した）。
+  // パスから一意に決まる定義ファイル（CLAUDE.md・rules の .md=L1／SKILL.md=L2／agents の .md=L3／.claude/hooks=L4）
+  // だけを照合する。skill 配下の scripts（hook ハンドラとして L4 に分類されうる）、settings.json・.mcp.json
+  // （hooks 以外の設定も持つ）、README 等の説明文書は分類に裁量があるので見ない。
+  for (const r of records.values()) {
+    const p = r.path.replace(/\\/g, '/');
+    const decisive =
+      p === 'CLAUDE.md' ||
+      /^\.claude\/rules\/.+\.md$/.test(p) ||
+      /^\.claude\/skills\/[^/]+\/SKILL\.md$/.test(p) ||
+      /^\.claude\/agents\/.+\.md$/.test(p) ||
+      p.startsWith('.claude/hooks/');
+    if (!decisive) continue;
+    const expected = p.startsWith('.claude/hooks/') ? 'L4' : layerOfPath(p);
+    const m = /L([1-5])/.exec(String(r.layer ?? ''));
+    if (!m) continue; // layer の欠落は別の検査の担当
+    if (`L${m[1]}` !== expected) {
+      violations.push(
+        violation(
+          GATE,
+          rel(absPath),
+          `レコード "${r.path}" の layer が L${m[1]} になっているが、パスから導かれるレイヤーは ${expected}` +
+            '（CLAUDE.md・rules の .md=L1／skills/<名前>/SKILL.md=L2／agents の .md=L3／.claude/hooks=L4）。',
+          '§6.1'
+        )
+      );
+    }
+  }
+
   for (const r of records.values()) {
     if (!r.has_canon_conformance) {
       violations.push(
@@ -303,7 +333,9 @@ function checkInvestigationStage(ts) {
   }
 
   const targetRoot = resolveTargetRoot(ts);
-  const evRe = /evidence_paths\s*:\s*(.+)/g;
+  // キーとしての evidence_paths だけを読む（行頭固定）。summary 本文中の語「evidence_paths …」を
+  // 拾って「実在しない」と誤ブロックした（run 20260927_003229・S1）。
+  const evRe = /^[ \t]*(?:-[ \t]+)?evidence_paths[ \t]*:[ \t]*(.+)$/gm;
   let m2;
   const checkedAny = { value: false };
   while ((m2 = evRe.exec(body)) !== null) {

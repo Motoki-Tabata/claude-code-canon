@@ -683,3 +683,46 @@ test('件数照合が G1 の investigation ステージで実際に発火する�
   assert.equal(r.ok, false);
   assert.match(JSON.stringify(r), /サマリの件数が本文と一致しない/);
 });
+
+// --- run 20260927_003229: evidence_paths の行頭固定・系統A のレイヤー誤分類 ---
+
+test('G1 investigation: summary 本文中の語「evidence_paths: …」はキーとして読まない。キー行は従来どおり照合する', (t) => {
+  const ts = tsFor(import.meta.url, 60);
+  setup(t, ts);
+  writeFileSync(path.join(work(ts), 'requirements.md'), '## 確定要件\n- id: R1\n');
+  const profile = (evidence) =>
+    [
+      '## focused',
+      'requirement_ref: R1',
+      'findings:',
+      '  - topic: t1',
+      `    evidence_paths: [${evidence}]`,
+      '    summary: 旧版は evidence_paths: docs/NOT_EXIST.md のように本文へ書いていた',
+      '',
+    ].join('\n');
+  writeFileSync(path.join(work(ts), 'target.txt'), ROOT.replace(/\\/g, '/') + '\n');
+  writeFileSync(path.join(work(ts), 'project_profile.md'), profile('docs/L3_AGENTS.md'));
+  const ok = checkG1({ ts, stage: 'investigation' });
+  assert.equal(ok.ok, true, JSON.stringify(ok.violations));
+  // 対照: キー行の不在パスは検出する（行頭固定で検出器を殺していない）
+  writeFileSync(path.join(work(ts), 'project_profile.md'), profile('docs/ALSO_NOT_EXIST.md'));
+  const ng = checkG1({ ts, stage: 'investigation' });
+  assert.ok(ng.violations.some((v) => v.message.includes('ALSO_NOT_EXIST')), JSON.stringify(ng.violations));
+});
+
+test('G1 investigation（違反注入）: SKILL.md の layer が L2 以外なら違反。skill 配下の scripts は分類に裁量があるので見ない', (t) => {
+  const ts = tsFor(import.meta.url, 61);
+  setup(t, ts);
+  const rec = (p, layer) =>
+    `- path: ${p}\n  layer: ${layer}\n  kind: x\n  depends_on:\n    customization_refs: []\n    project_refs: []\n  canon_conformance:\n    frontmatter_keys_valid: true\n    unknown_frontmatter_keys: []\n    tool_names_valid: true\n    deprecated_notation: []\n`;
+  writeFileSync(
+    path.join(work(ts), 'existing_customizations.md'),
+    '## サマリ\n総数 2\n\n## レコード（1ファイル1件）\n' +
+      rec('.claude/skills/stub/SKILL.md', 'L3') +
+      rec('.claude/skills/stub/scripts/guard.mjs', 'L4')
+  );
+  const r = checkG1({ ts, stage: 'investigation' });
+  const layerV = r.violations.filter((v) => /の layer が/.test(v.message));
+  assert.equal(layerV.length, 1, JSON.stringify(r.violations));
+  assert.match(layerV[0].message, /stub\/SKILL\.md" の layer が L3/);
+});
