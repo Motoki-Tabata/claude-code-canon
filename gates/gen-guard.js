@@ -26,6 +26,8 @@ import {
   listRequests,
   hasMarker,
   processStageRequests,
+  readBlockLatchReason,
+  isRepeatBlock,
   isMainModule,
   blockStop,
   passStop,
@@ -91,7 +93,7 @@ async function runRegisteredChecks(ts, stage) {
 }
 
 async function main() {
-  readHookInput();
+  const input = readHookInput();
   const ts = readSessionTs();
   if (!ts) {
     passStop('gen-guard: .session-ts 不在のため対象なし');
@@ -99,9 +101,11 @@ async function main() {
   }
 
   const precomputed = {};
+  const prevReasons = {};
   for (const stage of listRequests(ts)) {
     if (!GEN_STAGES.includes(stage)) continue;
     if (hasMarker(ts, stage)) continue;
+    prevReasons[stage] = readBlockLatchReason(ts, stage); // 判定前のラッチ（同一違反の再ブロック抑止に使う）
     precomputed[stage] = await runRegisteredChecks(ts, stage);
   }
 
@@ -119,6 +123,16 @@ async function main() {
   const failed = batch.filter((r) => r.ok === false);
   if (failed.length > 0) {
     const msg = failed.map((f) => `${f.stage}: ${f.violations.join(' / ')}`).join('\n');
+    const repeat = isRepeatBlock({
+      stopHookActive: input.stop_hook_active,
+      explicitRecheck: input.source === 'tools/recheck.js',
+      prevReasons,
+      failed: failed.map((f) => ({ key: f.stage, violations: f.violations })),
+    });
+    if (repeat) {
+      passStop(`gen-guard: 前回と同じ違反のためブロックを繰り返さない（blocks/<stage>.blocked は残る。直したら recheck）\n${msg}`);
+      return;
+    }
     blockStop(`gen-guard: 違反を検出（blocks/<stage>.blocked を鋳造）\n${msg}`);
     return;
   }

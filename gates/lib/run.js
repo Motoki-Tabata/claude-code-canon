@@ -189,6 +189,46 @@ export function mintBlockLatch(ts, stage, reason, meta = {}) {
     'utf8'
   );
 }
+/** processed.log の記録（古い順）。無ければ空配列。 */
+export function readProcessedLog(ts) {
+  if (!existsSync(processedLogPath(ts))) return [];
+  return readFileSync(processedLogPath(ts), 'utf8')
+    .split('\n')
+    .filter(Boolean)
+    .flatMap((line) => {
+      try {
+        return [JSON.parse(line)];
+      } catch {
+        return [];
+      }
+    });
+}
+
+/** ブロックラッチに記録された違反文（processStageRequests が `violations.join(' / ')` で書く）。無ければ null。 */
+export function readBlockLatchReason(ts, stage) {
+  try {
+    return JSON.parse(readFileSync(blockLatchPath(ts, stage), 'utf8')).reason ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Stop/SubagentStop のブロック（exit 2）を繰り返さないかの判定。失敗したリクエストは再判定の契機として
+ * 残るので、ターンが終わるたびに同じ違反で exit 2 が返り、ハーネスの上限（9回連続）まで注入が続いた
+ * （run 20260927_003229・S3 メイン 44回・5.07M）。次のどちらかなら通知だけにする（ラッチは残る）:
+ *   - hook 入力の `stop_hook_active` が true（すでに Stop hook による継続中）
+ *   - 失敗した全ステージの違反が、判定前に立っていたラッチの違反と同一（同じ違反の再判定）
+ * 人間・オーケストレータが明示的に再検査する `tools/recheck.js` の起動（explicitRecheck）は抑止しない
+ * （同じ違反でも「違反あり」を返さないと recheck が「違反なし」と誤表示する）。
+ * @param {{ stopHookActive?: boolean, explicitRecheck?: boolean, prevReasons: Record<string, string|null>, failed: { key: string, violations: string[] }[] }} a
+ */
+export function isRepeatBlock({ stopHookActive, explicitRecheck, prevReasons, failed }) {
+  if (explicitRecheck === true) return false;
+  if (stopHookActive === true) return true;
+  return failed.length > 0 && failed.every((f) => prevReasons[f.key] != null && prevReasons[f.key] === f.violations.join(' / '));
+}
+
 export function unblock(ts, stage) {
   const p = blockLatchPath(ts, stage);
   if (existsSync(p)) {

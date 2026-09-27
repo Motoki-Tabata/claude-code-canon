@@ -167,3 +167,44 @@ test('/self-optimize の run（target が claude-canon 自身）は S4 が配置
   writeFileSync(path.join(workDir(other), 'target.txt'), path.join(ROOT, 'fixtures', 'sample-repos', 'existing').replace(/\\/g, '/') + '\n');
   assert.equal(deriveRunStatus(other).position, 'predeploy-emit');
 });
+
+test('鮮度: ハーネスの .cc-writes とディレクトリ自身の mtime では generation を「古い」としない。成果物の更新は従来どおり検出する', (t) => {
+  const ts = setup(t, 40, { markers: [...S1, 'design', 'generation'] });
+  const gen = path.join(outputDir(ts), 'generated', '.claude', 'skills', 's');
+  mkdirSync(gen, { recursive: true });
+  const skill = path.join(gen, 'SKILL.md');
+  writeFileSync(skill, 'x');
+  const old = new Date(Date.now() - 60_000);
+  utimesSync(skill, old, old);
+  // マーカーは成果物より後・現在より前に置く（直後の書込と同じ時刻に丸められる FS でも前後が決まるように）。
+  const minted = new Date(Date.now() - 30_000);
+  utimesSync(markerPath(ts, 'generation'), minted, minted);
+  mkdirSync(path.join(outputDir(ts), 'generated', '.claude', '.cc-writes'), { recursive: true }); // 鋳造後にハーネスが作る
+  writeFileSync(path.join(outputDir(ts), 'generated', '.claude', '.cc-writes', 'w'), '');
+  assert.equal(checkStaleness(ts, 'generation').stale, false, '.cc-writes・ディレクトリ mtime で誤検知した（run 20260925_004359・S4）');
+  writeFileSync(skill, 'edited'); // 対照: 成果物そのものを鋳造後に更新
+  assert.equal(checkStaleness(ts, 'generation').stale, true, '成果物の更新を検出できなくなっている');
+});
+
+test('handoff_notes: state.md の要旨の「申し送り:」以降を resume の出力に載せる。canon 側の課題候補の件数も出す', (t) => {
+  const ts = setup(t, 41, { markers: S1 });
+  writeFileSync(
+    path.join(workDir(ts), 'state.md'),
+    `- P4 | ${iso(-1000)} | spec を承認\n- P5 | ${iso(-500)} | design-map を承認。申し送り: S3 の P6+7 で ui-design.md を原本と diff する\n`
+  );
+  writeFileSync(path.join(workDir(ts), 'canon-issues-candidates.md'), '# 候補\n\n## 2026-09-27 a\n- 種別: 欠陥修正\n\n## 2026-09-27 b\n');
+  const s = deriveRunStatus(ts);
+  assert.equal(s.handoff_notes.length, 1, JSON.stringify(s.handoff_notes));
+  assert.equal(s.handoff_notes[0].gate, 'P5');
+  assert.equal(s.handoff_notes[0].note, 'S3 の P6+7 で ui-design.md を原本と diff する');
+  assert.equal(s.canon_issue_candidates, 2);
+});
+
+test('SessionStart: 工程7通過・配置前の run を「完了済み」と言わず、配置未了の可能性と resume を案内する（run 20260925_004359・S4）', async (t) => {
+  const { describeFinishedRun } = await import('../gates/session-init.js');
+  const ts = setup(t, 42, { markers: [...S1, 'design', 'generation'] });
+  assert.match(describeFinishedRun(ts), /配置（工程10）は未了の可能性/);
+  mkdirSync(path.join(outputDir(ts), '.deploy'), { recursive: true });
+  writeFileSync(path.join(outputDir(ts), '.deploy', 'deploy-result.json'), '{"status":"deployed"}');
+  assert.match(describeFinishedRun(ts), /配置まで終えた/);
+});

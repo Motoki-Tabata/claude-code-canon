@@ -325,3 +325,39 @@ test('investigator（深さ2の中継役）は廃止済み。系統A/B は自分
     }
   }
 });
+
+test('廃止済みの承認サイドカー（npm run approve・.gate/approvals）を .claude/** が指示していない（run 20260927_003229 で spec §0 に混入）', () => {
+  const offenders = walkMd(SELF).filter((f) => {
+    const text = readFileSync(f, 'utf8');
+    return /npm run approve\b|\.gate\/approvals/.test(text) && !/廃止/.test(text.split('\n').find((l) => /npm run approve\b|\.gate\/approvals/.test(l)) ?? '');
+  });
+  assert.deepEqual(offenders.map((f) => path.relative(SELF, f)), []);
+});
+
+test('run 20260925・20260927 の分析で入れた規律が定義から消えていない（文言の回帰ロック）', () => {
+  const read = (rel) => readFileSync(path.join(SELF, rel), 'utf8');
+  const must = [
+    ['agents/generator/generator.md', /run_in_background: false` を明示/, 'builder の非同期起動'],
+    ['agents/generator/generator.md', /ポーリングしない/, 'Glob ポーリング'],
+    ['agents/generator/generator.md', /別の Builder に振り直さない/, '担当の二重振り'],
+    ['agents/generator/generator.md', /copy-keep/, 'keep の決定論コピー'],
+    ['skills/canon/SKILL.md', /model: "sonnet"` を明示/, '場当たりの調査 agent の Opus 継承'],
+    ['skills/canon/SKILL.md', /handoff_notes/, '申し送りの実施'],
+    ['skills/canon/SKILL.md', /canon-issues-candidates\.md/, 'run 中の canon 課題の記録'],
+    ['skills/canon/SKILL.md', /報告を受け取っても、それは完了ではない/, 'handback と完了の区別'],
+    ['skills/canon/SKILL.md', /先に P5 を差し戻す/, 'keep に及ぶ修正'],
+    ['skills/canon/SKILL.md', /発火は未検証/, '配置後のカナリア'],
+    ['agents/designer/designer.md', /他の run の `output\/\*\/design-map\.md`/, 'designer の過剰読込'],
+    ['agents/readme-writer/readme-writer.md', /全件を載せる/, 'Rules 表の網羅'],
+    ['skills/requirement-elicitation/SKILL.md', /preview は表示されない環境がある/, 'preview の位置参照'],
+  ];
+  const missing = must.filter(([rel, re]) => !re.test(read(rel))).map(([rel, , why]) => `${rel}（${why}）`);
+  assert.deepEqual(missing, []);
+});
+
+test('.requests を書く全ワーカー定義が、完了リクエストの中身の規約を直書きしている（書式を探し回らない）', () => {
+  const writers = walkMd(path.join(SELF, 'agents')).filter((f) => /\.requests\//.test(readFileSync(f, 'utf8')));
+  assert.ok(writers.length >= 5, `対象が少なすぎる（${writers.length}）＝検査が vacuous`);
+  const missing = writers.filter((f) => !/存在だけ\*\*を見て中身は読まない/.test(readFileSync(f, 'utf8')));
+  assert.deepEqual(missing.map((f) => path.relative(SELF, f)), []);
+});

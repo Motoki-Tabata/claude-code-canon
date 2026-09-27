@@ -31,13 +31,15 @@ argument-hint: "<target_project_path> | resume <ts>"
 
 判断の精度を要する区間（S1 のヒアリングと spec の精査、S2 の keep/retire の議論）は Opus、委譲と機械手順が主体の区間（S3・S4）は Sonnet。S3 の意味判断は `eval-keep-review`（Opus）に閉じる。
 
-**区間の終わりの作法**: 最後の人間ゲートを対話で承認してもらい、`npm run state:record` で記録したら、**続きを実行せずに停止**して次のとおり案内する。
+**区間の終わりの作法**: 最後の人間ゲートを対話で承認してもらい、`npm run state:record` で記録したら、**続きを実行せずに停止**して次のとおり案内する。停止の前に、設定済みの ScheduleWakeup・loop があれば止める（区間の終了後に発火して次の区間と並走した実例がある・run 20260925_004359）。
 
-> 区間 S<n> が完了しました。新しいセッションを `claude --model <推奨モデル>` で起動し、`/canon resume <ts>` を実行してください。
+> 区間 S<n> が完了しました。新しいセッションを `claude --model opus`（S2）／`claude --model sonnet`（S3・S4）で起動し、`/canon resume <ts>` を実行してください。
+
+モデル指定はエイリアス（`opus`・`sonnet`）で書き、完全なモデル ID に言い換えない。**canon の区間は S1〜S4、対象プロジェクト側のワークフローの区間は「対象側 S<n>」と書き分ける**（同じ「S2」が別物を指して紛れた・run 20260925_004359）。
 
 ### state.md（対話承認の記録）
 
-人間ゲートの承認は**チャットの対話で取り**、要旨を `npm run state:record -- <ts> <gate> "<要旨>"`（gate は `P2`・`P4`・`P5`・`P6+7`・`P8`）で `work/<ts>/state.md` に記録する。差し戻しは `--revision` を付けて記録する。CLI は実時刻と書式を保証し、承認対象の成果物が未確定なら拒否する。
+人間ゲートの承認は**チャットの対話で取り**、要旨を `npm run state:record -- <ts> <gate> "<要旨>"`（gate は `P2`・`P4`・`P5`・`P6+7`・`P8`）で `work/<ts>/state.md` に記録する。差し戻しは `--revision` を付けて記録する。CLI は実時刻と書式を保証し、承認対象の成果物が未確定なら拒否する。**後の区間で実施すべきこと（例: 「S3 の P6+7 で ui-design.md を原本と diff する」）は、要旨の末尾に `申し送り: <指示>` と書く**。次のセッションの `npm run resume` が `handoff_notes` として出す（会話は引き継がれないので、要旨の中に埋もれた指示は届かない・run 20260925_004359）。
 
 **state.md は待ち状態の判定（再開時に人間の返事待ちか）にだけ使い、ゲートの通過判定には使わない**（LLM が書ける記録のため）。工程順の機械担保は、決定論ゲートだけが鋳造する完了マーカーの順序（G1 が前段マーカーを要求し、advance-guard が `spec.done` なしの design-map 書込・`design.done` なしの generated/** 書込を deny する）が担う。承認は「承認対象の成果物の確定より後に記録されたもの」だけが有効で、成果物を作り直すと古い承認は自動的に無効になる。
 
@@ -51,17 +53,21 @@ argument-hint: "<target_project_path> | resume <ts>"
 4. 該当ワーカー（`requirements-recorder`・`spec-writer`・`designer`・`generator`）を**新規に起動**し、入力ファイル一式のパスと修正指示ファイルのパスを注入して「指示された箇所だけを Edit する」ことを明示する（各定義の「修正モード」節）。
 5. 完了リクエスト → ゲート（`npm run recheck -- <ts> <stage>`）→ 該当ゲートで対話承認を取り直して記録する。P6+7 から戻った場合は、工程9 を **round 2 以降**（`npm run eval:bundle -- <ts> --round N`）として、差分だけ再判定する。
 
+- **P6+7 の修正対象に design-map の keep が含まれるなら、先に P5 を差し戻す**（`reopen design` で disposition を keep→modify に直してから生成物を直す）。keep の正は design-map なので、生成物や MANIFEST だけを直しても G8（sha256 非回帰）でブロックされる（run 20260927_003229）。修正指示ファイルを書く前に、直す対象の各パスが `slices/disposition-other.md` の keep に無いかを確かめる。
+- **後の区間から前の区間のゲートへ戻る差し戻し**（S3 から P5 へ等）は、変更が disposition の付け替え等の限定的なものなら現セッションで扱ってよい（ワーカーのモデルは各 agent の frontmatter に従うので、designer は Opus で動く）。設計の組み直しに及ぶなら、状態を記録して停止し、その区間の推奨モデルのセッションで `/canon resume <ts>` するよう案内する。
+
 ## この Skill が前提とする契約（実装済み・変更禁止）
 
 1. **G13（preflight）は本 Skill の展開時に自動発火する**。`/canon` の `UserPromptExpansion` で `gates/g13_worker_privilege.js` が走り、claude-canon 自身のワーカー定義（`.claude/agents/**`）の `tools:` にコマンド実行系ツール（Bash/PowerShell/Monitor）が1つでもあれば **exit 2 で run の開始自体がブロックされる**。本 Skill 本文はその後に実行される。
 2. **ガードは run in-flight のときのみ有効**（§11.3・ガードの有効条件）。`<ts>` を採番して `work/.session-ts` が置かれた瞬間から、`output/<ts>/.gate/**`・`docs/`・`gates/`・`.claude/` への書込が deny される。採番前は素通りする。**終端マーカー `generation.done` が鋳造される（工程7通過）まで run は in-flight** で、セッションの合間（S1→S2→S3）も `.session-ts` は残ってガードは武装したまま。この間は claude-canon 本体の保守編集（docs/・gates/・.claude/・design/）が deny される——長く中断するなら run を完走させるか放棄する（後述「run の終い方」）。
 3. **承認は対話で取り、`work/<ts>/state.md` に記録する**（承認サイドカー・`npm run approve` は廃止済み）。`.gate/**` はエージェント書込 deny-all で、工程の完了マーカー（`markers/<stage>.done`）は決定論ゲートだけが鋳造する。state.md は判定材料にしない（上記）。
 4. **工程間の状態はファイルが持つ**（§4.2）。各ワーカーは入力ファイルを読み、出力ファイルを書き、最後に `work/<ts>/.requests/<stage>` を書いて完了を告げる。`SubagentStop` で `stage-guard`/`gen-guard` が発火し、通過時のみ `output/<ts>/.gate/markers/<stage>.done` を鋳造する。
-5. **run in-flight 中は一時ファイルも `work/<ts>/` に置く**（S3-4）。環境（ハーネス）は「一時ファイルはセッション固有の scratchpad ディレクトリを使え」と指示することがあるが、write-scope-guard は sanctioned ツリー（`output/<ts>/`・`work/<ts>/`）外への書込を一律 deny するため、scratchpad は run 中は使えない（ライブ run `20260910_220906` で実測）。大きな応答をファイルへ永続化する必要があるとき（例: Write を持たないワーカーの応答を代筆する）は `work/<ts>/` に一時フラグメントを作り、使用後に削除すること。
+5. **run in-flight 中は一時ファイルも `work/<ts>/` に置く**（S3-4）。環境（ハーネス）は「一時ファイルはセッション固有の scratchpad ディレクトリを使え」と指示することがあるが、write-scope-guard は sanctioned ツリー（`output/<ts>/`・`work/<ts>/`）外への書込を一律 deny するため、scratchpad は run 中は使えない（ライブ run `20260910_220906` で実測）。大きな応答をファイルへ永続化する必要があるとき（例: Write を持たないワーカーの応答を代筆する）は `work/<ts>/` に一時フラグメントを作り、使用後に削除すること。**インタプリタの `-e`（`node -e`・`python -c` 等）の中で書き込むと、ガードが宛先を同定できず封鎖される**。書込はリダイレクト（`> work/<ts>/…`）か Write ツールで行う（ガードは緩めない）。
+6. **ワーカーの報告を受け取っても、それは完了ではない**。サブエージェントは非同期に動くことがあり、報告（SubagentHandback）はゲートの判定（SubagentStop）より先に届く。**完了通知（task-notification の completed）を受けてから**マーカーとブロックラッチを確かめる。blocked が立っていても、ワーカーがゲートの指摘を受けて自己修正している最中でありうる——完了通知の前に並行して原因を調べない（run 20260925_004359 で G10 の原因を generator と並行に調べ、recheck も空振りした）。完了を待つのに ScheduleWakeup・loop を使わない。同じワーカーの重複した通知には応答しない。
 
 ## `subagent_type` マッピング（§4.1）
 
-全ワーカーは、環境に登録されているネイティブの `subagent_type`（例: `Agent(subagent_type="spec-writer")`）を優先して起動する。**ネイティブ起動では `model` 引数を渡さない**——起動時の `model` 引数は frontmatter より優先されるため、渡すと定義のモデルを上書きする（run `20260919_023121` で実測: `spec-writer`・`generator` が frontmatter sonnet のまま Opus で走り、`eval-keep-review` は frontmatter opus のまま sonnet で走った）。モデルの正は各 agent の frontmatter の一箇所に置く。環境によっては `.claude/agents/` 配下の canon agent が `subagent_type` として未登録のことがあり（`docs/L3_AGENTS.md §2.1` 運用ノート）、その場合に限り **`Agent(subagent_type="general-purpose", model=<対象 agent の frontmatter の model>)`**（フォールバックでは frontmatter が効かないので、定義を読んだ上で同じ値を渡す）＋「`.claude/agents/<name>/<name>.md` を Read して定義に従うこと」＋ `<ts>`・入出力の絶対パス・前段の結果の明示注入へフォールバックする。**`general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13（基本設計書 §5.3）が強制するワーカーのコマンド実行系ツール剥奪を無効化する**——フォールバックを使った run では §4.4「ワーカーはコマンド実行系ツールを持たない」という前提が成立しないため、使った場合はユーザーに明示する。この起動主体はメイン Claude に一元化し、ワーカーに多段委譲を指示しない（`generator` の builder 群への spawn を除く）。調査ワーカー（系統A/B）は中継役を挟まずメイン Claude が直接起動する——中継役（旧 investigator）は深さ2の子の報告が呼び出し元に届かず、メイン会話を経由した逐語転記が必要になった（run 20260919・20260922 で連続して発生）ため廃止した。
+全ワーカーは、環境に登録されているネイティブの `subagent_type`（例: `Agent(subagent_type="spec-writer")`）を優先して起動する。**ネイティブ起動では `model` 引数を渡さない**——起動時の `model` 引数は frontmatter より優先されるため、渡すと定義のモデルを上書きする（run `20260919_023121` で実測: `spec-writer`・`generator` が frontmatter sonnet のまま Opus で走り、`eval-keep-review` は frontmatter opus のまま sonnet で走った）。モデルの正は各 agent の frontmatter の一箇所に置く。環境によっては `.claude/agents/` 配下の canon agent が `subagent_type` として未登録のことがあり（`docs/L3_AGENTS.md §2.1` 運用ノート）、その場合に限り **`Agent(subagent_type="general-purpose", model=<対象 agent の frontmatter の model>)`**（フォールバックでは frontmatter が効かないので、定義を読んだ上で同じ値を渡す）＋「`.claude/agents/<name>/<name>.md` を Read して定義に従うこと」＋ `<ts>`・入出力の絶対パス・前段の結果の明示注入へフォールバックする。**`general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13（基本設計書 §5.3）が強制するワーカーのコマンド実行系ツール剥奪を無効化する**——フォールバックを使った run では §4.4「ワーカーはコマンド実行系ツールを持たない」という前提が成立しないため、使った場合はユーザーに明示する。**canon の agent 以外を場当たりに起動するとき（`Explore`・`general-purpose` での調査・transcript 分析等）は `model: "sonnet"` を明示する**——これらは frontmatter を持たないので親のモデル（S1・S2 では Opus）を継承する（run 20260927_003229 の S1 で Explore 2体が Opus で 12.6M・S1 の 51% を使った）。「`model` 引数を渡さない」は frontmatter を持つ canon の agent に限った規則である。この起動主体はメイン Claude に一元化し、ワーカーに多段委譲を指示しない（`generator` の builder 群への spawn を除く）。調査ワーカー（系統A/B）は中継役を挟まずメイン Claude が直接起動する——中継役（旧 investigator）は深さ2の子の報告が呼び出し元に届かず、メイン会話を経由した逐語転記が必要になった（run 20260919・20260922 で連続して発生）ため廃止した。
 
 ---
 
@@ -77,7 +83,9 @@ argument-hint: "<target_project_path> | resume <ts>"
 2. `npm run resume -- <ts>` を Bash で実行し、出力の JSON だけを読む（多数のファイルを Read して現在地を推測しない）。別の run が in-flight で拒否された場合は、原因をユーザーに報告して指示を仰ぐ（別の /canon run の切り替えだけは `--force` で可能。機能X・機能Y の run が in-flight のときは不可）。
 3. JSON の読み方:
    - `expected_model` が自分のモデルと違う場合は、その旨を警告してユーザーに続行可否を尋ねる（S1・S2 は Opus、S3・S4 は Sonnet を推奨。強制はしない）。
+   - `handoff_notes`（前の区間の承認・差し戻しに書かれた「申し送り」）があれば、**`next_action` より先に**該当する区間のものを実施し、実施した結果を次のゲートの提示に含める。実施しなかったものは理由を添えて提示する（黙って落とさない）。
    - `blocked`（ブロックラッチ）があれば、`next_action` より先に原因を提示して人間の判断を仰ぐ（自動で解除・再生成しない）。
+   - `canon_issue_candidates` が 1 以上なら、`work/<ts>/canon-issues-candidates.md` に canon 側の課題候補がある（「run の終い方」で S4 の最後に台帳へ転記する）。
    - `pending_requests` があれば `npm run recheck -- <ts> <stage>` でゲートを起動する。
    - `stale` があれば「直したのに再検査していない」疑い。ユーザーに報告し、`npm run reopen` → 再生成 → recheck の要否を確認する。
    - `canary_required` が true なら、下記 preflight 手順3のカナリアを撃つ（別セッションでは配線が変わっている可能性があるため毎回撃つ）。S4 は `generation.done` 後で run が in-flight でなくガードが非適用のため撃たない。
@@ -138,6 +146,7 @@ argument-hint: "<target_project_path> | resume <ts>"
 ### 工程7: 生成（全量・README/MANIFEST を最終ステップ）
 
 0. **design-map をスライスに切り出す**: `npm run slice -- <ts>` を Bash で実行する（`work/<ts>/slices/` に、`common.md`・`write-scopes.md`・`l1.md`/`skills.md`/`agents.md`/`l4.md`/`l5.md`・`disposition-other.md`・`responsibilities.md`・`other-sections.md`・`targets-<層>.txt` を書く。書き出し前に古いスライスを掃除する）。generator・各 builder・readme-writer・eval judge は design-map 全文（約96KB）でなくスライスを読む——全文 Read は 1 run で 19〜30 回・1 回 3.4〜3.7 万文字に達し、読んだ内容がそのエージェントの以後の全ターンで cache_read として積み上がっていた。`design.done` が無ければ拒否される（設計が確定してから切り出す）。差し戻しで design-map を書き直したら、`design.done` を再鋳造した後に必ず再実行する。
+0b. **keep を決定論でコピーする**: `npm run copy-keep -- <ts>` を Bash で実行する（design-map の `disposition: keep` を対象の原本から `generated/` へバイト同一でコピーし sha256 を照合する。原本不在・管理パス集合外・不一致があれば exit 1 で止まる）。keep の verbatim コピーを LLM の Read/Write でしない（run 20260927_003229 で generator が keep 10件を写し、写し違いは G8 違反になる）。
 1. `generator` を起動し、design-map（スライス経由）を唯一の設計入力に `output/<ts>/generated/**` を生成させる。プロンプトに `work/<ts>/slices/` の絶対パスを注入する。generator は必要な builder（`l1-builder`/`skill-builder`/`agent-builder`）と、最終ステップで `readme-writer`（`generated/.claude/README.md` のみ）を統括する。**MANIFEST.md・`.deploy/*.list`・L4 成果物（`.claude/settings.json`・`.mcp.json`）は generator 自身が書く**（`readme-writer` の責務ではない）（深さ: orchestrator→generator→builder・5以内）。
 2. 書込ごとに **PostToolUse で G3〜G6 が助言**（違反はラッチへ転写）。generator が `.requests/generation` を書いて完了 → `SubagentStop` で `gen-guard` が **snapshot ゲート G7〜G12** を検査（G12 が全 output に G3〜G6 を権威再検証）。**generator が完了リクエストを書かずに turn を終えた場合、および成果物の完成を報告せずに turn を終えた場合**（詳細設計書 §11.5）、`output/<ts>/generated/`・`MANIFEST.md`・`.deploy/managed-paths.list`・`.deploy/retired.list` の実在を確認し、欠けていれば generator を**新規に起動し直して**完走させる。**generator の応答が「待機中」等で完走を報告していなくても、それを未完了の証拠と読まない**——実測（run `20260909_003820`）では `(待機中。人間からの明示的な指示があるまで操作は行いません。)` とだけ返しながら、`generated/**` 28ファイル・`MANIFEST.md`・`.deploy/*` と `.requests/generation` を全て書き終えていた。判断材料はワーカーの自己申告ではなく**ディスクの実在**である（`.claude/rules/worker-definitions.md`「ワーカーの『書いた』は裏取りする」の裏返しで、『書いていない』も裏取りする）。
 3. 補足: generator が書くのは `.deploy/managed-paths.list`・`retired.list`（配置スクリプトの入力）まで。配置手順書 `.deploy/RUN.md` は工程10でオーケストレータが `emit-run-manifest.js` から出力する（配置先 `<target>` が定まるのが工程10のため）。
@@ -154,19 +163,19 @@ argument-hint: "<target_project_path> | resume <ts>"
 決定論ゲート（工程8）と分離した**意味判断**の工程（§16）。**eval はマーカーを鋳造せず G バッチも発火させない**（§2・§16.7）。
 
 1. **判定入力バンドルを先に生成する（round 1）**: `npm run eval:bundle -- <ts>`。design-map の keep/merge から `work/<ts>/eval-bundle/keep-review/` を決定論的に作り（対象を名指しする生成物の箇所は `file:line` で逆引きして同梱する・S2-5）、生成物のスナップショット（`.snapshot-r1.json`）を保存する。**前の試行の判定（`eval/*.md`・`eval-report.md`）と古いバンドルは消える**（前の判定が新しい判定に見えないように・S2-2）。**designer の `keep_conditions` 宣言と rationale はバンドルに入らない**（judge が判定対象自身の主張に自己一致して常に clean と答える恒真バグを構造的に防ぐ・§16.3）。
-2. **5軸の judge をメイン Claude が同一 turn で並列に直接起動する**: `eval-correctness` / `eval-security` / `eval-canon` / `eval-context` / `eval-keep-review`（中継役の `eval-reviewer` は廃止した——集約は下の手順3でコードが決定論に行うので、LLM の中継役は要らず、深さ2の子の報告が失われる failure mode も避けられる）。プロンプトに `<ts>`・`output/<ts>/`・`work/<ts>/slices/`（design-map の切り出し。全文は読ませない）を注入し、keep-review には `work/<ts>/eval-bundle/keep-review/` も注入する。各 judge は `output/<ts>/eval/<axis>.md` に本文＋json フェンス1個の verdict を書く。**全 judge の完了後、5軸の軸ファイルの実在を確かめる**（工程9 は完了リクエストを持たないため、他の工程より欠落の検出が遅れやすい・詳細設計書 §11.5）。**軸ファイルが欠けているなら次の順で復旧する**（judge が判定を応答本文に返しながらファイルを書かない failure mode がある。実測: run 20260903_091044 round 2 の eval-correctness）。
+2. **5軸の judge をメイン Claude が同一のメッセージで並列に直接起動する**（`run_in_background` パラメータが提供される環境では `false` にし、全 judge の結果がそろうまでその turn で待つ。非同期に起動すると judge ごとに「報告」と「完了通知」で2ターンずつ消費した・run 20260927_003229）: `eval-correctness` / `eval-security` / `eval-canon` / `eval-context` / `eval-keep-review`（中継役の `eval-reviewer` は廃止した——集約は下の手順3でコードが決定論に行うので、LLM の中継役は要らず、深さ2の子の報告が失われる failure mode も避けられる）。プロンプトに `<ts>`・`output/<ts>/`・`work/<ts>/slices/`（design-map の切り出し。全文は読ませない）を注入し、keep-review には `work/<ts>/eval-bundle/keep-review/` も注入する。各 judge は `output/<ts>/eval/<axis>.md` に本文＋json フェンス1個の verdict を書く。**全 judge の完了後、5軸の軸ファイルの実在を確かめる**（工程9 は完了リクエストを持たないため、他の工程より欠落の検出が遅れやすい・詳細設計書 §11.5）。**軸ファイルが欠けているなら次の順で復旧する**（judge が判定を応答本文に返しながらファイルを書かない failure mode がある。実測: run 20260903_091044 round 2 の eval-correctness）。
    - **(a)（判定が応答本文に返っている場合）** オーケストレータが **judge の判定内容（`verdict` / `rationale` / `evidence` / `confidence`）を1文字も変えずに、書式だけを機械的に修正して**軸ファイルへ書く。**判定そのものを書き換えてはならない**——それは judge の役割の簒奪であり、eval の独立性が失われる。実測（run 20260909_003820）でこの手当は機能した。
    - **(b) 判定が失われている場合**: 起動プロンプトに `quality-checklist` の出力契約（```json フェンスは1個・`findings[].target` は `coverage` にも列挙・`condition` は keep-review 以外 `null`）を明記して、その軸の judge を**新規に起動し直す**。再判定になるが、`SendMessage` での再開は使わない（5分キャッシュ切れで蓄積した文脈を作り直すため、判定の揺れを避ける利点より高くつく）。
 
    **書式違反のうち判定内容を毀損しない3種**（未知のトップレベルキー・`condition` の enum 外・`findings[].target` の `coverage` 不記載）は `eval/verdict.js` が自動補正するため、**軸は判定不能にならず (a)(b) の復旧作業自体が不要**になった（S2-1）。`npm run eval:report` の出力（`notes`）に「書式を自動補正した」旨が出るので、それを見て `quality-checklist` の NG 例を judge へ次 round で指摘するだけでよい。それでも欠けている（フェンス不在・必須キー欠落等）なら上記 (a)(b) で復旧する。
    書き出し後に手順3 を再実行し、判定不能が解消したことを確かめる。
 3. **集約と機械検証は決定論で行う**: `npm run eval:report -- <ts> --write`。各軸の判定から `output/<ts>/eval-report.md` を組み立て（judge の判定内容は1文字も変えず、violation を1件も落とさない・`eval/aggregate.js`）、続けてスキーマ・カバレッジ・集約漏れを検査する（違反があれば exit 2）。回付対象（keep×C2/C4・merge×統合先）に未判定があれば eval の失敗として扱う。**判定対象0件は「品質を確認した」ではない**（§16.5）。全軸が判定済みで検査を通ると、その判定が「有効な判定」として保存され、round 2 の土台になる。
-4. **P6+7**: 生成物一式（generated/・MANIFEST・README）と `eval-report.md` を**1回の提示にまとめる**。`verdict: violation` は**1件残らず提示**する（§8.4 の強制表示）。とくに **C2 の violation は P5 の再確認事項**として扱う。`npm run state:record -- <ts> P6+7 "<要旨>"` で記録する。
+4. **P6+7**: 生成物一式（generated/・MANIFEST・README）と `eval-report.md` を**1回の提示にまとめる**。`verdict: violation` は**1件残らず提示**する（§8.4 の強制表示）。**violation の根拠が「存在しない」「言及が無い」なら、提示の前にオーケストレータが Grep で横断して裏取りし**、見つかった場合はその事実（file:line）を並べて提示する（judge が探さずに不在を根拠にした実例がある・旧 S2-5。判定そのものは書き換えない）。とくに **C2 の violation は P5 の再確認事項**として扱う。`npm run state:record -- <ts> P6+7 "<要旨>"` で記録する。
 5. **S3 の終わり**: 上記の作法で停止し、S4 の起動（Sonnet）を案内する。
 
 **round 2 以降（指摘を受けて生成物を直したあとの再 eval）は、差分だけを再判定する**（1周あたり約7M・全体の16〜20%を占めた eval を、2周目で丸ごと繰り返さない）:
 1. 「差し戻し」の手順で生成物を直し、`gen-guard` が通ったら `npm run eval:bundle -- <ts> --round 2`（3周目なら `--round 3`）を実行する。前 round の有効な判定（`effective-r<N-1>.json`）が無ければ拒否される（前 round を `eval:report --write` で確定してから）。
-2. コマンドの出力（と `work/<ts>/eval-bundle/round.json`）が、**再判定する軸**（`rejudge_axes`）と**引き継ぐ軸**（`carry_axes`）、各軸の**再判定する対象**（`rejudge_targets`）を示す。再判定するのは、前 round に違反があった軸と、変更があれば常に **security** 軸、および keep/merge の対象が変わった keep-review。それ以外は前 round の判定を引き継ぐ（変更で新たな違反が出うる軸を security に絞るのは既知のトレードオフ）。再判定する軸のファイルと `eval-report.md` は round 開始時に消え、前 round のものは `output/<ts>/eval/round<N-1>/` に退避される。
+2. コマンドの出力（と `work/<ts>/eval-bundle/round.json`）が**再判定する軸**（`rejudge_axes`）と**引き継ぐ軸**（`carry_axes`）、各軸の**再判定する対象**（`rejudge_targets`）を示す。**どの軸を再判定するかは、この出力を見てから言う**（事前に予告しない。keep-review を再判定すると予告したが、実際は引き継ぎだった・run 20260927_003229）。再判定するのは、前 round に違反があった軸と、変更があれば常に **security** 軸、および keep/merge の対象が変わった keep-review。それ以外は前 round の判定を引き継ぐ（変更で新たな違反が出うる軸を security に絞るのは既知のトレードオフ）。再判定する軸のファイルと `eval-report.md` は round 開始時に消え、前 round のものは `output/<ts>/eval/round<N-1>/` に退避される。
 3. **再判定する軸の judge だけ**を起動する。プロンプトに `work/<ts>/eval-bundle/round.json` を注入し、round 2 モード（各 judge 定義の「round 2（再判定）モード」節）で動かす——変更ファイルと前 round の違反対象だけを見て、`coverage` に再判定した対象を**すべて**列挙させる。列挙が漏れると、ハーネスが未判定として落とす。
 4. `npm run eval:report -- <ts> --write` で集約する（引き継いだ判定と再判定の結果を合成する）。以降は手順4・5 と同じ。
 
@@ -180,12 +189,16 @@ argument-hint: "<target_project_path> | resume <ts>"
 
 1. **手順書を同梱する**: `node deploy/emit-run-manifest.js <output> <target>` を実行し `output/<ts>/.deploy/RUN.md` を出力する（配置/廃止される集合と実行コマンドの決定論的な同梱・§10.2 run-manifest 方式。スクリプト正本は複製しない＝`gates/lib/managed-paths.js` の SSoT を二重化しない）。以降の手順は RUN.md と同一。
 2. **配置前照合**: `node deploy/pre-deploy-check.js <output> <target>`。対象の実管理パス集合と output を突き合わせ、消える予定を retired（想定内）/ uncaptured（取りこぼし）に区分する（`.deploy/pre-deploy-report.txt` にも出力）。**uncaptured≥1（exit 2）なら配置を止め、調査 or design-map へ差し戻す**（§10.2）。
-3. **P8**: pre-deploy-report の retired 一覧が意図した廃止と一致することをユーザーが確認する。`npm run state:record -- <ts> P8 "<要旨>"` で記録する。
+3. **P8**: 次の3点を提示してから承認を取る。`npm run state:record -- <ts> P8 "<要旨>"` で記録する。
+   - pre-deploy-report の retired 一覧（意図した廃止と一致するか）と、**配置予定・退避予定の件数**（レポートの実数をそのまま示す。`.bak` が作られるかを推測で案内しない・run 20260927_003229 で「退避0件の見込み」と案内し実際は39件だった）。
+   - `node deploy/deploy.js <output> <target>`（`--confirm` 無し）の配置予定の出力。
+   - RUN.md「2a. この run 固有の追加手順」。配置前に実行するもの（台帳の照合等）はここで実行し、結果を示す。
 4. **配置**: `--confirm` 無し（`node deploy/deploy.js <output> <target>`）は配置予定表示のみ（対象不変）。承認後 `--confirm` 付きで退避スワップ配置する（**事前検査で退避できないファイルが無いか確かめ**、対象を `.claude-canon.bak.<ts>/` へ mv 退避 → output 配置 → post-check で sha256 バイト同一確認 → 失敗時は実際に動かした分だけ自動 restore）。**`--confirm` でも実行時に uncaptured があれば拒否**する（P8 を無視した配置の最終防波堤）。
    - **`--confirm` はサンドボックスの外（通常のシェル）で実行する**。サンドボックスが `.mcp.json` 等をバインドマウントしていると退避の rename が EBUSY になる（run 20260919・20260922 で連続して半壊した）。事前検査が動かせないファイルを検出して**対象を変更せずに**拒否するが、外で実行すれば起きない。人間が対象リポジトリのシェルで実行する（RUN.md「実行環境の注意」）。
    - **対象リポジトリへの push は、対象リポジトリで起動した Claude Code セッションで行う**（claude-canon のセッションからは対象側のサンドボックス例外が効かず、pre-push の gitleaks が失敗する。SSH リモートなら `github.com:22` の許可も要る）。
    - 配置に成功すると `output/<ts>/.deploy/deploy-result.json` が書かれる（`/canon resume` が配置済みかを判定する）。退避が0件（対象に管理ファイルが無かった）のとき `.bak` は作られない——案内する前に `bak_exists` を確かめる。
-5. ロールバックは対象の git revert ＋ `.claude-canon.bak.<ts>/` からの手動 restore。`.bak` の掃除は人間が明示的に行う（自動削除しない）。
+5. **配置後**: RUN.md「2a」の配置後に実行する手順を実行し、「4. 配置後の手作業」を**逐語で**提示する（要旨に言い換えない。「反映済み5件の削除」が「台帳の削除」に縮んで台帳ごと消えた・run 20260925_004359）。生成物に hooks（settings.json・agent 単位の hooks）があれば、対象リポジトリで撃つカナリア手順（README の該当節）を案内する。**hook の実発火を確かめていなければ「配置した・発火は未検証」と明示して終える**（「全工程が完了」とだけ言わない）。
+6. ロールバックは対象の git revert ＋ `.claude-canon.bak.<ts>/` からの手動 restore。`.bak` の掃除は人間が明示的に行う（自動削除しない）。
 
 ---
 
@@ -193,7 +206,7 @@ argument-hint: "<target_project_path> | resume <ts>"
 
 - **run が終わる時点**: 終端マーカー `generation.done`（工程7の G7〜G12 通過）が鋳造された瞬間に run は in-flight でなくなり、ガードは非適用になる。S3 の後半（eval・P6+7）と S4 はこの状態で進む。
 - **run の途中（S1〜S3 の区間の間）**: `generation.done` が無いあいだは run 中で、`work/.session-ts` が残る。この間、claude-canon 本体（docs/・gates/・.claude/・design/ 等）の保守編集は sanctioned ツリー外として deny される。保守をしたいときは、run を工程7まで完走させるか、放棄する（`work/.session-ts` の扱いはユーザーに確認する）。
-- **設計書への記録**: `design/` 配下は run 中は書き込めない。`generation.done` の鋳造後（S3 の eval 以降・S4）であれば書ける。run の記録（canon-issues 等）が必要なら、その時点以降に行う。
+- **canon 側の課題の記録**: run 中に claude-canon 本体の欠陥・浪費・規律の穴を見つけたら、**見つけたその場で** `work/<ts>/canon-issues-candidates.md` に台帳と同じ軽量書式（`tasks/lessons.md` 冒頭）で追記する（run 中は `tasks/`・`design/` に書けないが `work/<ts>/` には書ける。チャットで案内するだけだと区間の境界で失われた・run 20260925_004359・20260927_003229）。**S4 の最後に、候補を `tasks/lessons.md` へ転記して候補ファイルの件数と転記した見出しを報告する**（`generation.done` の後なので書ける。コミットはユーザーの指示を待つ）。
 - 機能X（`/update-docs`）・機能Y（`/self-optimize`）とは相互排他。run が中断中でもそれらは開始できない。
 - **対象リポジトリや claude-canon 本体をコミットするときは、`git add <パス>` で対象を明示する**（S3-3）。サンドボックスのマウントポイント（`.bashrc`・`.gitconfig`・`.mcp.json` 等）が未追跡ファイルとして `git status` に並ぶため、`git add -A`・`git add .` は無関係なファイルを拾う。
 

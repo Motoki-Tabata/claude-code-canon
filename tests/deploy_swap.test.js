@@ -246,3 +246,16 @@ test('deploy-result.json は成功時だけ書かれ（resume の配置済み判
   assert.ok(!existsSync(path.join(ng.output, '.deploy', 'deploy-result.json')), '失敗したのに配置済みの印がある');
   assert.equal(JSON.parse(readFileSync(path.join(ng.output, '.deploy', 'deploy-attempt.json'), 'utf8')).status, 'rolled-back');
 });
+
+test('pre-deploy-report の退避予定件数は deploy の実際の退避件数と一致する（P8 で .bak を推測で案内しない・run 20260927_003229）', (t) => {
+  for (const scenario of ['existing', 'new']) {
+    const c = setupTmpCase(t, scenario);
+    const report = runDeployCli('pre-deploy-check.js', [c.output, c.target]);
+    const m = /退避予定: (\d+) 件/.exec(report.stdout);
+    assert.ok(m, `${scenario}: 退避予定の行が無い\n${report.stdout}`);
+    assert.match(report.stdout, /配置予定: \d+ 件/);
+    const r = deploy(c.output, c.target, { confirm: true });
+    assert.equal(r.status, 'deployed', scenario);
+    assert.equal(Number(m[1]), r.baked, `${scenario}: 予定 ${m[1]} 件と実際の退避 ${r.baked} 件が食い違う`);
+  }
+});

@@ -48,7 +48,7 @@ effort: medium
 （全角/半角）を1段まで寛容に除去するが、複雑な注記形式まで保証しない。
 
 4. **`docs/` にはまだ書き込まない**（書けるのは `work/<ts>/` 配下のみ。書き換えると、完了リクエストの消費時に `canon-guard` が採番時の docs スナップショットとの差分として検出し、停止をブロックする）。
-5. 完了リクエスト `work/<ts>/.requests/canon-update-proposal` を書く（更新ゲートの前段。`/update-docs` がここで停止しユーザーへ提示する）。
+5. 完了リクエスト `work/<ts>/.requests/canon-update-proposal` を書く（ゲートはファイルの**存在だけ**を見て中身は読まない。Write で `canon-update-proposal: 完了` の1行を書けばよい。書式を他の run や設計書から探さない）（更新ゲートの前段。`/update-docs` がここで停止しユーザーへ提示する）。
 
 ### フェーズ2: 承認差分の反映（更新ゲート後）
 
@@ -56,7 +56,7 @@ effort: medium
 
 1. `work/<ts>/canon-diff-proposal.md` の `## 旧表現→新表現` と `## 差分候補` のうち、ユーザーが採用すると確認した差分のみを `docs/` 9ファイルへ反映する（`Edit`）。各ファイルの確認バージョン・調査日欄も更新する。
 2. `docs/SOURCES.md` の更新履歴に investigated_at の行を追記する。
-3. 完了リクエスト `work/<ts>/.requests/canon-update` を書く（G14〜G16 が発火する契機）。
+3. 完了リクエスト `work/<ts>/.requests/canon-update` を書く（ゲートはファイルの**存在だけ**を見て中身は読まない。Write で `canon-update: 完了` の1行を書けばよい。書式を他の run や設計書から探さない）（G14〜G16 が発火する契機）。
 
 ## 調査手順の実測知見（必ず守ること・詳細設計書 §13.1）
 

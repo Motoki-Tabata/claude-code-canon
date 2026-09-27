@@ -9,6 +9,37 @@
 
 ## [Unreleased]
 
+### Changed（2026-09-27・run 20260925_004359・20260927_003229 の transcript 分析の反映）
+
+改修前後のトークン消費は `design/canon-token-baseline-20260924.md`「改修後の実測」を参照。
+
+- **G9・slice**: 層の節を括弧書き付きの見出し（`## L1（l1-builder）`）でも拾う。2 run とも新規ファイルの
+  宣言が0件で「宣言⇒実在」が vacuous pass していた。`generated/` ⊆ `managed-paths.list` も照合する。
+- **gen-guard・stage-guard**: 同じ違反による Stop・SubagentStop の再ブロックを繰り返さない（S3 メインで44回・約5.1M）。
+- **recheck**: 冪等スキップの表示を markerKey で出し、hook 経路で pass 済みなら「検査済み」と区別する。
+- **G1**: evidence_paths をキー行だけから読む。系統A の定義ファイルのレイヤー誤分類を検出する。spec に
+  未解決の参照（resolved:false）を全件載せさせる。mandatory の受入基準を design-map の反映追跡と照合する。
+- **G2**: 系統B が書き落とした具体パスの参照は、対象リポジトリでの実在で C5 を確かめる。
+- **G8**: paths: の無い rule を「無条件ロード」の署名で実照合する。
+- **G12**: ツール呼び出しの書式片（`</content>` 等）の残骸を検出する。
+- **resume**: stale 判定から `.cc-writes` とディレクトリ mtime を除く。`handoff_notes`・`canon_issue_candidates` を出す。
+- **工程10**: RUN.md に MANIFEST「P8 の追加手順」と README「前提セットアップと配置後の手作業」を逐語転記する。
+  配置前レポートに配置予定・退避予定件数を出す。SessionStart は配置前の run を「完了済み」と言わない。
+- **`npm run copy-keep`**（新設）: keep を決定論でコピーし sha256 を照合する（LLM の Read/Write をやめる）。
+- **ワーカー定義・/canon SKILL**: 報告受信と完了の区別、judge の同一メッセージ起動、ScheduleWakeup の不使用、
+  generator のポーリング・二重振りの禁止、場当たりの Explore 等への `model: "sonnet"` 明示、designer の読む範囲、
+  完了リクエストの中身の規約、keep に及ぶ修正は先に P5 差し戻し、P8 の実件数提示と配置後の逐語提示・発火未検証の明示、
+  run 中の canon 課題を `work/<ts>/canon-issues-candidates.md` に書き S4 で台帳へ転記。
+- `.claude/README.md`・`README.md` の Subagent 数を実数（17体）に直す（investigator・eval-reviewer の廃止が未反映だった）。
+
+### Added
+
+- **canon 本体への改修要求の台帳 `tasks/lessons.md`**（2026-09-27）: vehicle-intake-management と同じ軽量書式
+  （日付見出し・種別・何が起きたか・提案）で、未対応の backlog を1か所に集める。反映したコミットで項目を削除する。
+  `design/canon-issues-*-resolved.md`・`canon-optimization-20260924.md` ⑥ の未対応項目を移管し、
+  run 20260925_004359・20260927_003229 の transcript 分析から起票した。run 中は `work/<ts>/canon-issues-candidates.md` に書き、
+  S4 の最後に転記する（`.claude/rules/workflow.md`）。`.gitignore` は `tasks/lessons.md` だけを追跡する。
+
 ### Fixed
 
 - **G3 が正典の許可する skill supporting files を弾いていた**（`gates/g3_path_convention.js`）:

@@ -9,7 +9,7 @@ import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { checkG9 } from '../gates/g9_snapshot_completeness.js';
 import { checkG10, deriveLaunchMethod } from '../gates/g10_readme.js';
-import { checkG12 } from '../gates/g12_output_perfile.js';
+import { checkG12, findToolCallFragments } from '../gates/g12_output_perfile.js';
 import { ROOT, outputDir, genDir } from './helpers/paths.js';
 import { cleanupTs } from './helpers/run-state.js';
 import { writeSkill, writeAgent, writeManifest } from './helpers/fixtures.js';
@@ -536,4 +536,50 @@ test('G9 design-map: 宣言がすべて実在すれば通過（対照。上の�
   writeManifest(ts);
   writeFileSync(path.join(out(ts), 'design-map.md'), '# dm\n## Skills\n### `.claude/skills/s/SKILL.md`（新規）\n');
   assert.equal(checkG9({ ts }).ok, true, violationsOf(ts));
+});
+
+test('G9 design-map: 括弧書き付きの層見出し（## Skills（skill-builder））からも宣言を拾い、脱落を検出する', (t) => {
+  // 実 run の designer は `## L1（l1-builder）` 形式で書く。完全一致だけだと宣言0件で vacuous pass した
+  // （run 20260925_004359・20260927_003229）。
+  const ts = baseline(t, 45);
+  writeManifest(ts);
+  writeFileSync(
+    path.join(out(ts), 'design-map.md'),
+    ['# dm', '## Skills（skill-builder）', '### `.claude/skills/s/SKILL.md`（新規）', '### `.claude/skills/dropped/SKILL.md`（新規）', ''].join('\n')
+  );
+  const v = violationsOf(ts);
+  assert.match(v, /skills\/dropped\/SKILL\.md（L2 の見出し）/);
+  assert.doesNotMatch(v, /層の節/);
+});
+
+test('G9 design-map（違反注入）: 層の節が無いのに新規の生成物があれば違反。disposition だけの設計は通す', (t) => {
+  const ts = baseline(t, 46);
+  writeManifest(ts);
+  writeFileSync(path.join(out(ts), 'design-map.md'), '# dm\n## スキル群\n### `.claude/skills/s/SKILL.md`（新規）\n');
+  assert.match(violationsOf(ts), /層の節/);
+  // 対照: 生成物が disposition（keep/modify）だけなら層の節が無くてよい
+  writeFileSync(
+    path.join(out(ts), 'design-map.md'),
+    '# dm\n## 既存判定（existing_disposition）\n```yaml\nexisting_disposition:\n  - path: .claude/skills/s/SKILL.md\n    disposition: modify\n    interface_change: none\n```\n'
+  );
+  assert.doesNotMatch(violationsOf(ts), /層の節/);
+});
+
+test('G9 managed-paths.list（違反注入）: generated/ にあるのに list に無いファイルは違反（配置されない生成物・S1-3）', (t) => {
+  const ts = baseline(t, 47);
+  skill(ts, 'unlisted'); // generated/ に置いたが managed-paths.list には載せない
+  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n\n## 全ファイル\n- `.claude/skills/s/SKILL.md`\n- `.claude/skills/unlisted/SKILL.md`\n');
+  assert.match(violationsOf(ts), /generated\/\.claude\/skills\/unlisted\/SKILL\.md が managed-paths\.list に列挙されていない/);
+});
+
+test('G12（違反注入）: ツール呼び出しの書式片は本文末尾・frontmatter 直後で違反、コードフェンス内は許す（旧 S1-2）', (t) => {
+  assert.deepEqual(findToolCallFragments('---\nname: a\n---\n本文\n</content>\n'), [5], '本文末尾');
+  assert.deepEqual(findToolCallFragments('---\nname: a\n---\n</parameter>\n本文\n'), [4], 'frontmatter 直後');
+  assert.deepEqual(findToolCallFragments('本文\n```xml\n<parameter name="x">\n</content>\n```\n'), [], 'コードフェンス内は説明の例');
+
+  const ts = tsFor(import.meta.url, 48);
+  cleanupTs(t, ts);
+  skill(ts, 's', '\n</content>\n');
+  const v = checkG12({ ts }).violations.join('\n');
+  assert.match(v, /書式片/);
 });

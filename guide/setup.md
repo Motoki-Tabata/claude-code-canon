@@ -119,7 +119,7 @@ claude --model opus
 1セッションで全工程を回すと5時間枠を使い切るため（実測: 約2時間で上限到達）、`/canon` は4区間に分かれます。
 区間の終わりのゲートを承認すると、オーケストレータは続きを実行せずに停止し、次のように案内します。
 
-> 区間 S<n> が完了しました。新しいセッションを `claude --model <推奨モデル>` で起動し、`/canon resume <ts>` を実行してください。
+> 区間 S<n> が完了しました。新しいセッションを `claude --model opus`（S2）／`claude --model sonnet`（S3・S4）で起動し、`/canon resume <ts>` を実行してください。
 
 | セッション | 工程 | 起動 | 区間の終わり |
 |---|---|---|---|
@@ -131,6 +131,9 @@ claude --model opus
 - **再開**: `/canon resume <ts>` は内部で `npm run resume -- <ts>` を実行し、ディスクの成果物・完了マーカーから
   現在地を JSON で得て続きから始めます。別の run（機能X・機能Y を含む）が in-flight なら拒否されます。
   推奨モデルと違うモデルで起動すると警告が出ます（強制ではありません）。S1〜S3 の開始時にはカナリアを撃ち直します。
+- **申し送り**: 後の区間で実施してほしいことは、承認の要旨の末尾に `申し送り: <指示>` と書いて記録します
+  （例: `npm run state:record -- <ts> P5 "design-map を承認。申し送り: S3 の P6+7 で ui-design.md を原本と diff する"`）。
+  次のセッションの resume が `handoff_notes` として出し、オーケストレータが先に実施します。
 - **中断**: 区間の途中で止まっても同じ `/canon resume <ts>` で再開できます。ヒアリングの途中だった場合は
   会話が失われているので、調査サマリの提示からやり直します。
 - **差し戻し**: ゲートで修正を求めると、オーケストレータは差し戻しを記録し（`state:record --revision`）、
@@ -138,6 +141,8 @@ claude --model opus
   指示箇所だけを直させます。
 - **区間の合間の注意**: `generation.done`（工程7の通過）までは run 中でガードが武装したままです。
   この間は claude-canon 本体（`docs/`・`gates/`・`.claude/`・`design/`）を編集できません。
+  canon 本体への改修要求（`tasks/lessons.md`）も書けないため、run 中に見つけた候補は
+  `work/<ts>/canon-issues-candidates.md` に書き、S4 の最後に台帳へ転記します。
 
 ## 6. デプロイ（工程10・output バンドルを対象へ配置する）
 
@@ -201,6 +206,7 @@ node deploy/deploy.js <output/ts> <対象> --confirm
 | `npm run state:record -- <ts> <gate> "<要旨>" [--revision]` | 人間ゲート（P2・P4・P5・P6+7・P8）の対話承認を実時刻・固定書式で `work/<ts>/state.md` に記録（`tools/record-state.js`）。承認対象が未確定なら拒否。`--revision` は差し戻しの記録 |
 | `npm run recheck -- <ts> <stage>` | 完了リクエストを書いてゲートを hook 経路と同じ形で起動する（オーケストレータ自身が成果物を直したとき・調査1/2 の完了時）。マーカー残存時は exit 3 で reopen へ誘導 |
 | `npm run slice -- <ts>` | design-map をワーカー別のスライスに切り出して `work/<ts>/slices/` に書く（S3 冒頭・`design.done` 必須・出力先を掃除してから書く） |
+| `npm run copy-keep -- <ts>` | design-map の keep を対象の原本から `generated/` へバイト同一でコピーし sha256 を照合する（工程7・slice の後・generator の前・`design.done` 必須） |
 
 **機能X（正典更新・`/update-docs`）**
 

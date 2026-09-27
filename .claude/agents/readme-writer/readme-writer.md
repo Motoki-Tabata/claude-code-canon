@@ -17,7 +17,7 @@ effort: low
 ## README がカバーする5要素（詳細設計書 §12.2）
 1. **何ができるか**: ユーザーの行動語彙で（設計語彙でなく）。
 2. **どう起動するか**: frontmatter から正典ルールで導出（下記の導出ルール表）。
-3. **前提セットアップ**: experimental 依存フラグ・MCP secret／OAuth など「動かす前にやること」。
+3. **前提セットアップ**: experimental 依存フラグ・MCP secret／OAuth など「動かす前にやること」と配置後の手作業。見出しは `## 前提セットアップと配置後の手作業` に固定する（`deploy/emit-run-manifest.js` がこの節とカナリア手順の節を RUN.md へ逐語転記する。S4 のオーケストレータは要旨でなくこれを提示する）。件数・対象は具体的に書く（「反映済み5件だけを削除」を「台帳の削除」と縮めない）。
 4. **使用例**: spec `§8` の functional(A1) を転用。検証したことと使い方説明を一致させる。
 5. **注意・制約**: 副作用操作・Hook のブロック挙動・スコープ（paths）。
 
@@ -47,6 +47,8 @@ effort: low
 | 見出し（`### <name>`） | **不可**（一覧項目） |
 | 箇条書きの先頭 | **不可**（一覧項目） |
 | `/<name>` 表記（使用例のコードブロック内を含む） | **不可**（起動不可なのに起動方法を案内することになる） |
+
+**Rules 表には `generated/.claude/rules/*.md` の全件を載せる**——design-map の keep で verbatim コピーされた rule（スライスの `disposition-other.md` にだけ現れ、`l1.md` には無い）も含む。書く前に `generated/.claude/rules/` を Glob で列挙して件数を数え、表の行数と一致させる（G10 が網羅性を照合する。run 20260925_004359 では keep の rule 8件が漏れて generation がブロックされた）。
 
 逆に **`listed` な Skill は `/名前` 表記を README に必ず書く**こと（上表 Slash Command Skill・Skill（通常）の行が要求する書き方の機械照合点）。**Subagent・Rule には `/名前` を書かない**——Subagent は「ユーザー直接起動の UI 手順は書かない」、Rule は `paths:` 一致時に自動ロードされるためです。G10 はこの3方向を照合します。
 

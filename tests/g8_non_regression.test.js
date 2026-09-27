@@ -198,3 +198,24 @@ test('S1-2 G8: 検査手段が無い種別（壊れた JSON）は違反にせず
   assert.equal(r.unverified.length, 1);
   assert.ok(r.unverified[0].includes(relPath));
 });
+
+test('G8: paths: の無い rule は「無条件ロード」が署名。節の追加は通し、paths を足して条件付きにすれば違反（run 20260925_004359 で素通りしていた）', (t) => {
+  const relPath = '.claude/rules/research-discipline.md';
+  const kept = setupInterfaceChangeCase(t, tsFor(import.meta.url, 60), {
+    relPath,
+    originalContent: '# 調査の規律\n## 裏取り\n本文\n',
+    outputContent: '# 調査の規律\n## 裏取り\n本文\n## 追加した節\n新しい教訓\n',
+  });
+  const ok = checkG8({ ts: kept.ts });
+  assert.equal(ok.ok, true, JSON.stringify(ok.violations));
+  assert.equal((ok.notes ?? []).length, 0, `検査手段なしの注記が残っている: ${ok.notes}`);
+
+  const scoped = setupInterfaceChangeCase(t, tsFor(import.meta.url, 61), {
+    relPath,
+    originalContent: '# 調査の規律\n本文\n',
+    outputContent: '---\npaths: ["src/**"]\n---\n# 調査の規律\n本文\n',
+  });
+  const ng = checkG8({ ts: scoped.ts });
+  assert.equal(ng.ok, false);
+  assert.ok(ng.violations.some((v) => v.includes('rule-paths')), JSON.stringify(ng.violations));
+});

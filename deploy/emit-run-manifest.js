@@ -26,10 +26,11 @@
  */
 
 import path from 'node:path';
-import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { readList } from '../gates/lib/managed-paths.js';
 import { isCanonSelfTarget, SELF_TARGET_MESSAGE } from '../gates/lib/self-target-guard.js';
+import { computeFenceMask, sectionSlice } from '../gates/lib/markdown.js';
 
 const CANON_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
@@ -38,7 +39,42 @@ function posix(p) {
   return p.split(path.sep).join('/');
 }
 
-/** RUN.md の本文を組み立てる（固定テンプレート・変数はパスと集合要約のみ）。 */
+/** 見出しの本文が headingRe に一致する節（見出しレベル問わず・コードブロック外）の全文を、出現順に返す。 */
+export function extractSections(text, headingRe) {
+  const lines = text.split(/\r?\n/);
+  const mask = computeFenceMask(lines);
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (mask[i]) continue;
+    const m = lines[i].match(/^#{2,6}\s+(.*?)\s*$/);
+    if (!m || !headingRe.test(m[1])) continue;
+    const { start, end } = sectionSlice(lines, i, mask);
+    out.push(lines.slice(start, end).join('\n').replace(/\s+$/, ''));
+  }
+  return out;
+}
+
+/**
+ * run 固有の追加手順（MANIFEST の `## P8 の追加手順…` 節）と、配置後の手作業（README の
+ * `## 前提セットアップと配置後の手作業` 節・カナリア手順の節）を逐語で取り出す。RUN.md に載らないと S4 の
+ * オーケストレータが実行を落とし（run 20260927_003229 で台帳照合を未実行）、要旨の言い換えで意味が
+ * 変わった（run 20260925_004359 で「5件削除」が「台帳の削除」になり台帳ごと消えた）。
+ */
+export function readRunSpecificSteps(outputDir) {
+  const read = (rel) => {
+    const p = path.join(outputDir, rel);
+    return existsSync(p) ? readFileSync(p, 'utf8') : '';
+  };
+  return {
+    p8: extractSections(read('MANIFEST.md'), /^P8 の追加手順/),
+    postDeploy: extractSections(read(path.join('generated', '.claude', 'README.md')), /^前提セットアップ|カナリア/),
+  };
+}
+
+/** 転記した節の見出しを1段下げ、RUN.md の章立て（### 手順）の下に収める。 */
+const demote = (section) => section.replace(/^(#{2,4})(\s)/gm, '##$1$2');
+
+/** RUN.md の本文を組み立てる（固定テンプレート・変数はパスと集合要約、および逐語転記する節のみ）。 */
 export function renderRunManifest(outputDir, targetDir) {
   const ts = path.basename(outputDir);
   const outAbs = posix(path.resolve(outputDir));
@@ -50,6 +86,10 @@ export function renderRunManifest(outputDir, targetDir) {
 
   const bullets = (items, empty) =>
     items.length === 0 ? [`  （${empty}）`] : items.map((r) => `  - ${r}`);
+
+  const { p8, postDeploy } = readRunSpecificSteps(outputDir);
+  const verbatim = (sections, empty) =>
+    sections.length === 0 ? [`（${empty}）`] : ['以下は生成物からの逐語転記です（言い換えずにこのとおり実行・提示する）。', '', ...sections.map(demote).flatMap((s) => [s, ''])];
 
   const preCheck = `node "${canon}/deploy/pre-deploy-check.js" "${outAbs}" "${tgtAbs}"`;
   const deployDry = `node "${canon}/deploy/deploy.js" "${outAbs}" "${tgtAbs}"`;
@@ -94,6 +134,10 @@ export function renderRunManifest(outputDir, targetDir) {
     '',
     'pre-deploy-report の retired 一覧が「意図した廃止」と一致することを確認してから次へ進みます。',
     '',
+    '### 2a. この run 固有の追加手順（MANIFEST の「P8 の追加手順」節）',
+    '',
+    ...verbatim(p8, 'この run に固有の追加手順は無い'),
+    '',
     '### 3. 配置（退避スワップ）',
     '',
     'まず `--confirm` 無しで配置予定だけを確認できます（対象は変更されません）:',
@@ -114,6 +158,10 @@ export function renderRunManifest(outputDir, targetDir) {
     '- exit 2: uncaptured で拒否、退避できないファイルがあり事前検査で拒否（対象は無変更）、または post-check 失敗で自動 restore（配置前状態へ復帰）。',
     '',
     '配置に成功すると `.deploy/deploy-result.json` が書かれます（`/canon resume` が配置済みかを判定する材料）。',
+    '',
+    '### 4. 配置後の手作業（README の「前提セットアップと配置後の手作業」節・カナリア手順）',
+    '',
+    ...verbatim(postDeploy, 'README に配置後の手作業の節が無い'),
     '',
     '## 実行環境の注意',
     '',

@@ -31,6 +31,8 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
-# tasks（本リポジトリ側では不採用。ユーザー環境のグローバル CLAUDE.md が
-# tasks/todo.md への書き出しを指示し続けるため、保険として除外行を残す）
-/tasks/
+# tasks: 追跡するのは canon 改修要求の台帳 tasks/lessons.md だけ（2026-09-27 新設）。
+# ユーザー環境のグローバル CLAUDE.md が tasks/todo.md への書き出しを指示し続けるため、
+# それ以外は保険として除外を残す（ディレクトリごと除外すると ! で戻せないため /tasks/* 形式）。
+/tasks/*
+!/tasks/lessons.md

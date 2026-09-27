@@ -87,7 +87,8 @@ export function computeVanishing(outputDir, targetDir) {
       uncaptured.push(rel);
     }
   }
-  return { vanishing, retired, uncaptured, targetManaged, unreadable, listDefects };
+  const deployCount = (readList(path.join(outputDir, '.deploy', 'managed-paths.list')) ?? []).length;
+  return { vanishing, retired, uncaptured, targetManaged, unreadable, listDefects, deployCount };
 }
 
 /** pre-deploy-report の本文を組み立てる（§10.2 実装契約: retired/uncaptured の区分と件数）。 */
@@ -97,6 +98,16 @@ export function renderReport(outputDir, targetDir, r) {
     `# pre-deploy-report (<ts>=${ts})`,
     `target: ${targetDir}`,
     `消失予定: ${r.vanishing.length} 件（retired ${r.retired.length} / uncaptured ${r.uncaptured.length}）`,
+    // 退避は対象の管理パス集合の全件（deploy.js step1 の walkManaged）。P8 で .bak の有無を推測で案内しない
+    // ための実数（run 20260927_003229 で「退避0件の見込み」と案内し、実際は39件だった）。
+    ...(r.targetManaged
+      ? [
+          `配置予定: ${r.deployCount ?? '?'} 件（managed-paths.list）`,
+          `退避予定: ${r.targetManaged.length} 件（対象の管理パス集合の全件を .claude-canon.bak.${ts}/ へ mv。` +
+            `うち上書き ${r.targetManaged.length - r.vanishing.length} / 消失 ${r.vanishing.length}）` +
+            (r.targetManaged.length === 0 ? '。退避0件なので .bak は作られない（戻すなら git revert のみ）' : ''),
+        ]
+      : []),
     '',
   ];
   if (r.vanishing.length === 0) {

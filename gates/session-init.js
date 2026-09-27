@@ -27,7 +27,21 @@
  *      currentRunTs() で既に「run外」と判定するため無い）。
  */
 
-import { readHookInput, readSessionTs, hasTerminalMarker, ensureDir, WORK_ROOT, isMainModule } from './lib/run.js';
+import path from 'node:path';
+import { existsSync } from 'node:fs';
+import { readHookInput, readSessionTs, hasTerminalMarker, ensureDir, outputDir, WORK_ROOT, isMainModule } from './lib/run.js';
+
+/**
+ * 終端マーカー後の run の状態を1行で言う。generation.done は「工程7を通過しガードが非適用になった」ことで、
+ * 配置まで終わったことではない（run 20260925_004359 の S4 冒頭で配置前なのに「完了済み」と出た）。
+ * 配置の完了は deploy.js が成功時だけ書く `.deploy/deploy-result.json` で判る。
+ */
+export function describeFinishedRun(ts) {
+  const deployed = existsSync(path.join(outputDir(ts), '.deploy', 'deploy-result.json'));
+  return deployed
+    ? `work/.session-ts は配置まで終えた run（${ts}）を指している（情報ログのみ・削除しない）`
+    : `work/.session-ts は工程7を通過した run（${ts}・ガード非適用）を指している。配置（工程10）は未了の可能性がある——npm run resume -- ${ts} で現在地を確かめる（情報ログのみ・削除しない）`;
+}
 
 function main() {
   readHookInput(); // SessionStart は入力を使わない（matcher: startup/resume/clear/compact）
@@ -36,9 +50,7 @@ function main() {
 
   const ts = readSessionTs();
   if (ts && hasTerminalMarker(ts)) {
-    process.stderr.write(
-      `[session-init] work/.session-ts は完了済み run（${ts}）を指している（情報ログのみ・削除しない）\n`
-    );
+    process.stderr.write(`[session-init] ${describeFinishedRun(ts)}\n`);
   }
 
   // SessionStart は非ブロッキング。素通りする（exit 0・JSON出力なし）。

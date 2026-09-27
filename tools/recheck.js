@@ -36,7 +36,7 @@ import path from 'node:path';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { CANON_ROOT, posix } from '../gates/lib/canon.js';
-import { workDir, readSessionTs, isValidTs, investigationMarkerKey } from '../gates/lib/run.js';
+import { workDir, readSessionTs, isValidTs, investigationMarkerKey, readProcessedLog } from '../gates/lib/run.js';
 import { checkStaleness } from '../gates/lib/run-status.js';
 
 const STAGES = ['investigation', 'requirements', 'spec', 'design', 'generation'];
@@ -125,9 +125,18 @@ if (blocked) {
 // ガードは判定していない。「検査していない」を「違反なし」と言うと、直した内容がゲートを
 // 通ったと誤読される（S2-2・ライブ run 20260910_220906 で実測）。
 if (combinedOut.includes(`${stage}:idempotent-cleanup`)) {
+  // マーカーが既にある理由を processed.log で区別する。ワーカーの SubagentStop で pass して鋳造済みなら
+  // 「検査済み」であり、reopen は不要（run 20260927_003229 で「検査していない」と誤読し、不要な reopen を1往復した）。
+  const lastPass = readProcessedLog(ts)
+    .filter((e) => e.stage === stage && e.action === 'pass' && (e.markerKey ?? e.stage) === markerKey)
+    .pop();
+  const passNote = lastPass
+    ? `なお ${markerKey} は ${lastPass.at} に hook 経路で検査済み（pass）でマーカーが鋳造されている。` +
+      'その後に成果物を直していないなら reopen は不要。'
+    : '';
   process.stdout.write(
-    `[recheck] 検査していない（${stage}.done が既に存在するため冪等スキップされた・§4.5①）。` +
-      `成果物を直したのなら npm run reopen -- ${ts} ${markerKey} を先に実行してから再度 recheck すること。\n`
+    `[recheck] 今回は検査していない（${markerKey}.done が既に存在するため冪等スキップされた・§4.5①）。${passNote}` +
+      `その後に成果物を直したのなら npm run reopen -- ${ts} ${markerKey} を先に実行してから再度 recheck すること。\n`
   );
   process.exit(3);
 }

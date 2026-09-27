@@ -7,7 +7,8 @@
  *   - 空でない出力（生成物が実在する）
  *   - managed-paths.list が base ＋検出 .claude/* ＋(L5)plugin のみ（集合外を排除・§10.1）
  *   - MANIFEST ⇔ output（MANIFEST が存在する）
- *   - managed-paths.list ⇔ generated/（列挙パスが実際に生成されている・glob 記法の禁止）
+ *   - managed-paths.list ⇔ generated/（列挙パスが実際に生成されている・glob 記法の禁止／
+ *     generated/ の全ファイルが列挙されている＝配置されない生成物が無い）
  *   - retired.list の glob 記法の禁止（G8・pre-deploy-check が完全一致で参照するため）
  *
  * §10.1 の肝: 管理パス集合の**外**（.github/workflows・CODEOWNERS 等）が list に混入すると、
@@ -30,7 +31,7 @@ import { outputDir, isMainModule, readHookInput, readSessionTs, blockStop, passS
 import { listGeneratedArtifacts } from './g12_output_perfile.js';
 import { isManaged, parseListText, checkConcreteEntries } from './lib/managed-paths.js';
 import { parseManifestFiles, MANIFEST_FILES_HEADING } from './lib/manifest.js';
-import { listDeclaredArtifacts } from './lib/design-map.js';
+import { listDeclaredArtifacts, countLayerSections } from './lib/design-map.js';
 
 /** generated/ 配下の【全ファイル】を列挙する（型で絞らない）。§10.1 の集合内包は全型が対象。 */
 function walkAllFiles(root) {
@@ -110,6 +111,16 @@ export function checkG9({ ts }) {
           `（列挙したのに生成していない＝配置時に rolled-back になる・§11.2）。`
       );
     }
+
+    // 3-b'. 逆方向: generated/ の全ファイルが managed-paths.list に列挙されている。deploy.js は list の行だけを
+    //       配置するため、列挙漏れの生成物は MANIFEST に載っていても黙って配置されない（S1-3 推奨2・3者一致）。
+    const listedSet = new Set(entries);
+    for (const f of walkAllFiles(genRoot)) {
+      const rel = path.relative(genRoot, f).replace(/\\/g, '/');
+      if (!listedSet.has(rel)) {
+        violations.push(`${GATE}: generated/${rel} が managed-paths.list に列挙されていない（生成したのに配置されない・S1-3）。`);
+      }
+    }
   }
 
   // 3-c. retired.list（任意）も同じ具体性を要求する。G8（非回帰）と pre-deploy-check は
@@ -161,7 +172,23 @@ export function checkG9({ ts }) {
   //    design-map が無いときは照合元が無いので行わない（その不在は G1（generation は design.done 前提）の担当）。
   const designMapPath = path.join(outDir, 'design-map.md');
   if (existsSync(designMapPath)) {
-    for (const d of listDeclaredArtifacts(readFileSync(designMapPath, 'utf8'))) {
+    const dmText = readFileSync(designMapPath, 'utf8');
+    const declared = listDeclaredArtifacts(dmText);
+    // 層の節が1つも見つからないのに、disposition に無いファイル（＝新規）が generated/ にある: 見出しの照合が
+    // 効いておらず、新規ファイルの脱落を検出できない（見出しの完全一致で実 run の新規宣言が0件だった・
+    // run 20260925_004359・20260927_003229）。新規ファイルの無い設計（disposition だけ）は層の節が無くてよい。
+    if (countLayerSections(dmText) === 0) {
+      const declaredSet = new Set(declared.map((d) => d.path));
+      const undeclared = [...actual].filter((f) => /\.md$|^\.mcp\.json$/.test(f) && !declaredSet.has(f));
+      if (undeclared.length > 0) {
+        violations.push(
+          `${GATE}: design-map に層の節（## L1・## Skills・## Agents・## L4・## L5 で始まる見出し）が1つも無いのに、` +
+            `disposition に無い生成物がある（例: ${undeclared.slice(0, 3).join(', ')}）。新規ファイルの宣言を抽出できず、` +
+            '脱落の照合が vacuous になる（designer 定義の見出し契約を参照）。'
+        );
+      }
+    }
+    for (const d of declared) {
       if (!actual.has(d.path)) {
         violations.push(
           `${GATE}: design-map が宣言した ${d.path}（${d.source === 'layer-heading' ? `${d.layer} の見出し` : `disposition: ${d.annotation}`}）が generated/ に実在しない` +

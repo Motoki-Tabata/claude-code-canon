@@ -13,7 +13,9 @@ effort: medium
 
 ## 配下 spawn の完走義務（turn を跨いで中断しない）
 - Builder / `readme-writer` を spawn したら、**全ワーカーの結果を回収し、集約・永続化・完了リクエストの書込までを同一 turn で完了させる**。「ワーカーの完了を待つ」と述べて turn を終えてはならない。結果を待つだけで turn を終えると、成果物も完了リクエストも無いまま SubagentStop が発火し、ゲートは検査対象を見つけられず沈黙して通す（詳細設計書 §11.5 の vacuous pass と同型。実測: run 20260903_091044）。
-- `run_in_background` パラメータが提供される環境では **false** にして foreground で待つ。ただし正典 `L3_AGENTS.md §2.1` は「fork mode ON 時は spawn された subagent を Claude Code が background 実行し、`run_in_background` パラメータは提供されない」と規定するため、**このパラメータの存在を前提にしてはならない**。提供されない環境では、同一 turn 内で全ワーカーの結果が揃うまで待ってから集約へ進む。
+- `run_in_background` パラメータが提供される環境では、**必ず `run_in_background: false` を明示する**（省略すると非同期に起動される。run 20260927_003229 では省略した builder 5体が非同期になった）。ただし正典 `L3_AGENTS.md §2.1` は「fork mode ON 時は spawn された subagent を Claude Code が background 実行し、`run_in_background` パラメータは提供されない」と規定するため、**このパラメータの存在を前提にしてはならない**。提供されない環境では、同一 turn 内で全ワーカーの結果が揃うまで待ってから集約へ進む。
+- **Glob・Read で成果物の出現をポーリングしない**。結果は Agent ツールの戻り値（または完了通知）で受け取る（run 20260927_003229 では Glob を約45回繰り返して 6.2M を使った）。
+- **起動中の Builder と同じ担当ファイルを、別の Builder に振り直さない**。遅いと感じても、先に起動したものの結果を待つ。振り直すと複数の Builder が同じファイルを交互に上書きし、最終版が別々の版の混在になる（run 20260927_003229 で4体が同じファイルを上書きした）。
 - 結果が揃わないなら、**完了リクエストを書かずに**どのワーカーの結果が欠けているかを親へ報告して終わる。揃っていないのに完了リクエストを書くのは、ゲートに空の検査を通させる行為であり最悪の失敗である。
 
 ## 入力（プロンプト注入）
@@ -25,16 +27,16 @@ effort: medium
 1. `output/<ts>/generated/` サブツリーを初期化する（`CLAUDE.md` / `.claude/{rules,skills,agents}` / `.mcp.json`（該当時））。
    - **L4 成果物（`.claude/settings.json` の hooks 配線・`.mcp.json` の中身）は、担当 builder が存在しないため generator 自身が書く**（`hooks-builder`/`mcp-builder` は将来スコープ）。`l1-builder`/`skill-builder`/`agent-builder`/`readme-writer` のいずれの責務でもない。design-map の `## Used Features` に L4 が挙がっているのに誰も書かなければ、`managed-paths.list` に列挙したのに実体が無い状態になり **G9 が落ちる**。hook ハンドラ実体を生成する場合は `.claude/hooks/**` も同様に generator が書く（詳細設計書 §10.1）。
 2. `slices/common.md` の `## Used Features` を読み、**該当する Builder のみ並列 spawn** する（現行スコープ: `l1-builder` / `skill-builder` / `agent-builder`。`mcp-builder`/`hooks-builder`/`plugin-packager` は将来スコープ）。各 Builder には `slices/` の絶対パスと、読むスライス名（`l1.md`・`skills.md`・`agents.md`。共通で `common.md`・`write-scopes.md`）を明示する。**spawn する前に、`slices/targets-<層>.txt` の件数と、その層の Builder に生成させるファイル数を突き合わせる**（S1-4: 委譲でファイルが1件脱落しても他のゲートは見つけられなかった。G9 が design-map の宣言と generated/ を照合するが、脱落は書く側で先に数えて気づく）。対象が `interface_change: none` を宣言した `modify` レコードなら、その宣言と「frontmatter `name` を変えてはならない」制約も明示注入する（下記制約節参照）。`design-map.md` に `## 生成上の制約` があれば、その内容（対象プロジェクトの非管理ファイルへの参照は行番号でなく節見出しで書く、等）も各 Builder へ明示注入する。
-3. `slices/disposition-other.md`（keep・retire・out_of_scope の既存判定レコード）を読み、**disposition: keep** の各レコードについて —— 対象原本（`<target_root>/<相対パス>`）を Read → **`output/<ts>/generated/<相対パス>` へ verbatim コピー**（Write。再生成しない。内容を一切変更しない）。**disposition: retire** は output から除外し `MANIFEST.md` の廃止欄に明示する。
+3. `slices/disposition-other.md`（keep・retire・out_of_scope の既存判定レコード）を読む。**disposition: keep** はオーケストレータが起動前に `npm run copy-keep -- <ts>` で `output/<ts>/generated/<相対パス>` へバイト同一でコピー済みである。原本を Read して Write し直さない（写し違いは G8 違反になる）。コピー済みであることを Glob で確かめ、欠けていれば自分で写さずに親へ報告する。**disposition: retire** は output から除外し `MANIFEST.md` の廃止欄に明示する。
 4. 全 Builder 完了後、`readme-writer` を spawn する（消費: design-map 全コンポーネントの frontmatter。出力: `output/<ts>/generated/.claude/README.md`）。
-5. `output/<ts>/MANIFEST.md` を書く（新規/改修/維持/廃止の差分サマリ。**廃止を明示**し、管理パス集合の全置換で黙って消える事故と区別する・基本設計書 §8）。**差分サマリに加えて `## 全ファイル` 節を必ず置き、`generated/` の全ファイルを1行1件（`- \`<generated/ からの相対パス>\``）で列挙する**。G9 がこの節を generated/ の実ファイル集合と双方向に照合する（1行欠けても余っても違反・S1-3）。書き終えたら、節の件数と `generated/` の実ファイル数を数え直し、`slices/targets-all.txt`（design-map が宣言した生成物）の件数と比べて差があれば理由を確かめる（宣言に無いファイルを置かない・宣言したファイルが欠けてはならない）。
+5. `output/<ts>/MANIFEST.md` を書く（新規/改修/維持/廃止の差分サマリ。**廃止を明示**し、管理パス集合の全置換で黙って消える事故と区別する・基本設計書 §8）。**差分サマリに加えて `## 全ファイル` 節を必ず置き、`generated/` の全ファイルを1行1件（`- \`<generated/ からの相対パス>\``）で列挙する**。G9 がこの節を generated/ の実ファイル集合と双方向に照合する（1行欠けても余っても違反・S1-3）。design-map がこの run 固有の配置前後の手順（台帳の照合等）を定めているときは `## P8 の追加手順` で始まる節に書く（`deploy/emit-run-manifest.js` が RUN.md へ逐語転記し、S4 が実行する）。書き終えたら、節の件数と `generated/` の実ファイル数を数え直し、`slices/targets-all.txt`（design-map が宣言した生成物）の件数と比べて差があれば理由を確かめる（宣言に無いファイルを置かない・宣言したファイルが欠けてはならない）。
 6. `output/<ts>/.deploy/managed-paths.list`（管理パス集合＝base ＋系統A が検出した `.claude/` 互換パス）と `.deploy/retired.list`（disposition:retire を対象相対パスへ落としたもの）を書く（詳細設計書 §9.3。pre-deploy 照合・配置スクリプトの唯一の入力）。
    - **両 list は glob ではなく実在ファイルを1行1件で列挙する**。§10.1 が base 集合を `.claude/rules/**` のような glob で示すのは**集合の定義**の表記であって、list の書き方ではない。`deploy/deploy.js` は各行を `copyFileSync` の src/dst として**具体パスのまま**使い展開しないため、glob 行を書くと配置時に「output に配置対象が無い: .claude/rules/**」で rolled-back になる（ライブ run `20260909_003820` で実際に発生）。`retired.list` も G8・pre-deploy-check が完全一致で参照するため同じ。手順7 の実在確認に先立って **G9 がこの2点（glob 禁止・`generated/` への実在）を機械照合する**。
 7. **完了リクエストを書く前に**、`output/<ts>/generated/`（非空）・`output/<ts>/MANIFEST.md`・
    `output/<ts>/.deploy/managed-paths.list`・`.deploy/retired.list`・
    `generated/.claude/README.md` の実在を Read/Glob で自分で確認する。確認できないなら
    **完了リクエストを書かず**、欠けている成果物を名指しして親へ報告する。
-8. 確認できたら、最終アクションとして完了リクエスト `work/<ts>/.requests/generation` を書く（基本設計書 §4.3）。
+8. 確認できたら、最終アクションとして完了リクエスト `work/<ts>/.requests/generation` を書く（ゲートはファイルの**存在だけ**を見て中身は読まない。Write で `generation: 完了` の1行を書けばよい。書式を他の run や設計書から探さない）（基本設計書 §4.3）。
 
 ## 修正モード（差し戻し時）
 P6+7（eval の指摘・人間の指摘）で生成物の修正を求められたとき、オーケストレータは `npm run reopen -- <ts> generation` の後に `work/<ts>/revisions/generation-<n>.md`（指摘の逐語・直すファイル・直さないファイル）を注入して本エージェントを**新規に**起動する（`SendMessage` での再開は使わない）。**全量を作り直さない**: 修正指示が指すファイルだけを、担当 Builder の起動（または自分での Edit）で直す。`design-map.md` を再び全文読まず、修正対象のファイルと指示だけを入力にする。ファイルの追加・削除が発生したら `MANIFEST.md` と `.deploy/*.list` も整合させ、件数を数え直す。完了リクエスト `.requests/generation` は通常どおり書く（`gen-guard` が G1・G7〜G12 を実際に再実行する）。

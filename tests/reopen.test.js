@@ -21,6 +21,7 @@ import {
   markersDir,
   blocksDir,
   requestsDir,
+  workDir,
   hasMarker,
 } from './helpers/paths.js';
 import { decide, runToolCli, runNodeScript } from './helpers/hook.js';
@@ -251,4 +252,28 @@ test('recheck: マーカー残存（冪等スキップ）は「違反なし」�
   assert.match(r.stdout, /検査していない/, '「違反なし」ではなく「検査していない」と明示するべき');
   assert.doesNotMatch(r.stdout, /違反なし/, '冪等スキップ時に「違反なし」という文言を出してはならない');
   assert.match(r.stdout, /npm run reopen/, 'reopen への誘導が無い');
+});
+
+test('recheck: hook 経路で pass 済みのマーカーは「検査済み」と区別し、マーカー名は markerKey で出す（run 20260927_003229）', (t) => {
+  const ts = tsFor(import.meta.url, 13);
+  withRun(t, ts, { dirs: ['markers'] });
+  mkdirSync(path.join(workDir(ts)), { recursive: true });
+  writeFileSync(path.join(workDir(ts), 'requirements.md'), '# req\n'); // 要件確定後＝investigation は focused 側のキー
+  mintMarker(ts, 'investigation.focused');
+  appendProcessedLog(ts, { stage: 'investigation', action: 'pass', ok: true, markerKey: 'investigation.focused' });
+  writeFileSync(path.join(requestsDir(ts), 'investigation'), 'recheck: residual\n');
+  const r = runToolCli('recheck.js', [ts, 'investigation']);
+  assert.equal(r.code, 3, `${r.stdout}${r.stderr}`);
+  assert.match(r.stdout, /investigation\.focused\.done が既に存在する/, 'マーカー名が stage 名（investigation.done）になっている');
+  assert.match(r.stdout, /hook 経路で検査済み（pass）/);
+});
+
+test('recheck: 同じ違反の再判定でも明示的な recheck はブロック（exit 2）を返す（Stop の再ブロック抑止の対象外）', (t) => {
+  const ts = tsFor(import.meta.url, 14);
+  withRun(t, ts, { dirs: ['markers'] });
+  writeFileSync(path.join(requestsDir(ts), 'generation'), 'x\n'); // generated/ 空＝必ず違反
+  assert.equal(runNodeScript(GEN_GUARD, [], { input: '{}' }).code, 2, '前提: 初回の hook はブロックする');
+  const r = runToolCli('recheck.js', [ts, 'generation']);
+  assert.equal(r.code, 2, `同じ違反でも recheck は「違反あり」を返さなければならない: ${r.stdout}`);
+  assert.doesNotMatch(r.stdout, /違反なし/);
 });
