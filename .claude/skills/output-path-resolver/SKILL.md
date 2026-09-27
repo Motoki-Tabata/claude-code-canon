@@ -25,7 +25,7 @@ user-invocable: false
 | design-map | `output/<ts>/design-map.md` |
 | MANIFEST | `output/<ts>/MANIFEST.md` |
 | 配置スクリプトの真実源 | `output/<ts>/.deploy/{managed-paths.list,retired.list}` |
-| 権威マーカー・承認・ブロック（**Hook 専有・エージェント書込 deny-all**） | `output/<ts>/.gate/{markers,approvals,blocks}/` |
+| 権威マーカー・ブロック（**Hook 専有・エージェント書込 deny-all**） | `output/<ts>/.gate/{markers,blocks}/` |
 | 調査中間成果物 | `work/<ts>/{target.txt,existing_customizations.md,project_profile.md,requirements.md}` |
 | 工程9 判定入力バンドル（`eval/bundle.js` が生成） | `work/<ts>/eval-bundle/<axis>/<case>.md` |
 | 工程9 各軸 judge の verdict | `output/<ts>/eval/<axis>.md` |

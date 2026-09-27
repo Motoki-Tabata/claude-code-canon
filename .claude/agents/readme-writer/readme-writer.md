@@ -55,7 +55,7 @@ effort: low
 ## セットアップ欄の自動導出（詳細設計書 §12.5）
 design-map 全コンポーネントの frontmatter・依存を走査して「動かす前に」を機械抽出する:
 - `context: fork` を使う Skill → `agent:` 指定の存在確認
-- ネスト委譲 → 深さ5以内であることの確認
+- ネスト委譲 → 既定の深度上限（3階層・`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` で可変）以内であることの確認
 - MCP `${VAR}` secret → 初回環境変数設定手順
 - MCP OAuth → ブラウザ認可手順
 - Hooks 配線 → `.claude/settings.json` への配線と参照スクリプトの実行権限付与
