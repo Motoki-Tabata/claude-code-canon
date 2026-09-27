@@ -176,6 +176,9 @@ test('鮮度: ハーネスの .cc-writes とディレクトリ自身の mtime �
   writeFileSync(skill, 'x');
   const old = new Date(Date.now() - 60_000);
   utimesSync(skill, old, old);
+  // マーカーは成果物より後・現在より前に置く（直後の書込と同じ時刻に丸められる FS でも前後が決まるように）。
+  const minted = new Date(Date.now() - 30_000);
+  utimesSync(markerPath(ts, 'generation'), minted, minted);
   mkdirSync(path.join(outputDir(ts), 'generated', '.claude', '.cc-writes'), { recursive: true }); // 鋳造後にハーネスが作る
   writeFileSync(path.join(outputDir(ts), 'generated', '.claude', '.cc-writes', 'w'), '');
   assert.equal(checkStaleness(ts, 'generation').stale, false, '.cc-writes・ディレクトリ mtime で誤検知した（run 20260925_004359・S4）');
