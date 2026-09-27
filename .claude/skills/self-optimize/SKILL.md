@@ -34,13 +34,13 @@ argument-hint: "<label>"
 
 ### 工程1: プロジェクト調査1（浅く広く・2系統）→ P1（報告のみ）
 
-`/canon` と同一（メイン Claude が系統A・系統B を直接並列 spawn し、各ワーカーが自分の成果物を書く）。ただし対象が claude-canon 自身なので、系統Aは現行の `.claude/agents/**`（19体）・`.claude/skills/**`（14件）・`.claude/settings.json` を、系統Bは `gates/`・`tools/`・`tests/`・`docs/` を含むプロジェクト全体の構造を調べる。
+`/canon` と同一（メイン Claude が系統A・系統B を直接並列 spawn し、各ワーカーが自分の成果物を書く）。ただし対象が claude-canon 自身なので、系統Aは現行の `.claude/agents/**`（17体）・`.claude/skills/**`（14件）・`.claude/settings.json` を、系統Bは `gates/`・`tools/`・`tests/`・`docs/` を含むプロジェクト全体の構造を調べる。
 
 ### C1/C5 事前確認（工程1直後・試し打ち）
 
 工程6（設計・G2 keep 判定）を待たず、`gates/lib/investigation.js` の `parseSystemA`/`isCanonClean`/`parseSystemB` を試し打ちし、既存カスタマイズの keep 条件 C1（正典適合）・C5（プロジェクト実態整合）を先取りで確認する。呼出し方向はメイン Claude（本 Skill の inline 実行）→ Bash → `node` → `gates/lib/investigation.js` のエクスポート関数であり、Subagent は介さない。入力は `work/<ts>/existing_customizations.md`（工程1完了時点で既に実在）、出力は標準出力への観測結果のみで、`.claude/`・`docs/`・`gates/` への書込みは発生させない。
 
-**C1 と C5 の扱いを区別すること**: 工程1直後に実データで試せるのは **C1 側（`parseSystemA` + `isCanonClean`）のみ**である。**C5（`parseSystemB`）が要る `## focused` の `ref_resolution` は `requirements.md` 確定後（工程3）にしか書かれない**（`gates/g1_stage_order.js:80-85`）。したがって工程1直後の C5 確認は、fixture（`fixtures/sample-repos/existing/expected-work/project_profile.md:15-16`）または `parseSystemB` の書式契約（`ref: <ref>  kind: <kind>  resolved: true|false` の1行パターン）を読むだけの確認にとどめる。**実データでの C5 検証（`resolved` の真偽が実際にどう出るか）は工程3（focused）以降に行われる**——本手順のC5確認は書式契約の確認までであり、それ以上は求めない。
+**C1 と C5 の扱いを区別すること**: 工程1直後に実データで試せるのは **C1 側（`parseSystemA` + `isCanonClean`）のみ**である。**C5（`parseSystemB`）が要る `## focused` の `ref_resolution` は `requirements.md` 確定後（工程3）にしか書かれない**（`gates/g1_stage_order.js` の stage=investigation 検査。`requirements.md` が無い間は `## focused` が空でも正当）。したがって工程1直後の C5 確認は、fixture（`fixtures/sample-repos/existing/expected-work/project_profile.md:15-16`）または `parseSystemB` の書式契約（`ref: <ref>  kind: <kind>  resolved: true|false` の1行パターン）を読むだけの確認にとどめる。**実データでの C5 検証（`resolved` の真偽が実際にどう出るか）は工程3（focused）以降に行われる**——本手順のC5確認は書式契約の確認までであり、それ以上は求めない。
 
 1. **対象を得る**: `work/<ts>/existing_customizations.md`（系統Aの成果物・工程1完了時点で既に実在）のパスを確認する。C5 用には上記 fixture（`project_profile.md` の `## focused` セクション）を参照する。
 2. **実行して観測する**: `Write` ツールで検証スクリプトを **`work/<ts>/` 配下**（sanctioned ツリー）に置く（例: `work/<ts>/probe-c1.mjs`）。`gates/lib/investigation.js` から `parseSystemA`・`isCanonClean`（C1用）・`parseSystemB`（C5の書式契約確認用）を import し、呼び出し結果を `console.log` するだけのコードを書く。書き終えたら `node work/<ts>/probe-c1.mjs` として実行する。**`node -e "…"` 形式は使用不可**——`gates/lib/shell-write.js` の `WRITE_OP_RE` が `\bnode\s+-e\b` を書込操作として分類し、`gates/self-optimize-scope-guard.js`・`gates/write-scope-guard.js` の `PROTECTED_TOKEN_RE` がコマンド文字列中の `gates/` を保護パストークンとして検出するため、`gates/lib/investigation.js` に言及する `node -e` コマンドは両ガードにより deny される（無害な `console.log` のみの `node -e` でも deny された・実測）。`work/<ts>/` 配下のスクリプトファイルを `node` で実行する形態はどちらの検出パターンにも該当せず通過する。
@@ -48,11 +48,11 @@ argument-hint: "<label>"
 
 ### 工程2: 要件ヒアリング（inline）→ P2
 
-`/canon` と同一の手順だが、**「今回の最適化の狙いを1点に絞る」ことを追加で確認する**。現行 `.claude/` は agents 19体・skills 14件と規模が大きい。全量作り直しではなく「大半を keep・対象の1〜数点のみ modify」という設計になるよう、要件を狭く取ることをユーザーに促す（工程6 の keep 判定・G8 のバイト同一検証を成立させやすくするため）。
+`/canon` と同一の手順だが、**「今回の最適化の狙いを1点に絞る」ことを追加で確認する**。現行 `.claude/` は agents 17体・skills 14件と規模が大きい。全量作り直しではなく「大半を keep・対象の1〜数点のみ modify」という設計になるよう、要件を狭く取ることをユーザーに促す（工程6 の keep 判定・G8 のバイト同一検証を成立させやすくするため）。
 
 ### 工程3〜9
 
-`/canon` と完全に同一（工程3: 深掘り調査 → P3（報告のみ）、工程4: spec → P4、工程5+6: 機能選定+設計 → P5、工程7: 生成、工程8: 検証、工程9: eval → P6+7（生成物と eval を1回で提示））。**4セッション分割（S1〜S3）と `/canon resume <ts>` による再開・`npm run state:record` での承認記録・差し戻しの新規 spawn も `/canon` と同じ**（`npm run resume` は自己最適化 run の `<ts>` も再開できる）。判断内容はすべて既存の Skill/Subagent（`spec-writer`・`selector`・`designer`・`generator`・`eval-reviewer` 等）に委ねる。既存カスタマイズがある前提（§8）なので keep/modify/merge/retire 判定（G2・C1〜C5）と G8（keep のバイト同一非退行）が働く。
+`/canon` と完全に同一（工程3: 深掘り調査 → P3（報告のみ）、工程4: spec → P4、工程5+6: 機能選定+設計 → P5、工程7: 生成、工程8: 検証、工程9: eval → P6+7（生成物と eval を1回で提示））。**4セッション分割（S1〜S3）と `/canon resume <ts>` による再開・`npm run state:record` での承認記録・差し戻しの新規 spawn も `/canon` と同じ**（`npm run resume` は自己最適化 run の `<ts>` も再開できる）。判断内容はすべて既存の Skill/Subagent（`spec-writer`・`selector`・`designer`・`generator`・`eval-*` 等）に委ねる。既存カスタマイズがある前提（§8）なので keep/modify/merge/retire 判定（G2・C1〜C5）と G8（keep のバイト同一非退行）が働く。
 
 ### 工程10（代替）: 世代ステージング → 人間へ差し戻し
 

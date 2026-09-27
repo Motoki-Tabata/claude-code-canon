@@ -285,7 +285,7 @@ existing_disposition:
 2. 正典 `docs/` を参照せず完結する（生成/判断 Skill を preload しない）。
 3. 失敗コストが低い（後続工程または eval が出力を検証する）。
 
-`fable`（Claude Fable 5）は公式エイリアスとして指定可能だが canon フローでは既定採用しない。詳細ロジックは `model-selection` Skill が保持し、designer が design-map の `## Model Assignments` に記録する。
+`fable`（Mythos クラス）は公式エイリアスとして指定可能だが canon フローでは既定採用しない。詳細ロジックは `model-selection` Skill が保持し、designer が design-map の `## Model Assignments` に記録する。
 
 **claude-canon 自身のワーカーの割当（model・effort）**: 生成物への割当とは別に、claude-canon 自身の agent 17体は frontmatter に `model:` と `effort:` を**全件明示**する（`effort` 未指定だとセッションの effort を継承し、高 effort が伝播する）。
 
@@ -693,7 +693,7 @@ G14〜G16 は機能X（§13.1）の run が消費する完了リクエスト `wo
 
 ## 12. 成果物 README / MANIFEST 生成機能
 
-「読むだけで使いこなせる」を担保する。生成工程（工程7）の**最終ステップ**（独立工程にしない）。generator が `readme-writer` を sub-worker として spawn し（深さ: orchestrator→generator→readme-writer・5以内）、完了後に `.requests/generation` を書く。
+「読むだけで使いこなせる」を担保する。生成工程（工程7）の**最終ステップ**（独立工程にしない）。generator が `readme-writer` を sub-worker として spawn し（深さ: orchestrator→generator→readme-writer。正典 nesting 上限＝既定3階層・可変に収まる）、完了後に `.requests/generation` を書く。
 
 ### 12.1 4文書の役割分担（output 内）
 
@@ -750,7 +750,7 @@ readme-writer は design-map 各コンポーネントの frontmatter を読み�
 
 design-map 全コンポーネントの frontmatter・依存を走査して「動かす前に」を機械抽出する:
 - `context: fork` を使う Skill → `agent:` 指定の存在確認（正式機能だが actionable 指示必須・`L2_SKILLS.md §2.2`）
-- ネスト委譲 → 深さ5以内であることの確認（`L3_AGENTS.md §2.1`）
+- ネスト委譲 → 既定の深度上限（3階層・`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` で可変）以内であることの確認（`L3_AGENTS.md §2.1`）
 - MCP `${VAR}` secret → 初回環境変数設定手順
 - MCP OAuth → ブラウザ認可手順
 - Hooks 配線 → `.claude/settings.json` への配線と参照スクリプトの実行権限付与

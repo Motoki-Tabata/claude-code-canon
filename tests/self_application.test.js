@@ -329,7 +329,7 @@ test('investigator（深さ2の中継役）は廃止済み。系統A/B は自分
 test('廃止済みの承認サイドカー（npm run approve・.gate/approvals）を .claude/** が指示していない（run 20260927_003229 で spec §0 に混入）', () => {
   const offenders = walkMd(SELF).filter((f) => {
     const text = readFileSync(f, 'utf8');
-    return /npm run approve\b|\.gate\/approvals/.test(text) && !/廃止/.test(text.split('\n').find((l) => /npm run approve\b|\.gate\/approvals/.test(l)) ?? '');
+    return /npm run approve\b|\.gate\/(?:approvals|\{[^}]*\bapprovals\b)/.test(text) && !/廃止/.test(text.split('\n').find((l) => /npm run approve\b|\.gate\/(?:approvals|\{[^}]*\bapprovals\b)/.test(l)) ?? '');
   });
   assert.deepEqual(offenders.map((f) => path.relative(SELF, f)), []);
 });

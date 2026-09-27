@@ -97,4 +97,4 @@
 - **`/self-optimize` は実昇格しない**: 生成された候補は `generations/candidate-<label>/` に置かれるだけで、`npm run promote` の本実行（現行 `.claude/` への実際の入れ替え）は別の明示的な操作としてユーザーが行う必要があります。また、工程7完了後も `.self-optim` の印が残っている間は、`.claude/`・`docs/`・`gates/`・`tests/`・`generations/` への書込みが拒否され続けます。
 - **`self-optimize/SKILL.md` の起動方法・引数**: `name`/`description`/`disable-model-invocation`/`user-invocable`/`argument-hint` の各 frontmatter により、`/self-optimize <label>` という呼び出し方のみが有効です。
 - **`/canon` の委譲チェーンの外にあるもの**: `canon-updater` は `/update-docs` からのみ起動され、`/canon`・`/self-optimize` の実行中に自動的に使われることはありません。
-- **人間ゲートは自動で進まない**: `/canon`・`/self-optimize` の各工程の切れ目（P1〜P7）では、チャット上でユーザーの確認を待って停止します。
+- **人間ゲートは自動で進まない**: `/canon`・`/self-optimize` の人間ゲート（P2・P4・P5・P6+7・P8。`/self-optimize` は P8 なし）で、チャット上でユーザーの確認を待って停止します。P1・P3 は報告のみで停止しません。
