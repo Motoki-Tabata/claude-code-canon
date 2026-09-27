@@ -196,3 +196,12 @@ test('handoff_notes: state.md の要旨の「申し送り:」以降を resume �
   assert.equal(s.handoff_notes[0].note, 'S3 の P6+7 で ui-design.md を原本と diff する');
   assert.equal(s.canon_issue_candidates, 2);
 });
+
+test('SessionStart: 工程7通過・配置前の run を「完了済み」と言わず、配置未了の可能性と resume を案内する（run 20260925_004359・S4）', async (t) => {
+  const { describeFinishedRun } = await import('../gates/session-init.js');
+  const ts = setup(t, 42, { markers: [...S1, 'design', 'generation'] });
+  assert.match(describeFinishedRun(ts), /配置（工程10）は未了の可能性/);
+  mkdirSync(path.join(outputDir(ts), '.deploy'), { recursive: true });
+  writeFileSync(path.join(outputDir(ts), '.deploy', 'deploy-result.json'), '{"status":"deployed"}');
+  assert.match(describeFinishedRun(ts), /配置まで終えた/);
+});
