@@ -495,6 +495,22 @@ pre-deploy-check / deploy は `deploy/` 正本（基本設計書 §14）の**ス
     両方 VIOLATION として検出される（`.claude/rules/tsod-workflow.md` 側は節見出し併記＋行番号
     残置の中間形でも検出される）。
 
+#### 2026-09-27 の判定追加（run 20260925_004359・20260927_003229 の transcript 分析）
+
+上の表を補う。各項目の実測背景は当該コミットと `design/canon-token-baseline-20260924.md`「改修後の実測」にある。
+
+- **G1（investigation）**: `evidence_paths` はキー行だけから読む（行頭固定。summary 本文中の語を拾って誤ブロックした）。系統A の定義ファイル（`CLAUDE.md`・rules の `.md`=L1／`skills/<名前>/SKILL.md`=L2／agents の `.md`=L3／`.claude/hooks/**`=L4）は `layer` をパスと照合する（39件すべてが1段ずれたまま通過した）。scripts・settings.json・README 等は分類に裁量があるので照合しない。
+- **G1（spec）**: 系統B `ref_resolution` の `resolved: false` の参照が spec に全件現れること（§4「未解決の参照」で是正候補か意図的な未解決かを分ける）。
+- **G1（design）**: spec §8 で `[mandatory]` を付けた受入基準の ID が、design-map の「## 要件→生成物の対応（反映追跡）」節に全件現れること（`A1-10〜A1-13` 等の範囲表記を展開する）。
+- **G2（C5）**: `ref_resolution` にエントリが無い**具体パス**は、`target.txt` のルートからの実在で確かめる（系統B の書き落としで実在する参照先を立証できず、形式上の modify で回避した）。`resolved: false`・glob・まとめ書きは代替しない。
+- **G8**: `paths:` の無い rule は「無条件ロードであること」を対外インタフェースの署名にする（旧実装は検査手段なしで素通り）。本文の節の追加は署名に含めない。
+- **G9**: 層の節の照合を完全一致から「完全一致優先・前方一致」（`gates/lib/design-map.js` の `layerSection`。slice と共有）にした。designer は `## L1（l1-builder）` のように書くため、完全一致では新規ファイルの宣言が0件になり、2 run とも「宣言⇒実在」が vacuous pass していた。層の節が1つも無いのに disposition に無い生成物があれば違反。あわせて `generated/` の全ファイルが `managed-paths.list` に列挙されていることを照合する（配置されない生成物の検出・旧 S1-3 推奨2）。
+- **G12**: 生成物の全 `.md` で、コードフェンスの外に `</content>`・`</parameter>`・`<parameter name=` が行として現れたら違反（書込の閉じタグの残骸・旧 S1-2）。
+- **Stop・SubagentStop の同一違反**（gen-guard・stage-guard）: hook 入力の `stop_hook_active` が true か、失敗した全ステージの違反が判定前のブロックラッチと同一なら、exit 2 を繰り返さず通知だけにする（ラッチは残す）。`tools/recheck.js` からの明示的な起動（`source: 'tools/recheck.js'`）は抑止しない。失敗したリクエストは再判定の契機として残るため、抑止が無いとターンが終わるたびに同じ違反が注入され、run 0927 の S3 メインで44回続いた。
+- **resume**（`gates/lib/run-status.js`）: 鮮度判定はディレクトリ自身の mtime とハーネスの `.cc-writes` を見ない。JSON に `handoff_notes`（state.md の要旨の「申し送り:」以降）と `canon_issue_candidates`（`work/<ts>/canon-issues-candidates.md` の見出し数）を足す。
+- **工程10**: `deploy/emit-run-manifest.js` が MANIFEST の「## P8 の追加手順」節と README の「## 前提セットアップと配置後の手作業」節・カナリア手順の節を RUN.md へ逐語転記する。`deploy/pre-deploy-check.js` のレポートに配置予定・退避予定（上書き／消失）件数を出す。生成物に書かれたコマンドを deploy.js が自動実行する案は、LLM 生成の任意コマンド実行になるため採らない。
+- **keep のコピー**: `tools/copy-keep.js`（§9.3）。
+
 #### G2/G8 実装契約（上記骨子を実行可能な精度に落とす）
 
 G2/G8 は design-map の `existing_disposition`（§9.2）をパースする。design-map パーサ `gates/lib/design-map.js`（`parseExistingDisposition`）と系統A/B パーサ `gates/lib/investigation.js`（`parseSystemA`/`parseSystemB`）を `gates/lib/markdown.js` ベースで新設する（依存ゼロ・`artifact.js` の frontmatter パーサはネスト YAML 非対応ゆえ使えない）。対象原本ルートは `gates/lib/run.js` の `resolveTargetRoot(ts)`（`work/<ts>/target.txt`）で解決する。
