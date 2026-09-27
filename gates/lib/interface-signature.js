@@ -98,7 +98,10 @@ export function interfaceSignature(rel, text) {
       const list = (Array.isArray(raw) ? raw : [raw]).map(String).sort();
       return { kind: 'rule-paths', signature: JSON.stringify(list), verifiable: true };
     }
-    return { kind: 'rule-paths', signature: null, verifiable: false };
+    // paths: の無い rule は無条件ロード。その「無条件であること」が対外インタフェースなので、それを署名にする
+    // （旧実装は検査手段なしで素通りしていた・run 20260925_004359）。本文の節の追加は modify の中身であって
+    // インタフェースの変更ではないので、見出し構造は署名に含めない。
+    return { kind: 'rule-paths', signature: 'unconditional', verifiable: true };
   }
 
   // frontmatter を持たない md（CLAUDE.md・.claude/README.md）→ 見出し構造。
