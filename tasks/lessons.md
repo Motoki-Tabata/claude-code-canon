@@ -45,11 +45,6 @@ run 20260927_003229 = S1 `41da6176`・S2 `1122beb9`・S3 `a192b7cf`・S4 `f3dd5c
 - 何が起きたか: spec-writer 修正モードが書式を探して6回エラー（basic-design.md の上限超過 Read・過去 run の `.requests` 参照。918d6a9a a78817c:L53〜L77）。designer・generator も計約12回探した（1122beb9 aeaf6:L329〜L340・a192b7cf a6c54:L428〜L440）。
 - 提案: `.requests/<stage>` を書く全ワーカー定義に、ファイル内容の規約を実例1行で直書きする（§4.3 への参照だけにしない）。
 
-## 2026-09-27 resume の stale 判定がハーネスの `.cc-writes` で誤検知する（run 20260925_004359・S4）
-- 種別: 欠陥修正
-- 何が起きたか: `generated/.claude/.cc-writes`（ハーネスが作るディレクトリ）の mtime が generation.done より新しく、`stale: generation` と出た。オーケストレータが独断で「誤検知」として先へ進み、SKILL の手順が形骸化した（45b10f1a:L33・L45・L54・L79）。
-- 提案: `gates/lib/run-status.js` の `maxMtimeMs` でドット始まりのエントリとディレクトリ自身の mtime を除外し、通常ファイルの mtime だけで判定する。
-
 ## 2026-09-27 承認時の申し送りが次セッションに届かない（run 20260925_004359・S2→S3）
 - 種別: 欠陥修正
 - 何が起きたか: P5 記録の「S3 の P6+7 で生成 ui-design.md を原本と diff し意味不変を確認して提示」が S3 で実施されず、配置後セッションで未実施と判明した（state.md P5 行・8b8a6f1a:L180）。resume の出力に state.md の要旨が出ない。

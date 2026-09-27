@@ -55,6 +55,28 @@ export function parseStateRecords(text) {
   return out;
 }
 
+/**
+ * state.md の記録の要旨から「申し送り:」以降を取り出す（次のセッションへの指示）。resume がこれを出すことで、
+ * 会話履歴を引き継がない次のセッションでも申し送りが届く（run 20260925_004359 で P5 の申し送りが S3 で
+ * 実施されなかった）。
+ * @returns {{ gate: string, kind: string, at: string, note: string }[]}
+ */
+export function extractHandoffNotes(records) {
+  const out = [];
+  for (const r of records) {
+    const m = /申し送り\s*[:：]\s*(.+)$/.exec(r.summary);
+    if (m) out.push({ gate: r.gate, kind: r.kind, at: new Date(r.at).toISOString(), note: m[1].trim() });
+  }
+  return out;
+}
+
+/** run 中に見つけた canon 側の課題候補（work/<ts>/canon-issues-candidates.md の `## ` 見出しの数）。 */
+export function countCanonIssueCandidates(ts) {
+  const p = path.join(workDir(ts), 'canon-issues-candidates.md');
+  if (!existsSync(p)) return 0;
+  return readFileSync(p, 'utf8').split(/\r?\n/).filter((l) => /^##\s+\S/.test(l)).length;
+}
+
 function readRecords(ts) {
   const p = stateFilePath(ts);
   return existsSync(p) ? parseStateRecords(readFileSync(p, 'utf8')) : [];
@@ -122,15 +144,23 @@ export function markerArtifacts(ts, key) {
   }
 }
 
-/** p が存在すればその mtimeMs、ディレクトリなら配下の最大 mtimeMs。無ければ null。 */
+/** 成果物ではないハーネスの生成物（鮮度判定から除く）。 */
+const HARNESS_ENTRIES = new Set(['.cc-writes']);
+
+/**
+ * p が通常ファイルならその mtimeMs、ディレクトリなら配下の**通常ファイル**の最大 mtimeMs。無ければ null。
+ * ディレクトリ自身の mtime とハーネスの生成物（`.cc-writes`）は見ない。ハーネスが generated/.claude/.cc-writes を
+ * 作っただけで generation が「古い」と誤検知し、オーケストレータが独断で読み飛ばした（run 20260925_004359・S4）。
+ */
 export function maxMtimeMs(p) {
   if (!existsSync(p)) return null;
   const st = statSync(p);
   if (!st.isDirectory()) return st.mtimeMs;
-  let max = st.mtimeMs;
+  let max = null;
   for (const entry of readdirSync(p, { withFileTypes: true })) {
+    if (HARNESS_ENTRIES.has(entry.name)) continue;
     const m = maxMtimeMs(path.join(p, entry.name));
-    if (m !== null && m > max) max = m;
+    if (m !== null && (max === null || m > max)) max = m;
   }
   return max;
 }
@@ -227,7 +257,15 @@ export function deriveRunStatus(ts) {
     .map((x) => ({ marker: x.k, artifact: posix(path.relative(CANON_ROOT, x.s.artifact)) }));
 
   const step = ladder(ts).find((s) => !s.done) ?? null;
-  const base = { ts, blocked, pending_requests: pending, stale, markers };
+  const base = {
+    ts,
+    blocked,
+    pending_requests: pending,
+    stale,
+    markers,
+    handoff_notes: extractHandoffNotes(readRecords(ts)),
+    canon_issue_candidates: countCanonIssueCandidates(ts),
+  };
   if (!step) {
     return { ...base, position: 'done', session: null, expected_model: null, canary_required: false, waiting_gate: null, next_action: 'run は完了している。' };
   }
