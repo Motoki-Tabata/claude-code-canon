@@ -125,6 +125,7 @@ async function main() {
     const msg = failed.map((f) => `${f.stage}: ${f.violations.join(' / ')}`).join('\n');
     const repeat = isRepeatBlock({
       stopHookActive: input.stop_hook_active,
+      explicitRecheck: input.source === 'tools/recheck.js',
       prevReasons,
       failed: failed.map((f) => ({ key: f.stage, violations: f.violations })),
     });

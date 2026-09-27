@@ -45,11 +45,6 @@ run 20260927_003229 = S1 `41da6176`・S2 `1122beb9`・S3 `a192b7cf`・S4 `f3dd5c
 - 何が起きたか: spec-writer 修正モードが書式を探して6回エラー（basic-design.md の上限超過 Read・過去 run の `.requests` 参照。918d6a9a a78817c:L53〜L77）。designer・generator も計約12回探した（1122beb9 aeaf6:L329〜L340・a192b7cf a6c54:L428〜L440）。
 - 提案: `.requests/<stage>` を書く全ワーカー定義に、ファイル内容の規約を実例1行で直書きする（§4.3 への参照だけにしない）。
 
-## 2026-09-27 recheck が「検査していない」と誤表示し、不要な reopen を招いた（run 20260927_003229・S1）
-- 種別: 欠陥修正
-- 何が起きたか: `tools/recheck.js:129` がマーカー名に `markerKey` でなく `${stage}` を使い、実際には SubagentStop で pass・`investigation.focused.done` 鋳造済みなのに「investigation.done が既に存在するため冪等スキップ」と出した。不要な `reopen investigation.focused` と再 recheck が1往復増えた（41da6176:L652〜L662）。
-- 提案: 表示を `${markerKey}.done` に直し、processed.log から直前の pass を見つけたら「SubagentStop で検査済み（pass）」と区別して出す。
-
 ## 2026-09-27 G1 の evidence_paths 抽出が summary 本文中の語まで拾う（run 20260927_003229・S1）
 - 種別: 欠陥修正
 - 何が起きたか: `gates/g1_stage_order.js:306` の `/evidence_paths\s*:\s*(.+)/g` が行頭に固定されておらず、summary 本文の「evidence_paths …」を evidence として読み「実在しない」と誤ブロック、profiler を再起動した（41da6176:L613〜L618）。
