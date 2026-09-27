@@ -294,7 +294,7 @@ spec へ: 既存棚卸し（系統A）＋ プロジェクト接地素材（系�
 差分パッチでなく「既存＋新要件を入力に全体を設計し直す」。
 
 - plan は既存 design-map を出発点にせず、**統合 spec から design-map を引き直す**。
-- **維持は再生成せず既存実体を output へ verbatim コピー**する（generator が Read → Write。詳細設計書 §9.3）。「維持＝再生成しない」を「output に存在しない」と解釈してはならない。配置は管理パス集合（詳細設計書 §10.1）の退避スワップ全置換であり、維持ファイルが物理的に output に無ければ置換で消える。ゆえに維持は「output に literal コピー（内容不変）」でなければならない。
+- **維持は再生成せず既存実体を output へ verbatim コピー**する（工程7の冒頭でオーケストレータが `npm run copy-keep -- <ts>`（`tools/copy-keep.js`）でバイト同一にコピーし sha256 を照合する。詳細設計書 §9.3）。「維持＝再生成しない」を「output に存在しない」と解釈してはならない。配置は管理パス集合（詳細設計書 §10.1）の退避スワップ全置換であり、維持ファイルが物理的に output に無ければ置換で消える。ゆえに維持は「output に literal コピー（内容不変）」でなければならない。
 - 配置マニフェスト `MANIFEST.md` に**廃止を明示**（管理パス集合の全置換で黙って消える事故と区別）。
 
 ### 8.1 判定の4選択肢
@@ -464,7 +464,7 @@ claude-canon/
 ├─ design/                        ← 本設計書2冊（基本設計書・詳細設計書）＋ run の観測記録（canon-issues-<ts>.md・対処記録・トークン基準値・改修まとめ）。未対応の改修要求は置かない（tasks/lessons.md）
 │   ├─ basic-design.md             ← 本書
 │   └─ detailed-design.md          ← 詳細設計書
-├─ package.json                   ← npm scripts 全22件（build:tables / test / ts / unblock / reopen / resume / state:record 等）。
+├─ package.json                   ← npm scripts 全23件（build:tables / test / ts / unblock / reopen / resume / state:record / slice / copy-keep 等）。
 │                                    全件一覧は guide/setup.md §8 が権威。
 │                                    reopen = 権威マーカー取消の唯一経路（§4.5）／test = 配線テスト・必須（詳細設計書 §15.3）
 ├─ .github/workflows/ci.yml       ← 恒久 CI: 照合表の鮮度検査 → npm test（§15.2・os×node の matrix）

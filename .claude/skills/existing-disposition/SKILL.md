@@ -16,7 +16,7 @@ user-invocable: false
 - 系統B `work/<ts>/project_profile.md` の `ref_resolution`（project_refs の実在照合）
 
 ## 5判定（§8.1）
-- **維持(keep)**: 既存実体を output へ **verbatim コピー**（新規書き起こししない）。generator が Read→Write。
+- **維持(keep)**: 既存実体を output へ **verbatim コピー**（新規書き起こししない）。工程7の冒頭でオーケストレータが `npm run copy-keep -- <ts>` でバイト同一にコピーする（LLM の Read→Write はしない）。
 - **改修(modify)**: 新内容で再生成する。対外インタフェース（frontmatter `name`）を変えない改修は design-map に `interface_change: none` を宣言する（未記載は `breaking` 扱い。他レコードの C3 判定材料になる・§9.2）。
 - **統廃合(merge)**: 他と統合。複数を1つに、または新規に吸収する。
 - **廃止(retire)**: output から外す。**MANIFEST に明示**する（黙って消える事故と区別）。

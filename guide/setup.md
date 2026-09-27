@@ -203,6 +203,7 @@ node deploy/deploy.js <output/ts> <対象> --confirm
 | `npm run state:record -- <ts> <gate> "<要旨>" [--revision]` | 人間ゲート（P2・P4・P5・P6+7・P8）の対話承認を実時刻・固定書式で `work/<ts>/state.md` に記録（`tools/record-state.js`）。承認対象が未確定なら拒否。`--revision` は差し戻しの記録 |
 | `npm run recheck -- <ts> <stage>` | 完了リクエストを書いてゲートを hook 経路と同じ形で起動する（オーケストレータ自身が成果物を直したとき・調査1/2 の完了時）。マーカー残存時は exit 3 で reopen へ誘導 |
 | `npm run slice -- <ts>` | design-map をワーカー別のスライスに切り出して `work/<ts>/slices/` に書く（S3 冒頭・`design.done` 必須・出力先を掃除してから書く） |
+| `npm run copy-keep -- <ts>` | design-map の keep を対象の原本から `generated/` へバイト同一でコピーし sha256 を照合する（工程7・slice の後・generator の前・`design.done` 必須） |
 
 **機能X（正典更新・`/update-docs`）**
 

@@ -55,11 +55,6 @@ run 20260927_003229 = S1 `41da6176`・S2 `1122beb9`・S3 `a192b7cf`・S4 `f3dd5c
 - 何が起きたか: 「対象に管理ファイルが無いため退避は0件で .bak は作られない見込み」と案内したが、実際は退避39件（f3dd5ca1:L69・L81・L92）。dry-run も未実行のまま P8 を求めた（L51）。
 - 提案: `deploy/pre-deploy-check.js` のレポートに「上書き（退避）予定 N件」を出す。SKILL.md 工程10に「.bak の有無を推測で案内しない。配置予定を提示してから P8 を求める」を書く。
 
-## 2026-09-27 keep の verbatim コピーを LLM が Read/Write で行っている（run 20260927_003229・S3）
-- 種別: 効率化
-- 何が起きたか: generator が keep 10件の原本を Read して Write した（a192b7cf a6c54:L51〜L132）。トークンの浪費であり、写し違いは G8 違反になる。
-- 提案: `tools/copy-keep.js`（`npm run copy-keep -- <ts>`）で design-map の keep レコードを決定論的にコピーし、SKILL.md 工程7・generator.md 手順3 を置き換える。sha256 一致のテスト。
-
 ## 2026-09-27 SessionStart が配置前の run を「完了済み」と表示する（run 20260925_004359・S4）
 - 種別: 欠陥修正
 - 何が起きたか: S4 冒頭で「work/.session-ts は完了済み run を指している」と出た（45b10f1a:L4）。generation.done 後・配置前であり実態と合わない。

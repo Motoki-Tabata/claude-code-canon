@@ -41,6 +41,7 @@ export const TS_NAMESPACES = {
   slice_design_map: '29991204',
   eval_round: '29991301',
   stop_repeat_block: '29991401',
+  copy_keep: '29991402',
 };
 
 function nameFromUrl(importMetaUrl) {

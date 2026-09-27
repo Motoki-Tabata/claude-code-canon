@@ -12,7 +12,7 @@
  *                    Interface Contracts・生成上の制約・Experimental Dependencies・依存フラグ
  *   write-scopes.md  Write Scopes
  *   l1.md skills.md agents.md l4.md l5.md   各層の節 ＋ その層の disposition レコード（modify・merge のみ）
- *   disposition-other.md   keep・retire・out_of_scope のレコード（generator が verbatim コピー・廃止を扱う）
+ *   disposition-other.md   keep・retire・out_of_scope のレコード（keep は tools/copy-keep.js がコピー済み。generator は廃止を扱う）
  *   other-sections.md      上のどれにも属さない節（例: 反映追跡表。builder は通常読まない。設計者が足した
  *                          未知の節を黙って落とさないための受け皿——全スライスの和集合が design-map の全節を覆う）
  *   responsibilities.md    Responsibility Map（judge が責務の膨張を見る材料）

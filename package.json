@@ -46,6 +46,7 @@
     "tokens": "node tools/token-usage.js",
     "resume": "node tools/resume.js",
     "slice": "node tools/slice-design-map.js",
+    "copy-keep": "node tools/copy-keep.js",
     "state:record": "node tools/record-state.js"
   },
   "comments": {

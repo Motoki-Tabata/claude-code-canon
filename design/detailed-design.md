@@ -271,7 +271,7 @@ existing_disposition:
 
 ### 9.3 生成物との対応（generator の責務）
 
-- **keep** → 再生成せず、既存実体（`<target_root>/<相対パス>`）を Read → Write で output へ verbatim コピー。snapshot の G8 が対象原本と output コピーを sha256 バイト同一照合する（§11）。
+- **keep** → 再生成せず、既存実体（`<target_root>/<相対パス>`）を output へ verbatim コピー。コピーは工程7の冒頭でオーケストレータが `npm run copy-keep -- <ts>`（`tools/copy-keep.js`）で決定論的に行い、sha256 を照合する（LLM の Read → Write は写し違いの経路になるため使わない）。snapshot の G8 が対象原本と output コピーを sha256 バイト同一照合する（§11）。
 - **modify / merge / 新規** → generator が生成する。
 - **retire** → output から除外・MANIFEST 廃止欄へ。
 - design-map ⇔ output の過不足を G9 が検証する: design-map が宣言した成果物（層ごとの節の見出しと keep/modify レコード・`gates/lib/design-map.js` の `listDeclaredArtifacts`）が `generated/` に全件実在すること（照合元は generator の自己申告でなく design-map・S1-4）と、MANIFEST の `## 全ファイル` 節と `generated/` の双方向一致（§12.3）。generator は builder へ spawn する前に `slices/targets-<層>.txt` の件数と生成させるファイル数を突き合わせる（脱落を書く側で先に数えて気づく）。
