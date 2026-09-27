@@ -14,7 +14,7 @@
  */
 
 import path from 'node:path';
-import { existsSync, statSync, readdirSync } from 'node:fs';
+import { existsSync, statSync, readdirSync, readFileSync } from 'node:fs';
 import { outputDir, isMainModule, readHookInput, readSessionTs, blockStop, passStop } from './lib/run.js';
 import { detectKind } from './lib/artifact.js';
 import { checkG3File } from './g3_path_convention.js';
@@ -22,6 +22,7 @@ import { checkG4File } from './g4_frontmatter_schema.js';
 import { checkG5File } from './g5_tool_names.js';
 import { checkG6File, checkMcpJsonFile } from './g6_security.js';
 import { isNonSchemaRel } from './lib/non-schema.js';
+import { computeFenceMask } from './lib/markdown.js';
 
 const GATE = 'G12';
 
@@ -115,6 +116,22 @@ export function advisoryReverifyFile(absPath, ts) {
   }
 }
 
+/**
+ * ツール呼び出しの書式片（`</content>`・`</parameter>`・`<parameter name=`）が、コードフェンスの外に行として
+ * 現れる行番号（1始まり）。builder が Write の引数の閉じタグまで本文に書き込んだ残骸で、スキーマ検査（G3〜G6）は
+ * 本文の中身を見ないため通過していた（旧 canon-issues-20260919_023121 S1-2）。説明のためのコード例（フェンス内）は許す。
+ */
+export function findToolCallFragments(text) {
+  const lines = text.split(/\r?\n/);
+  const mask = computeFenceMask(lines);
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (mask[i]) continue;
+    if (/<\/content>|<\/parameter>|<parameter\s+name=/.test(lines[i])) out.push(i + 1);
+  }
+  return out;
+}
+
 export function checkG12({ ts }) {
   const { root, exists, files } = listGeneratedArtifacts(ts);
 
@@ -146,6 +163,17 @@ export function checkG12({ ts }) {
     if (!c.target) continue; // lib/non-schema.js の非スキーマ判定等は別ゲートの担当
     for (const v of c.violations) violations.push(v);
     reverified++;
+  }
+  // 書式片はスキーマの有無に関わらず全 .md を見る（CLAUDE.md・rules・README にも混入しうる）。
+  for (const f of files) {
+    if (!f.endsWith('.md')) continue;
+    const lines = findToolCallFragments(readFileSync(f, 'utf8'));
+    if (lines.length > 0) {
+      violations.push(
+        `${GATE}: ${path.relative(genRoot, f).replace(/\\/g, '/')} の ${lines.join('・')} 行目に、ツール呼び出しの書式片` +
+          '（`</content>`・`</parameter>`・`<parameter name=`）がコードフェンスの外で残っている（書込の閉じタグの残骸）。'
+      );
+    }
   }
   return { ok: violations.length === 0, violations, scanned: files.length, reverified };
 }

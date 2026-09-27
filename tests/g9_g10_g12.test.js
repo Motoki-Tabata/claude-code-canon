@@ -9,7 +9,7 @@ import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { checkG9 } from '../gates/g9_snapshot_completeness.js';
 import { checkG10, deriveLaunchMethod } from '../gates/g10_readme.js';
-import { checkG12 } from '../gates/g12_output_perfile.js';
+import { checkG12, findToolCallFragments } from '../gates/g12_output_perfile.js';
 import { ROOT, outputDir, genDir } from './helpers/paths.js';
 import { cleanupTs } from './helpers/run-state.js';
 import { writeSkill, writeAgent, writeManifest } from './helpers/fixtures.js';
@@ -570,4 +570,16 @@ test('G9 managed-paths.list（違反注入）: generated/ にあるのに list �
   skill(ts, 'unlisted'); // generated/ に置いたが managed-paths.list には載せない
   writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n\n## 全ファイル\n- `.claude/skills/s/SKILL.md`\n- `.claude/skills/unlisted/SKILL.md`\n');
   assert.match(violationsOf(ts), /generated\/\.claude\/skills\/unlisted\/SKILL\.md が managed-paths\.list に列挙されていない/);
+});
+
+test('G12（違反注入）: ツール呼び出しの書式片は本文末尾・frontmatter 直後で違反、コードフェンス内は許す（旧 S1-2）', (t) => {
+  assert.deepEqual(findToolCallFragments('---\nname: a\n---\n本文\n</content>\n'), [5], '本文末尾');
+  assert.deepEqual(findToolCallFragments('---\nname: a\n---\n</parameter>\n本文\n'), [4], 'frontmatter 直後');
+  assert.deepEqual(findToolCallFragments('本文\n```xml\n<parameter name="x">\n</content>\n```\n'), [], 'コードフェンス内は説明の例');
+
+  const ts = tsFor(import.meta.url, 48);
+  cleanupTs(t, ts);
+  skill(ts, 's', '\n</content>\n');
+  const v = checkG12({ ts }).violations.join('\n');
+  assert.match(v, /書式片/);
 });
