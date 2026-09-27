@@ -219,7 +219,7 @@ metadata:                                # 自前ツール用の自由形式 YAM
 | `user-invocable` | bool | false で `/メニュー` から非表示（参考知識用） |
 | `allowed-tools` | list/string | 発動中に approval なし許可するツール |
 | `disallowed-tools` | list/string | 発動中に禁止するツール。**deny ルールと同じく、他のツールが1件でも残っている状態では `EndConversation` を除去できない**（公式: *"Like deny rules, the field can't remove `EndConversation` while any other tool remains."*。[TOOLS.md §2.1](./TOOLS.md) の permission rule 例外と同型） |
-| `model` | string | モデル override（`sonnet`/`opus`/`haiku`/`fable`/full ID/`inherit`）。`fable`=Claude Fable 5。**`context: fork` と併用したときは意味が異なり、値は fork された subagent のモデルを指定する**（公式: *"With `context: fork`, the value sets the forked subagent's model instead"*）。**組織の `availableModels` allowlist で除外された値は使われず、セッションは現行モデルを維持する** |
+| `model` | string | モデル override（`sonnet`/`opus`/`haiku`/`fable`/full ID/`inherit`）。`fable`=Claude Fable 5.1。**`context: fork` と併用したときは意味が異なり、値は fork された subagent のモデルを指定する**（公式: *"With `context: fork`, the value sets the forked subagent's model instead"*）。**組織の `availableModels` allowlist で除外された値は使われず、セッションは現行モデルを維持する** |
 | `effort` | string | 推論努力レベル（`low`/`medium`/`high`/`xhigh`/`max`） |
 | `context` | `fork` | 値が `fork` のとき subagent 隔離実行 |
 | `agent` | string | `context: fork` 時の agent type（既定: `general-purpose`） |
