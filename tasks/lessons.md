@@ -25,11 +25,6 @@ run 20260927_003229 = S1 `41da6176`・S2 `1122beb9`・S3 `a192b7cf`・S4 `f3dd5c
 
 ---
 
-## 2026-09-27 G9・slice が design-map の層見出しから新規ファイルを1件も拾っていない（run 20260925_004359・20260927_003229・S3）
-- 種別: 欠陥修正
-- 何が起きたか: `gates/lib/design-map.js` の `h2Section` は見出しの完全一致で探すが、designer は `## L1（l1-builder）`・`## Skills（skill-builder）` と書く。両 run とも layer-heading 由来の宣言が0件で、新規ファイル（12件・8件）が `targets-all.txt` と G9「宣言⇒実在」から漏れた（vacuous pass。5ca33ae1:L452・a192b7cf:L290）。
-- 提案: `listDeclaredArtifacts` の見出し照合を `design-slices.js` の `layerH2Text` と同じ前方一致に揃え、G9 は layer-heading 由来0件を違反にする。designer.md に見出しの語彙契約を書く。括弧付き見出しの fixture で回帰テスト。
-
 ## 2026-09-27 Stop・SubagentStop hook が同じ違反で無限に再ブロックする（run 20260927_003229・S3）
 - 種別: 欠陥修正
 - 何が起きたか: G8 違反の後、S3 メインに同じ gen-guard の通知が44回注入され（a192b7cf:L384〜L718、上限到達3回）5.07M、generator 修正モードでも9回・1.0M。`gates/gen-guard.js` は `readHookInput()` を捨てて `stop_hook_active` を見ず、`gates/lib/run.js` は失敗したリクエストを再判定の契機として残す。
@@ -114,11 +109,6 @@ run 20260927_003229 = S1 `41da6176`・S2 `1122beb9`・S3 `a192b7cf`・S4 `f3dd5c
 - 種別: 欠陥修正
 - 何が起きたか: run 20260919 で agent-builder の生成物に `</content>` が残ったが G12 は検出しなかった。`gates/` に書式片の検査は無い（2026-09-27 に grep で再確認）。
 - 提案: G12 に「コードフェンスの外で `</content>`・`</parameter>`・`<parameter name=` が現れたら違反」を加え、本文末尾・frontmatter 直後・コードフェンス内の3位置に注入して前2者だけが違反になる回帰テストを置く。
-
-## 2026-09-27 managed-paths.list と generated/ の逆方向照合が無い（旧 canon-issues-20260922_172924#S1-3 推奨2）
-- 種別: 欠陥修正
-- 何が起きたか: G9 は managed-paths.list→generated/ の片方向と MANIFEST⇔generated/ の双方向だけを見ており、generated/ にあるのに managed-paths.list に無いファイル（配置されるが管理集合外）は検出しない（`gates/g9_snapshot_completeness.js`）。
-- 提案: G9 に「generated/ の実ファイルが managed-paths.list の管理集合に含まれる」照合を足し、違反注入テストを置く。
 
 ## 2026-09-27 SubagentHandback の受信を完了と取り違え、ゲート判定前に並行調査した（run 20260925_004359・S3）
 - 種別: 規律昇華

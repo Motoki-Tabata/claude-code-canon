@@ -117,6 +117,14 @@ test('実 fixture（constrained）: 全 H2 節がいずれかのスライスに�
   }
 });
 
+test('括弧書き付きの層見出し（## L1（l1-builder））でも targets に宣言が入る（G9 と同じ照合・実 run の書式）', () => {
+  const text = SYNTH.replace('## L1\n', '## L1（l1-builder）\n').replace('## Skills\n', '## Skills（skill-builder）\n').replace('## Agents\n', '## Agents（agent-builder）\n');
+  const { files, counts } = buildSlices(text);
+  assert.equal(files['targets-l3.txt'], '.claude/agents/fresh/fresh.md\n', '新規（disposition に無い）の宣言が落ちている');
+  assert.equal(counts.all, 4);
+  assert.match(files['l1.md'], /### `CLAUDE\.md`/);
+});
+
 // ---- CLI ----
 
 test('CLI: design.done が無ければ拒否し、有れば slices/ を書く。古いファイルは掃除される（S2-2 の轍を踏まない）', (t) => {

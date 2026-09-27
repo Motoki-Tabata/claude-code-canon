@@ -25,6 +25,7 @@ import {
   DesignMapError,
   LAYER_SECTIONS,
   h2Section,
+  layerSection,
   h2SectionText,
   splitDispositionRecords,
   listDeclaredArtifacts,
@@ -43,19 +44,10 @@ function exactH2Text(lines, name, mask) {
   return r ? lines.slice(r.start, r.end).join('\n').replace(/\s+$/, '') : null;
 }
 
-/** ちょうど `name`、無ければ `name` で始まり直後が英数字でない見出し（`## L1 レイヤー…` 等）の節。 */
+/** 層の節の全文（見出し含む）。照合は G9 と同じ layerSection（完全一致優先・括弧書き付きも可）。 */
 function layerH2Text(lines, name, mask) {
-  const exact = exactH2Text(lines, name, mask);
-  if (exact !== null) return exact;
-  for (let i = 0; i < lines.length; i++) {
-    if (mask[i]) continue;
-    const m = lines[i].match(/^##\s+(.*?)\s*$/);
-    if (m && m[1].startsWith(name) && !/^[A-Za-z0-9]/.test(m[1].slice(name.length))) {
-      const { start, end } = sectionSlice(lines, i, mask);
-      return lines.slice(start, end).join('\n').replace(/\s+$/, '');
-    }
-  }
-  return null;
+  const r = layerSection(lines, name, mask);
+  return r ? lines.slice(r.start, r.end).join('\n').replace(/\s+$/, '') : null;
 }
 
 /** 全レベル2見出しの一覧 [{ title, text }]（出現順・コードブロック内は無視）。 */

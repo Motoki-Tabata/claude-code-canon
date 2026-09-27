@@ -194,8 +194,35 @@ export function h2Section(lines, name, mask = computeFenceMask(lines)) {
 }
 
 /**
+ * 層の節（`LAYER_SECTIONS` の heading）の範囲。ちょうど `name` の見出しを優先し、無ければ `name` で
+ * 始まり直後が英数字でない見出し（`## L1（l1-builder）`・`## Skills（skill-builder）` 等）を採る。
+ * designer は括弧書きを付けて書くため、完全一致だけだと実 run の design-map で層の節を1つも拾えず、
+ * 宣言0件のまま G9 が vacuous pass した（run 20260925_004359・20260927_003229）。
+ */
+export function layerSection(lines, name, mask = computeFenceMask(lines)) {
+  const exact = h2Section(lines, name, mask);
+  if (exact) return exact;
+  for (let i = 0; i < lines.length; i++) {
+    if (mask[i]) continue;
+    const m = lines[i].match(/^##\s+(.*?)\s*$/);
+    if (m && m[1].startsWith(name) && !/^[A-Za-z0-9]/.test(m[1].slice(name.length))) {
+      const { start, end } = sectionSlice(lines, i, mask);
+      return { start, end };
+    }
+  }
+  return null;
+}
+
+/** design-map に見つかった層の節の数（0 なら見出しの照合が効いていない＝宣言の抽出が vacuous）。 */
+export function countLayerSections(text) {
+  const lines = text.split(/\r?\n/);
+  const mask = computeFenceMask(lines);
+  return LAYER_SECTIONS.filter((sec) => layerSection(lines, sec.heading, mask) !== null).length;
+}
+
+/**
  * design-map が「生成される」と宣言している成果物のパス一覧。次の和集合:
- *   (a) 層ごとの節（`## L1`・`## Skills`・`## Agents`・`## L4`・`## L5`）の見出し ``### `パス` ``
+ *   (a) 層ごとの節（`## L1`・`## Skills`・`## Agents`・`## L4`・`## L5`。`## L1（l1-builder）` 等も可・layerSection）の見出し ``### `パス` ``
  *   (b) existing_disposition のうち keep／modify のレコード（keep は原本の verbatim コピーとして
  *       generated/ に置かれる。retire・merge（統合される側）・out_of_scope は generated/ に置かれない）
  * 見出しの注記に `retire`／`廃止` が含まれるものは除く。ディレクトリ・glob 表記は除く。
@@ -214,7 +241,7 @@ export function listDeclaredArtifacts(text) {
   };
 
   for (const sec of LAYER_SECTIONS) {
-    const range = h2Section(lines, sec.heading, mask);
+    const range = layerSection(lines, sec.heading, mask);
     if (!range) continue;
     for (let i = range.start + 1; i < range.end; i++) {
       if (mask[i]) continue;

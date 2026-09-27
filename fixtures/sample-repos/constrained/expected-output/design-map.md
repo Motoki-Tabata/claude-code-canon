@@ -37,6 +37,19 @@ existing_disposition:
     manifest_note: "experimental 禁止により context:fork 依存の fork-runner は廃止"
 ```
 
+## L1（l1-builder）
+### `CLAUDE.md`（新規）
+プロジェクト規約。
+### `.claude/rules/schema-review.md`（新規・R1 の縮退先）
+`paths:` で `src/**/*.js` に接地する advisory rule。
+
+## Skills（generator が keep を verbatim コピー）
+### `.claude/skills/style-guide/SKILL.md`（keep）
+
+## L4（不使用）
+## L5（readme-writer）
+### `.claude/README.md`（新規）
+
 ## Model Assignments
 N/A（本 fixture は Subagent を生成しない）
 

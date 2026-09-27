@@ -537,3 +537,37 @@ test('G9 design-map: 宣言がすべて実在すれば通過（対照。上の�
   writeFileSync(path.join(out(ts), 'design-map.md'), '# dm\n## Skills\n### `.claude/skills/s/SKILL.md`（新規）\n');
   assert.equal(checkG9({ ts }).ok, true, violationsOf(ts));
 });
+
+test('G9 design-map: 括弧書き付きの層見出し（## Skills（skill-builder））からも宣言を拾い、脱落を検出する', (t) => {
+  // 実 run の designer は `## L1（l1-builder）` 形式で書く。完全一致だけだと宣言0件で vacuous pass した
+  // （run 20260925_004359・20260927_003229）。
+  const ts = baseline(t, 45);
+  writeManifest(ts);
+  writeFileSync(
+    path.join(out(ts), 'design-map.md'),
+    ['# dm', '## Skills（skill-builder）', '### `.claude/skills/s/SKILL.md`（新規）', '### `.claude/skills/dropped/SKILL.md`（新規）', ''].join('\n')
+  );
+  const v = violationsOf(ts);
+  assert.match(v, /skills\/dropped\/SKILL\.md（L2 の見出し）/);
+  assert.doesNotMatch(v, /層の節/);
+});
+
+test('G9 design-map（違反注入）: 層の節が無いのに新規の生成物があれば違反。disposition だけの設計は通す', (t) => {
+  const ts = baseline(t, 46);
+  writeManifest(ts);
+  writeFileSync(path.join(out(ts), 'design-map.md'), '# dm\n## スキル群\n### `.claude/skills/s/SKILL.md`（新規）\n');
+  assert.match(violationsOf(ts), /層の節/);
+  // 対照: 生成物が disposition（keep/modify）だけなら層の節が無くてよい
+  writeFileSync(
+    path.join(out(ts), 'design-map.md'),
+    '# dm\n## 既存判定（existing_disposition）\n```yaml\nexisting_disposition:\n  - path: .claude/skills/s/SKILL.md\n    disposition: modify\n    interface_change: none\n```\n'
+  );
+  assert.doesNotMatch(violationsOf(ts), /層の節/);
+});
+
+test('G9 managed-paths.list（違反注入）: generated/ にあるのに list に無いファイルは違反（配置されない生成物・S1-3）', (t) => {
+  const ts = baseline(t, 47);
+  skill(ts, 'unlisted'); // generated/ に置いたが managed-paths.list には載せない
+  writeFileSync(path.join(out(ts), 'MANIFEST.md'), '# 差分\n\n## 全ファイル\n- `.claude/skills/s/SKILL.md`\n- `.claude/skills/unlisted/SKILL.md`\n');
+  assert.match(violationsOf(ts), /generated\/\.claude\/skills\/unlisted\/SKILL\.md が managed-paths\.list に列挙されていない/);
+});

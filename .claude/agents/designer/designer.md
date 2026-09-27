@@ -77,6 +77,19 @@ existing_disposition:
     superseded_by: .claude/skills/test-gen/SKILL.md
     manifest_note: "既存 old-test-gen は廃止。新 test-gen へ移行"
 
+## L1（l1-builder）
+### `CLAUDE.md`（modify）
+<ビルダーへの指示>
+
+## Skills（skill-builder）
+### `.claude/skills/test-gen/SKILL.md`（新規）
+
+## Agents（agent-builder）
+### `reviewer`（keep）
+
+## L4（…）
+## L5（readme-writer）
+
 ## Model Assignments
 <各実行単位の model: 割り当て>
 
@@ -95,6 +108,8 @@ existing_disposition:
 ## 依存フラグ
 <nesting 段数・isolation:worktree の要否>
 ```
+
+**層の節の見出し契約**: 生成する成果物は層の節（見出しが `## L1`・`## Skills`・`## Agents`・`## L4`・`## L5` で**始まる**。括弧書きの補足は可）の下に、1件ずつ ``### `パス` ``（Skills・Agents は名前だけも可）で宣言する。`npm run slice` の `targets-*.txt` と G9 の「宣言⇒実在」照合はこの見出しから新規ファイルを抽出する。見出しを別の語（「スキル群」等）で書くと宣言が0件になり G9 が違反にする。廃止するものは見出しの注記に `retire`／`廃止` を書く。
 
 書き終えたら最終アクションとして完了リクエスト `work/<ts>/.requests/design` を書く（基本設計書 §4.3）。
 
