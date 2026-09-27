@@ -50,11 +50,6 @@ run 20260927_003229 = S1 `41da6176`・S2 `1122beb9`・S3 `a192b7cf`・S4 `f3dd5c
 - 何が起きたか: P5 記録の「S3 の P6+7 で生成 ui-design.md を原本と diff し意味不変を確認して提示」が S3 で実施されず、配置後セッションで未実施と判明した（state.md P5 行・8b8a6f1a:L180）。resume の出力に state.md の要旨が出ない。
 - 提案: `gates/lib/run-status.js`・`tools/resume.js` の JSON に state.md の承認・差し戻し行の要旨を `handoff_notes` として含め、SKILL.md の再開手順に「handoff_notes を next_action より先に実施し、結果をゲートの提示に含める」を書く。
 
-## 2026-09-27 MANIFEST の「P8 の追加手順」と配置後の手作業が S4 に引き継がれない（run 20260925_004359・20260927_003229・S4）
-- 種別: 欠陥修正
-- 何が起きたか: run 0927 は design-map・MANIFEST が定めた lessons-ledger の check/apply を S4 で一度も実行しなかった（f3dd5ca1 の Bash 5回）。run 0925 は「反映済み5件を台帳から削除」が「lessons.md の削除」に言い換わり、台帳ごと消えて main にマージされた（5ca33ae1:L466・45b10f1a:L97・L121）。
-- 提案: `deploy/emit-run-manifest.js` で MANIFEST の「P8 の追加手順」節と README の「配置後の手作業」節を RUN.md へ逐語転記し、`resume` の `next_action` にも出す。deploy.js が生成物記載のコマンドを自動実行する案は、LLM 生成の任意コマンド実行になるため採らない。
-
 ## 2026-09-27 P8 の提示に退避件数が無く、オーケストレータが推測で誤案内した（run 20260927_003229・S4）
 - 種別: 欠陥修正
 - 何が起きたか: 「対象に管理ファイルが無いため退避は0件で .bak は作られない見込み」と案内したが、実際は退避39件（f3dd5ca1:L69・L81・L92）。dry-run も未実行のまま P8 を求めた（L51）。

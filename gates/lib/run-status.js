@@ -234,8 +234,8 @@ function ladder(ts) {
       : [
           { id: 'predeploy-emit', session: 'S4', done: existsSync(dep('RUN.md')), action: '工程10: node deploy/emit-run-manifest.js で RUN.md を出力する' },
           { id: 'predeploy-check', session: 'S4', done: existsSync(dep('pre-deploy-report.txt')), action: '工程10: node deploy/pre-deploy-check.js で配置前照合（uncaptured があれば止める）' },
-          { id: 'P8', gate: 'P8', session: 'S4', done: gateApproved(ts, 'P8'), action: 'P8: pre-deploy-report の retired 一覧が意図した廃止と一致するか、ユーザーに確認して対話承認を取る' },
-          { id: 'deploy', session: 'S4', done: existsSync(dep('deploy-result.json')), action: '配置: 対象リポジトリで人間が node deploy/deploy.js --confirm を実行する（サンドボックスの外・RUN.md 参照）' },
+          { id: 'P8', gate: 'P8', session: 'S4', done: gateApproved(ts, 'P8'), action: 'P8: pre-deploy-report の retired 一覧と deploy.js（--confirm 無し）の配置予定を提示し、RUN.md「2a」の run 固有の配置前手順があれば実行してから対話承認を取る' },
+          { id: 'deploy', session: 'S4', done: existsSync(dep('deploy-result.json')), action: '配置: 対象リポジトリで人間が node deploy/deploy.js --confirm を実行する（サンドボックスの外・RUN.md 参照）。配置後は RUN.md「2a」の配置後手順を実行し、「4」の手作業を逐語で提示する' },
         ]),
   ];
 }
