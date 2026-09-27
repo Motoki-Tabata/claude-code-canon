@@ -32,7 +32,7 @@ skills: [layer-design, orchestration-patterns, model-selection, existing-disposi
 | **C2 要件非抵触** | 統合 spec 新要件・統合方針と競合/重複せず、`requirements.md` の `conflicts` に登場しない | spec 突合（意味判断） |
 | **C3 依存健全** | 系統A `depends_on.customization_refs` の参照先が今回の design-map で `retire`/`merge` されない。参照先が `modify` の場合は、当該レコードに `interface_change: none` を宣言する（対外インタフェース＝frontmatter `name` を変えない改修のみ健全とみなす） | 系統A＋design-map・実照合 |
 | **C4 強度整合** | 既存が担う強度が `requirements.md` の `strength_needed`・`constraints` と矛盾しない | requirements.md（意味判断） |
-| **C5 プロジェクト実態整合** | 系統A `depends_on.project_refs`（paths glob・supporting file・path）が系統B `ref_resolution` で全て `resolved: true` | 系統B・実照合 |
+| **C5 プロジェクト実態整合** | 系統A `depends_on.project_refs`（paths glob・supporting file・path）が系統B `ref_resolution` で全て `resolved: true`（系統B にエントリが無い具体パスは、G2 が対象リポジトリでの実在を直接確かめる。glob・まとめ書きは代替しない） | 系統B・実照合 |
 
 - C1/C3/C5 は実データ照合、C2/C4 は意味判断（真偽の**形式検査**のみあなたが立てる。意味的妥当性は G2 でなく eval 工程9・keep-review が検証し、疑わしきは P5 で人間確認する・基本設計書 §8.4）。
 - **C3 の `interface_change` 宣言は design 段階では実照合できない**（generator がまだ動いておらず生成物が未存在なため）。あなたが `interface_change: none` を宣言したら、それは「対外インタフェースを変えないと約束する」宣言であり、実際にその約束が守られたか（frontmatter `name` 同一性）は工程7完了後に G8 が実照合する。宣言だけで keep が通る恒真経路ではない——正直に宣言すること（詳細設計書 §9.2・§11.2）。

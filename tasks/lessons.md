@@ -55,11 +55,6 @@ run 20260927_003229 = S1 `41da6176`・S2 `1122beb9`・S3 `a192b7cf`・S4 `f3dd5c
 - 何が起きたか: 「対象に管理ファイルが無いため退避は0件で .bak は作られない見込み」と案内したが、実際は退避39件（f3dd5ca1:L69・L81・L92）。dry-run も未実行のまま P8 を求めた（L51）。
 - 提案: `deploy/pre-deploy-check.js` のレポートに「上書き（退避）予定 N件」を出す。SKILL.md 工程10に「.bak の有無を推測で案内しない。配置予定を提示してから P8 を求める」を書く。
 
-## 2026-09-27 G2 の C5 判定が ref_resolution の記録漏れで実在する参照先を立証できない（run 20260925_004359・S2）
-- 種別: 欠陥修正
-- 何が起きたか: ui-design.md の参照先 `design/ui-design-standard.md` は実在したが、系統B の ref_resolution に無く C5 を G2 で立証できず、巻き戻しを避けて「形式上の modify」で回避した（d95e77b5:L160・L229・state.md P5 行）。
-- 提案: `gates/g2_keep_judgement.js` で、ref_resolution に参照が無いときは `target.txt` のルートから参照先の実在を直接確かめる代替経路を足す（実在・不在の両方をテスト）。
-
 ## 2026-09-27 G8 が paths: の無い rule の interface_change を照合できず素通りする（run 20260925_004359・S3）
 - 種別: 欠陥修正
 - 何が起きたか: gen-guard が「interface_change: none を宣言したが検査手段が無く実照合しなかった2件: research-discipline.md, tsod-workflow.md（rule-paths）」と注記したまま通過した（5ca33ae1 generator:L178・L214）。

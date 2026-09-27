@@ -417,3 +417,19 @@ test('S3-2 G2: out_of_scope が管理集合外パス（tasks/ 配下）なら通
   const withNote = checkG2({ ts: c.ts });
   assert.equal(withNote.ok, true, JSON.stringify(withNote.violations));
 });
+
+test('G2 C5: 系統B が書き落とした具体パスの参照は、対象リポジトリで実在すれば通し、実在しなければ違反（run 20260925_004359）', (t) => {
+  const withRef = (n, value) => {
+    const c = setupSampleRepo(t, 'existing', tsFor(import.meta.url, n));
+    const p = path.join(c.work, 'existing_customizations.md');
+    const text = readFileSync(p, 'utf8');
+    const line = text.split('\n').find((l) => l.includes('value: "src/**/*.js"'));
+    const indent = line.match(/^\s*/)[0];
+    writeFileSync(p, text.replace(line, `${line}\n${indent}- kind: path_reference value: "${value}"`));
+    return checkG2({ ts: c.ts });
+  };
+  const ok = withRef(20, 'src/app.js'); // ref_resolution に無いが実在する
+  assert.equal(ok.ok, true, JSON.stringify(ok.violations));
+  const ng = withRef(21, 'src/missing.js'); // ref_resolution に無く実在もしない
+  assert.ok(ng.violations.some((v) => v.includes('C5') && v.includes('src/missing.js')), JSON.stringify(ng.violations));
+});

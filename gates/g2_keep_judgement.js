@@ -17,6 +17,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import {
   outputDir,
   workDir,
+  resolveTargetRoot,
   isMainModule,
   readHookInput,
   readSessionTs,
@@ -26,12 +27,24 @@ import {
 import { parseExistingDisposition, DesignMapError, DISPOSITION_VALUES } from './lib/design-map.js';
 import { parseSystemA, parseSystemB, isCanonClean } from './lib/investigation.js';
 import { isManaged } from './lib/managed-paths.js';
+import { stripLineSuffix } from './lib/markdown.js';
 
 const GATE = 'G2';
 // keep の依存先がこの disposition なら常に C3 違反（実体が消えるため依存は現に壊れる）。
 const BREAKING_DISPOSITIONS = new Set(['retire', 'merge']);
 // interface_change の値語彙（modify レコードのみ有効）。
 const INTERFACE_CHANGE_VALUES = new Set(['none', 'breaking']);
+
+/** 具体パス（glob・カンマ・空白を含まない）の参照先が対象リポジトリに実在するか。 */
+function refExistsInTarget(ts, value) {
+  const v = stripLineSuffix(String(value ?? '').trim());
+  if (!v || /[*?[\]{},\s]/.test(v)) return false;
+  const root = resolveTargetRoot(ts);
+  if (!root) return false;
+  const abs = path.resolve(root, v);
+  if (!abs.startsWith(path.resolve(root) + path.sep)) return false; // 対象の外は見ない
+  return existsSync(abs);
+}
 
 export function checkG2({ ts }) {
   const violations = [];
@@ -118,8 +131,12 @@ export function checkG2({ ts }) {
         );
       }
     }
-    // C5 実照合: project_refs が系統B で resolved。
+    // C5 実照合: project_refs が系統B で resolved。系統B が記録を**書き落とした**（resolved:false ではなく
+    // エントリが無い）具体パスは、対象リポジトリで実在を直接確かめる（決定論的な事実なので代替してよい）。
+    // run 20260925_004359 では実在する参照先を系統B が書き落とし、keep にできず「形式上の modify」で回避した。
+    // glob・複数参照のまとめ書き（語彙契約違反）は代替しない（結合キーの契約を緩めない）。
     for (const pr of a.project_refs) {
+      if (sysB.get(pr.value) === undefined && refExistsInTarget(ts, pr.value)) continue;
       if (sysB.get(pr.value) !== true) {
         violations.push(`${GATE}: keep "${r.path}" の C5 実照合失敗（project_ref "${pr.value}" が対象リポジトリで未解決）。`);
       }

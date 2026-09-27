@@ -31,7 +31,7 @@ user-invocable: false
 | **C2 要件非抵触** | 統合 spec 新要件・統合方針と競合/重複せず、requirements.md の conflicts に登場しない | spec 突合・意味判断（eval 回付） |
 | **C3 依存健全** | 系統A `depends_on.customization_refs` の参照先が今回の design-map で `retire`/`merge` されない。参照先が `modify` の場合は、当該レコードが `interface_change: none` を宣言している | 系統A＋design-map・実照合（機械） |
 | **C4 強度整合** | 既存が担う強度が requirements.md の strength_needed・constraints と矛盾しない | requirements.md・意味判断（形式検査のみ機械） |
-| **C5 プロジェクト実態整合** | 系統A `depends_on.project_refs`（paths glob・supporting file・path）が系統B `ref_resolution` で全て resolved=true | 系統B・実照合（機械） |
+| **C5 プロジェクト実態整合** | 系統A `depends_on.project_refs`（paths glob・supporting file・path）が系統B `ref_resolution` で全て resolved=true（系統B にエントリが無い具体パスは、G2 が対象リポジトリでの実在を直接確かめる。glob・まとめ書きは代替しない） | 系統B・実照合（機械） |
 
 1つでも欠けたら維持不可＝改修/統廃合/廃止へ回す。**判定元の性質を区別する**: C1/C3/C5 は実データ照合（G2 が真偽確定）。C2/C4 は意味判断を含み、designer が立てた boolean の**形式検査のみ** G2 が行い、意味的妥当性は eval（工程9）へ回付する。C3 の `interface_change: none` 宣言自体は design 段階では実照合できない（生成物が未存在）——宣言の裏取りは generation 段階の G8 が担う。**検査手段は種別ごとに違う**（`gates/lib/interface-signature.js`・S1-2）: frontmatter を持つもの（SKILL.md・Subagent）は `name`、rules は `paths:` の値集合、`CLAUDE.md`/`.claude/README.md` は `##` 見出し構造、JSON（`settings.json`/`.mcp.json`）はトップレベルキー集合、付随スクリプト（`.mjs`/`.js`）は export される識別子の集合。検査手段が無い種別への宣言は違反にせず「検査対象外」として通過メッセージに出す。
 
