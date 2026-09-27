@@ -29,6 +29,8 @@ import {
   listRequests,
   hasMarker,
   processStageRequests,
+  readBlockLatchReason,
+  isRepeatBlock,
   investigationMarkerKey,
   isMainModule,
   blockStop,
@@ -88,7 +90,7 @@ async function runRegisteredChecks(ts, stage) {
 }
 
 async function main() {
-  readHookInput(); // 内容は使わないが stdin を読み切る（hook 契約上の作法）
+  const input = readHookInput();
   const ts = readSessionTs();
   if (!ts) {
     passStop('stage-guard: .session-ts 不在のため対象なし');
@@ -98,9 +100,12 @@ async function main() {
   // processStageRequests の runChecks は同期シグネチャなので、事前に非同期で
   // チェック結果を集めてから渡す（① marker 有のケースは判定不要なので事前計算をスキップする）。
   const precomputed = {};
+  const prevReasons = {};
   for (const stage of listRequests(ts)) {
     if (!STAGE_ORDER.includes(stage)) continue;
-    if (hasMarker(ts, investigationMarkerKey(ts, stage))) continue; // phase 別マーカーで冪等スキップ判定
+    const key = investigationMarkerKey(ts, stage);
+    if (hasMarker(ts, key)) continue; // phase 別マーカーで冪等スキップ判定
+    prevReasons[key] = readBlockLatchReason(ts, key); // 判定前のラッチ（同一違反の再ブロック抑止に使う）
     precomputed[stage] = await runRegisteredChecks(ts, stage);
   }
 
@@ -119,6 +124,15 @@ async function main() {
   const failed = batch.filter((r) => r.ok === false);
   if (failed.length > 0) {
     const msg = failed.map((f) => `${f.stage}: ${f.violations.join(' / ')}`).join('\n');
+    const repeat = isRepeatBlock({
+      stopHookActive: input.stop_hook_active,
+      prevReasons,
+      failed: failed.map((f) => ({ key: investigationMarkerKey(ts, f.stage), violations: f.violations })),
+    });
+    if (repeat) {
+      passStop(`stage-guard: 前回と同じ違反のためブロックを繰り返さない（blocks/<stage>.blocked は残る。直したら recheck）\n${msg}`);
+      return;
+    }
     blockStop(`stage-guard: 違反を検出（blocks/<stage>.blocked を鋳造）\n${msg}`);
     return;
   }

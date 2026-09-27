@@ -189,6 +189,28 @@ export function mintBlockLatch(ts, stage, reason, meta = {}) {
     'utf8'
   );
 }
+/** ブロックラッチに記録された違反文（processStageRequests が `violations.join(' / ')` で書く）。無ければ null。 */
+export function readBlockLatchReason(ts, stage) {
+  try {
+    return JSON.parse(readFileSync(blockLatchPath(ts, stage), 'utf8')).reason ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Stop/SubagentStop のブロック（exit 2）を繰り返さないかの判定。失敗したリクエストは再判定の契機として
+ * 残るので、ターンが終わるたびに同じ違反で exit 2 が返り、ハーネスの上限（9回連続）まで注入が続いた
+ * （run 20260927_003229・S3 メイン 44回・5.07M）。次のどちらかなら通知だけにする（ラッチは残る）:
+ *   - hook 入力の `stop_hook_active` が true（すでに Stop hook による継続中）
+ *   - 失敗した全ステージの違反が、判定前に立っていたラッチの違反と同一（同じ違反の再判定）
+ * @param {{ stopHookActive?: boolean, prevReasons: Record<string, string|null>, failed: { key: string, violations: string[] }[] }} a
+ */
+export function isRepeatBlock({ stopHookActive, prevReasons, failed }) {
+  if (stopHookActive === true) return true;
+  return failed.length > 0 && failed.every((f) => prevReasons[f.key] != null && prevReasons[f.key] === f.violations.join(' / '));
+}
+
 export function unblock(ts, stage) {
   const p = blockLatchPath(ts, stage);
   if (existsSync(p)) {

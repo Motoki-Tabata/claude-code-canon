@@ -25,11 +25,6 @@ run 20260927_003229 = S1 `41da6176`・S2 `1122beb9`・S3 `a192b7cf`・S4 `f3dd5c
 
 ---
 
-## 2026-09-27 Stop・SubagentStop hook が同じ違反で無限に再ブロックする（run 20260927_003229・S3）
-- 種別: 欠陥修正
-- 何が起きたか: G8 違反の後、S3 メインに同じ gen-guard の通知が44回注入され（a192b7cf:L384〜L718、上限到達3回）5.07M、generator 修正モードでも9回・1.0M。`gates/gen-guard.js` は `readHookInput()` を捨てて `stop_hook_active` を見ず、`gates/lib/run.js` は失敗したリクエストを再判定の契機として残す。
-- 提案: gen-guard・stage-guard で `stop_hook_active` が true、または同一違反のブロックラッチが既にあるときはブロックせず通知だけにする（`gates/lib/run.js` にヘルパー）。2回目の Stop が exit 0 になる回帰テスト。
-
 ## 2026-09-27 generator が builder をバックグラウンド起動し、Glob でポーリングし、同じ担当を二重に振った（run 20260927_003229・S3）
 - 種別: 効率化
 - 何が起きたか: builder 5体が `run_in_background` 未指定で非同期化し、generator が Glob を約45回ポーリング（49ターン・6.22M）。起動中の builder と同じ担当ファイルを別の builder 2体に振り直し、4体が同じファイルを交互に上書きした（a192b7cf の generator a6c54:L39〜L394）。
