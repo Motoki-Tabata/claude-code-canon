@@ -1,15 +1,16 @@
 ---
 paths:
+  - "lib/**"
+  - ".claude/skills/*/scripts/**"
   - "gates/**"
-  - "tests/**"
-  - "eval/**"
   - "tools/**"
-  - "deploy/**"
+  - "tests/**"
 ---
 
 # 検査・テスト・CLI 実装規律
 
-検査（`gates/`）・CLI（`tools/`・`eval/`・`deploy/`）・テストを書き足す／直すときは次を守る。
+検査（`.claude/skills/canon-c/scripts/verify/`）・CLI（Phase Skill の `scripts/`・`gates/`・`tools/`）・
+共有モジュール（`lib/`）・テストを書き足す／直すときは次を守る。
 
 - **vacuous pass を最優先で疑う**。検出0件は「検出成功」の証拠にならない。故意の違反を注入して
   検出器が実際に発火することを示してから「検出できる」と言う。検査対象が0件のときは合格にせず、
@@ -29,7 +30,7 @@ paths:
   「echo >」でなく「書込操作」。正典の全集合を実際に走査してから網羅性を確かめる。値の書式の
   変種（`Bash(git *)` のような引数付き指定）も踏む。
 - **同じ判定ロジック（除外リスト・正規表現・分類器）を複数箇所へ複製しない**。検査・CLI・テストへ
-  独立に複製すると、変更の波及漏れが起きる。共有モジュール（`gates/lib/*.js`）へ集約し import する。
+  独立に複製すると、変更の波及漏れが起きる。共有モジュール（`lib/*.js`）へ集約し import する。
   同一ファイル内の姉妹関数も見落としやすいので同様に確認する。
 - **JSDoc/ブロックコメント中に `*/` が連続する表記を書かない**（`output/*/` のようなワイルドカード
   パス表記）。`*/` はコメント終端トークンとして字句解析される。`<...>` プレースホルダ表記に
@@ -39,11 +40,13 @@ paths:
   付ける。
 - **ディレクトリを歩いて特定パターンのファイルを集める処理は `readdirSync` 手書き再帰でなく
   `git ls-files` ベースにする**。git worktree・退避ディレクトリ等の追跡外の物理実在物を誤って
-  拾わないため。
+  拾わないため。例外は gitignore された run の成果物（`output/<ts>/generated/`）と配置先の対象
+  リポジトリで、ここは git で列挙できないので readdir で歩く。そのときは走査の起点を成果物の根に
+  絞り、走査は1回にまとめる（verify.js の buildContext・`lib/managed-paths.js` の walkManaged）。
 - テスト赤に遭遇したら、`git stash` で自分の変更を退避しても再現するかを先に確かめる
   （変更起因か環境起因かの切り分け）。
 - **複製排除はテスト側にも及ぶ**。パス解決・テスト入力の生成は `tests/helpers/*` から import する
-  （`gates/lib/*.js` を個別に再導出しない）。サンプルリポジトリ等の入力は `tests/helpers/` の
+  （`lib/*.js` を個別に再導出しない）。サンプルリポジトリ等の入力は `tests/helpers/` の
   インラインデータから書き出す。CLI の exit code・出力を確かめるテストは子プロセス起動
   （`tests/helpers/run-cli.js`）で行う。
 - 実 `work/<ts>`・`output/<ts>` を触るテストの ts は `tests/helpers/ts.js` の `tsFor`/`tsSeq` 経由で
