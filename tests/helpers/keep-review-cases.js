@@ -1,34 +1,34 @@
 /**
- * keep-review バンドル（eval/bundle.js）の入力ケース。{ ケース名: { 相対パス: 内容 } }。
+ * keep-review バンドル（canon-c/scripts/review-bundle.js）の入力ケース。{ ケース名: { 相対パス: 内容 } }。
  *
- * 1ケースが1つの run に相当する（design-map.md・spec.md・requirements.md・existing_customizations.md と、
+ * 1ケースが1つの run に相当する（design-map.md・spec.md・requirements.md・investigation/existing.md と、
  * 対象原本 target/・生成物 generated/）。design-map には designer の宣言（keep_conditions・rationale・
  * manifest_note）を実在させてあり、バンドルがそれを構造的に読まないことをテストで固定する。
  *
- * - c4-strength-gap: keep 1件（系統A の強度 advisory ＜ 要件の deterministic）
+ * - k4-strength-gap: keep 1件（existing.md の強度 advisory ＜ 要件の deterministic）
  * - merge-target-bad: merge 1件（統合先の実体つき・manifest_note あり）
  */
 
 export const KEEP_REVIEW_CASES = {
-  "c4-strength-gap": {
-    "design-map.md": `# design-map（eval コーパス: c4-strength-gap）
+  "k4-strength-gap": {
+    "design-map.md": `# design-map（keep-review ケース: k4-strength-gap）
 
-## 既存判定（existing_disposition・§8）
+## 既存判定
 
 \`\`\`yaml
 existing_disposition:
   - path: .claude/skills/secret-hygiene/SKILL.md
     disposition: keep
     keep_conditions:
-      C1_canon_clean: true
-      C2_no_requirement_conflict: true
-      C3_dependency_healthy: true
-      C4_strength_consistent: true
-      C5_project_refs_resolved: true
+      K1_canon_clean: true
+      K2_no_requirement_conflict: true
+      K3_dependency_healthy: true
+      K4_strength_consistent: true
+      K5_project_refs_resolved: true
     rationale: "手順書として引き続き有用なので維持する"
 \`\`\`
 `,
-    "existing_customizations.md": `# 系統A（eval コーパス: c4-strength-gap）
+    "investigation/existing.md": `# existing.md（keep-review ケース: k4-strength-gap）
 
 ## レコード（1ファイル1件）
 - path: .claude/skills/secret-hygiene/SKILL.md
@@ -44,7 +44,7 @@ existing_disposition:
     tool_names_valid: true
     deprecated_notation: []
 `,
-    "requirements.md": `# requirements（eval コーパス: c4-strength-gap）
+    "requirements.md": `# requirements（keep-review ケース: k4-strength-gap）
 
 ## 確定要件
 - id: R1
@@ -63,7 +63,7 @@ constraints:
 conflicts:
   (なし)
 `,
-    "spec.md": `# spec（eval コーパス: c4-strength-gap）
+    "spec.md": `# spec（keep-review ケース: k4-strength-gap）
 
 ## 新要件
 
@@ -89,9 +89,9 @@ description: Explain how to keep credentials out of the repository. Use when the
 `,
   },
   "merge-target-bad": {
-    "design-map.md": `# design-map（eval コーパス: merge-target-bad）
+    "design-map.md": `# design-map（keep-review ケース: merge-target-bad）
 
-## 既存判定（existing_disposition・§8）
+## 既存判定
 
 \`\`\`yaml
 existing_disposition:
@@ -101,7 +101,7 @@ existing_disposition:
     manifest_note: "db-migration は contribution-rules へ統合"
 \`\`\`
 `,
-    "existing_customizations.md": `# 系統A（eval コーパス: merge-target-bad）
+    "investigation/existing.md": `# existing.md（keep-review ケース: merge-target-bad）
 
 ## レコード（1ファイル1件）
 - path: .claude/skills/db-migration/SKILL.md
@@ -131,7 +131,7 @@ description: Apply the repository contribution rules for commits and pull reques
 ## プルリクエスト
 本文に変更理由・影響範囲・確認手順を書く。
 `,
-    "requirements.md": `# requirements（eval コーパス: merge-target-bad）
+    "requirements.md": `# requirements（keep-review ケース: merge-target-bad）
 
 ## 確定要件
 - id: R1
@@ -150,7 +150,7 @@ constraints:
 conflicts:
   (なし)
 `,
-    "spec.md": `# spec（eval コーパス: merge-target-bad）
+    "spec.md": `# spec（keep-review ケース: merge-target-bad）
 
 ## 新要件
 

@@ -49,8 +49,8 @@
       "source": "docs/ORCHESTRATION.md:9"
     }
   ],
-  "generated_at": "2026-09-30T15:16:18.511Z",
-  "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること（§11.4）。",
+  "generated_at": "2026-09-30T16:35:17.806Z",
+  "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること。",
   "_warning": [
     "自動生成ファイル。手動編集禁止。",
     "生成元: gates/build-conformance-tables.js / 出典: docs/（SSoT・正典）。",

@@ -20,8 +20,8 @@
 import path from 'node:path';
 import os from 'node:os';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { CANON_ROOT } from '../gates/lib/canon.js';
-import { isMainModule } from '../gates/lib/run.js';
+import { CANON_ROOT } from '../lib/canon.js';
+import { isMainModule } from '../lib/run.js';
 
 const DESIGN_MAP_RE = /(^|[\\/])design-map\.md$/;
 

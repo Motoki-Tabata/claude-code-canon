@@ -49,8 +49,8 @@
       "source": "docs/ORCHESTRATION.md:9"
     }
   ],
-  "generated_at": "2026-09-30T15:16:18.511Z",
-  "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること（§11.4）。",
+  "generated_at": "2026-09-30T16:35:17.806Z",
+  "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること。",
   "_warning": [
     "自動生成ファイル。手動編集禁止。",
     "生成元: gates/build-conformance-tables.js / 出典: docs/（SSoT・正典）。",
@@ -59,7 +59,7 @@
     "本ファイルを直接編集すると SSoT が壊れ、次回再生成で黙って失われる。"
   ],
   "_status": "OK",
-  "_headline": "正典 docs/TOOLS.md（2026-07-16 新設）から抽出した正規ツール名の集合。G5 の closed-world 検査（非実在ツール検出・旧称検出）はこの表を出典にできる。",
+  "_headline": "正典 docs/TOOLS.md（2026-07-16 新設）から抽出した正規ツール名の集合。V3 の closed-world 検査（非実在ツール検出・旧称検出）はこの表を出典にできる。",
   "canonical_tool_set": {
     "available": true,
     "total": 46,
@@ -299,8 +299,8 @@
       }
     ]
   },
-  "g5_capability": {
-    "_note": "G5 実装者への能力宣言。false のものを実装すると正典に無い判断を捏造することになる。",
+  "v3_capability": {
+    "_note": "V3 実装者への能力宣言。false のものを実装すると正典に無い判断を捏造することになる。",
     "mcp_syntax_check": {
       "supported": true,
       "basis": "docs/TOOLS.md:108"
@@ -325,7 +325,7 @@
     }
   },
   "deprecated_tools": {
-    "_note": "kind が「旧称（改名）」のもののみ G5 で違反にしてよい。非推奨・既定無効は正規名として通す。",
+    "_note": "kind が「旧称（改名）」のもののみ V3 で違反にしてよい。非推奨・既定無効は正規名として通す。",
     "all": [
       {
         "name": "Task",
@@ -389,7 +389,7 @@
     "regex_confidence": "medium"
   },
   "subagent_unavailable_tools": {
-    "_note": "これらは正規ツール名だが Subagent には提供されない。G5 は「正規名か」を見るゲートなので違反にしてはならない（tools: に書いても無視されるだけ）。",
+    "_note": "これらは正規ツール名だが Subagent には提供されない。V3 は「正規名か」を見る検査なので違反にしてはならない（tools: に書いても無視されるだけ）。",
     "tools": [
       {
         "name": "Agent",

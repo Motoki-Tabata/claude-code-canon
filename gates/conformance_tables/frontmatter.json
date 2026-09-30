@@ -49,8 +49,8 @@
       "source": "docs/ORCHESTRATION.md:9"
     }
   ],
-  "generated_at": "2026-09-30T15:16:18.511Z",
-  "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること（§11.4）。",
+  "generated_at": "2026-09-30T16:35:17.806Z",
+  "generator_note": "canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること。",
   "_warning": [
     "自動生成ファイル。手動編集禁止。",
     "生成元: gates/build-conformance-tables.js / 出典: docs/（SSoT・正典）。",
@@ -282,7 +282,7 @@
       },
       "types": {
         "available": false,
-        "reason": "L3 の「主要フィールド」表には型の列が無い（L2 の Skill 表には「値」列がある）。型は YAML の例示値から推測するしかなく、決定論的に抽出できない。G4 の「型照合」は agent については正典由来で実装できない。"
+        "reason": "L3 の「主要フィールド」表には型の列が無い（L2 の Skill 表には「値」列がある）。型は YAML の例示値から推測するしかなく、決定論的に抽出できない。V2 の「型照合」は agent については正典由来で実装できない。"
       }
     },
     "skill": {
@@ -556,7 +556,7 @@
       ],
       "unknown_key_detection": {
         "supported": false,
-        "reason": "rules には「frontmatter 完全リファレンス」が存在せず、根拠は実装例1件のみ（L1 §2.2）。例に現れたキー集合を「既知キーの全集合」と見なすと、正当なキーを未知キーとして誤検出する。G4 の未知キー検出は rule には適用してはならない。"
+        "reason": "rules には「frontmatter 完全リファレンス」が存在せず、根拠は実装例1件のみ（L1 §2.2）。例に現れたキー集合を「既知キーの全集合」と見なすと、正当なキーを未知キーとして誤検出する。V2 の未知キー検出は rule には適用してはならない。"
       }
     }
   }

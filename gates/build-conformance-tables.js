@@ -2,14 +2,14 @@
 /**
  * gates/build-conformance-tables.js
  *
- * 正典 docs/ から G3〜G6 が消費する照合表を生成する（§11.4「判定の出典は必ず正典 docs」）。
+ * 正典 docs/ から verify の V1〜V4・V9 が消費する判定表を生成する（artifacts.md §8.1「判定表の出典」）。
  * docs/ は読取専用。本スクリプトは docs/ を一切書き換えない。
  *
  * 設計要件:
- * - 決定論のみ。LLM 不使用（§1.3）。
- * - 全リーフに出典（file:line）を付す。正典更新への追従を可能にするため（§11.4）。
+ * - 決定論のみ。LLM 不使用（architecture.md §1.3）。
+ * - 全リーフに出典（file:line）を付す。正典更新への追従を可能にするため。
  * - 「抽出できるはずのものが0件」は例外で落ちる（ExtractionError）。
- *   silent empty は vacuous pass の温床（§11.5）。
+ *   silent empty は vacuous pass の温床（architecture.md §9.3）。
  * - 抽出できないものは「抽出できた」ことにしない。表自身に能力の限界を宣言させる。
  *
  * 使い方: npm run build:tables
@@ -18,7 +18,8 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import {
-  GATES_DIR,
+  TABLES_DIR,
+  CANON_ROOT,
   loadDoc,
   ExtractionError,
   requireNonEmpty,
@@ -27,8 +28,8 @@ import {
   extractCanonVersion,
   posix,
   DESIGN_DOC_ARTIFACTS,
-} from './lib/canon.js';
-import { isMainModule } from './lib/run.js';
+} from '../lib/canon.js';
+import { isMainModule } from '../lib/run.js';
 import {
   findHeading,
   sectionSlice,
@@ -37,11 +38,11 @@ import {
   backtickTokens,
   plain,
   computeFenceMask,
-} from './lib/markdown.js';
+} from '../lib/markdown.js';
 
-const OUT_DIR = path.join(GATES_DIR, 'conformance_tables');
+const OUT_DIR = TABLES_DIR;
 
-// export: 「docs/ 9ファイルの全量」の SSoT。他所で own-list として二重管理しない（L005 の同期漏れ回避）。
+// export: 「docs/ 9ファイルの全量」の SSoT。他所で own-list として二重管理しない（同期漏れを避ける）。
 export const CANON_FILES = [
   '00_INDEX.md',
   'L1_CONTEXT_MANAGEMENT.md',
@@ -153,7 +154,7 @@ function vocabFromComment(comment, sep) {
 }
 
 // ---------------------------------------------------------------------------
-// frontmatter.json（G4）
+// frontmatter.json（V2）
 // ---------------------------------------------------------------------------
 
 function buildFrontmatter() {
@@ -294,7 +295,7 @@ function buildFrontmatter() {
         // `disallowedTools` ⇔ `disallowed-tools` の互換 alias は2026-08-19に撤廃した
         // （L3_AGENTS.md:198・保守課題まとめ処理）。公式 sub-agents ページに複数回の再検証
         // （2026-06-09〜2026-08-19）でハイフン形が一度も確認できず、黙認し続けると
-        // 「deny が黙って効かない」静かな失敗を招くため、G4 が未知キーとして検出する側へ倒した。
+        // 「deny が黙って効かない」静かな失敗を招くため、V2 が未知キーとして検出する側へ倒した。
         vocabularies: {
           model: {
             values: agentModelVocab,
@@ -322,7 +323,7 @@ function buildFrontmatter() {
         types: {
           available: false,
           reason:
-            'L3 の「主要フィールド」表には型の列が無い（L2 の Skill 表には「値」列がある）。型は YAML の例示値から推測するしかなく、決定論的に抽出できない。G4 の「型照合」は agent については正典由来で実装できない。',
+            'L3 の「主要フィールド」表には型の列が無い（L2 の Skill 表には「値」列がある）。型は YAML の例示値から推測するしかなく、決定論的に抽出できない。V2 の「型照合」は agent については正典由来で実装できない。',
         },
       },
 
@@ -367,7 +368,7 @@ function buildFrontmatter() {
           reason:
             'rules には「frontmatter 完全リファレンス」が存在せず、根拠は実装例1件のみ（L1 §2.2）。' +
             '例に現れたキー集合を「既知キーの全集合」と見なすと、正当なキーを未知キーとして誤検出する。' +
-            'G4 の未知キー検出は rule には適用してはならない。',
+            'V2 の未知キー検出は rule には適用してはならない。',
         },
       },
     },
@@ -375,7 +376,7 @@ function buildFrontmatter() {
 }
 
 // ---------------------------------------------------------------------------
-// paths.json（G3）
+// paths.json（V1）
 // ---------------------------------------------------------------------------
 
 function placementTable(doc, headingText) {
@@ -399,9 +400,9 @@ function placementTable(doc, headingText) {
 /**
  * `#### ディレクトリ構造` 直下のツリー図から skill パッケージの許容レイアウトを抽出する。
  *
- * これが G3 の「skill ディレクトリ配下に SKILL.md 以外を置いてよいか」の唯一の出典になる。
+ * これが V1 の「skill ディレクトリ配下に SKILL.md 以外を置いてよいか」の唯一の出典になる。
  * 正典は SKILL.md を「必須」、`template.md`／`examples/`／`scripts/` を「任意」と明記しており
- * （Progressive Disclosure Loading の参照先＝supporting files）、G3 がスキルディレクトリ配下の
+ * （Progressive Disclosure Loading の参照先＝supporting files）、V1 がスキルディレクトリ配下の
  * 非 SKILL.md を一律違反にすると正典に反する。ここで抽出できなければ落とす（silent empty は
  * vacuous pass の温床であると同時に、逆向きの「正典の許可を黙って失う」事故も生む）。
  */
@@ -410,7 +411,7 @@ function parseSkillPackageLayout(l2) {
   if (h < 0) {
     throw new ExtractionError(
       `${l2.ref}: 見出し「ディレクトリ構造」が見つからない。skill パッケージに supporting files を` +
-        `置いてよいことの出典（G3 の判定根拠）が消えている。`
+        `置いてよいことの出典（V1 の判定根拠）が消えている。`
     );
   }
   const { start, end } = sectionSlice(l2.lines, h);
@@ -440,7 +441,7 @@ function parseSkillPackageLayout(l2) {
   if (optional.length === 0) {
     throw new ExtractionError(
       `${l2.ref}:${block.start} ディレクトリ構造に「任意」と注記されたエントリが1件も無い。` +
-        `supporting files を置いてよいという正典の許可が読み取れないため、G3 の緩和根拠を捏造しない。`
+        `supporting files を置いてよいという正典の許可が読み取れないため、V1 の緩和根拠を捏造しない。`
     );
   }
 
@@ -452,7 +453,7 @@ function parseSkillPackageLayout(l2) {
     note:
       'skill パッケージのディレクトリには SKILL.md（必須）のほかに supporting files（任意）を' +
       '置いてよい。Progressive Disclosure Loading の参照先であり、正典が明示的に許可している' +
-      '（G7 は逆に「本文が参照する supporting file の実在」を要求する）。ゆえに G3 は' +
+      '（V6 は逆に「本文が参照する supporting file の実在」を要求する）。ゆえに V1 は' +
       '「skill ディレクトリ配下の非 SKILL.md」を一律違反にしてはならない。filename_fixed は' +
       '**スキル定義ファイルの名前**が固定であることを述べるのみで、ディレクトリ内の他ファイルを' +
       '禁じてはいない。',
@@ -478,7 +479,7 @@ function buildPaths() {
   if (agentNameIndep < 0 || agentNameIndep2 < 0) {
     throw new ExtractionError(
       `${l3.ref}: agent の「ディレクトリ名と name は無関係」の明示が見つからない。` +
-        `この一文の有無で G3 の判定が反転するため、黙って既定値を採ってはならない。`
+        `この一文の有無で V1 の判定が反転するため、黙って既定値を採ってはならない。`
     );
   }
 
@@ -510,7 +511,7 @@ function buildPaths() {
           corroboration: `${l3.ref}:${agentNameIndep2 + 1}`,
           note:
             '正典は「ファイル名・ディレクトリ名と一致する必要はない（識別は name のみ）」と明言する。' +
-            'G3 が agent に対しディレクトリ名＝name を要求すると正典に反する誤検出になる。',
+            'V1 が agent に対しディレクトリ名＝name を要求すると正典に反する誤検出になる。',
         },
         extension: '.md',
       },
@@ -568,7 +569,7 @@ function buildPaths() {
 }
 
 // ---------------------------------------------------------------------------
-// tools.json（G5）— 本タスクの核心的な失敗点
+// tools.json（V3）
 // ---------------------------------------------------------------------------
 
 function buildTools() {
@@ -619,7 +620,7 @@ function buildTools() {
   requireCount(yes, dy, '権限要ツール数', `${tools.ref}: 自己検算行`);
   requireCount(no, dn, '権限不要ツール数', `${tools.ref}: 自己検算行`);
 
-  // --- 旧称・非推奨（G5 の旧称検出の出典） ---
+  // --- 旧称・非推奨（V3 の旧称検出の出典） ---
   const dh = findHeading(tools.lines, '旧称・非推奨・既定無効', 3, mask);
   if (dh < 0) throw new ExtractionError(`${tools.ref}: 「旧称・非推奨・既定無効」見出しが無い。`);
   const ds = sectionSlice(tools.lines, dh, mask);
@@ -640,7 +641,7 @@ function buildTools() {
   }
   requireNonEmpty(deprecated, '旧称・非推奨ツール', `${tools.ref}:${depTable.headerLine}`);
 
-  // 旧称（改名）のみを G5 の検出対象にする。非推奨・既定無効は「実在する正規名」であり弾いてはならない。
+  // 旧称（改名）のみを V3 の検出対象にする。非推奨・既定無効は「実在する正規名」であり弾いてはならない。
   const renamed = deprecated.filter((d) => /旧称/.test(d.kind));
   requireNonEmpty(renamed, '旧称（改名）', `${tools.ref}:${depTable.headerLine}`);
   const canonicalNames = new Set(canonical.map((t) => t.name));
@@ -684,7 +685,7 @@ function buildTools() {
     _status: 'OK',
     _headline:
       '正典 docs/TOOLS.md（2026-07-16 新設）から抽出した正規ツール名の集合。' +
-      'G5 の closed-world 検査（非実在ツール検出・旧称検出）はこの表を出典にできる。',
+      'V3 の closed-world 検査（非実在ツール検出・旧称検出）はこの表を出典にできる。',
 
     canonical_tool_set: {
       available: true,
@@ -695,8 +696,8 @@ function buildTools() {
       tools: canonical.sort((a, b) => a.name.localeCompare(b.name)),
     },
 
-    g5_capability: {
-      _note: 'G5 実装者への能力宣言。false のものを実装すると正典に無い判断を捏造することになる。',
+    v3_capability: {
+      _note: 'V3 実装者への能力宣言。false のものを実装すると正典に無い判断を捏造することになる。',
       mcp_syntax_check: { supported: true, basis: `${tools.ref}:${mh + 1}` },
       canonical_name_allowlist_check: { supported: true, basis: `${tools.ref}:${h + 1}` },
       deprecated_name_detection: {
@@ -718,7 +719,7 @@ function buildTools() {
     },
 
     deprecated_tools: {
-      _note: 'kind が「旧称（改名）」のもののみ G5 で違反にしてよい。非推奨・既定無効は正規名として通す。',
+      _note: 'kind が「旧称（改名）」のもののみ V3 で違反にしてよい。非推奨・既定無効は正規名として通す。',
       all: deprecated,
       renamed_only: renamed.map((r) => r.name),
     },
@@ -735,14 +736,14 @@ function buildTools() {
     subagent_unavailable_tools: {
       _note:
         'これらは正規ツール名だが Subagent には提供されない。' +
-        'G5 は「正規名か」を見るゲートなので違反にしてはならない（tools: に書いても無視されるだけ）。',
+        'V3 は「正規名か」を見る検査なので違反にしてはならない（tools: に書いても無視されるだけ）。',
       tools: unavailable,
     },
   };
 }
 
 // ---------------------------------------------------------------------------
-// hooks.json（G6/G11 の材料）
+// hooks.json（V9 の材料）
 // ---------------------------------------------------------------------------
 
 function buildHooks() {
@@ -841,11 +842,11 @@ function buildHooks() {
     ['PreToolUse', true],
   ]) {
     const e = events.find((x) => x.event === ev);
-    if (!e) throw new ExtractionError(`設計が前提とする Hook イベント '${ev}' が正典に無い。`);
+    if (!e) throw new ExtractionError(`抽出器が前提とする Hook イベント '${ev}' が正典に無い。`);
     if (e.blockable !== want) {
       throw new ExtractionError(
         `設計の前提が崩れた: '${ev}' の Block可 は ${want} のはずが ${e.blockable}（${e.source}）。` +
-          `§11.1 の系統設計を見直す必要がある。`
+          `抽出器が前提とする正典の記述が変わったので、抽出器を見直す必要がある。`
       );
     }
   }
@@ -866,7 +867,7 @@ function buildHooks() {
   const two = exitCodes.find((e) => e.code === '2');
   if (!two || !two.blocking) {
     throw new ExtractionError(
-      `exit code 2 が blocking として抽出できない。§11.1「exit 2 のみがブロッキング」の根拠が崩れる。`
+      `exit code 2 が blocking として抽出できない。正典の「exit 2 のみがブロッキング」を読み取れていない。`
     );
   }
 
@@ -899,7 +900,7 @@ function write(name, data, meta) {
   const payload = { ...meta, ...data };
   const file = path.join(OUT_DIR, name);
   writeFileSync(file, JSON.stringify(payload, null, 2) + '\n', 'utf8');
-  return posix(path.relative(path.dirname(GATES_DIR), file));
+  return posix(path.relative(CANON_ROOT, file));
 }
 
 function main() {
@@ -913,7 +914,7 @@ function main() {
     canon_version_sources: canon.sources,
     generated_at: new Date().toISOString(),
     generator_note:
-      'canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること（§11.4）。',
+      'canon_version が docs/ の現行値と一致しない場合、本表は stale。npm run build:tables で再生成すること。',
   };
 
   const built = [
@@ -932,15 +933,15 @@ function main() {
       _warning: WARNING,
       tables: built.map(([n]) => n),
       consumed_by: {
-        'paths.json': 'G3',
-        'frontmatter.json': 'G4',
-        'tools.json': 'G5（能力制限あり。tools.json の g5_capability を必ず読むこと）',
-        'hooks.json': 'G11（hooks 禁止制約の照合）/ §11.1 の発火系統設計 / 全ゲートの exit code 規約',
+        'paths.json': 'V1',
+        'frontmatter.json': 'V2',
+        'tools.json': 'V3（能力制限あり。tools.json の v3_capability を必ず読むこと）',
+        'hooks.json': 'V9（hooks 禁止制約の照合）',
       },
       not_yet_built: {
-        'G6（セキュリティ）': {
+        'V4（secret と展開）': {
           note:
-            'G6 の照合表は未構築。hooks.json は G6 の材料ではない（G6 は secret 検出・${VAR} 展開遵守・' +
+            'V4 の判定表は未構築。hooks.json は V4 の材料ではない（V4 は secret 検出・${VAR} 展開遵守・' +
             'experimental 依存フラグであり、Hook イベント一覧とは無関係）。別タスクで要検討。',
           canon_availability: {
             '${VAR} 展開規約': '抽出可（docs/L4_AUTOMATION.md:555-556 に箇条書きで規則あり）',
@@ -950,11 +951,11 @@ function main() {
         },
       },
       known_limitations: [
-        'tools.json: 正典に正規ツール名の列挙が無いため closed-world 検査は不可（§11.2 G5 の一部は実装不能）。',
-        'frontmatter.json: agent の型情報は正典に無い（L3 の表に型列が無い）。G4 の型照合は agent には適用できない。',
+        'tools.json: 正典に正規ツール名の列挙が無いため closed-world 検査は不可（V3 の一部は実装不能）。',
+        'frontmatter.json: agent の型情報は正典に無い（L3 の表に型列が無い）。V2 の型照合は agent には適用できない。',
         'frontmatter.json: rule の未知キー検出は不可（正典に完全リファレンスが無く、根拠が実装例1件のみ）。',
-        'frontmatter.json: model 語彙は full ID を許すため閉じない。`model: gpt-4o` のような明白な誤りも G4 は棄却できない。',
-        'paths.json: G3 の「skill ディレクトリ名＝name 一致」は正典に根拠が無い（design_derived_requirements 参照）。',
+        'frontmatter.json: model 語彙は full ID を許すため閉じない。`model: gpt-4o` のような明白な誤りも V2 は棄却できない。',
+        'paths.json: V1 の「skill ディレクトリ名＝name 一致」は正典に根拠が無い（design_derived_requirements 参照）。',
       ],
     },
     meta
@@ -978,7 +979,7 @@ if (isMainModule(import.meta.url)) {
   } catch (e) {
     if (e instanceof ExtractionError) {
       console.error(`\n[ExtractionError] ${e.message}\n`);
-      console.error('照合表は生成されなかった。ハードコードで回避せず、正典と抽出器の乖離を解消すること（§11.4）。');
+      console.error('照合表は生成されなかった。ハードコードで回避せず、正典と抽出器の乖離を解消すること。');
       process.exit(1);
     }
     throw e;

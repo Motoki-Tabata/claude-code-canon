@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Claude Code のカスタマイズ一式を10工程で半自律構築するメタジェネレータ。正典 docs/ を SSoT とする。",
+  "description": "Claude Code のカスタマイズ一式を Phase A〜D・工程1〜9 で半自律構築するメタジェネレータ。正典 docs/ を SSoT とする。",
   "license": "MIT",
   "author": "Motoki-Tabata",
   "repository": {
@@ -25,17 +25,22 @@
     "node": ">=22"
   },
   "scripts": {
+    "new-run": "node .claude/skills/canon-a/scripts/new-run.js",
+    "slice": "node .claude/skills/canon-c/scripts/slice.js",
+    "copy-keep": "node .claude/skills/canon-c/scripts/copy-keep.js",
+    "manifest": "node .claude/skills/canon-c/scripts/emit-manifest.js",
+    "verify": "node .claude/skills/canon-c/scripts/verify.js",
+    "review-bundle": "node .claude/skills/canon-c/scripts/review-bundle.js",
+    "pre-deploy": "node .claude/skills/canon-d/scripts/pre-deploy-check.js",
+    "run-manifest": "node .claude/skills/canon-d/scripts/emit-run-manifest.js",
+    "deploy": "node .claude/skills/canon-d/scripts/deploy.js",
     "build:tables": "node gates/build-conformance-tables.js",
-    "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\"",
-    "ts": "node tools/new-ts.js",
-    "eval:bundle": "node eval/bundle.js",
     "tokens": "node tools/token-usage.js",
-    "slice": "node tools/slice-design-map.js",
-    "copy-keep": "node tools/copy-keep.js"
+    "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\""
   },
   "comments": {
-    "deps": "依存ゼロを維持する。テストは Node 組み込み (node --test)、frontmatter は gates/lib 内で自前パースする。外部依存の破壊的変更で検証系が壊れる事態を避ける。",
-    "type-module": "ESM 固定。スクリプトは `node <path>.js` で直接起動されるため、拡張子と解決規則を一貫させる。",
+    "deps": "依存ゼロを維持する。テストは Node 組み込み (node --test)、frontmatter は lib/ 内で自前パースする。外部依存の破壊的変更で検証系が壊れる事態を避ける。",
+    "type-module": "ESM 固定。スクリプトは `node <path>.js` で直接起動されるため、拡張子と解決規則を一貫させる。入口は Phase Skill の scripts/（.claude/skills/canon-a・canon-c・canon-d）、共有モジュールは lib/ に置く。",
     "test-concurrency": "--test-concurrency=1 でテストファイルを直列実行する。一部のテストは実 work/<ts>・output/<ts> を作って消すため、ファイル並列だと相互に汚染しうる。運用規約として、実 work/<ts>・output/<ts> を触るテストは ts の日付部分をテストファイルごとに重複させないこと（`tests/helpers/ts.js` の TS_NAMESPACES＋`tests/ts_namespace.test.js` が機械検査する）。新規テストファイルは `tsFor`/`tsSeq` 経由で ts を発行し、TS_NAMESPACES へ8桁日付を追加登録すること。"
   }
 }

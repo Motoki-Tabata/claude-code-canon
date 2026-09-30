@@ -40,12 +40,12 @@ npm start     # node src/server.js
 - Tests colocated under \`tests/\`, run with the built-in Node test runner
 - Lint with ESLint (flat config)
 `,
-    "expected-output/.deploy/managed-paths.list": `# 管理パス集合（§10.1）。1行1パス・対象リポジトリルートからの相対。
+    "expected-output/deploy/managed-paths.list": `# 管理パス集合。1行1パス・対象リポジトリルートからの相対。
 # greenfield: 既存管理ファイルは無く、下記が新規配置される。
 CLAUDE.md
 .claude/skills/todo-helper/SKILL.md
 `,
-    "expected-output/.deploy/retired.list": `# retire 対象（disposition:retire を対象相対パスへ）。greenfield では無し。
+    "expected-output/deploy/retired.list": `# retire 対象（disposition:retire を対象相対パスへ）。greenfield では無し。
 `,
     "expected-output/generated/.claude/skills/todo-helper/SKILL.md": `---
 name: todo-helper
@@ -152,7 +152,7 @@ description: 維持されるスキル（keep・sha256 バイト同一で verbati
 
 # kept-skill
 
-このスキルは keep 判定され、既存実体がそのまま維持される（G8 非退行の対象）。
+このスキルは keep 判定され、既存実体がそのまま維持される（V7 の非回帰の対象）。
 `,
     ".claude/skills/legacy-skill/SKILL.md": `---
 name: legacy-skill
@@ -181,7 +181,7 @@ description: 統廃合の被統合元B（disposition:merge・merged へ統合さ
 
 このスキルは merge-a と共に merged へ統合される（統廃合）。
 `,
-    ".github/workflows/ci.yml": `# 管理パス集合【外】の不可侵ファイル（§10.1）。deploy は一切触れてはならない。
+    ".github/workflows/ci.yml": `# 管理パス集合【外】の不可侵ファイル。deploy は一切触れてはならない。
 name: ci
 on: [push]
 jobs:
@@ -194,16 +194,16 @@ jobs:
 
 これは既存改修シナリオ(2)の対象リポジトリ雛形。CLAUDE.md は modify 対象。
 `,
-    "CODEOWNERS": `# 管理パス集合【外】の不可侵ファイル（§10.1）。deploy は一切触れてはならない。
+    "CODEOWNERS": `# 管理パス集合【外】の不可侵ファイル。deploy は一切触れてはならない。
 * @existing-team
 `,
-    "expected-output/.deploy/managed-paths.list": `# 管理パス集合（§10.1）。既存改修(2): keep/modify/新規の配置対象。
+    "expected-output/deploy/managed-paths.list": `# 管理パス集合。既存改修(2): keep/modify/新規の配置対象。
 CLAUDE.md
 .claude/skills/kept-skill/SKILL.md
 .claude/skills/new-skill/SKILL.md
 .claude/skills/merged/SKILL.md
 `,
-    "expected-output/.deploy/retired.list": `# 対象から意図的に消えるファイル（disposition:retire ＋ merge 被統合元）。§9.3/§10.2。
+    "expected-output/deploy/retired.list": `# 対象から意図的に消えるファイル（disposition:retire ＋ merge 被統合元）。
 .claude/skills/legacy-skill/SKILL.md
 .claude/skills/merge-a/SKILL.md
 .claude/skills/merge-b/SKILL.md
@@ -211,20 +211,20 @@ CLAUDE.md
     "expected-output/design-map.md": `# design-map（existing シナリオ・fixture）
 
 対象: 既存改修(2)。keep / modify / merge / retire / 新規 の5判定を網羅する。
-G2/G8 のパース対象（\`existing_disposition\`）を持つ最小 design-map。
+V7 のパース対象（\`existing_disposition\`）を持つ最小 design-map。
 
-## 既存判定（existing_disposition・§8）
+## 既存判定
 
 \`\`\`yaml
 existing_disposition:
   - path: .claude/skills/kept-skill/SKILL.md
     disposition: keep
     keep_conditions:
-      C1_canon_clean: true
-      C2_no_requirement_conflict: true
-      C3_dependency_healthy: true
-      C4_strength_consistent: true
-      C5_project_refs_resolved: true
+      K1_canon_clean: true
+      K2_no_requirement_conflict: true
+      K3_dependency_healthy: true
+      K4_strength_consistent: true
+      K5_project_refs_resolved: true
     rationale: "既存のまま維持（keep・verbatim コピー）"
   - path: CLAUDE.md
     disposition: modify
@@ -251,7 +251,7 @@ description: 維持されるスキル（keep・sha256 バイト同一で verbati
 
 # kept-skill
 
-このスキルは keep 判定され、既存実体がそのまま維持される（G8 非退行の対象）。
+このスキルは keep 判定され、既存実体がそのまま維持される（V7 の非回帰の対象）。
 `,
     "expected-output/generated/.claude/skills/merged/SKILL.md": `---
 name: merged
@@ -275,7 +275,7 @@ description: 新規追加されるスキル（disposition:新規・deploy で対
 
 これは既存改修シナリオ(2)の期待生成物。CLAUDE.md は modify で内容が更新される。
 `,
-    "expected-work/existing_customizations.md": `# 系統A: existing_customizations.md（fixture・§6.1）
+    "expected-work/investigation/existing.md": `# existing.md（fixture）
 
 ## サマリ
 総数 4 / L2 4 / 正典逸脱の疑い: なし
@@ -331,14 +331,16 @@ description: 新規追加されるスキル（disposition:新規・deploy で対
     tool_names_valid: true
     deprecated_notation: []
 `,
-    "expected-work/project_profile.md": `# 系統B: project_profile.md（fixture・§6.2）
+    "expected-work/investigation/profile.md": `# profile.md（fixture）
 
-## profile（調査1・浅く広く）
+## profile
 languages: [javascript]
 frameworks: []
 test: { frameworks: [node:test], test_dirs: [tests] }
+`,
+    "expected-work/investigation/focused.md": `# focused.md（fixture）
 
-## focused（調査2・深く狭く）
+## focused
 requirement_ref: R1
 scope: existing 改修
 findings:
@@ -392,13 +394,13 @@ description: このリポジトリのコーディング規約を参照する。�
 
 この Skill は canon 導入後も keep 判定される（制約に触れず、新要件とも重複しない）。
 `,
-    "expected-output/.deploy/managed-paths.list": `# 管理パス集合（§10.1）。代表シナリオ(3): 新規＋keep の配置対象。
+    "expected-output/deploy/managed-paths.list": `# 管理パス集合。代表シナリオ(3): 新規＋keep の配置対象。
 CLAUDE.md
 .claude/README.md
 .claude/rules/schema-review.md
 .claude/skills/style-guide/SKILL.md
 `,
-    "expected-output/.deploy/retired.list": `# 対象から意図的に消えるファイル（disposition:retire ＋ merge 被統合元）。§9.3/§10.2。
+    "expected-output/deploy/retired.list": `# 対象から意図的に消えるファイル（disposition:retire ＋ merge 被統合元）。
 # 制約強め: hooks / experimental が禁止されたことで維持できなくなった既存2件。
 .claude/settings.json
 .claude/skills/fork-runner/SKILL.md
@@ -411,7 +413,7 @@ CLAUDE.md
 - .claude/README.md（使い方）
 
 ## 維持（keep）
-- .claude/skills/style-guide/SKILL.md（verbatim・G8 で sha256 照合）
+- .claude/skills/style-guide/SKILL.md（verbatim・V7 で sha256 照合）
 
 ## 廃止（retire）
 - .claude/settings.json — hooks 禁止により Hooks 設定を廃止。R1 は Rules(advisory) へ縮退
@@ -438,18 +440,18 @@ L2: .claude/skills/style-guide/SKILL.md（既存を keep）
 L4: 不使用（hooks・mcp とも constraints で禁止）
 L5: 不使用（plugins は constraints で禁止）
 
-## 既存判定（existing_disposition・§8）
+## 既存判定
 
 \`\`\`yaml
 existing_disposition:
   - path: .claude/skills/style-guide/SKILL.md
     disposition: keep
     keep_conditions:
-      C1_canon_clean: true
-      C2_no_requirement_conflict: true
-      C3_dependency_healthy: true
-      C4_strength_consistent: true
-      C5_project_refs_resolved: true
+      K1_canon_clean: true
+      K2_no_requirement_conflict: true
+      K3_dependency_healthy: true
+      K4_strength_consistent: true
+      K5_project_refs_resolved: true
     rationale: "制約に触れず新要件とも重複しないため維持（verbatim コピー）"
   - path: .claude/settings.json
     disposition: retire
@@ -462,17 +464,17 @@ existing_disposition:
     manifest_note: "experimental 禁止により context:fork 依存の fork-runner は廃止"
 \`\`\`
 
-## L1（l1-builder）
+## L1（builder）
 ### \`CLAUDE.md\`（新規）
 プロジェクト規約。
 ### \`.claude/rules/schema-review.md\`（新規・R1 の縮退先）
 \`paths:\` で \`src/**/*.js\` に接地する advisory rule。
 
-## Skills（generator が keep を verbatim コピー）
+## L2（keep を verbatim コピー）
 ### \`.claude/skills/style-guide/SKILL.md\`（keep）
 
 ## L4（不使用）
-## L5（readme-writer）
+## L5（emit-manifest.js）
 ### \`.claude/README.md\`（新規）
 
 ## Model Assignments
@@ -544,7 +546,7 @@ ESM のみの小さな API プロジェクト。テストは \`node --test\`。
 - スキーマ変更時のレビュー観点は \`.claude/rules/schema-review.md\` が担う（R1 の縮退先）。
 - コーディング規約は既存の style-guide Skill を維持している。
 `,
-    "expected-work/existing_customizations.md": `# 系統A: existing_customizations.md（fixture・代表シナリオ(3)・§6.1）
+    "expected-work/investigation/existing.md": `# existing.md（fixture・制約強め）
 
 ## サマリ
 総数 3 / L2 2 / L4 1 / 正典逸脱の疑い: fork-runner が experimental 依存
@@ -588,14 +590,16 @@ ESM のみの小さな API プロジェクト。テストは \`node --test\`。
     tool_names_valid: true
     deprecated_notation: []
 `,
-    "expected-work/project_profile.md": `# 系統B: project_profile.md（fixture・代表シナリオ(3)・§6.2）
+    "expected-work/investigation/profile.md": `# profile.md（fixture）
 
-## profile（調査1・浅く広く）
+## profile
 languages: [javascript]
 frameworks: []
 test: { frameworks: [node:test], test_dirs: [tests] }
+`,
+    "expected-work/investigation/focused.md": `# focused.md（fixture）
 
-## focused（調査2・深く狭く）
+## focused
 requirement_ref: R1
 scope: 制約強め（hooks/mcp/plugins/experimental すべて禁止）
 findings:
@@ -608,7 +612,7 @@ findings:
 ref_resolution:
   - ref: "src/**/*.js"  kind: paths_glob  resolved: true  match_count: 1  sample: "src/schema.js"
 `,
-    "expected-work/requirements.md": `# requirements（fixture・代表シナリオ(3)「制約強め」・§6.3）
+    "expected-work/requirements.md": `# requirements（fixture・制約強め）
 
 ## メタ
 confirmed_at: 2026-07-24
@@ -636,7 +640,7 @@ constraints:
 conflicts:
   - requirement: R1（deterministic 希望）
     constraint: hooks 禁止
-    note: Hooks が使えないため deterministic は実現できない。L1 Rules による advisory へ格下げする（P2 で合意）。
+    note: Hooks が使えないため deterministic は実現できない。L1 Rules による advisory へ格下げする（P1 で合意）。
 `,
     "package.json": `{
   "name": "constrained-app",
@@ -656,3 +660,6 @@ export const schema = {
 `,
   },
 };
+
+/** サンプルリポジトリごとの handoff.md の mode（existing_disposition を持つものは refactor）。 */
+export const SAMPLE_MODES = { new: 'new', existing: 'refactor', constrained: 'refactor' };

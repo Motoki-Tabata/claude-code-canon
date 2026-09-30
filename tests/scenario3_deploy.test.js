@@ -1,5 +1,5 @@
 /**
- * 代表シナリオ(3)「制約強め」を deploy 工程まで通す統合テスト（§10.2・§15.3）。
+ * 制約強めのサンプル（constrained）を配置まで通す統合テスト（artifacts.md §10）。
  *
  * 従来は generation ゲート群までしか通していなかった。本テストは constrained fixture の
  * output を実 target へ配置し、pre-deploy-check（照合）→ deploy --confirm（退避スワップ）が
@@ -8,7 +8,7 @@
  *   - keep（style-guide）は原本と sha256 同一で保全される
  *   - 縮退先（CLAUDE.md・rules/schema-review.md）と README が新規配置される
  *
- * L002 の規律: 「配置が通った」だけを成功の根拠にしない。管理パス集合内の未捕捉ファイルを
+ * 「配置が通った」だけを成功の根拠にしない。管理パス集合内の未捕捉ファイルを
  * 注入すると pre-deploy-check が uncaptured で配置を止めることを対で確認する。
  */
 
@@ -17,14 +17,14 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { setupTmpCase } from './helpers/fixtures.js';
-import { runDeployCli } from './helpers/run-cli.js';
-import { sha256File } from '../gates/lib/managed-paths.js';
+import { runScript } from './helpers/run-cli.js';
+import { sha256File } from '../lib/managed-paths.js';
 
 const BAK = '.claude-canon.bak.20260722_000000';
 
 test('代表シナリオ(3): pre-deploy-check は retired のみで exit 0（settings.json・fork-runner）', (t) => {
   const c = setupTmpCase(t, 'constrained');
-  const r = runDeployCli('pre-deploy-check.js', [c.output, c.target]);
+  const r = runScript('canon-d', 'pre-deploy-check.js', [c.output, c.target]);
   assert.equal(r.code, 0, `retired のみなら exit 0（stderr: ${r.stderr}）`);
   assert.match(r.stdout, /\[retired\] \.claude\/settings\.json/);
   assert.match(r.stdout, /\[retired\] \.claude\/skills\/fork-runner\/SKILL\.md/);
@@ -36,7 +36,7 @@ test('代表シナリオ(3): deploy --confirm で retire 消去・keep 非退行
   const keptBefore = sha256File(path.join(c.target, '.claude/skills/style-guide/SKILL.md'));
   const srcBefore = sha256File(path.join(c.target, 'src', 'schema.js'));
 
-  const r = runDeployCli('deploy.js', [c.output, c.target, '--confirm']);
+  const r = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
   assert.equal(r.code, 0, r.stderr);
 
   // 制約で禁止された既存は retire で消える（削除でなく .bak へ退避）
@@ -76,12 +76,12 @@ test('代表シナリオ(3): 管理パス集合内の未捕捉ファイルは un
   mkdirSync(path.dirname(stray), { recursive: true });
   writeFileSync(stray, '---\nname: stray\ndescription: 取りこぼし\n---\n本文\n');
 
-  const pre = runDeployCli('pre-deploy-check.js', [c.output, c.target]);
+  const pre = runScript('canon-d', 'pre-deploy-check.js', [c.output, c.target]);
   assert.equal(pre.code, 2, 'uncaptured 検出で exit 2');
   assert.match(pre.stdout, /uncaptured\] \.claude\/skills\/stray\/SKILL\.md/);
 
-  // deploy も P8 を無視した配置を拒否し、対象は変更されない（stray は残る・退避されない）。
-  const dep = runDeployCli('deploy.js', [c.output, c.target, '--confirm']);
+  // deploy も P5 を飛ばした配置を拒否し、対象は変更されない（stray は残る・退避されない）。
+  const dep = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
   assert.equal(dep.code, 2, 'uncaptured があると deploy は拒否');
   assert.ok(existsSync(stray), '拒否時に対象は不変（stray は退避されない）');
   assert.ok(existsSync(path.join(c.target, '.claude/settings.json')), '拒否時は retire も実行しない');

@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { detectKind, skillPathRole, parseFrontmatter, splitListValue, artifactFromText } from '../gates/lib/artifact.js';
+import { detectKind, skillPathRole, parseFrontmatter, splitListValue, artifactFromText } from '../lib/artifact.js';
 
 describe('detectKind', () => {
   test('SKILL.md はどこにあっても skill', () => {
@@ -107,7 +107,7 @@ describe('artifactFromText', () => {
 });
 
 /**
- * skillPathRole: skill パッケージ内の役割判定（G3・G7・non-schema.js が共有する SSoT）。
+ * skillPathRole: skill パッケージ内の役割判定（V1・V6・non-schema.js が共有する SSoT）。
  * 正典 docs/L2_SKILLS.md §2.1「ディレクトリ構造」が SKILL.md（必須）＋supporting files（任意）を
  * 許可することの機械的表現。
  */
@@ -121,7 +121,7 @@ describe('skillPathRole', () => {
     assert.equal(skillPathRole('.claude/skills/foo/template.md'), 'supporting');
     assert.equal(skillPathRole('.claude/skills/foo/examples/sample.md'), 'supporting');
     assert.equal(skillPathRole('.claude/skills/foo/scripts/validate.sh'), 'supporting');
-    // supporting として置かれた例示 SKILL.md は定義ファイルではない（G7 の registry も拾わない）。
+    // supporting として置かれた例示 SKILL.md は定義ファイルではない（V6 の registry も拾わない）。
     assert.equal(skillPathRole('.claude/skills/foo/examples/SKILL.md'), 'supporting');
   });
 
@@ -129,7 +129,7 @@ describe('skillPathRole', () => {
     assert.equal(skillPathRole('.claude/skills/foo.md'), 'orphan');
   });
 
-  test('.claude/skills/ 配下でなければ null（plugin スコープは G3 の既知の対象外）', () => {
+  test('.claude/skills/ 配下でなければ null（plugin スコープは V1 の既知の対象外）', () => {
     assert.equal(skillPathRole('plugin/skills/foo/SKILL.md'), null);
     assert.equal(skillPathRole('.claude/agents/a/a.md'), null);
   });

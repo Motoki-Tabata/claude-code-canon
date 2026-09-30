@@ -1,5 +1,5 @@
 /**
- * deploy/emit-run-manifest.js（run-manifest 方式・§10.2・§14）の回帰テスト。
+ * canon-d/scripts/emit-run-manifest.js（RUN.md・artifacts.md §10.4）の回帰テスト。
  *
  * output バンドルに同梱する RUN.md が、配置/廃止される集合と実行コマンドを決定論的に
  * 反映することを固定する。テンプレート変数（<ts>・パス）が未展開のまま残らないことも確認する。
@@ -10,21 +10,21 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { setupTmpCase } from './helpers/fixtures.js';
-import { runDeployCli } from './helpers/run-cli.js';
-import { renderRunManifest } from '../deploy/emit-run-manifest.js';
+import { runScript } from './helpers/run-cli.js';
+import { renderRunManifest } from '../.claude/skills/canon-d/scripts/emit-run-manifest.js';
 
 test('emit-run-manifest: RUN.md に両コマンド・配置集合・廃止集合・<ts> が入る', (t) => {
   const c = setupTmpCase(t, 'constrained');
-  const r = runDeployCli('emit-run-manifest.js', [c.output, c.target]);
+  const r = runScript('canon-d', 'emit-run-manifest.js', [c.output, c.target]);
   assert.equal(r.code, 0, r.stderr);
 
-  const runMd = path.join(c.output, '.deploy', 'RUN.md');
-  assert.ok(existsSync(runMd), 'RUN.md が output/<ts>/.deploy/ に出力される');
+  const runMd = path.join(c.output, 'deploy', 'RUN.md');
+  assert.ok(existsSync(runMd), 'RUN.md が output/<ts>/deploy/ に出力される');
   const body = readFileSync(runMd, 'utf8');
 
-  // 実行コマンド（pre-deploy-check / deploy --confirm）が canon 正本を指す
-  assert.match(body, /deploy\/pre-deploy-check\.js/);
-  assert.match(body, /deploy\/deploy\.js/);
+  // 実行コマンド（pre-deploy-check / deploy --confirm）が canon 本体の canon-d/scripts を指す
+  assert.match(body, /\.claude\/skills\/canon-d\/scripts\/pre-deploy-check\.js/);
+  assert.match(body, /\.claude\/skills\/canon-d\/scripts\/deploy\.js/);
   assert.match(body, /--confirm/);
 
   // 配置される集合（新規＋keep）
@@ -51,10 +51,10 @@ test('emit-run-manifest: RUN.md に両コマンド・配置集合・廃止集合
 
 test('emit-run-manifest: managed-paths.list が無ければ exit 1（黙って空手順書を出さない）', (t) => {
   const c = setupTmpCase(t, 'constrained');
-  rmSync(path.join(c.output, '.deploy', 'managed-paths.list'));
-  const r = runDeployCli('emit-run-manifest.js', [c.output, c.target]);
-  assert.equal(r.code, 1, 'generator の配置リスト欠落は入力不在として exit 1');
-  assert.ok(!existsSync(path.join(c.output, '.deploy', 'RUN.md')), '入力欠落時に RUN.md を書かない');
+  rmSync(path.join(c.output, 'deploy', 'managed-paths.list'));
+  const r = runScript('canon-d', 'emit-run-manifest.js', [c.output, c.target]);
+  assert.equal(r.code, 1, 'emit-manifest.js の配置リスト欠落は入力不在として exit 1');
+  assert.ok(!existsSync(path.join(c.output, 'deploy', 'RUN.md')), '入力欠落時に RUN.md を書かない');
 });
 
 test('emit-run-manifest(render): 集合が空でも本文を組み立てられる（要約は「なし」）', (t) => {
@@ -65,7 +65,7 @@ test('emit-run-manifest(render): 集合が空でも本文を組み立てられ�
   assert.match(body, /対象から消える/);
 });
 
-test('RUN.md に実行環境の注意（サンドボックスの外で --confirm・push は対象のセッションで・SSH ホスト）が入る（R-S1-1・R-S3-4）', (t) => {
+test('RUN.md に実行環境の注意（サンドボックスの外で --confirm・push は対象のセッションで・SSH ホスト）が入る', (t) => {
   const c = setupTmpCase(t, 'constrained');
   const body = renderRunManifest(c.output, c.target);
   assert.match(body, /## 実行環境の注意/);
@@ -76,14 +76,14 @@ test('RUN.md に実行環境の注意（サンドボックスの外で --confirm
   assert.match(body, /deploy-result\.json/);
 });
 
-test('RUN.md に MANIFEST「P8 の追加手順」節と README「前提セットアップと配置後の手作業」節を逐語で転記する（run 20260925_004359・20260927_003229）', (t) => {
+test('RUN.md に MANIFEST「配置時の追加手順」節と README「前提セットアップと配置後の手作業」節を逐語で転記する', (t) => {
   const c = setupTmpCase(t, 'constrained');
-  const p8 = '## P8 の追加手順（台帳の照合と更新）\n\n1. 配置前: `node x.mjs check --root <target>`。\n2. 配置後: 反映済み5件だけを削除する。\n';
-  writeFileSync(path.join(c.output, 'MANIFEST.md'), readFileSync(path.join(c.output, 'MANIFEST.md'), 'utf8') + '\n' + p8);
+  const steps = '## 配置時の追加手順\n\n1. 配置前: `node x.mjs check --root <target>`。\n2. 配置後: 反映済み5件だけを削除する。\n';
+  writeFileSync(path.join(c.output, 'MANIFEST.md'), readFileSync(path.join(c.output, 'MANIFEST.md'), 'utf8') + '\n' + steps);
   const readme = path.join(c.output, 'generated', '.claude', 'README.md');
   writeFileSync(readme, readFileSync(readme, 'utf8') + '\n## 前提セットアップと配置後の手作業\n\n- 台帳の反映済み5件だけを削除する（台帳ごと消さない）。\n');
   const body = renderRunManifest(c.output, c.target);
-  assert.match(body, /#### P8 の追加手順（台帳の照合と更新）/, '見出しを RUN.md の章の下へ下げて転記する');
+  assert.match(body, /#### 配置時の追加手順/, '見出しを RUN.md の章の下へ下げて転記する');
   assert.ok(body.includes('1. 配置前: `node x.mjs check --root <target>`。'), '手順が逐語で入っていない');
   assert.ok(body.includes('- 台帳の反映済み5件だけを削除する（台帳ごと消さない）。'), '配置後の手作業が逐語で入っていない');
 });

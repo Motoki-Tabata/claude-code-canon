@@ -9,7 +9,8 @@ import { mkdirSync, writeFileSync, cpSync, mkdtempSync, rmSync, existsSync, read
 import os from 'node:os';
 import path from 'node:path';
 import { outputDir, workDir } from './paths.js';
-import { SAMPLE_REPOS } from './sample-repos.js';
+import { SAMPLE_REPOS, SAMPLE_MODES } from './sample-repos.js';
+import { renderHandoff } from '../../lib/handoff.js';
 import { KEEP_REVIEW_CASES } from './keep-review-cases.js';
 
 // ---------------------------------------------------------------------------
@@ -106,15 +107,15 @@ export function sampleRepoDir(name) {
   return materialize('sample-repos', name, SAMPLE_REPOS);
 }
 
-/** keep-review ケース（c4-strength-gap・merge-target-bad）を書き出したディレクトリ。 */
+/** keep-review ケース（k4-strength-gap・merge-target-bad）を書き出したディレクトリ。 */
 export function keepReviewCaseDir(name) {
   return materialize('keep-review', name, KEEP_REVIEW_CASES);
 }
 
 /**
  * サンプルリポジトリの `expected-output/**` を実 `output/<ts>/` へ、
- * `expected-work/**` を実 `work/<ts>/` へ配置し、`target.txt`（対象リポの絶対パス）を書く。
- * t.after() で実 output/work の当該 <ts> を削除する。
+ * `expected-work/**` を実 `work/<ts>/` へ配置し、`work/<ts>/handoff.md`（target＝対象リポの絶対パス・
+ * mode は SAMPLE_MODES）を書く。t.after() で実 output/work の当該 <ts> を削除する。
  */
 export function setupSampleRepo(t, name, ts) {
   const caseDir = sampleRepoDir(name);
@@ -124,15 +125,21 @@ export function setupSampleRepo(t, name, ts) {
   mkdirSync(w, { recursive: true });
   cpSync(path.join(caseDir, 'expected-output'), o, { recursive: true });
   cpSync(path.join(caseDir, 'expected-work'), w, { recursive: true });
-  writeFileSync(path.join(w, 'target.txt'), caseDir + '\n');
+  writeHandoff(ts, { target: caseDir, mode: SAMPLE_MODES[name] });
 
   cleanupTs(t, ts);
 
   return { ts, out: o, work: w, gen: path.join(o, 'generated'), req: path.join(w, 'requirements.md') };
 }
 
+/** 実 `work/<ts>/handoff.md` を書く（new-run.js と同じ雛形）。 */
+export function writeHandoff(ts, { target, mode = 'new' }) {
+  mkdirSync(workDir(ts), { recursive: true });
+  writeFileSync(path.join(workDir(ts), 'handoff.md'), renderHandoff({ ts, target: target.split(path.sep).join('/'), mode }));
+}
+
 /**
- * deploy/ 系向け: 対象リポ（expected-output を除く）と `output/<ts>/`（= expected-output）を
+ * canon-d 系向け: 対象リポ（expected-output を除く）と `output/<ts>/`（= expected-output）を
  * tmpdir へ複写する。複写元・実 work/output を一切汚さない。
  */
 export function setupTmpCase(t, name, ts = '20260722_000000') {
@@ -151,7 +158,7 @@ export function setupTmpCase(t, name, ts = '20260722_000000') {
 
 /**
  * `output/<ts>/MANIFEST.md` を、その時点の generated/ の全ファイルを `## 全ファイル` 節に列挙して書く
- * （G9 が MANIFEST ⇔ generated/ を双方向に照合する契約・S1-3）。generated/ を書き終えてから呼ぶこと。
+ * （V8 が MANIFEST ⇔ generated/ を双方向に照合する契約）。generated/ を書き終えてから呼ぶこと。
  * `extra` は節の外（差分サマリ）に足す本文。
  */
 export function writeManifest(ts, { extra = '' } = {}) {

@@ -1,5 +1,5 @@
 /**
- * 照合表（gates/conformance_tables/）と設計書の正典バージョン追従テスト。
+ * 判定表（gates/conformance_tables/）と設計書の正典バージョン追従テスト。
  *
  * 照合表の鮮度そのもの（docs/ からの再生成と一致すること）は CI が `npm run build:tables` の
  * 差分で検査する。ここでは、照合表と設計書 frontmatter の `canon_version` が陳腐化していないことを見る。
@@ -10,9 +10,9 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { ROOT, DESIGN_DOCS } from './helpers/paths.js';
-import { extractCanonVersion } from '../gates/lib/canon.js';
+import { extractCanonVersion } from '../lib/canon.js';
 import { CANON_FILES } from '../gates/build-conformance-tables.js';
-import { parseFrontmatter } from '../gates/lib/artifact.js';
+import { parseFrontmatter } from '../lib/artifact.js';
 
 const HOOKS_TABLE = path.join(ROOT, 'gates', 'conformance_tables', 'hooks.json');
 
@@ -33,7 +33,7 @@ test('照合表の canon_version が正典と一致していること（stale �
  * ものは run の外で落とす。
  */
 test('両設計書の canon_version が正典 docs/ と一致していること（stale 検出）', () => {
-  // 期待値は再導出せず、build:tables と同一の SSoT から取る（L005）。
+  // 期待値は再導出せず、build:tables と同一の SSoT から取る。
   const { version: canonVersion } = extractCanonVersion(CANON_FILES);
   assert.match(canonVersion, /^v\d+\.\d+\.\d+$/, '正典バージョンが取れていること');
 
