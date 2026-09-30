@@ -10,14 +10,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { readFileSync, existsSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs';
-import { ROOT, outputDir, workDir } from './helpers/paths.js';
+import { outputDir, workDir } from './helpers/paths.js';
 import { runToolCli } from './helpers/run-cli.js';
 import { cleanupTs } from './helpers/fixtures.js';
+import { SAMPLE_REPOS } from './helpers/sample-repos.js';
 import { tsFor } from './helpers/ts.js';
 import { buildSlices } from '../gates/lib/design-slices.js';
 import { listDeclaredArtifacts, DesignMapError } from '../gates/lib/design-map.js';
 
-const fixtureMap = (name) => readFileSync(path.join(ROOT, 'fixtures', 'sample-repos', name, 'expected-output', 'design-map.md'), 'utf8');
+const fixtureMap = (name) => SAMPLE_REPOS[name]['expected-output/design-map.md'];
 
 const SYNTH = `# dm — テスト
 

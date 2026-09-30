@@ -15,6 +15,7 @@ import assert from 'node:assert/strict';
 import { writeFileSync, mkdirSync, rmSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { setupSampleRepo } from './helpers/fixtures.js';
+import { SAMPLE_REPOS } from './helpers/sample-repos.js';
 import { tsSeq } from './helpers/ts.js';
 import { checkG11 } from '../gates/g11_constraints.js';
 import { parseRequirementsDoc } from '../gates/lib/requirements.js';
@@ -331,9 +332,7 @@ test('G11: allowed を持たない未知キーは機械判定不能として違�
 // ---------------------------------------------------------------------------
 
 test('requirements パーサ: インライン形の constraints と conflicts を読む', () => {
-  const doc = parseRequirementsDoc(
-    readFileSync(path.join('fixtures', 'sample-repos', 'constrained', 'expected-work', 'requirements.md'), 'utf8')
-  );
+  const doc = parseRequirementsDoc(SAMPLE_REPOS.constrained['expected-work/requirements.md']);
   assert.equal(doc.requirements.length, 2);
   assert.equal(doc.requirements[0].strength_needed, 'deterministic');
   assert.equal(doc.constraintsFound, true);

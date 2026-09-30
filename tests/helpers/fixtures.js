@@ -1,16 +1,16 @@
 /**
- * 成果物 fixture（agent/skill の frontmatter）とサンプルリポジトリ配置の共通ヘルパ。
+ * テスト入力の生成ヘルパ: 成果物（agent/skill の frontmatter）の文字列、サンプルリポジトリと
+ * keep-review ケースの書き出し（データは tests/helpers/sample-repos.js・keep-review-cases.js）。
  *
- * 継ぎ足しで16ファイル・55箇所に散っていた frontmatter リテラル文字列と、
- * scenario2_helpers.js／scenario3_helpers.js／deploy_helpers.js の3実装
- * （いずれも fixtures/sample-repos/<case>/expected-output→output/<ts>/・
- * expected-work→work/<ts>/ という同一規約）を統合する。
+ * サンプルリポジトリは expected-output/→output/<ts>/・expected-work/→work/<ts>/ という規約で配置する。
  */
 
 import { mkdirSync, writeFileSync, cpSync, mkdtempSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ROOT, outputDir, workDir } from './paths.js';
+import { outputDir, workDir } from './paths.js';
+import { SAMPLE_REPOS } from './sample-repos.js';
+import { KEEP_REVIEW_CASES } from './keep-review-cases.js';
 
 // ---------------------------------------------------------------------------
 // frontmatter 文字列生成
@@ -75,15 +75,44 @@ export function scratchDir(t, prefix) {
 }
 
 // ---------------------------------------------------------------------------
-// サンプルリポジトリ配置（fixtures/sample-repos/<name>/）
+// サンプルリポジトリ・keep-review ケースの書き出し
 // ---------------------------------------------------------------------------
 
+/** { 相対パス: 内容 } を root 配下へ書き出す。 */
+export function writeTree(root, files) {
+  for (const [rel, content] of Object.entries(files)) {
+    const p = path.join(root, rel);
+    mkdirSync(path.dirname(p), { recursive: true });
+    writeFileSync(p, content);
+  }
+}
+
+// 書き出しはテストプロセスごとに1回だけ行い、プロセス終了時に消す。複写元として読むだけで
+// 書き換えないこと（書き換えるテストは setupSampleRepo・setupTmpCase のコピーを使う）。
+let materializedRoot = null;
+function materialize(kind, name, table) {
+  if (!table[name]) throw new Error(`未知の ${kind}: ${name}`);
+  if (!materializedRoot) {
+    materializedRoot = mkdtempSync(path.join(os.tmpdir(), 'canon-fixtures-'));
+    process.on('exit', () => rmSync(materializedRoot, { recursive: true, force: true }));
+  }
+  const dir = path.join(materializedRoot, kind, name);
+  if (!existsSync(dir)) writeTree(dir, table[name]);
+  return dir;
+}
+
+/** サンプルリポジトリ（new・existing・constrained）を書き出したディレクトリ。 */
 export function sampleRepoDir(name) {
-  return path.join(ROOT, 'fixtures', 'sample-repos', name);
+  return materialize('sample-repos', name, SAMPLE_REPOS);
+}
+
+/** keep-review ケース（c4-strength-gap・merge-target-bad）を書き出したディレクトリ。 */
+export function keepReviewCaseDir(name) {
+  return materialize('keep-review', name, KEEP_REVIEW_CASES);
 }
 
 /**
- * `fixtures/sample-repos/<name>/expected-output/**` を実 `output/<ts>/` へ、
+ * サンプルリポジトリの `expected-output/**` を実 `output/<ts>/` へ、
  * `expected-work/**` を実 `work/<ts>/` へ配置し、`target.txt`（対象リポの絶対パス）を書く。
  * t.after() で実 output/work の当該 <ts> を削除する。
  */
@@ -104,7 +133,7 @@ export function setupSampleRepo(t, name, ts) {
 
 /**
  * deploy/ 系向け: 対象リポ（expected-output を除く）と `output/<ts>/`（= expected-output）を
- * tmpdir へ複写する。fixture 本体・実 work/output を一切汚さない（`deploy_helpers.setupCase` 相当）。
+ * tmpdir へ複写する。複写元・実 work/output を一切汚さない。
  */
 export function setupTmpCase(t, name, ts = '20260722_000000') {
   const caseDir = sampleRepoDir(name);

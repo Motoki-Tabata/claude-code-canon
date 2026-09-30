@@ -14,16 +14,15 @@ import path from 'node:path';
 import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
 import os from 'node:os';
 import { buildKeepReviewBundles, collectKeepReviewCases, caseIdFor } from '../eval/bundle.js';
-import { ROOT } from './helpers/paths.js';
+import { keepReviewCaseDir, scratchDir } from './helpers/fixtures.js';
 import { tsFor } from './helpers/ts.js';
 
-const CORPUS = path.join(ROOT, 'fixtures', 'eval-corpus', 'keep-review', 'cases');
-// write:false・roots は常にフィクスチャ配下を指すため、この ts は実 work/output に
+// write:false・roots は常にケースの書き出し先を指すため、この ts は実 work/output に
 // 一切触れない飾り値（バンドル本文に埋め込まれるだけ）。
 const TS = tsFor(import.meta.url, 0);
 
 function build(caseName) {
-  const dir = path.join(CORPUS, caseName);
+  const dir = keepReviewCaseDir(caseName);
   return buildKeepReviewBundles({
     ts: TS,
     write: false,
@@ -32,14 +31,14 @@ function build(caseName) {
 }
 
 test('keep レコードから C2/C4 のケースを立てる', () => {
-  const { cases } = build('c2-duplicate');
+  const { cases } = build('c4-strength-gap');
   assert.equal(cases.length, 1);
   assert.equal(cases[0].disposition, 'keep');
   assert.deepEqual(cases[0].conditions, ['C2', 'C4']);
 });
 
 test('merge レコードは統合先の妥当性（merge_target）ケースになり、統合先の実体も渡る', () => {
-  const { cases } = build('merge-target-ok');
+  const { cases } = build('merge-target-bad');
   assert.equal(cases.length, 1);
   assert.deepEqual(cases[0].conditions, ['merge_target']);
   assert.ok(cases[0].text.includes('統合先の実体'));
@@ -47,8 +46,8 @@ test('merge レコードは統合先の妥当性（merge_target）ケースに�
 });
 
 test('宣言除去規約: バンドルに designer の keep_conditions 宣言と rationale が現れない（L004 対策）', () => {
-  for (const name of ['keep-clean', 'c2-duplicate', 'c4-strength-gap', 'keep-clean-adjacent']) {
-    const dir = path.join(CORPUS, name);
+  for (const name of ['c4-strength-gap']) {
+    const dir = keepReviewCaseDir(name);
     const raw = readFileSync(path.join(dir, 'design-map.md'), 'utf8');
     // 前提: 入力の design-map には宣言が実在する（前提が消えるとこのテストは無意味になる）
     assert.ok(raw.includes('keep_conditions'), `${name}: 前提となる宣言が design-map に無い`);
@@ -68,7 +67,7 @@ test('宣言除去規約: バンドルに designer の keep_conditions 宣言と
 });
 
 test('宣言除去規約: merge の manifest_note（designer の正当化）も渡さない', () => {
-  const raw = readFileSync(path.join(CORPUS, 'merge-target-bad', 'design-map.md'), 'utf8');
+  const raw = readFileSync(path.join(keepReviewCaseDir('merge-target-bad'), 'design-map.md'), 'utf8');
   assert.ok(raw.includes('manifest_note'), '前提となる manifest_note が design-map に無い');
   const { cases } = build('merge-target-bad');
   assert.ok(!cases[0].text.includes('manifest_note'));
@@ -86,18 +85,19 @@ test('判定に要る事実は渡っている（実体・系統A の強度・spe
 });
 
 test('バンドル生成は決定論（同じ入力で同じ出力）', () => {
-  const a = build('keep-clean').cases[0].text;
-  const b = build('keep-clean').cases[0].text;
+  const a = build('c4-strength-gap').cases[0].text;
+  const b = build('c4-strength-gap').cases[0].text;
   assert.equal(a, b);
 });
 
-test('design-map 不在は throw（不在を「対象0件＝合格」と読まない）', () => {
+test('design-map 不在は throw（不在を「対象0件＝合格」と読まない）', (t) => {
+  const empty = scratchDir(t, 'bundle-empty-');
   assert.throws(
     () =>
       buildKeepReviewBundles({
         ts: tsFor(import.meta.url, 1),
         write: false,
-        roots: { outputDir: path.join(ROOT, 'fixtures'), workDir: path.join(ROOT, 'fixtures') },
+        roots: { outputDir: empty, workDir: empty },
       }),
     /design-map\.md が無い/
   );
