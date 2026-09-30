@@ -3,8 +3,8 @@
 claude-canon 本体（`.claude/**`・`gates/`・`tools/`・`eval/`・`deploy/`・`design/`・`guide/`）への改修要求を置く唯一の台帳。
 
 - **即時記録**: canon 側の欠陥・浪費・規律の穴を見つけたら、その場で下の軽量書式で追記する。
-  `/canon` の run 中（`generation.done` まで）はガードが run の外への書込を deny するため、
-  `work/<ts>/canon-issues-candidates.md` に同じ書式で書き、S4 の最後に本台帳へ転記する。
+  run の途中（run ブランチの worktree）で見つけたら `work/<ts>/handoff.md` の「canon 課題候補」に同じ書式で書き、
+  Phase D の最後に本台帳へ転記する（`design/architecture.md` §6.4）。
 - **反映したら削除**: 項目を直したコミットの中で、その項目を本台帳から削除する（履歴は commit・PR 本文・`git log` で追う）。
   未反映が0件でもファイルは消さない（`.claude/rules/workflow.md` が参照する）。
 - **ID を振らない**: 見出しは日付＋要約。旧台帳の `L0xx` 番号がコード・設計書に残っているため、番号は再利用しない。
@@ -13,7 +13,7 @@ claude-canon 本体（`.claude/**`・`gates/`・`tools/`・`eval/`・`deploy/`�
 書式:
 
 ```
-## YYYY-MM-DD <1行の要約>（run <ts>・S<n> | 旧 <文書>#<ID>）
+## YYYY-MM-DD <1行の要約>（run <ts>・Phase <A〜D> | 旧 <文書>#<ID>）
 - 種別: 欠陥修正 | 効率化 | 規律昇華
 - 何が起きたか: <1〜3行。根拠の所在（transcript 先頭8桁:L行・コード path:line）>
 - 提案: <行き先（ファイルと節）と直し方を1〜3行>
