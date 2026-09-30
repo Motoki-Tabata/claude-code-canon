@@ -13,9 +13,9 @@ Claude Code のカスタマイズ一式（`CLAUDE.md` / Rules / Skills / Subagen
 - **実行形態**: 工程ごとに人間の承認ゲートを挟む半自律（無人一気通貫ではありません）。
 - **対象**: Claude Code（CLI / SDK / harness）。
 
-設計は2冊構成です。全体像・工程順・オーケストレーション構造は
-[design/basic-design.md](design/basic-design.md)、成果物フォーマットと決定論ゲートの実装契約は
-[design/detailed-design.md](design/detailed-design.md) を参照してください。
+設計は2冊構成です。全体像・Phase と工程・責務・run の運用は
+[design/architecture.md](design/architecture.md)、成果物の書式・検査・配置の契約は
+[design/artifacts.md](design/artifacts.md) を参照してください。
 
 ## 10工程・人間ゲート
 
@@ -96,7 +96,7 @@ npm test                # 配線テスト（必須の帯域外検証・§11.5）
 - `generations/`（gitignore・初回は不在）— 機能Y（自己最適化）の世代管理台帳。`npm run stage`/`promote`
   実行時に作成される。
 
-詳細な配置根拠は [design/basic-design.md](design/basic-design.md) §14 を参照してください。
+リポジトリ構成の考え方は [design/architecture.md](design/architecture.md) §10 を参照してください。
 
 ## ライセンス
 

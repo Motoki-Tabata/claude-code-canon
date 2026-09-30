@@ -2,8 +2,7 @@
 
 claude-canon は Claude Code のカスタマイズ一式を10工程で半自律構築するメタジェネレータです。
 本書は初回セットアップと `/canon` の実行手順を示します。設計の全体像は
-`../design/basic-design.md`、実装契約の詳細は `../design/detailed-design.md`、
-ブートストラップ順序は詳細設計書 §13.3 を参照。
+`../design/architecture.md`、成果物と検査の契約は `../design/artifacts.md` を参照。
 
 ## 前提
 
@@ -195,7 +194,7 @@ node deploy/deploy.js <output/ts> <対象> --confirm
 | `npm run smoke:arm` / `smoke:check` | hooks の実発火確認（手順3） |
 | `npm run unblock -- <ts>` | ブロックラッチの人間による解除（§7） |
 | `npm run reopen -- <ts> <stage>` | 権威マーカー取消の唯一の経路。工程9→工程7・P5 差し戻し等の巻き戻しでガードと再検査を再武装する（§4.5 巻き戻し。`<stage>` 以降の工程マーカーを連鎖で削除する。巻き戻した工程の承認は対話で取り直す） |
-| `npm run tokens -- <session-id>` | セッション transcript のトークン消費をメイン／agentType×model 別に集計（`tools/token-usage.js`）。改修前の基準値は `design/canon-token-baseline-20260924.md` |
+| `npm run tokens -- <session-id>` | セッション transcript のトークン消費をメイン／agentType×model 別に集計（`tools/token-usage.js`） |
 
 **`/canon` run 中（内部から呼ばれる・通常は手動実行しない）**
 

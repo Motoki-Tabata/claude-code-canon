@@ -14,15 +14,15 @@ export const CANON_ROOT = path.dirname(GATES_DIR);
 export const DOCS_DIR = path.join(CANON_ROOT, 'docs');
 
 /**
- * 設計書2冊（基本設計書・詳細設計書）のパスの SSoT。
+ * 設計書2冊（architecture.md・artifacts.md）のパスの SSoT。
  * `canon-update-scope-guard.js`・`self-optimize-scope-guard.js`・`g15_propagation.js`・
  * `build-conformance-tables.js`・`g3_path_convention.js` が個別にハードコードするのを避け、
  * ここへ集約する（`gates/lib/non-schema.js`・`gates/lib/shell-write.js` と同じ既定パターン）。
  * パスを変える際はここ1箇所を直せば全参照が追従する。
  */
-export const DESIGN_DOC_BASIC = 'design/basic-design.md';
-export const DESIGN_DOC_DETAIL = 'design/detailed-design.md';
-export const DESIGN_DOCS = [DESIGN_DOC_BASIC, DESIGN_DOC_DETAIL];
+export const DESIGN_DOC_ARCHITECTURE = 'design/architecture.md';
+export const DESIGN_DOC_ARTIFACTS = 'design/artifacts.md';
+export const DESIGN_DOCS = [DESIGN_DOC_ARCHITECTURE, DESIGN_DOC_ARTIFACTS];
 
 /** DESIGN_DOCS のいずれかにマッチする正規表現（特殊文字をエスケープしたうえで OR 結合）。 */
 export function designDocRegExp(flags = 'i') {

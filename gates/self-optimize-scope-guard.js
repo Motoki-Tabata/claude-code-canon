@@ -31,7 +31,7 @@ import { SHELL_TOOLS, looksLikeWriteCommand, analyzeShellWrite, underAnyDir, con
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit']);
 
 // 保護対象（システム本体＋世代管理）。`generations/` は候補取込を CLI 一本化するため保護に含める。
-// `design/` は設計書2冊（基本設計書・詳細設計書）のディレクトリ（gates/lib/canon.js の DESIGN_DOCS）。
+// `design/` は設計書2冊（architecture.md・artifacts.md）のディレクトリ（gates/lib/canon.js の DESIGN_DOCS）。
 const PROTECTED_DIRS = ['.claude', 'gates', 'tests', 'docs', 'design', 'generations'];
 
 // unresolved 時のフォールバック専用（出現ベースの広域スキャン・保険）。宛先を静的に同定できた

@@ -14,8 +14,8 @@ import { outputDir } from '../../gates/lib/run.js';
 export {
   CANON_ROOT as ROOT,
   posix,
-  DESIGN_DOC_BASIC,
-  DESIGN_DOC_DETAIL,
+  DESIGN_DOC_ARCHITECTURE,
+  DESIGN_DOC_ARTIFACTS,
   DESIGN_DOCS,
   designDocRegExp,
 } from '../../gates/lib/canon.js';

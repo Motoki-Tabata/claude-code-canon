@@ -26,7 +26,7 @@ import {
   requireIncludes,
   extractCanonVersion,
   posix,
-  DESIGN_DOC_DETAIL,
+  DESIGN_DOC_ARTIFACTS,
 } from './lib/canon.js';
 import { isMainModule } from './lib/run.js';
 import {
@@ -530,9 +530,9 @@ function buildPaths() {
           source: `${l2.ref}:${skillNameDefault + 1}`,
           note:
             '正典は「既定: ディレクトリ名」と述べるのみで、name を明示した場合にディレクトリ名と一致せねば' +
-            'ならないとは述べていない。詳細設計書 §11.2 の G3「skill ディレクトリ名＝name 一致」は' +
-            '正典由来ではなく設計由来の追加規律である（§11.4 の「例外は2つ」に該当しない第3の例外）。' +
-            '本表は正典に無い要件を捏造しないため null を返す。G3 実装者は design_derived_requirements を見よ。',
+            `ならないとは述べていない。${DESIGN_DOC_ARTIFACTS} §8.3 の V1「skill ディレクトリ名＝name 一致」は` +
+            '正典由来ではなく設計由来の追加規律である。' +
+            '本表は正典に無い要件を捏造しないため null を返す。V1 実装者は design_derived_requirements を見よ。',
         },
       },
       rule: {
@@ -544,25 +544,24 @@ function buildPaths() {
     },
     design_derived_requirements: {
       _note:
-        '以下は docs/（正典）に根拠が無く、設計書由来の規律。§11.4 は「判定の出典は必ず正典 docs／例外は G11 と G13 の2つ」と' +
-        '述べるが、G3 にも正典外の要件が混入している。本表は出典を偽らないため別枠に隔離する。' +
-        'G3 実装者はこれを正典由来と誤認してはならない。人間の裁定済みの項目でも、正典の根拠が無いという' +
-        '事実そのものは変わらないため、G3 実装時は違反メッセージに「正典由来でなく設計由来」と明示すること。',
+        `以下は docs/（正典）に根拠が無く、設計書由来の規律（${DESIGN_DOC_ARTIFACTS} §8.3）。判定の出典は原則として正典 docs だが、` +
+        'V1（配置パス）には正典外の要件が1つ含まれる。本表は出典を偽らないため別枠に隔離する。' +
+        'V1 実装者はこれを正典由来と誤認してはならない。人間の裁定済みの項目でも、正典の根拠が無いという' +
+        '事実そのものは変わらないため、違反メッセージに「正典由来でなく設計由来」と明示すること。',
       items: [
         {
           requirement: 'skill ディレクトリ名 = frontmatter name の一致',
-          source: `${DESIGN_DOC_DETAIL} §11.2 G3`,
+          source: `${DESIGN_DOC_ARTIFACTS} §8.3`,
           canon_support: 'なし（L2_SKILLS.md は「既定: ディレクトリ名」と述べるのみ）',
           status: 'accepted_by_human',
           decided_at: '2026-07-16',
           decision_basis:
-            'ユーザー裁定。G3 実装タスクの一部として決定。設計由来要件として明示したうえで検査対象に含める' +
+            'ユーザー裁定。配置パス検査の実装タスクの一部として決定。設計由来要件として明示したうえで検査対象に含める' +
             '（要件そのものを削除するのではなく、出典が正典でないことをコード・照合表の双方に残す）。' +
             '根拠: (1) 移植元の旧 `.claude/skills`（2026-07 実測・17件）は全ての skill で' +
             'ディレクトリ名と frontmatter name が一致しており、一致させることが実運用上の保守性を' +
-            `高める慣行として既に定着している。(2) §11.4 の「例外は2つ（G11・G13）」という記述と矛盾しないよう、` +
-            `この要件は ${DESIGN_DOC_DETAIL} §11.4 に「第3の例外」として追記されている` +
-            '（G3 の skill dirname 要件のみが正典由来でない）。',
+            `高める慣行として既に定着している。(2) この要件は ${DESIGN_DOC_ARTIFACTS} §8.3 に正典由来でない規則として` +
+            '明記されている（V1 のうち skill dirname 要件のみが正典由来でない）。',
         },
       ],
     },

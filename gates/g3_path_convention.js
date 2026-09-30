@@ -21,7 +21,7 @@
 
 import pathsTable from './conformance_tables/paths.json' with { type: 'json' };
 import { loadArtifact, skillPathRole, violation } from './lib/artifact.js';
-import { DESIGN_DOC_DETAIL } from './lib/canon.js';
+import { DESIGN_DOC_ARTIFACTS } from './lib/canon.js';
 
 const AGENT_SOURCE = pathsTable.kinds.agent.canon_section;
 const SKILL_SOURCE = pathsTable.kinds.skill.canon_section;
@@ -117,9 +117,9 @@ export function checkG3(artifact) {
             'G3',
             p,
             `skill ディレクトリ名 "${dirName}" が frontmatter の name "${nameValue}" と一致しない。` +
-              `これは正典由来の要件ではなく設計由来の要件（${DESIGN_DOC_DETAIL} §11.2 G3・` +
+              `これは正典由来の要件ではなく設計由来の要件（${DESIGN_DOC_ARTIFACTS} §8.3・` +
               `2026-07-16 ユーザー裁定により accepted_by_human）。`,
-            `${SKILL_DIRNAME_ITEM?.source ?? `${DESIGN_DOC_DETAIL} §11.2 G3`}（design_derived_requirements、正典由来ではない）`
+            `${SKILL_DIRNAME_ITEM?.source ?? `${DESIGN_DOC_ARTIFACTS} §8.3`}（design_derived_requirements、正典由来ではない）`
           )
         );
       }

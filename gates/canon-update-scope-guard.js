@@ -34,7 +34,7 @@ import { SHELL_TOOLS, looksLikeWriteCommand, analyzeShellWrite, underAnyDir, con
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit']);
 
 // 保護対象（システム本体）。docs/ はここに含めない（機能X の書込対象＝sanctioned）。
-// design/ は設計書2冊（基本設計書・詳細設計書）のディレクトリ（gates/lib/canon.js の DESIGN_DOCS）。
+// design/ は設計書2冊（architecture.md・artifacts.md）のディレクトリ（gates/lib/canon.js の DESIGN_DOCS）。
 const PROTECTED_DIRS = ['.claude', 'gates', 'tests', 'design'];
 const DOCS_DIRS = ['docs'];
 
