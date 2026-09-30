@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * G7 参照整合（snapshot 系統・§11.2）。SubagentStop@generation。
+ * G7 参照整合（snapshot 系統・§11.2）。
  *
  * 検査内容（詳細設計書 §11.2 G7 行）:
  *   1. preload skill（`skills:`）実在
@@ -486,7 +486,7 @@ export function checkG7({ ts }) {
   };
 }
 
-/** stage-guard.js / gen-guard.js が期待する { ok, violations: string[] } 形。 */
+/** 検査共通の { ok, violations: string[] } 形。 */
 export function check({ ts }) {
   const { blocking } = checkG7({ ts });
   return { ok: blocking.length === 0, violations: blocking.map(formatViolation) };

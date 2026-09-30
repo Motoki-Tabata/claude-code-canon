@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * G9 スナップショット完全性（snapshot 系統・§11.2・§10.1）。SubagentStop@generation。
+ * G9 スナップショット完全性（snapshot 系統・§11.2・§10.1）。
  *
  * 全量スナップショット方式（§8）では「output ＝ design-map の射影」であり、配置は
  * 管理パス集合の全置換で行われる。ゆえに次を機械照合する:
@@ -27,7 +27,7 @@
 
 import path from 'node:path';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { outputDir, isMainModule, readHookInput, readSessionTs, blockStop, passStop } from './lib/run.js';
+import { outputDir, isMainModule, readTsArg, reportCheck } from './lib/run.js';
 import { listGeneratedArtifacts } from './g12_output_perfile.js';
 import { isManaged, parseListText, checkConcreteEntries } from './lib/managed-paths.js';
 import { parseManifestFiles, MANIFEST_FILES_HEADING } from './lib/manifest.js';
@@ -169,7 +169,7 @@ export function checkG9({ ts }) {
   }
 
   // 6. design-map ⇒ generated/（S1-4）: design-map が宣言した成果物がすべて実在する。
-  //    design-map が無いときは照合元が無いので行わない（その不在は G1（generation は design.done 前提）の担当）。
+  //    design-map が無いときは照合元が無いので行わない。
   const designMapPath = path.join(outDir, 'design-map.md');
   if (existsSync(designMapPath)) {
     const dmText = readFileSync(designMapPath, 'utf8');
@@ -207,13 +207,8 @@ export function check({ ts }) {
 }
 
 if (isMainModule(import.meta.url)) {
-  readHookInput();
-  const ts = readSessionTs();
-  if (!ts) {
-    passStop('G9: .session-ts 不在のため対象なし');
-  } else {
-    const r = checkG9({ ts });
-    if (r.ok) passStop(`G9: 通過（${r.scanned}件・managed-paths 集合内包・MANIFEST 有）`);
-    else blockStop(`G9: 違反を検出（${r.violations.length}件）\n${r.violations.join('\n')}`);
-  }
+  const ts = readTsArg('g9_snapshot_completeness');
+  const r = checkG9({ ts });
+  if (r.ok) reportCheck(true, `G9: 通過（${r.scanned}件・managed-paths 集合内包・MANIFEST 有）`);
+  else reportCheck(false, `G9: 違反を検出（${r.violations.length}件）\n${r.violations.join('\n')}`);
 }

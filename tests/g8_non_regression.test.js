@@ -94,26 +94,26 @@ function setupInterfaceChangeCase(t, ts, { relPath, originalContent, outputConte
 }
 
 test('A1 G8: interface_change: none 宣言 × frontmatter name 同一 → 通過', (t) => {
-  const relPath = '.claude/skills/self-optimize/SKILL.md';
+  const relPath = '.claude/skills/release-notes/SKILL.md';
   const c = setupInterfaceChangeCase(t, tsFor(import.meta.url, 7), {
     relPath,
-    originalContent: '---\nname: self-optimize\ndescription: x\n---\n本文（旧）\n',
-    outputContent: '---\nname: self-optimize\ndescription: x\n---\n本文（新・節を追加）\n',
+    originalContent: '---\nname: release-notes\ndescription: x\n---\n本文（旧）\n',
+    outputContent: '---\nname: release-notes\ndescription: x\n---\n本文（新・節を追加）\n',
   });
   const r = checkG8({ ts: c.ts });
   assert.equal(r.ok, true, JSON.stringify(r.violations));
 });
 
 test('A1 G8: interface_change: none 宣言 × frontmatter name 変化 → 違反（宣言だけで通る恒真経路が無いことの証明）', (t) => {
-  const relPath = '.claude/skills/self-optimize/SKILL.md';
+  const relPath = '.claude/skills/release-notes/SKILL.md';
   const c = setupInterfaceChangeCase(t, tsFor(import.meta.url, 8), {
     relPath,
-    originalContent: '---\nname: self-optimize\ndescription: x\n---\n本文（旧）\n',
-    outputContent: '---\nname: self-optimize-v2\ndescription: x\n---\n本文（新）\n',
+    originalContent: '---\nname: release-notes\ndescription: x\n---\n本文（旧）\n',
+    outputContent: '---\nname: release-notes-v2\ndescription: x\n---\n本文（新）\n',
   });
   const r = checkG8({ ts: c.ts });
   assert.equal(r.ok, false);
-  assert.ok(r.violations.some((v) => v.includes('name') && v.includes('self-optimize')));
+  assert.ok(r.violations.some((v) => v.includes('name') && v.includes('release-notes')));
 });
 
 // --- S1-2: frontmatter を持たない種別にも検査手段がある（interface-signature.js） ---

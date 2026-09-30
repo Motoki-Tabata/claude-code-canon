@@ -11,7 +11,6 @@ import { mkdirSync, writeFileSync, cpSync, mkdtempSync, rmSync, existsSync, read
 import os from 'node:os';
 import path from 'node:path';
 import { ROOT, outputDir, workDir } from './paths.js';
-import { mintMarker } from '../../gates/lib/run.js';
 
 // ---------------------------------------------------------------------------
 // frontmatter 文字列生成
@@ -55,13 +54,20 @@ export function writeSkill(genRoot, name, fields = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// 使い捨てスクラッチディレクトリ
+// 使い捨てスクラッチディレクトリ・実 work/<ts>・output/<ts> の後始末
 // ---------------------------------------------------------------------------
 
-/**
- * `os.tmpdir()` 配下に使い捨てディレクトリを作り、t.after() で削除する。
- * `makeCanonRoot`/`makeStageScratch`/`makeScratchRoot`/`makeDivergenceScratch` の置換。
- */
+/** 実 output/<ts>・work/<ts> の後始末を t.after() へ登録する（複数 ts をまとめて渡せる）。 */
+export function cleanupTs(t, ...tsList) {
+  t.after(() => {
+    for (const ts of tsList) {
+      rmSync(outputDir(ts), { recursive: true, force: true });
+      rmSync(workDir(ts), { recursive: true, force: true });
+    }
+  });
+}
+
+/** `os.tmpdir()` 配下に使い捨てディレクトリを作り、t.after() で削除する。 */
 export function scratchDir(t, prefix) {
   const dir = mkdtempSync(path.join(os.tmpdir(), prefix));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
@@ -79,11 +85,9 @@ export function sampleRepoDir(name) {
 /**
  * `fixtures/sample-repos/<name>/expected-output/**` を実 `output/<ts>/` へ、
  * `expected-work/**` を実 `work/<ts>/` へ配置し、`target.txt`（対象リポの絶対パス）を書く。
- * `scenario2_helpers.setupScenario2` と `scenario3_helpers.setupScenario3` を統合したもの
- * （両者は `markers` の有無以外は同一規約——`expected-output/` の中身をそのまま複写する）。
  * t.after() で実 output/work の当該 <ts> を削除する。
  */
-export function setupSampleRepo(t, name, ts, { markers = [] } = {}) {
+export function setupSampleRepo(t, name, ts) {
   const caseDir = sampleRepoDir(name);
   const o = outputDir(ts);
   const w = workDir(ts);
@@ -93,13 +97,7 @@ export function setupSampleRepo(t, name, ts, { markers = [] } = {}) {
   cpSync(path.join(caseDir, 'expected-work'), w, { recursive: true });
   writeFileSync(path.join(w, 'target.txt'), caseDir + '\n');
 
-  // 前段工程の完了マーカー（G1 の design／generation ステージは前段の done を前提とする）。
-  for (const stage of markers) mintMarker(ts, stage, { fixture: true });
-
-  t.after(() => {
-    rmSync(o, { recursive: true, force: true });
-    rmSync(w, { recursive: true, force: true });
-  });
+  cleanupTs(t, ts);
 
   return { ts, out: o, work: w, gen: path.join(o, 'generated'), req: path.join(w, 'requirements.md') };
 }

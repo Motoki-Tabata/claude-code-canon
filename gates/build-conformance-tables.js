@@ -41,8 +41,7 @@ import {
 
 const OUT_DIR = path.join(GATES_DIR, 'conformance_tables');
 
-// export: G14（正典整合・§13.1）が「docs/ 9ファイルの全量」を own-list として二重管理せず
-// ここから import する（L005 の同期漏れ回避）。
+// export: 「docs/ 9ファイルの全量」の SSoT。他所で own-list として二重管理しない（L005 の同期漏れ回避）。
 export const CANON_FILES = [
   '00_INDEX.md',
   'L1_CONTEXT_MANAGEMENT.md',
@@ -833,13 +832,13 @@ function buildHooks() {
   const dup = names.filter((n, i) => names.indexOf(n) !== i);
   if (dup.length > 0) throw new ExtractionError(`Hook イベント名が重複: ${JSON.stringify(dup)}`);
 
-  // 設計が依存する個別イベントの存在を明示的に検査する（配線の前提が消えたら落とす）。
+  // 抽出の健全性確認: 既知のイベントのブロック可否が正典どおりに読めていること。
   for (const [ev, want] of [
-    ['UserPromptExpansion', true], // G13 preflight（§11.1）
-    ['PostToolUse', false], // per-file 系統はブロック不可（§11.1）
-    ['SubagentStop', true], // snapshot 系統
+    ['UserPromptExpansion', true],
+    ['PostToolUse', false],
+    ['SubagentStop', true],
     ['Stop', true],
-    ['PreToolUse', true], // 3ガード
+    ['PreToolUse', true],
   ]) {
     const e = events.find((x) => x.event === ev);
     if (!e) throw new ExtractionError(`設計が前提とする Hook イベント '${ev}' が正典に無い。`);
@@ -966,9 +965,9 @@ function main() {
   console.log(`  generated: gates/conformance_tables/index.json`);
 }
 
-// isMainModule ガード（機能X 追記）: `npm run build:tables` として直接実行された
+// isMainModule ガード: `npm run build:tables` として直接実行された
 // ときのみ副作用（照合表の書込・process.exit）を起こす。CANON_FILES を named export として
-// 参照する他モジュール（G14・§11.2「G14/G15/G16 実装契約」）が単に import しただけで
+// 参照する他モジュール（テスト等）が単に import しただけで
 // 照合表が再生成され、しかも ExtractionError 時に process.exit(1) でプロセス全体が
 // 落ちる事故を避けるため（本ファイルはもともと「実行専用スクリプト」であり「ライブラリ」
 // として import される用途を想定していなかった。CANON_FILES の export 追加で用途が

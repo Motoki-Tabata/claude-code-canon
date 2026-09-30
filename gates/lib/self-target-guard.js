@@ -1,16 +1,13 @@
 /**
  * gates/lib/self-target-guard.js — deploy/ 3スクリプトの自己指定拒否（§10.2・§13.2.1）。
  *
- * 工程10（退避スワップ配置）の対象に claude-canon 自身を指定すると、稼働中の実行体を
- * 機能Y の昇格前検証（G13・G3〜G6・npm test・自動ロールバック・§13.2）を一切通さずに
- * 置換できてしまう。自己再生成の唯一の正しい経路は世代ステージング
- * （`tools/stage-candidate.js`）→ `tools/promote.js` であり、`deploy/` の CLI 入口には
- * 自己指定の経路を存在させない。
+ * 配置（退避スワップ）の対象に claude-canon 自身を指定すると、稼働中の実行体を検証なしに
+ * 置換できてしまう。claude-canon 自身の変更は通常の保守（ブランチ・npm test・PR）で行い、
+ * `deploy/` の CLI 入口には自己指定の経路を存在させない。
  *
  * 注意: この検査は各スクリプトの **CLI 入口（`isMain` ブロック）にのみ** 置く。
  * `computeVanishing()`/`deploy()` 等のエクスポート関数自体には入れない
- * ——`tools/stage-candidate.js` が `computeVanishing(outputDir, CANON_ROOT)` を
- * 正当に呼び出す（§13.2.1 世代ステージング）ため、関数レベルで拒否すると壊れる。
+ * ——テストが一時ディレクトリを対象に関数を直接呼ぶため、入口で止めれば足りる。
  */
 
 import path from 'node:path';
@@ -22,6 +19,5 @@ export function isCanonSelfTarget(targetDir) {
 }
 
 export const SELF_TARGET_MESSAGE =
-  '対象に claude-canon 自身は指定できない（§10.2・§13.2.1）。退避スワップ配置は機能Y の' +
-  '昇格前検証（G13・G3〜G6・npm test・自動ロールバック）を経由しないため、稼働中の実行体を' +
-  '無検証で破壊しうる。自己再生成は tools/stage-candidate.js → tools/promote.js を使うこと。';
+  '対象に claude-canon 自身は指定できない（§10.2）。退避スワップ配置は検証を経由しないため、' +
+  '稼働中の実行体を無検証で破壊しうる。claude-canon 自身の変更は通常の保守（ブランチ・npm test・PR）で行うこと。';

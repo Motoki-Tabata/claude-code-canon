@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * G12 per-file 権威再検証（snapshot 系統・§11.2）。SubagentStop@generation。
+ * G12 per-file 権威再検証（snapshot 系統・§11.2）。
  *
  * 停止時に output/<ts>/generated/ 配下の全カスタマイズファイルへ G3〜G6 を再実行する。
  * PostToolUse（per-file 助言）は「ブロック不可＋読取失敗で非ブロッキング降格」しうるため、
@@ -15,7 +15,7 @@
 
 import path from 'node:path';
 import { existsSync, statSync, readdirSync, readFileSync } from 'node:fs';
-import { outputDir, isMainModule, readHookInput, readSessionTs, blockStop, passStop } from './lib/run.js';
+import { outputDir, isMainModule, readTsArg, reportCheck } from './lib/run.js';
 import { detectKind } from './lib/artifact.js';
 import { checkG3File } from './g3_path_convention.js';
 import { checkG4File } from './g4_frontmatter_schema.js';
@@ -72,8 +72,7 @@ function asArray(v) {
 
 /**
  * generated/ 配下の単一ファイルを分類し、per-file ゲート（G3〜G6）の対象なら当てて違反を返す。
- * per-file 判定の SSoT 入口: 停止時の権威判定（checkG12）と PostToolUse 助言（advisoryReverifyFile）が
- * ともにこれを使い、判定ロジックの二重化＝drift を避ける（L005）。
+ * per-file 判定の SSoT 入口。
  *   { target: false }                      … 対象外（lib/non-schema.js の非スキーマ判定・genRoot 外・.md/.mcp.json 以外の型）
  *   { target: true, violations: string[] } … 対象（schema 種別の .md／.mcp.json／種別不明の誤配置）
  * genRoot は outputDir(ts)/generated の絶対パス。
@@ -94,26 +93,6 @@ function classifyFile(absPath, genRoot) {
         `（CLAUDE.md / .claude/README.md / .claude/settings.json）でもない。配置が誤っている可能性（§11.5）。`,
     ],
   };
-}
-
-/**
- * PostToolUse（advisory・§11.1）用の単一ファイル入口。書かれた1ファイルへ per-file ゲート
- * （G3〜G6）を best-effort で当て、checkG12（停止時の権威判定）と**同一の分類・検査**（classifyFile）
- * を使う。返り値が非空なら呼び出し側（advance-guard）が gen.blocked を鋳造し、以降の generated/**
- * 前進書込が PreToolUse で硬遮断される。「PreToolUse が早期に止めるのは G12@Stop が止めるものと同一」
- * を保つのが要点。
- *
- * 対象外（lib/non-schema.js の非スキーマ判定・genRoot 外・.md/.mcp.json 以外）は空配列。読取・パース失敗は例外を
- * 握って空配列を返す＝非ブロッキング降格（§11.1）。
- */
-export function advisoryReverifyFile(absPath, ts) {
-  try {
-    const genRoot = path.join(outputDir(ts), 'generated');
-    const c = classifyFile(absPath, genRoot);
-    return c.target ? c.violations : [];
-  } catch {
-    return []; // 読取失敗＝非ブロッキング降格（§11.1）
-  }
 }
 
 /**
@@ -178,19 +157,14 @@ export function checkG12({ ts }) {
   return { ok: violations.length === 0, violations, scanned: files.length, reverified };
 }
 
-/** stage-guard.js / gen-guard.js が期待する { ok, violations: string[] } 形。 */
+/** 検査共通の { ok, violations: string[] } 形。 */
 export function check({ ts }) {
   return checkG12({ ts });
 }
 
 if (isMainModule(import.meta.url)) {
-  readHookInput();
-  const ts = readSessionTs();
-  if (!ts) {
-    passStop('G12: .session-ts 不在のため対象なし');
-  } else {
-    const r = checkG12({ ts });
-    if (r.ok) passStop(`G12: 通過（${r.scanned}件を権威再検証・違反0）`);
-    else blockStop(`G12: 違反を検出（${r.violations.length}件）\n${r.violations.join('\n')}`);
-  }
+  const ts = readTsArg('g12_output_perfile');
+  const r = checkG12({ ts });
+  if (r.ok) reportCheck(true, `G12: 通過（${r.scanned}件を権威再検証・違反0）`);
+  else reportCheck(false, `G12: 違反を検出（${r.violations.length}件）\n${r.violations.join('\n')}`);
 }

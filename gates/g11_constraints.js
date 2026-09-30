@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * G11 制約遵守（snapshot 系統・§11.2「G11 実装契約」）。SubagentStop@generation。
+ * G11 制約遵守（snapshot 系統・§11.2「G11 実装契約」）。
  *
  * 「このプロジェクトで使ってはいけない機能」が生成物に混入していないかを判定する。
  *
@@ -39,7 +39,7 @@
 import path from 'node:path';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import hooksTable from './conformance_tables/hooks.json' with { type: 'json' };
-import { outputDir, workDir, isMainModule, readHookInput, readSessionTs, blockStop, passStop } from './lib/run.js';
+import { outputDir, workDir, isMainModule, readTsArg, reportCheck } from './lib/run.js';
 import { parseFrontmatter } from './lib/artifact.js';
 import { parseRequirementsDoc, RequirementsError } from './lib/requirements.js';
 import { L5_PLUGIN_PATTERN } from './lib/managed-paths.js';
@@ -284,7 +284,7 @@ function readDesignMapExperimental(ts) {
 // ---------------------------------------------------------------------------
 
 // 識別子境界の照合は `gates/lib/markdown.js` の `mentionsIdentifier` が SSoT
-// （G10 と共有・`.claude/rules/gates-and-tests.md`「同じ判定ロジックを複数箇所へ複製しない」）。
+// （`.claude/rules/gates-and-tests.md`「同じ判定ロジックを複数箇所へ複製しない」）。
 const mentions = mentionsIdentifier;
 
 function checkDegradation(doc, prohibitedKeys) {
@@ -292,9 +292,8 @@ function checkDegradation(doc, prohibitedKeys) {
   const conflicts = doc.conflicts ?? [];
 
   // 登録漏れ: 強度の実現手段が禁止されている要件は conflicts に載っていなければならない。
-  // conflicts の【整合】検査（要件 id・constraints キー・禁止済みであること）はここには無い。
-  // requirements の書式の問題を生成完了後に落とすのは工程順として誤りなので、G1 の
-  // requirements ステージへ移した（gates/lib/requirements.js の checkConflictsIntegrity）。
+  // conflicts の【整合】検査（要件 id・constraints キー・禁止済みであること）はここでは行わない。
+  // requirements の書式の問題を生成完了後に落とすのは工程順として誤りだからである。
   // 本検査が G11 に残るのは、「縮退の判断が記録されないまま【生成が通る】」ことを防ぐのが
   // 目的で、生成の直前が最後の関門だからである。
   for (const r of doc.requirements) {
@@ -435,26 +434,22 @@ export function checkG11({ ts }) {
   };
 }
 
-/** stage-guard.js / gen-guard.js が期待する { ok, violations: string[] } 形。 */
+/** 検査共通の { ok, violations: string[] } 形。 */
 export function check({ ts }) {
   const { ok, violations } = checkG11({ ts });
   return { ok, violations };
 }
 
 if (isMainModule(import.meta.url)) {
-  readHookInput();
-  const ts = readSessionTs();
-  if (!ts) {
-    passStop('G11: .session-ts 不在のため対象なし');
+  const ts = readTsArg('g11_constraints');
+  const r = checkG11({ ts });
+  if (r.ok) {
+    reportCheck(
+      true,
+      `G11: 通過（禁止 ${r.prohibited?.length ?? 0} 機能 [${(r.prohibited ?? []).join(', ')}] を ` +
+        `${r.scanned} ファイルに照合・違反0）\n${(r.notes ?? []).join('\n')}`
+    );
   } else {
-    const r = checkG11({ ts });
-    if (r.ok) {
-      passStop(
-        `G11: 通過（禁止 ${r.prohibited?.length ?? 0} 機能 [${(r.prohibited ?? []).join(', ')}] を ` +
-          `${r.scanned} ファイルに照合・違反0）\n${(r.notes ?? []).join('\n')}`
-      );
-    } else {
-      blockStop(`G11: 違反を検出（${r.violations.length}件）\n${r.violations.join('\n')}`);
-    }
+    reportCheck(false, `G11: 違反を検出（${r.violations.length}件）\n${r.violations.join('\n')}`);
   }
 }

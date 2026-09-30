@@ -11,10 +11,9 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { readFileSync, existsSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs';
 import { ROOT, outputDir, workDir } from './helpers/paths.js';
-import { runToolCli } from './helpers/hook.js';
-import { cleanupTs } from './helpers/run-state.js';
+import { runToolCli } from './helpers/run-cli.js';
+import { cleanupTs } from './helpers/fixtures.js';
 import { tsFor } from './helpers/ts.js';
-import { mintMarker } from '../gates/lib/run.js';
 import { buildSlices } from '../gates/lib/design-slices.js';
 import { listDeclaredArtifacts, DesignMapError } from '../gates/lib/design-map.js';
 
@@ -127,20 +126,19 @@ test('括弧書き付きの層見出し（## L1（l1-builder））でも targets
 
 // ---- CLI ----
 
-test('CLI: design.done が無ければ拒否し、有れば slices/ を書く。古いファイルは掃除される（S2-2 の轍を踏まない）', (t) => {
+test('CLI: design-map が無ければ拒否し、有れば slices/ を書く。古いファイルは掃除される（S2-2 の轍を踏まない）', (t) => {
   const ts = tsFor(import.meta.url, 1);
   cleanupTs(t, ts);
   mkdirSync(outputDir(ts), { recursive: true });
   mkdirSync(path.join(workDir(ts), 'slices'), { recursive: true });
-  writeFileSync(path.join(outputDir(ts), 'design-map.md'), SYNTH);
   writeFileSync(path.join(workDir(ts), 'slices', 'stale.md'), '前回の残骸');
 
   const refused = runToolCli('slice-design-map.js', [ts]);
-  assert.notEqual(refused.code, 0, 'design.done が無いのに切り出した');
-  assert.match(refused.stderr, /design\.done/);
+  assert.notEqual(refused.code, 0, 'design-map が無いのに切り出した');
+  assert.match(refused.stderr, /design-map\.md が無い/);
   assert.ok(existsSync(path.join(workDir(ts), 'slices', 'stale.md')), '拒否したなら何も変えてはならない');
 
-  mintMarker(ts, 'design');
+  writeFileSync(path.join(outputDir(ts), 'design-map.md'), SYNTH);
   const ok = runToolCli('slice-design-map.js', [ts]);
   assert.equal(ok.code, 0, ok.stderr);
   const names = readdirSync(path.join(workDir(ts), 'slices'));

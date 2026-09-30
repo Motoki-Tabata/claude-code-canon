@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { setupTmpCase } from './helpers/fixtures.js';
-import { runDeployCli } from './helpers/hook.js';
+import { runDeployCli } from './helpers/run-cli.js';
 import { renderRunManifest } from '../deploy/emit-run-manifest.js';
 
 test('emit-run-manifest: RUN.md に両コマンド・配置集合・廃止集合・<ts> が入る', (t) => {

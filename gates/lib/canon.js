@@ -15,9 +15,8 @@ export const DOCS_DIR = path.join(CANON_ROOT, 'docs');
 
 /**
  * 設計書2冊（architecture.md・artifacts.md）のパスの SSoT。
- * `canon-update-scope-guard.js`・`self-optimize-scope-guard.js`・`g15_propagation.js`・
- * `build-conformance-tables.js`・`g3_path_convention.js` が個別にハードコードするのを避け、
- * ここへ集約する（`gates/lib/non-schema.js`・`gates/lib/shell-write.js` と同じ既定パターン）。
+ * `build-conformance-tables.js`・`g3_path_convention.js`・テストが個別にハードコードするのを避け、
+ * ここへ集約する（`gates/lib/non-schema.js` と同じ既定パターン）。
  * パスを変える際はここ1箇所を直せば全参照が追従する。
  */
 export const DESIGN_DOC_ARCHITECTURE = 'design/architecture.md';

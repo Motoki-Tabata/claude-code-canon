@@ -2,11 +2,8 @@
  * gates/lib/non-schema.js（非スキーマ .md 判定の SSoT）の回帰テスト。
  * 詳細設計書 §11.4（実昇格準備2 フェーズ0 で確定）。
  *
- * 従来この判定は `gates/g12_output_perfile.js`（KNOWN_NON_SCHEMA）・
- * `gates/g10_readme.js`（インライン比較）・`tools/promote.js`（KNOWN_NON_SCHEMA）・
- * `tests/self_application.test.js`（walkMd/walkMdFs の2姉妹関数）に独立に複製されており、
- * 新しい生成物（README.md）が初めて実在した機能Y ライブ e2e で波及漏れを2度起こした
- * （L027: g12→promote/tests への波及漏れ／L029: 同一ファイル内の姉妹関数への波及漏れ）。
+ * 従来この判定は複数のゲート・ツール・テストに独立に複製されており、新しい生成物
+ * （README.md）が初めて実在したとき波及漏れを2度起こした（L027・L029）。
  * このテストは (a) 判定関数そのものの正しさ、(b) 呼び出し側が SSoT を import していること
  * （リテラル重複に戻っていないか）の両方を固定する。
  */
@@ -48,11 +45,9 @@ test('NON_SCHEMA_MD は正準3件のみ（列挙漏れ・過剰の両方を検�
   );
 });
 
-test('呼び出し側4ファイルが SSoT（gates/lib/non-schema.js）を import していること（リテラル重複への回帰防止）', () => {
+test('呼び出し側が SSoT（gates/lib/non-schema.js）を import していること（リテラル重複への回帰防止）', () => {
   const sites = [
     path.join(ROOT, 'gates', 'g12_output_perfile.js'),
-    path.join(ROOT, 'gates', 'g10_readme.js'),
-    path.join(ROOT, 'tools', 'promote.js'),
     path.join(ROOT, 'tests', 'self_application.test.js'),
   ];
   for (const f of sites) {

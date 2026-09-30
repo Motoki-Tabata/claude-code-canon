@@ -17,8 +17,7 @@
  * （自由作文しない＝決定論）。
  *
  * これは hook ではなくスタンドアロン CLI（工程10 は run 外）。<ts> は <output-dir> のディレクトリ名
- * から取り、run を in-flight 化しない（.session-ts に触れない）。RUN.md は sanctioned な
- * output/<ts>/.deploy/ に書き、.gate/** には一切触れない。
+ * から取る。RUN.md は output/<ts>/.deploy/ に書く。
  *
  *   usage: node deploy/emit-run-manifest.js <output-dir> <target-repo-dir>
  *   exit 0 : RUN.md を出力した

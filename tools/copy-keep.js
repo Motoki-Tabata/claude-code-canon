@@ -7,8 +7,8 @@
  * LLM が Read して Write する必要は無い。run 20260927_003229 では generator が keep 10件を Read/Write で
  * 写しており、トークンを使ううえ、写し違いは G8（sha256 非回帰）違反になる。
  *
- * 実行主体は S3 の工程7のオーケストレータ（Bash）。`npm run slice` の後、generator を起動する前に実行する。
- * design.done（設計の確定）が無ければ拒否する。コピー後に sha256 を照合し、1件でも食い違えば exit 1。
+ * 実行主体はオーケストレータ（Bash）。design-map の承認後、`npm run slice` の後・生成の前に実行する。
+ * コピー後に sha256 を照合し、1件でも食い違えば exit 1。
  *
  * 出力（JSON）: { copied: string[], missing: string[], rejected: string[] }
  *   missing  = 対象リポジトリに原本が無い（design-map・系統A の誤り。コピーせず exit 1）
@@ -17,12 +17,12 @@
 
 import path from 'node:path';
 import { existsSync, readFileSync, copyFileSync, mkdirSync } from 'node:fs';
-import { isValidTs, outputDir, hasMarker, resolveTargetRoot, isMainModule } from '../gates/lib/run.js';
+import { isValidTs, outputDir, resolveTargetRoot, isMainModule } from '../gates/lib/run.js';
 import { parseExistingDisposition } from '../gates/lib/design-map.js';
 import { isManaged, sha256File } from '../gates/lib/managed-paths.js';
 
 /**
- * keep レコードをコピーする（純粋な入出力のみ・マーカーには触れない）。
+ * keep レコードをコピーする（純粋な入出力のみ）。
  * @returns {{ copied: string[], missing: string[], rejected: string[], mismatched: string[] }}
  */
 export function copyKeep(ts) {
@@ -60,7 +60,6 @@ if (isMainModule(import.meta.url)) {
   if (!ts) fail('使い方: npm run copy-keep -- <ts>');
   if (!isValidTs(ts)) fail(`不正な <ts> 形式: ${ts}（期待形式: YYYYMMDD_hhmmss）`);
   if (!existsSync(path.join(outputDir(ts), 'design-map.md'))) fail(`output/${ts}/design-map.md が無い。`);
-  if (!hasMarker(ts, 'design')) fail('design.done が無い（設計が G1・G2 を通って確定してからコピーする）。');
   let r;
   try {
     r = copyKeep(ts);

@@ -27,7 +27,7 @@ const TS_LITERAL_RE = /['"`]2999\d{4}_\d{6}['"`]/;
 
 test('TS_NAMESPACES: 割当が重複しないこと（package.json 運用規約の機械検査）', () => {
   const entries = Object.entries(TS_NAMESPACES);
-  assert.ok(entries.length >= 15, `レジストリが空同然では検査が vacuous になる（実際: ${entries.length}件）`);
+  assert.ok(entries.length >= 5, `レジストリが空同然では検査が vacuous になる（実際: ${entries.length}件）`);
   const seen = new Map();
   const dupes = [];
   for (const [name, prefix] of entries) {
@@ -50,7 +50,7 @@ test('TS_NAMESPACES: 各キーに対応する tests/<name>.test.js が実在す�
 
 test('全テストファイルが ts をレジストリ経由で発行していること（2999 プレフィックスのハードコード禁止）', () => {
   const files = readdirSync(TESTS_DIR).filter((f) => f.endsWith('.test.js'));
-  assert.ok(files.length >= 30, `走査対象が少なすぎるなら本テスト自体が vacuous（実際: ${files.length}件）`);
+  assert.ok(files.length >= 15, `走査対象が少なすぎるなら本テスト自体が vacuous（実際: ${files.length}件）`);
   const offenders = files.filter((f) => TS_LITERAL_RE.test(readFileSync(path.join(TESTS_DIR, f), 'utf8')));
   assert.deepEqual(
     offenders,

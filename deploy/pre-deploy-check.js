@@ -10,7 +10,7 @@
  *
  * 工程10 は claude-canon の外（対象リポジトリで人間が実行）で Hook が発火できないため、これは
  * hook ではなくスタンドアロン CLI（§10.2 実装契約）。<ts> は <output-dir> のディレクトリ名から
- * 取り、run を in-flight 化しない（.session-ts に触れない）。
+ * 取る。
  *
  *   usage: node deploy/pre-deploy-check.js <output-dir> <target-repo-dir>
  *   exit 0 : 消えるものが無い／retired のみ（配置してよい）

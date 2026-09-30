@@ -13,12 +13,11 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
 import os from 'node:os';
-import { buildKeepReviewBundles, collectKeepReviewCases, caseIdFor, buildAxisBundle, AXES_4 } from '../eval/bundle.js';
+import { buildKeepReviewBundles, collectKeepReviewCases, caseIdFor } from '../eval/bundle.js';
 import { ROOT } from './helpers/paths.js';
 import { tsFor } from './helpers/ts.js';
 
 const CORPUS = path.join(ROOT, 'fixtures', 'eval-corpus', 'keep-review', 'cases');
-const AXIS_CORPUS = path.join(ROOT, 'fixtures', 'eval-corpus');
 // write:false・roots は常にフィクスチャ配下を指すため、この ts は実 work/output に
 // 一切触れない飾り値（バンドル本文に埋め込まれるだけ）。
 const TS = tsFor(import.meta.url, 0);
@@ -110,91 +109,6 @@ test('existing_disposition が空の design-map は throw（0件を成功と誤�
 
 test('caseId はパスから決定論的に導かれる', () => {
   assert.equal(caseIdFor('.claude/skills/a-b/SKILL.md'), 'claude_skills_a_b_SKILL_md');
-});
-
-// ---------------------------------------------------------------------------
-// 4軸バンドル（correctness / security / canon / context・§16.3 の一般化・B 2026-08-12）
-// ---------------------------------------------------------------------------
-
-function buildAxis(axis, caseName) {
-  const dir = path.join(AXIS_CORPUS, axis, 'cases', caseName);
-  return buildAxisBundle({
-    axis,
-    ts: TS,
-    caseId: caseName,
-    write: false,
-    roots: { outputDir: dir, workDir: dir, generatedRoot: path.join(dir, 'generated') },
-  });
-}
-
-test('4軸すべてでバンドルが生成できる（generated 配下の全ファイルが target になる）', () => {
-  const perAxisCase = {
-    correctness: 'corr-a1-met',
-    security: 'sec-minimal',
-    canon: 'canon-good-desc',
-    context: 'ctx-tight',
-  };
-  for (const axis of AXES_4) {
-    const { targets, text } = buildAxis(axis, perAxisCase[axis]);
-    assert.ok(targets.length >= 1, `${axis}: target が0件`);
-    assert.ok(text.includes(`axis: ${axis}`));
-  }
-});
-
-test('宣言除去規約（4軸への横展開）: design-map の rationale がバンドルに現れない', () => {
-  // context/ctx-duplication は responsibilities.md を持つ（design-map の1文責務のみ・rationale は無い）。
-  const { text } = buildAxis('context', 'ctx-duplication');
-  assert.ok(!text.includes('keep_conditions'), 'keep_conditions が漏れている');
-  assert.ok(!/rationale:\s*"/.test(text), 'designer の rationale らしき文字列が漏れている');
-});
-
-test('複数ファイルの生成物は全ファイルが1バンドルに含まれる（canon-progressive の4ファイル）', () => {
-  const { targets, text } = buildAxis('canon', 'canon-progressive');
-  assert.equal(targets.length, 4);
-  assert.ok(text.includes('release-deploy/SKILL.md'));
-  assert.ok(text.includes('release-deploy/reference/prepare.md'));
-  assert.ok(text.includes('release-deploy/reference/deploy.md'));
-  assert.ok(text.includes('release-deploy/reference/verify.md'));
-});
-
-test('generated 配下が0件は throw（0件を「問題なし」と読まない・§16.5）', () => {
-  assert.throws(
-    () =>
-      buildAxisBundle({
-        axis: 'correctness',
-        ts: tsFor(import.meta.url, 1),
-        write: false,
-        roots: { outputDir: path.join(ROOT, 'fixtures'), workDir: path.join(ROOT, 'fixtures'), generatedRoot: path.join(ROOT, 'fixtures', 'does-not-exist') },
-      }),
-    /生成物が0件/
-  );
-});
-
-test('未対応の軸は throw', () => {
-  assert.throws(() => buildAxis('keep-review', 'x'), /未対応の軸/);
-});
-
-test('バンドル生成は決定論（4軸でも同じ入力で同じ出力）', () => {
-  const a = buildAxis('security', 'sec-minimal').text;
-  const b = buildAxis('security', 'sec-minimal').text;
-  assert.equal(a, b);
-});
-
-test('責務欄は npm run slice が書く work/<ts>/slices/responsibilities.md から取る（旧 output/<ts>/responsibilities.md は不在ファイルだった）', (t) => {
-  const tmp = mkdtempSync(path.join(os.tmpdir(), 'bundle-resp-'));
-  t.after(() => rmSync(tmp, { recursive: true, force: true }));
-  mkdirSync(path.join(tmp, 'slices'), { recursive: true });
-  writeFileSync(path.join(tmp, 'slices', 'responsibilities.md'), '# dm\n\nSLICE-RESP-MARKER: 責務1文\n');
-  const gen = path.join(AXIS_CORPUS, 'context', 'cases', 'ctx-tight', 'generated');
-  // outputDir は責務ファイルを持たない場所（旧パスに何も無い）を指す。責務欄がスライスから来ることを確かめる。
-  const { text } = buildAxisBundle({
-    axis: 'context',
-    ts: TS,
-    caseId: 'ctx-slice',
-    write: false,
-    roots: { outputDir: tmp, workDir: tmp, generatedRoot: gen },
-  });
-  assert.ok(text.includes('SLICE-RESP-MARKER'), 'slices/responsibilities.md の内容がバンドルに入っていない（責務欄が空のまま）');
 });
 
 // ---- S2-2（出力先の掃除）・S2-5（keep 対象の逆引き）----

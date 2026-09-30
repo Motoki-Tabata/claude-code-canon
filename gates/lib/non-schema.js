@@ -4,16 +4,11 @@
  *
  * `CLAUDE.md`／`.claude/README.md`／`.claude/settings.json` は agent/skill/rule のような
  * frontmatter スキーマを持たず、G3（配置ファミリー）・G4（種別スキーマ）の対象外である
- * （CLAUDE.md は L1 の行数規約、README.md は G10、settings.json は配線テストがそれぞれ
- * 別途担当する）。
+ * （CLAUDE.md は L1 の行数規約、README.md・settings.json は別途担当する）。
  *
- * 従来この除外判定は `gates/g12_output_perfile.js` の `KNOWN_NON_SCHEMA`・
- * `gates/g10_readme.js` のインライン比較・`tools/promote.js` の `KNOWN_NON_SCHEMA`・
- * `tests/self_application.test.js` の姉妹関数2つ（`walkMd`/`walkMdFs`）に**独立に複製**
- * されていた。新しい生成物（README.md）が初めて実在した機能Y ライブ e2e で、この複製が
- * 2度波及漏れを起こした（L027: g12→promote/tests への波及漏れ／L029: 同一ファイル内の
- * 姉妹関数への波及漏れ）。ここへ集約し、上記すべてはこれを import する
- * （`gates/lib/shell-write.js` が L023 で3ガードの重複を解消した前例と同型）。
+ * 従来この除外判定は複数のゲート・ツール・テストに**独立に複製**されており、新しい生成物
+ * （README.md）が初めて実在したとき2度波及漏れを起こした（L027・L029）。ここへ集約し、
+ * 呼び出し側はすべてこれを import する。
  *
  * 固定名の3件に加え、**パターンで書くしかない非スキーマ領域**もここが持つ（下記
  * `NON_SCHEMA_PATTERNS` と skill supporting files）。「代表例でなく能力で書く」

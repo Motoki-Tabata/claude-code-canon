@@ -1,7 +1,7 @@
 /**
  * 自己適用の回帰スイート（詳細設計書 §15.3）。
  *
- * G1〜G12 は「生成物」の検証だが、claude-canon 自身の `.claude/`（agents・skills）も
+ * gates/ の検査は「生成物」の検証だが、claude-canon 自身の `.claude/`（agents・skills）も
  * 同じ正典に従う成果物である。§15.3 は「自己適用を回帰スイート化する」と規定するが、
  * 開発初期は移植元の旧 `.claude`（`_old/`・2026-08-28 に削除済み）への回帰テストしか
  * 存在せず、**現行の `.claude/` を検査するテストが無かった**（追跡外の資産に依存する回帰
@@ -17,18 +17,13 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { loadArtifact } from '../gates/lib/artifact.js';
-import { splitListValue } from '../gates/lib/artifact.js';
+import { loadArtifact, parseFrontmatter, splitListValue } from '../gates/lib/artifact.js';
 import { checkG3 } from '../gates/g3_path_convention.js';
 import { checkG4 } from '../gates/g4_frontmatter_schema.js';
 import { checkG5 } from '../gates/g5_tool_names.js';
 import { checkG6 } from '../gates/g6_security.js';
-import { checkG13 } from '../gates/g13_worker_privilege.js';
-import { listCandidates, candidateClaudeDir } from '../gates/lib/generations.js';
 import { readdirSync, statSync } from 'node:fs';
 import { isNonSchemaRel } from '../gates/lib/non-schema.js';
-import { deriveLaunchMethod } from '../gates/g10_readme.js';
-import { collectListingEntries, analyzeReadmeMentions } from '../gates/lib/readme-listing.js';
 import { ROOT } from './helpers/paths.js';
 
 const SELF = path.join(ROOT, '.claude');
@@ -69,10 +64,49 @@ test('claude-canon 自身の .claude/**.md が G3〜G6 で違反0件', () => {
   assert.deepEqual(found, [], `自己適用で違反を検出:\n${found.join('\n')}`);
 });
 
-test('claude-canon 自身のワーカー定義が G13（シェル剥奪）を通る', () => {
-  const r = checkG13({});
-  assert.equal(r.ok, true, JSON.stringify(r.violations));
-  assert.ok(r.checked >= 17, `検査対象が少なすぎる（実際: ${r.checked}）。agents 不在を合格と誤認しない。`);
+// ---- ワーカーの権限: コマンド実行系ツールを持たない ----
+//
+// claude-canon 自身のワーカー（.claude/agents/**）はコマンド実行系ツールを持たない。実行を要する処理は
+// オーケストレーターが scripts の CLI で行う。禁止集合は代表例でなく能力で定義する: Bash と同じ
+// permission rule で駆動される Monitor、Windows の PowerShell も同じ能力である。tools: の省略は
+// 全ツール継承（docs/TOOLS.md「Inherits all tools if omitted.」）なので違反とする。frontmatter が
+// 読めない定義は tools を安全に判定できないため違反とする（黙って通すと vacuous pass になる）。
+
+/** コマンド実行系ツール（能力で定義した禁止集合）。 */
+const COMMAND_EXECUTION_TOOLS = ['Bash', 'PowerShell', 'Monitor'];
+
+/** agent 定義の本文から、コマンド実行権限に関する違反メッセージを返す（違反なしなら空配列）。 */
+function commandToolViolations(text) {
+  const { present, frontmatter, errors } = parseFrontmatter(text);
+  if (!present) return ['frontmatter（--- ブロック）が無く tools を判定できない'];
+  if (errors.length > 0) return [`frontmatter の解析に失敗した（${errors.map((e) => e.type).join(', ')}）`];
+  if (!frontmatter.tools) return ['tools: が無い（省略は全ツール継承でコマンド実行系を含む）'];
+  const found = splitListValue(frontmatter.tools)
+    .map((t) => t.replace(/\(.*$/, '')) // `Bash(git *)` は空白で `Bash(git` と `*)` に割れるため括弧以降を落とす
+    .filter((t) => COMMAND_EXECUTION_TOOLS.includes(t));
+  return found.length > 0 ? [`tools: にコマンド実行系ツール（${found.join(', ')}）が含まれる`] : [];
+}
+
+test('claude-canon 自身のワーカー定義がコマンド実行系ツールを持たない', () => {
+  const agents = walkMd(path.join(SELF, 'agents'));
+  assert.ok(agents.length > 0, 'agent 定義が0件（検査対象なしを合格と誤認しない）');
+  const found = agents.flatMap((f) =>
+    commandToolViolations(readFileSync(f, 'utf8')).map((m) => `${path.relative(ROOT, f)}: ${m}`)
+  );
+  assert.deepEqual(found, [], found.join('\n'));
+});
+
+test('検出器の素振り: コマンド実行系ツール・tools 省略・frontmatter 破損を違反として拾う', () => {
+  const def = (fm) => `---\nname: x\ndescription: x\n${fm}---\n本文\n`;
+  for (const tools of ['Read, Bash', 'Read PowerShell', 'Read, Monitor', 'Read, Bash(git *)']) {
+    assert.equal(commandToolViolations(def(`tools: ${tools}\n`)).length, 1, `tools: ${tools} を見逃した`);
+  }
+  assert.equal(commandToolViolations(def('')).length, 1, 'tools 省略を見逃した');
+  assert.equal(commandToolViolations('---\nname: x\ntools: Read\n本文\n').length, 1, '終端 --- の無い frontmatter を見逃した');
+  assert.equal(commandToolViolations('本文だけ\n').length, 1, 'frontmatter 無しを見逃した');
+  // 対照: 過剰に弾かない（Read/Grep/Write や、名前に Bash を含むだけの別ツールは通す）。
+  assert.deepEqual(commandToolViolations(def('tools: Read, Grep, Glob, Write\n')), []);
+  assert.deepEqual(commandToolViolations(def('tools: Read, BashOutput\n')), []);
 });
 
 test('agent の skills: preload が実在し、disable-model-invocation な Skill を preload していない（G7 相当の自己適用）', () => {
@@ -95,48 +129,6 @@ test('agent の skills: preload が実在し、disable-model-invocation な Skil
   assert.ok(preloads > 0, 'preload が1件も無い（検査が発火していない＝vacuous）');
 });
 
-/** readdirSync 再帰版の .md 列挙。generations/candidate-<label>/ は .gitignore 対象で
- * git ls-files に現れないため、walkMd（git ベース）は使えない（§13.2）。
- * 非スキーマ判定は gates/lib/non-schema.js が SSoT（L005／L027／L029）: ワーカー定義
- * （agent/skill/rule）ではなく G10 の担当のため G3/G4 の対象外（機能Y ライブ e2e で
- * candidate-readme/ 実測時に発見）。dir は常に候補の `.claude` 直下（またはその配下）を
- * 指すため base:'claude' で判定する（root は再帰の起点＝最初の呼び出しの dir を保つ）。 */
-function walkMdFs(dir, root = dir) {
-  if (!existsSync(dir)) return [];
-  let out = [];
-  for (const name of readdirSync(dir)) {
-    const p = path.join(dir, name);
-    const st = statSync(p);
-    if (st.isDirectory()) out = out.concat(walkMdFs(p, root));
-    else if (name.endsWith('.md') && !isNonSchemaRel(path.relative(root, p), 'claude')) out.push(p);
-  }
-  return out;
-}
-
-test('機能Y: generations/candidate-*/ が存在すれば G3〜G6＋G13 を適用する（不在ならスキップ・§13.2）', () => {
-  const labels = listCandidates(ROOT);
-  if (labels.length === 0) {
-    // 候補世代が無いのは正当な状態（機能Yの自己再生成は未着手・§13.2末尾）。
-    // 0件を「検査した」と誤認しないよう、スキップである旨を明示する。
-    return;
-  }
-  for (const label of labels) {
-    const candDir = candidateClaudeDir(label, ROOT);
-    const files = walkMdFs(candDir);
-    const found = [];
-    for (const f of files) {
-      const a = loadArtifact(f);
-      for (const v of [...checkG3(a), ...checkG4(a), ...checkG5(a), ...checkG6(a)]) {
-        found.push(`${path.relative(candDir, f)}: ${v.gate} ${v.message}`);
-      }
-    }
-    assert.deepEqual(found, [], `候補世代 ${label} が G3〜G6 に違反:\n${found.join('\n')}`);
-
-    const r = checkG13({ canonRoot: path.dirname(candDir) });
-    assert.equal(r.ok, true, `候補世代 ${label} が G13 に違反（自己欺瞞の可能性）: ${JSON.stringify(r.violations)}`);
-  }
-});
-
 test('eval-* 5体と quality-checklist が実在する（工程9の成果物が消えたら落ちる）', () => {
   for (const name of [
     'eval-correctness',
@@ -150,62 +142,14 @@ test('eval-* 5体と quality-checklist が実在する（工程9の成果物が�
   assert.ok(existsSync(path.join(SELF, 'skills', 'quality-checklist', 'SKILL.md')));
 });
 
-test('J-1: preload 専用 Skill（user-invocable:false）が .claude/README.md に露出していない（§12.4 自己適用）', () => {
-  // G10 自身は output/<ts>/generated/ 固定で自己適用できないため、export 済みの
-  // deriveLaunchMethod（起動方式の導出ロジック・SSoT）を稼働中の .claude/skills/*/SKILL.md へ
-  // 直接適用する（実昇格準備2・J-1 決着）。
-  const skillsDir = path.join(SELF, 'skills');
-  const readme = readFileSync(path.join(SELF, 'README.md'), 'utf8');
-  const internal = [];
-  const listed = [];
-  for (const name of readdirSync(skillsDir)) {
-    const skillPath = path.join(skillsDir, name, 'SKILL.md');
-    if (!existsSync(skillPath)) continue;
-    const a = loadArtifact(skillPath);
-    const { listed: isListed } = deriveLaunchMethod('skill', a.frontmatter);
-    (isListed ? listed : internal).push(name);
-  }
-  assert.equal(internal.length, 11, `内部専用 Skill は11件のはず（実際: ${internal.length}）`);
-  assert.equal(listed.length, 3, `ユーザー起動可能な Skill は3件（canon/self-optimize/update-docs）のはず（実際: ${listed.length}）`);
-
-  // 判定式は G10 と同じ SSoT（gates/lib/readme-listing.js）を使う。ここへ独立実装を
-  // 置くと、片側だけが §12.4 の改訂に追従しない（gates-and-tests.md「複製しない」）。
-  const entries = collectListingEntries(readme);
-  for (const name of internal) {
-    const { slash, listing } = analyzeReadmeMentions(readme, name, entries);
-    assert.equal(listing.length, 0, `内部専用 Skill "${name}" が利用者向け一覧に載っている（§12.4 違反）`);
-    assert.equal(slash.length, 0, `内部専用 Skill "${name}" の起動表記 \`/${name}\` が README にある（§12.4 起動不可）`);
-  }
-  for (const name of listed) {
-    assert.ok(readme.includes(name), `ユーザー起動可能な Skill "${name}" が README に登場しない（網羅性・§12.2 違反）`);
-    const { slash } = analyzeReadmeMentions(readme, name, entries);
-    assert.ok(slash.length > 0, `Skill "${name}" の起動方法 \`/${name}\` が README に無い（起動方式の正典整合・§12.4）`);
-  }
-
-  // 検出力の証明: 上のループが「一覧が空だから素通りしている」のでないことを、README 文字列へ
-  // 一覧行を注入して確かめる（実ファイルは触らない・.claude/rules/gates-and-tests.md）。
-  const victim = internal[0];
-  const injected = `${readme}\n\n| Skill | 起動方法 |\n|---|---|\n| \`${victim}\` | 起動不可 |\n`;
-  assert.ok(
-    analyzeReadmeMentions(injected, victim).listing.length > 0,
-    `一覧への注入が検出されない——J-1 の述語が vacuous（対象: ${victim}）`
-  );
-  assert.ok(
-    analyzeReadmeMentions(`${readme}\n\n\`/${victim}\` で起動。\n`, victim).slash.length > 0,
-    `スラッシュ表記の注入が検出されない——J-1 の述語が vacuous（対象: ${victim}）`
-  );
-});
-
 /**
  * L035 の機構化: 決定論ゲート（gates/*.js）の判定基準を変更したとき、それを人間可読な形で
  * 説明するワーカー定義（.claude/agents/<name>/<name>.md・.claude/skills/<name>/SKILL.md）が追従しているかを
  * npm test で検出する。L035 は「grep で横断検索せよ」という人間向けの規律だったが、これを
- * 怠ると npm test は緑のまま追従漏れが放置される（実際に3回目の /self-optimize run で発生）。
+ * 怠ると npm test は緑のまま追従漏れが放置される。
  *
- * gates/g2_keep_judgement.js の INTERFACE_CHANGE_VALUES/BREAKING_DISPOSITIONS は export
- * されておらず（gates/ 側のコードは本 run のスコープ外で変更しない）、ここでは実装契約が
- * 変わったときに人間が最初に触るであろう固有の語彙（interface_change・旧規則の断片）を
- * 直接照合する。
+ * ここでは実装契約が変わったときに人間が最初に触るであろう固有の語彙
+ * （interface_change・旧規則の断片）を直接照合する。
  */
 test('L035: designer/existing-disposition の C3 説明が interface_change 機構に追従している', () => {
   const targets = [
@@ -224,58 +168,12 @@ test('L035: designer/existing-disposition の C3 説明が interface_change 機�
   }
 });
 
-test('L035: 系統A/B・eval-keep-review の調査スコープ説明が /self-optimize 例外（§5.1）に追従している', () => {
-  const targets = [
-    path.join(SELF, 'agents', 'existing-customization-analyzer', 'existing-customization-analyzer.md'),
-    path.join(SELF, 'agents', 'project-profiler', 'project-profiler.md'),
-    path.join(SELF, 'agents', 'eval-keep-review', 'eval-keep-review.md'),
-  ];
-  for (const f of targets) {
-    const body = readFileSync(f, 'utf8');
-    const rel = path.relative(ROOT, f);
-    // 「claude-canon 自身は（棚卸し）対象にしません」型の記述自体は /canon の既定動作として
-    // 正しい。stale の兆候は、その記述の近くに /self-optimize 例外への言及が一切無いこと
-    // （基本設計書 §5.1 の唯一の例外を無条件表現のまま読者に伝え損ねている状態）。
-    assert.ok(
-      body.includes('self-optimize'),
-      `${rel}: 調査スコープの説明が /self-optimize 例外（基本設計書 §5.1）に触れていない`
-    );
-  }
-});
-
-test('L035: G13 matcher を引用する SKILL.md が .claude/settings.json の実値と一致する', () => {
-  const settings = JSON.parse(readFileSync(path.join(SELF, 'settings.json'), 'utf8'));
-  const actualMatcher = settings.hooks?.UserPromptExpansion?.[0]?.matcher;
-  assert.ok(actualMatcher, 'settings.json から UserPromptExpansion matcher を読めない（検査対象なし）');
-
-  const targets = [
-    path.join(SELF, 'skills', 'canon', 'SKILL.md'),
-    path.join(SELF, 'skills', 'update-docs', 'SKILL.md'),
-    path.join(SELF, 'skills', 'self-optimize', 'SKILL.md'),
-  ];
-  let quoted = 0;
-  const matcherLiteralRe = /`([a-z][a-z-]*(?:\|[a-z][a-z-]*)+)`/g;
-  for (const f of targets) {
-    const body = readFileSync(f, 'utf8');
-    const rel = path.relative(ROOT, f);
-    for (const m of body.matchAll(matcherLiteralRe)) {
-      // matcher らしき文字列（"canon" を含むパイプ区切り）だけを対象にする。他の無関係な
-      // パイプ区切りバッククォート文字列（無い想定だが将来の誤検知を避ける）は無視する。
-      if (!m[1].includes('canon')) continue;
-      quoted++;
-      assert.equal(m[1], actualMatcher, `${rel}: matcher 引用 "${m[1]}" が settings.json の実値 "${actualMatcher}" と不一致`);
-    }
-  }
-  assert.ok(quoted > 0, 'matcher を引用する SKILL.md が1件も見つからない（検査が発火していない＝vacuous）');
-});
-
 // ── モデルルーティング（run 20260919 の実測欠陥の回帰） ─────────────────────────
 // ネイティブ起動で Agent の model 引数を渡すと frontmatter を上書きする（正典 L3 §2.1）。
 // オーケストレータ系の定義が例示で固定のモデル名を渡すと LLM が真似て、spec-writer・generator が
 // frontmatter sonnet のまま Opus で走った。ネイティブ起動の例示に model 引数を書かない。
 const ORCHESTRATOR_DOCS = [
   ...readdirSync(path.join(SELF, 'agents')).map((n) => path.join(SELF, 'agents', n, `${n}.md`)),
-  ...['canon', 'self-optimize', 'update-docs'].map((n) => path.join(SELF, 'skills', n, 'SKILL.md')),
 ].filter((p) => existsSync(p));
 
 test('ネイティブ起動の Agent 例示が model 引数を渡していない（frontmatter を唯一の正にする）', () => {
@@ -326,14 +224,6 @@ test('investigator（深さ2の中継役）は廃止済み。系統A/B は自分
   }
 });
 
-test('廃止済みの承認サイドカー（npm run approve・.gate/approvals）を .claude/** が指示していない（run 20260927_003229 で spec §0 に混入）', () => {
-  const offenders = walkMd(SELF).filter((f) => {
-    const text = readFileSync(f, 'utf8');
-    return /npm run approve\b|\.gate\/(?:approvals|\{[^}]*\bapprovals\b)/.test(text) && !/廃止/.test(text.split('\n').find((l) => /npm run approve\b|\.gate\/(?:approvals|\{[^}]*\bapprovals\b)/.test(l)) ?? '');
-  });
-  assert.deepEqual(offenders.map((f) => path.relative(SELF, f)), []);
-});
-
 test('run 20260925・20260927 の分析で入れた規律が定義から消えていない（文言の回帰ロック）', () => {
   const read = (rel) => readFileSync(path.join(SELF, rel), 'utf8');
   const must = [
@@ -341,23 +231,10 @@ test('run 20260925・20260927 の分析で入れた規律が定義から消え�
     ['agents/generator/generator.md', /ポーリングしない/, 'Glob ポーリング'],
     ['agents/generator/generator.md', /別の Builder に振り直さない/, '担当の二重振り'],
     ['agents/generator/generator.md', /copy-keep/, 'keep の決定論コピー'],
-    ['skills/canon/SKILL.md', /model: "sonnet"` を明示/, '場当たりの調査 agent の Opus 継承'],
-    ['skills/canon/SKILL.md', /handoff_notes/, '申し送りの実施'],
-    ['skills/canon/SKILL.md', /canon-issues-candidates\.md/, 'run 中の canon 課題の記録'],
-    ['skills/canon/SKILL.md', /報告を受け取っても、それは完了ではない/, 'handback と完了の区別'],
-    ['skills/canon/SKILL.md', /先に P5 を差し戻す/, 'keep に及ぶ修正'],
-    ['skills/canon/SKILL.md', /発火は未検証/, '配置後のカナリア'],
     ['agents/designer/designer.md', /他の run の `output\/\*\/design-map\.md`/, 'designer の過剰読込'],
     ['agents/readme-writer/readme-writer.md', /全件を載せる/, 'Rules 表の網羅'],
     ['skills/requirement-elicitation/SKILL.md', /preview は表示されない環境がある/, 'preview の位置参照'],
   ];
   const missing = must.filter(([rel, re]) => !re.test(read(rel))).map(([rel, , why]) => `${rel}（${why}）`);
   assert.deepEqual(missing, []);
-});
-
-test('.requests を書く全ワーカー定義が、完了リクエストの中身の規約を直書きしている（書式を探し回らない）', () => {
-  const writers = walkMd(path.join(SELF, 'agents')).filter((f) => /\.requests\//.test(readFileSync(f, 'utf8')));
-  assert.ok(writers.length >= 5, `対象が少なすぎる（${writers.length}）＝検査が vacuous`);
-  const missing = writers.filter((f) => !/存在だけ\*\*を見て中身は読まない/.test(readFileSync(f, 'utf8')));
-  assert.deepEqual(missing.map((f) => path.relative(SELF, f)), []);
 });

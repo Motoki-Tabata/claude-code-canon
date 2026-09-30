@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * G8 非退行（snapshot 系統・§11.2・§9.3）。SubagentStop@generation。
+ * G8 非退行（snapshot 系統・§11.2・§9.3）。
  *
  * design-map の disposition:keep について「維持ファイル全量が output に存在」かつ「対象原本と
  * output コピーが sha256 バイト同一」を照合する。維持は再生成せず verbatim コピーゆえ、退避スワップ
@@ -13,7 +13,7 @@
  * スクリプトの export 集合のいずれかを使う・S1-2）を実照合する（G2・design 段階では生成物が
  * 未存在で実照合できなかった宣言を、ここで工程をまたいで裏取りする・§11.2）。
  *
- * 【C3 との連鎖】`gates/g2_keep_judgement.js` の C3 実照合は「keep の依存先が modify されるなら
+ * 【C3 との連鎖】keep 条件 C3 は「keep の依存先が modify されるなら
  * interface_change: none の宣言があること」を要求する。その宣言の実照合可能性は**ここ**
  * （G8・種別ごとの署名）に懸かっている。frontmatter を持たない対象への宣言を「検査不能=違反」に
  * していた旧実装では、この連鎖が両立不能の袋小路になっていた（S1-2・ライブ run
@@ -23,15 +23,7 @@
 
 import path from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
-import {
-  outputDir,
-  isMainModule,
-  readHookInput,
-  readSessionTs,
-  resolveTargetRoot,
-  blockStop,
-  passStop,
-} from './lib/run.js';
+import { outputDir, isMainModule, resolveTargetRoot, readTsArg, reportCheck } from './lib/run.js';
 import { parseExistingDisposition, DesignMapError } from './lib/design-map.js';
 import { sha256File, readList } from './lib/managed-paths.js';
 import { interfaceSignature } from './lib/interface-signature.js';
@@ -137,8 +129,7 @@ export function checkG8({ ts }) {
 export function check({ ts }) {
   const { ok, violations, unverified } = checkG8({ ts });
   // 検査手段が無い種別への interface_change: none 宣言は違反にしないが、黙って通さない
-  // （§11.5）。gen-guard のバッチ実行では passStop の unverifiedNote は生きないため、
-  // notes 経由で可視化する（gen-guard は skipped ゲートと同じ扱いで stderr へ出す）。
+  // （§11.5）。check() 経由の呼び出しでも見えるよう notes で可視化する。
   const notes =
     unverified.length > 0
       ? [`G8: interface_change: none を宣言したが検査手段が無く実照合しなかった${unverified.length}件: ${unverified.join(', ')}`]
@@ -147,17 +138,12 @@ export function check({ ts }) {
 }
 
 if (isMainModule(import.meta.url)) {
-  readHookInput();
-  const ts = readSessionTs();
-  if (!ts) {
-    passStop('G8: .session-ts 不在のため対象なし');
-  } else {
-    const r = checkG8({ ts });
-    const unverifiedNote =
-      r.unverified.length > 0
-        ? ` / interface_change: none を宣言したが検査手段が無く実照合しなかった${r.unverified.length}件: ${r.unverified.join(', ')}`
-        : '';
-    if (r.ok) passStop(`G8: 通過（keep ${r.keeps}件 sha256 同一・廃止 ${r.gone}件 明示）${unverifiedNote}`);
-    else blockStop(`G8: 違反を検出（${r.violations.length}件）${unverifiedNote}\n${r.violations.join('\n')}`);
-  }
+  const ts = readTsArg('g8_non_regression');
+  const r = checkG8({ ts });
+  const unverifiedNote =
+    r.unverified.length > 0
+      ? ` / interface_change: none を宣言したが検査手段が無く実照合しなかった${r.unverified.length}件: ${r.unverified.join(', ')}`
+      : '';
+  if (r.ok) reportCheck(true, `G8: 通過（keep ${r.keeps}件 sha256 同一・廃止 ${r.gone}件 明示）${unverifiedNote}`);
+  else reportCheck(false, `G8: 違反を検出（${r.violations.length}件）${unverifiedNote}\n${r.violations.join('\n')}`);
 }

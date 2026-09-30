@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { setupTmpCase } from './helpers/fixtures.js';
-import { runDeployCli } from './helpers/hook.js';
+import { runDeployCli } from './helpers/run-cli.js';
 import { sha256File } from '../gates/lib/managed-paths.js';
 
 const BAK = '.claude-canon.bak.20260722_000000';
