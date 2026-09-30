@@ -34,4 +34,4 @@ paths:
   **自己チェックが発火しない死角**になる（実測: run `20260903_091044`・vehicle-intake-management。
   新規依存追加がどの役割の書込スコープにも含まれておらず、当該 Subagent の「スコープ不一致なら
   停止して報告」という自己チェックが発火しなかった）。design-map の `## Write Scopes` に、常設に含める
-  か宣言駆動の例外にするかを両方とも決めずに済ませることを許さない（`layer-design` Skill 参照）。
+  か宣言駆動の例外にするかを両方とも決めずに済ませることを許さない（`design` Skill の `references/layer-design.md` 参照）。

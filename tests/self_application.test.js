@@ -47,7 +47,7 @@ function walkMd(dir) {
 
 test('claude-canon 自身の .claude/**.md が V1〜V4 で違反0件', () => {
   const files = walkMd(SELF);
-  assert.ok(files.length >= 20, `検査対象が少なすぎる（実際: ${files.length}）。0件を成功と誤認しない。`);
+  assert.ok(files.length >= 15, `検査対象が少なすぎる（実際: ${files.length}）。0件を成功と誤認しない。`);
 
   const found = [];
   for (const f of files) {
@@ -132,17 +132,106 @@ test('agent の skills: preload が実在し、disable-model-invocation な Skil
   assert.ok(preloads > 0, 'preload が1件も無い（検査が発火していない＝vacuous）');
 });
 
-test('eval-* 5体と quality-checklist が実在する（品質検査の定義が消えたら落ちる）', () => {
-  for (const name of [
-    'eval-correctness',
-    'eval-security',
-    'eval-canon',
-    'eval-context',
-    'eval-keep-review',
-  ]) {
-    assert.ok(existsSync(path.join(SELF, 'agents', name, `${name}.md`)), `${name} が無い`);
+// ---- Agent 6体と知識 Skill 5件（architecture.md §4）----
+
+/** Agent と、preload する知識 Skill の対応（architecture.md §4.1）。 */
+const EXPECTED_AGENTS = {
+  investigator: 'investigation',
+  'spec-writer': 'requirements',
+  designer: 'design',
+  builder: 'generation',
+  reviewer: 'review',
+  'keep-reviewer': 'review',
+};
+const KNOWLEDGE_SKILLS = ['investigation', 'requirements', 'design', 'generation', 'review'];
+
+/** parseFrontmatter の値（文字列、または { value } を持つオブジェクト）を文字列で返す。 */
+const fmValue = (v) => (v && typeof v === 'object' ? String(v.value ?? '') : String(v ?? ''));
+
+test('Agent は6体ちょうどで、それぞれ期待する知識 Skill を preload する', () => {
+  // `.claude` などサンドボックスのマウント点は定義ではないので、<名前>/<名前>.md を持つものだけを数える。
+  const actual = readdirSync(path.join(SELF, 'agents'))
+    .filter((n) => existsSync(path.join(SELF, 'agents', n, `${n}.md`)))
+    .sort();
+  assert.deepEqual(actual, Object.keys(EXPECTED_AGENTS).sort(), '旧定義の残存、または新定義の欠落');
+  for (const [name, skill] of Object.entries(EXPECTED_AGENTS)) {
+    const a = loadArtifact(path.join(SELF, 'agents', name, `${name}.md`));
+    assert.deepEqual(splitListValue(a.frontmatter?.skills), [skill], `${name} の skills: は [${skill}] のはず`);
   }
-  assert.ok(existsSync(path.join(SELF, 'skills', 'quality-checklist', 'SKILL.md')));
+});
+
+test('Agent は description に委譲条件（Delegate when）を持ち、本文で書込先を明示する', () => {
+  for (const name of Object.keys(EXPECTED_AGENTS)) {
+    const text = readFileSync(path.join(SELF, 'agents', name, `${name}.md`), 'utf8');
+    const { frontmatter } = parseFrontmatter(text);
+    assert.match(fmValue(frontmatter.description), /Delegate when/, `${name}: description に "Delegate when" が無い`);
+    const body = text.split(/^---\s*$/m).slice(2).join('---');
+    assert.match(body, /(work|output)\/<ts>\//, `${name}: 本文に書込先（work/<ts>/ または output/<ts>/）が無い`);
+    assert.match(body, /他の Subagent を起動しない/, `${name}: 本文に「他の Subagent を起動しない」が無い`);
+  }
+});
+
+test('知識 Skill は5件ちょうどで、user-invocable: false・本文500行未満・disable-model-invocation なし', () => {
+  const skillDirs = readdirSync(path.join(SELF, 'skills')).filter((n) => !/^canon-[a-d]$/.test(n)).sort();
+  assert.deepEqual(skillDirs, [...KNOWLEDGE_SKILLS].sort(), '旧知識 Skill の残存、または新 Skill の欠落');
+  for (const name of KNOWLEDGE_SKILLS) {
+    const text = readFileSync(path.join(SELF, 'skills', name, 'SKILL.md'), 'utf8');
+    const fm = text.split(/^---\s*$/m)[1] ?? '';
+    assert.match(fm, /^user-invocable:\s*false\s*$/m, `${name}: user-invocable: false が無い`);
+    assert.doesNotMatch(fm, /disable-model-invocation/, `${name}: preload されるので disable-model-invocation を付けない`);
+    assert.ok(text.split('\n').length < 500, `${name}: SKILL.md が500行以上`);
+    assert.ok(existsSync(path.join(SELF, 'skills', name, 'references')), `${name}: references/ が無い`);
+  }
+});
+
+/** ディレクトリ配下の .md を再帰で集める（追跡外を含まない前提のコーパス：知識 Skill と Agent）。 */
+function mdUnder(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const p = path.join(dir, e.name);
+    return e.isDirectory() ? mdUnder(p) : e.name.endsWith('.md') ? [p] : [];
+  });
+}
+
+test('知識 Skill の Markdown リンクがすべて実在する（references への道しるべが切れていない）', () => {
+  const files = KNOWLEDGE_SKILLS.flatMap((n) => mdUnder(path.join(SELF, 'skills', n)));
+  assert.ok(files.length >= 20, `検査対象が少なすぎる（実際: ${files.length}）`);
+  const broken = [];
+  let links = 0;
+  for (const f of files) {
+    for (const m of readFileSync(f, 'utf8').matchAll(/\]\(([^)\s]+)\)/g)) {
+      const target = m[1];
+      if (/^(https?:|#)/.test(target)) continue;
+      links++;
+      if (!existsSync(path.resolve(path.dirname(f), target.split('#')[0]))) broken.push(`${path.relative(ROOT, f)} → ${target}`);
+    }
+  }
+  assert.ok(links >= 15, `リンクが少なすぎる（実際: ${links}）。検査が発火していない`);
+  assert.deepEqual(broken, []);
+});
+
+test('新しい Agent・知識 Skill に、旧体系の用語・番号が残っていない', () => {
+  // 旧ゲート番号・旧 keep 条件・旧ゲート・run 番号・旧機構の語。新番号は V1〜V9・K1〜K5・P1〜P5・工程1〜9。
+  const OLD = /\bG\d{1,2}\b|\bC[1-5]_|\bP[6-8]\b|工程10|run 20\d{6}|fixtures\/|marker|\.requests|\.gate|基本設計書|詳細設計書|SendMessage|systemA|系統[AB]|eval-|quality-checklist/;
+  const files = [
+    ...mdUnder(path.join(SELF, 'agents')),
+    ...KNOWLEDGE_SKILLS.flatMap((n) => mdUnder(path.join(SELF, 'skills', n))),
+  ];
+  const hits = files.flatMap((f) =>
+    readFileSync(f, 'utf8')
+      .split('\n')
+      .flatMap((line, i) => (OLD.test(line) ? [`${path.relative(ROOT, f)}:${i + 1}: ${line.trim().slice(0, 80)}`] : []))
+  );
+  assert.deepEqual(hits, []);
+});
+
+test('検出器の素振り: 旧体系の語を含む行を上の検査が拾う', () => {
+  const OLD = /\bG\d{1,2}\b|\bC[1-5]_|\bP[6-8]\b|工程10|run 20\d{6}|fixtures\/|marker|\.requests|\.gate|基本設計書|詳細設計書|SendMessage|systemA|系統[AB]|eval-|quality-checklist/;
+  for (const bad of ['G9 が止める', 'C2_no_requirement_conflict', 'P8 で確認', '工程10', 'run 20260927_003229', 'fixtures/sample-repos', '.requests/spec', '基本設計書 §8', '系統A']) {
+    assert.ok(OLD.test(bad), `${bad} を見逃した`);
+  }
+  for (const ok of ['V7 が止める', 'K2_no_requirement_conflict', 'P3 で確認', 'run ブランチ']) {
+    assert.ok(!OLD.test(ok), `${ok} を過検出した`);
+  }
 });
 
 /**
@@ -153,10 +242,10 @@ test('eval-* 5体と quality-checklist が実在する（品質検査の定義�
  * ここでは実装契約が変わったときに人間が最初に触るであろう固有の語彙
  * （interface_change・旧規則の断片）を直接照合する。
  */
-test('designer/existing-disposition の keep 条件の説明が interface_change 機構に追従している', () => {
+test('design Skill の keep 条件の説明が interface_change 機構に追従している', () => {
   const targets = [
-    path.join(SELF, 'agents', 'designer', 'designer.md'),
-    path.join(SELF, 'skills', 'existing-disposition', 'SKILL.md'),
+    path.join(SELF, 'skills', 'design', 'references', 'existing-disposition.md'),
+    path.join(SELF, 'skills', 'design', 'references', 'design-map-template.md'),
   ];
   for (const f of targets) {
     const body = readFileSync(f, 'utf8');
@@ -212,30 +301,37 @@ test('全 agent が effort を明示している（未指定だとセッショ�
   assert.deepEqual(missing, []);
 });
 
-// ---- 調査ワーカーの直接起動（中継役 investigator の廃止）----
+// ---- ワーカーの書込権限（tools）の設計 ----
 
-test('investigator（深さ2の中継役）は廃止済み。調査ワーカーは自分の成果物を書ける（Write）が、コマンド実行系ツールは持たない', () => {
-  assert.equal(existsSync(path.join(SELF, 'agents', 'investigator')), false, 'investigator を復活させない（深さ2の報告が呼び出し元に届かない failure mode の再発）');
-  const toolsOf = (n) => (/^tools:\s*(.+)$/m.exec(readFileSync(path.join(SELF, 'agents', n, `${n}.md`), 'utf8').split('---')[1])?.[1] ?? '').split(/\s+/);
-  for (const n of ['existing-customization-analyzer', 'project-profiler']) {
-    const tools = toolsOf(n);
-    assert.ok(tools.includes('Write'), `${n} は自分の成果物を書くために Write が要る`);
-    for (const banned of ['Bash', 'PowerShell', 'Monitor']) {
-      assert.ok(!tools.includes(banned), `${n} がコマンド実行系ツール ${banned} を持っている`);
-    }
+test('読むだけの役割に Edit を与えない／書く役割は自分の成果物を書ける', () => {
+  const toolsOf = (n) => splitListValue(loadArtifact(path.join(SELF, 'agents', n, `${n}.md`)).frontmatter.tools);
+  // investigator・reviewer・keep-reviewer は自分の成果物を1ファイル書くだけ（Write）。Edit は要らない。
+  for (const n of ['investigator', 'reviewer', 'keep-reviewer']) {
+    assert.ok(toolsOf(n).includes('Write'), `${n} は自分の成果物を書くために Write が要る`);
+    assert.ok(!toolsOf(n).includes('Edit'), `${n} に Edit は不要（差し戻しを受けない読み取り中心の役割）`);
+  }
+  // 差し戻しで指示の箇所だけを直す役割は Edit を持つ。
+  for (const n of ['spec-writer', 'designer', 'builder']) {
+    assert.ok(toolsOf(n).includes('Edit'), `${n} は差し戻しで該当箇所だけを直すために Edit が要る`);
   }
 });
 
-test('過去の run の分析で入れた規律が定義から消えていない（文言の回帰ロック）', () => {
+// ---- 定義に残すべき契約語（消えたら落ちる） ----
+
+test('定義から消えてはならない契約語（生成物の読み手に向けた規約・信頼境界・再発防止の規則）', () => {
   const read = (rel) => readFileSync(path.join(SELF, rel), 'utf8');
   const must = [
-    ['agents/generator/generator.md', /run_in_background: false` を明示/, 'builder の非同期起動'],
-    ['agents/generator/generator.md', /ポーリングしない/, 'Glob ポーリング'],
-    ['agents/generator/generator.md', /別の Builder に振り直さない/, '担当の二重振り'],
-    ['agents/generator/generator.md', /copy-keep/, 'keep の決定論コピー'],
-    ['agents/designer/designer.md', /他の run の `output\/\*\/design-map\.md`/, 'designer の過剰読込'],
-    ['agents/readme-writer/readme-writer.md', /全件を載せる/, 'Rules 表の網羅'],
-    ['skills/requirement-elicitation/SKILL.md', /preview は表示されない環境がある/, 'preview の位置参照'],
+    ['skills/generation/references/no-leaks.md', /読み手が解決できない参照/, '未定義の参照を書かない'],
+    ['skills/generation/references/no-leaks.md', /編集メモ/, '編集メモを書かない'],
+    ['skills/generation/references/no-leaks.md', /差分・経緯/, '差分・経緯の表現を書かない'],
+    ['skills/generation/SKILL.md', /design-map.md の全文は読まない/, 'builder の過剰読込'],
+    ['skills/generation/SKILL.md', /targets-<層>\.txt/, '件数の突き合わせ'],
+    ['skills/generation/SKILL.md', /emit-manifest/, 'README・MANIFEST は builder が書かない'],
+    ['skills/design/SKILL.md', /他の run の design-map/, 'designer の過剰読込'],
+    ['skills/requirements/references/interview.md', /preview が表示されない環境がある/, 'preview の位置参照'],
+    ['skills/requirements/references/requirements-template.md', /生成物のどこにも現れてはならない/, 'allowed: false の意味'],
+    ['skills/review/references/keep-review.md', /意図的に含まれていない/, 'designer の主張を除く契約'],
+    ['skills/review/SKILL.md', /Grep で確かめる/, '不在を根拠にする前の確認'],
   ];
   const missing = must.filter(([rel, re]) => !re.test(read(rel))).map(([rel, , why]) => `${rel}（${why}）`);
   assert.deepEqual(missing, []);
