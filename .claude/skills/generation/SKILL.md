@@ -13,7 +13,7 @@ builder は、design-map から切り出されたスライスを入力に、**�
 衝突したら上を優先する。
 
 1. `docs/`（正典）: 何が正しいか（スキーマ・フィールド・制約）。
-2. skill-creator の執筆指針: 良い Skill の書き方。要約を [references/skill-writing.md](references/skill-writing.md) に置いた（Subagent の `skills:` でプラグインの Skill を preload できるかを確認できなかったため）。
+2. skill-creator の執筆指針: 良い Skill の書き方。要約が [references/skill-writing.md](references/skill-writing.md) にある。
 3. この Skill の references: claude-canon 固有の契約（design-map を入力にする・書込先・書いてはいけないもの）。
 
 Agent・L1・L4・L5 は、この Skill の references だけで生成する。skill-creator の指針を使うのは L2（Skills）だけ。

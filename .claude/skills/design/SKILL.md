@@ -27,7 +27,7 @@ new モード（既存が無い）では段階5を飛ばし、`## 既存判定` 
 
 ## 読む範囲
 
-入力は、プロンプトで渡されたファイルだけ: spec・requirements・investigation の3ファイル（existing・profile・focused）。他の run の design-map、検査スクリプトの実装、設計書は読まない。design-map の書式はテンプレートに従う。読む量がそのまま下流の消費になり、design-map の肥大は全ワーカーの読み込みに跳ね返る（design-map は大きくなりやすく、実測で約96KB）。`rationale` は判断の根拠を1〜2文で書き、入力の内容を再掲しない。
+入力は、プロンプトで渡されたファイルだけ: spec・requirements・investigation の3ファイル（existing・profile・focused）。他の run の design-map、検査スクリプトの実装、設計書は読まない。design-map の書式はテンプレートに従う。読む量がそのまま下流の消費になり、design-map は大きくなりやすいので、その肥大は全ワーカーの読み込みに跳ね返る。`rationale` は判断の根拠を1〜2文で書き、入力の内容を再掲しない。
 
 ## 差し戻しのとき
 

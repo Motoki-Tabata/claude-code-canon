@@ -67,7 +67,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
    git commit -m "run <ts>: Phase C 生成と verify"
    ```
 2. refactor モードなら `npm run review-bundle -- <ts>` で keep-reviewer の判定入力を `work/<ts>/review-bundle/keep-review/` に作る（designer の `keep_conditions` と rationale は機械的に除かれている）。
-3. **reviewer と keep-reviewer を1つのメッセージで並列に**起動する（new モードなら reviewer だけ）。
+3. **reviewer と keep-reviewer を1つのメッセージで並列に**起動する。keep-reviewer は、review-bundle が keep または merge のケースを1件以上作ったときだけ起動する（new モード、またはケースが0件なら reviewer だけ）。
    - reviewer: `output/<ts>/generated/`・`output/<ts>/spec.md`・`work/<ts>/slices/`・`work/<ts>/investigation/`・`work/<ts>/requirements.md`・対象のルートの絶対パス。書込先は `output/<ts>/review/review.md`。
    - keep-reviewer: `work/<ts>/review-bundle/keep-review/` のケースファイル一式と `output/<ts>/` の絶対パス。書込先は `output/<ts>/review/keep-review.md`。
 4. **標準 Skill のレビュー**を自分で実行し、各 Skill の報告を**要約せずにそのまま**書き出す。
