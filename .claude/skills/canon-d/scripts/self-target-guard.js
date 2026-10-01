@@ -21,13 +21,24 @@ export function pathKey(p, platform = process.platform) {
   return platform === 'win32' ? p.toLowerCase() : p;
 }
 
-/** symlink・`..`・Windows の短縮名を解決した実パス。存在しなければ path.resolve のまま（文字列で判定する）。 */
+/**
+ * symlink・`..`・Windows の短縮名（RUNNER~1 など）を解決した実パス。
+ * 存在しないパスは、実在する最も近い祖先を実パスにし、残りを連結する
+ * （存在しない部分だけ短縮名のまま残ると、実在側の長い名前と比較が食い違う）。
+ */
 function realOrResolved(p) {
   const abs = path.resolve(p);
-  try {
-    return realpathSync.native(abs);
-  } catch {
-    return abs;
+  let head = abs;
+  const rest = [];
+  for (;;) {
+    try {
+      return path.join(realpathSync.native(head), ...rest.reverse());
+    } catch {
+      const parent = path.dirname(head);
+      if (parent === head) return abs;
+      rest.push(path.basename(head));
+      head = parent;
+    }
   }
 }
 
