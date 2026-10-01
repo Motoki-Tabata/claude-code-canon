@@ -127,11 +127,16 @@ export function collectComponents(genRoot, files) {
 }
 
 function parseJson(text, rel) {
+  let data;
   try {
-    return JSON.parse(text);
+    data = JSON.parse(text);
   } catch (e) {
     throw new ManifestError(`generated/${rel} が JSON として読めない: ${e.message}`);
   }
+  if (data === null || typeof data !== 'object' || Array.isArray(data)) {
+    throw new ManifestError(`generated/${rel} のトップレベルが JSON object でない。`);
+  }
+  return data;
 }
 
 /** settings.json の hooks を（イベント・matcher・command）の一覧にする。 */

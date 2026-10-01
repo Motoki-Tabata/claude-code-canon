@@ -262,3 +262,55 @@ test('findUnmanagedEntries: 集合外・`..`・絶対パス・未正規化の行
   assert.deepEqual(findUnmanagedEntries(entries), ['.claude/rules/../../x', '/abs/CLAUDE.md', 'src/app.js', '.claude/rules/./a.md']);
   assert.deepEqual(findUnmanagedEntries(['CLAUDE.md']), []);
 });
+
+test('walkManaged: 管理根の内側にある node_modules/ へは降りない（plugin/node_modules・skill の scripts/node_modules）', (t) => {
+  const dir = scratchDir(t, 'canon-nm-');
+  const w = (rel) => {
+    const abs = path.join(dir, rel);
+    mkdirSync(path.dirname(abs), { recursive: true });
+    writeFileSync(abs, 'x\n');
+  };
+  w('plugin/.claude-plugin/plugin.json');
+  w('plugin/skills/s/SKILL.md');
+  w('plugin/node_modules/left-pad/index.js');
+  w('.claude/skills/s/SKILL.md');
+  w('.claude/skills/s/scripts/node_modules/x/index.js');
+  const seen = [];
+  const spyReaddir = (p, ...rest) => {
+    seen.push(path.basename(String(p)));
+    return readdirSync(p, ...rest);
+  };
+  const files = walkManaged(dir, { readdir: spyReaddir });
+  assert.deepEqual(files, ['.claude/skills/s/SKILL.md', 'plugin/.claude-plugin/plugin.json', 'plugin/skills/s/SKILL.md']);
+  assert.ok(!seen.includes('node_modules'), 'node_modules を readdir した（巨大な依存木の走査）');
+});
+
+test('walkManaged: plugin/ はマニフェスト（.claude-plugin/plugin.json）を持つときだけ管理対象に数える', (t) => {
+  const dir = scratchDir(t, 'canon-plugin-root-');
+  const w = (rel, body = 'x\n') => {
+    const abs = path.join(dir, rel);
+    mkdirSync(path.dirname(abs), { recursive: true });
+    writeFileSync(abs, body);
+  };
+  w('.claude/rules/a.md');
+  // 対象プロジェクトが別の用途で持つ plugin/（マニフェスト無し）は管理対象ではない
+  w('plugin/src/index.js');
+  w('plugin/README.md');
+  assert.deepEqual(walkManaged(dir), ['.claude/rules/a.md']);
+
+  // マニフェストが実在すれば plugin/ 全体が管理対象になる
+  w('plugin/.claude-plugin/plugin.json', '{}\n');
+  assert.deepEqual(walkManaged(dir), [
+    '.claude/rules/a.md',
+    'plugin/.claude-plugin/plugin.json',
+    'plugin/README.md',
+    'plugin/src/index.js',
+  ]);
+});
+
+test('walkManaged: plugin/ だけでマニフェスト無しなら管理対象は 0 件（new-run の mode は new になる）', (t) => {
+  const dir = scratchDir(t, 'canon-plugin-only-');
+  mkdirSync(path.join(dir, 'plugin'), { recursive: true });
+  writeFileSync(path.join(dir, 'plugin', 'main.js'), 'x\n');
+  assert.deepEqual(walkManaged(dir), []);
+});

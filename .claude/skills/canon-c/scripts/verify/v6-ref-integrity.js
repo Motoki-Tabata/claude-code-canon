@@ -280,6 +280,10 @@ function checkPluginReferences(ctx) {
     violations.push(violation(CHECK, PLUGIN_MANIFEST, `plugin.json が正当な JSON として解析できない: ${err.message}`, 'docs/L5_DISTRIBUTION.md:140'));
     return { violations, checked: 0 };
   }
+  if (manifest === null || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    violations.push(violation(CHECK, PLUGIN_MANIFEST, 'plugin.json のトップレベルが JSON object でない。', 'docs/L5_DISTRIBUTION.md:140'));
+    return { violations, checked: 0 };
+  }
 
   const entries = collectPluginPathValues(manifest);
   for (const { field, value } of entries) {

@@ -5,7 +5,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeFenceMask } from '../lib/markdown.js';
+import { computeFenceMask, findHeading } from '../lib/markdown.js';
 
 const mask = (text) => computeFenceMask(text.split('\n'));
 
@@ -30,4 +30,19 @@ test('computeFenceMask: 後ろに文字がある行は閉じにならない（in
 
 test('computeFenceMask: 通常の3個フェンスは従来どおり', () => {
   assert.deepEqual(mask('a\n```\nx\n```\nb'), [false, true, true, true, false]);
+});
+
+test('findHeading: 見出しの先頭一致（直後が語の続きでないもの。括弧書きの注記は許す）。語を含むだけの別の見出しには当たらない', () => {
+  const lines = [
+    '## 確定要件の経緯',
+    '## Old Experimental Dependencies',
+    '## Experimental DependenciesList',
+    '## 確定要件（ヒアリングの結果）',
+    '## Experimental Dependencies',
+  ];
+  assert.equal(findHeading(lines, '確定要件'), 3, '「確定要件の経緯」や部分一致の別見出しに当たらない');
+  assert.equal(findHeading(lines, 'Experimental Dependencies'), 4, '途中・語の続きの見出しに当たらない');
+  assert.equal(findHeading(lines, '要件'), -1, '見出しの途中の語には当たらない');
+  assert.equal(findHeading(['## 確定要件'], '確定要件'), 0, '完全一致');
+  assert.equal(findHeading(['### 確定要件'], '確定要件', 2), -1, 'level 指定は従来どおり');
 });

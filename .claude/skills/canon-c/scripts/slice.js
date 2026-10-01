@@ -16,32 +16,36 @@
 
 import path from 'node:path';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
-import { isValidTs, outputDir, workDir } from '../../../../lib/run.js';
+import { isValidTs, outputDir, workDir, isMainModule } from '../../../../lib/run.js';
 import { buildSlices } from '../../../../lib/design-slices.js';
 
-function fail(msg) {
+function fail(msg, code = 1) {
   process.stderr.write(`[slice] ${msg}\n`);
-  process.exit(1);
+  process.exit(code);
 }
 
-const [ts] = process.argv.slice(2);
-if (!ts) fail('使い方: npm run slice -- <ts>');
-if (!isValidTs(ts)) fail(`不正な <ts> 形式: ${ts}（期待形式: YYYYMMDD_hhmmss）`);
-const dm = path.join(outputDir(ts), 'design-map.md');
-if (!existsSync(dm)) fail(`design-map.md が無い: ${dm}`);
+function main() {
+  const [ts] = process.argv.slice(2);
+  if (!ts) fail('使い方: npm run slice -- <ts>', 2);
+  if (!isValidTs(ts)) fail(`不正な <ts> 形式: ${ts}（期待形式: YYYYMMDD_hhmmss）`, 2);
+  const dm = path.join(outputDir(ts), 'design-map.md');
+  if (!existsSync(dm)) fail(`design-map.md が無い: ${dm}`);
 
-let result;
-try {
-  result = buildSlices(readFileSync(dm, 'utf8'));
-} catch (err) {
-  fail(err.message);
+  let result;
+  try {
+    result = buildSlices(readFileSync(dm, 'utf8'));
+  } catch (err) {
+    fail(err.message);
+  }
+
+  const outDir = path.join(workDir(ts), 'slices');
+  rmSync(outDir, { recursive: true, force: true });
+  mkdirSync(outDir, { recursive: true });
+  for (const [name, body] of Object.entries(result.files)) writeFileSync(path.join(outDir, name), body, 'utf8');
+
+  process.stdout.write(
+    JSON.stringify({ slices_dir: `work/${ts}/slices`, files: Object.keys(result.files).length, declared: result.counts }, null, 2) + '\n'
+  );
 }
 
-const outDir = path.join(workDir(ts), 'slices');
-rmSync(outDir, { recursive: true, force: true });
-mkdirSync(outDir, { recursive: true });
-for (const [name, body] of Object.entries(result.files)) writeFileSync(path.join(outDir, name), body, 'utf8');
-
-process.stdout.write(
-  JSON.stringify({ slices_dir: `work/${ts}/slices`, files: Object.keys(result.files).length, declared: result.counts }, null, 2) + '\n'
-);
+if (isMainModule(import.meta.url)) main();

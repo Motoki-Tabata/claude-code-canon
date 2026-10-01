@@ -104,6 +104,10 @@ export function checkMcpJsonText(jsonText, artifactPath) {
     violations.push(violation(CHECK, artifactPath, `.mcp.json が正当な JSON として解析できない: ${e.message}`, 'JSON.parse'));
     return violations;
   }
+  if (data === null || typeof data !== 'object' || Array.isArray(data)) {
+    violations.push(violation(CHECK, artifactPath, '.mcp.json のトップレベルが JSON object でない（`{ "mcpServers": { … } }` の形でなければ読み込まれない）。', 'JSON.parse'));
+    return violations;
+  }
   const servers = data.mcpServers && typeof data.mcpServers === 'object' ? data.mcpServers : {};
   for (const [name, cfg] of Object.entries(servers)) {
     walkMcpServerEntry(name, cfg, artifactPath, violations);

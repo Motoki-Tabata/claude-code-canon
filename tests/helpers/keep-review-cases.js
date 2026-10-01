@@ -65,14 +65,14 @@ conflicts:
 `,
     "spec.md": `# spec（keep-review ケース: k4-strength-gap）
 
-## 新要件
+## §2 新要件
 
 - id: R1
   want: 認証情報を含むコミットを機械的に阻止する（人の注意に依存しない）
   rationale: 過去に API キーが2度コミットされ、履歴の書き換えが必要になった
   project_grounding: hooks 未設定・pre-commit 相当の仕組みは無い
 
-## 統合方針
+## §4 統合方針（方向づけ。最終判定は designer）
 
 阻止の担い手は新設する PreToolUse Hook とする。既存の手順書 Skill は
 **Hook が弾いたときの背景説明**として位置づけ、役割の重複は無いものとして扱う。
@@ -152,14 +152,14 @@ conflicts:
 `,
     "spec.md": `# spec（keep-review ケース: merge-target-bad）
 
-## 新要件
+## §2 新要件
 
 - id: R1
   want: コミットと PR の作法を1つの置き場にまとめる
   rationale: 規約が分散している
   project_grounding: CONTRIBUTING.md と Skill に規約が分散
 
-## 統合方針
+## §4 統合方針（方向づけ。最終判定は designer）
 
 コミット規約と PR 規約を contribution-rules へ統合する。スキーマ運用の手順は本要件の対象外。
 `,

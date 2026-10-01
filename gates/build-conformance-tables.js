@@ -621,7 +621,7 @@ function buildTools() {
   requireCount(no, dn, '権限不要ツール数', `${tools.ref}: 自己検算行`);
 
   // --- 旧称・非推奨（V3 の旧称検出の出典） ---
-  const dh = findHeading(tools.lines, '旧称・非推奨・既定無効', 3, mask);
+  const dh = findHeading(tools.lines, '2.1 旧称・非推奨・既定無効', 3, mask);
   if (dh < 0) throw new ExtractionError(`${tools.ref}: 「旧称・非推奨・既定無効」見出しが無い。`);
   const ds = sectionSlice(tools.lines, dh, mask);
   const depTable = parseTables(tools.lines, ds.start, ds.end, mask)
@@ -655,7 +655,7 @@ function buildTools() {
   }
 
   // --- MCP 命名規約 ---
-  const mh = findHeading(tools.lines, 'MCP ツールの命名規約', 3, mask);
+  const mh = findHeading(tools.lines, '2.2 MCP ツールの命名規約', 3, mask);
   if (mh < 0) throw new ExtractionError(`${tools.ref}: 「MCP ツールの命名規約」見出しが無い。`);
   const ms = sectionSlice(tools.lines, mh, mask);
   const mcpTable = parseTables(tools.lines, ms.start, ms.end, mask)
@@ -667,7 +667,7 @@ function buildTools() {
   requireIncludes(mcpForms.map((f) => f.form), ['mcp__<server>__<tool>'], 'MCP 形式', `${tools.ref}:${mh + 1}`);
 
   // --- Subagent 非提供ツール ---
-  const sh = findHeading(tools.lines, 'Subagent の `tools` フィールド', 3, mask);
+  const sh = findHeading(tools.lines, '2.3 Subagent の `tools` フィールド', 3, mask);
   const unavailable = [];
   if (sh >= 0) {
     const ss = sectionSlice(tools.lines, sh, mask);
