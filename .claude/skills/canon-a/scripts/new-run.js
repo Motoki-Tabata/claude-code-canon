@@ -3,14 +3,14 @@
  * new-run.js（npm run new-run -- <target> [<ts>]）— run を始める（architecture.md §6・§7）。
  *
  *   1. <ts> を採番する（YYYYMMDD_hhmmss。第2引数で明示もできる）。
- *   2. canon のルートで `git worktree add ../canon-runs/<ts> -b run/<ts>` を実行し、run 専用の worktree を作る。
- *      以降の Phase はその worktree でセッションを起動する（run の間は canon の版が固定される）。
- *   3. worktree の中に work/<ts>・output/<ts> の骨格と `work/<ts>/handoff.md` の雛形を作る。
+ *   2. canon のルートに work/<ts>・output/<ts> の骨格と `work/<ts>/handoff.md` の雛形を作る（git では追跡しない）。
  *      handoff の `mode` は、対象の管理パス集合に既存のファイルがあれば refactor、無ければ new を初期値にする
  *      （ヒアリングで確かめて直す）。
+ *   3. canon の HEAD を handoff の `canon_commit` に記録する。各 Phase は開始時にこれと現在の HEAD を比べ、
+ *      run の途中で canon 本体が変わっていれば警告する（run の間、canon の版は固定されないため）。
  *
- * stdout には ts・worktree・branch・mode・handoff を1行ずつ `key: value` で出す。
- * exit 0 成功／exit 1 事前検査の失敗（対象が無い・worktree やブランチが既にある・git の失敗）／exit 2 引数不正。
+ * stdout には ts・mode・handoff・canon_commit を1行ずつ `key: value` で出す。
+ * exit 0 成功／exit 1 事前検査の失敗（対象が無い・同じ ts の run が既にある・git の失敗）／exit 2 引数不正。
  */
 
 import { execFileSync } from 'node:child_process';
@@ -28,7 +28,7 @@ export class RunError extends Error {
   }
 }
 
-/** run の骨格（worktree からの相対パス）。artifacts.md §1 のフォルダ構成。 */
+/** run の骨格（canon のルートからの相対パス）。artifacts.md §1 のフォルダ構成。 */
 export function skeletonDirs(ts) {
   return [
     `work/${ts}/investigation`,
@@ -43,19 +43,10 @@ function git(cwd, args) {
   return execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
-function branchExists(canonRoot, branch) {
-  try {
-    git(canonRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`]);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /**
  * run を作る。
  * @param {{canonRoot?: string, target: string, ts?: string}} opts
- * @returns {{ts: string, worktree: string, branch: string, mode: 'new'|'refactor', handoff: string}}
+ * @returns {{ts: string, mode: 'new'|'refactor', handoff: string, canonCommit: string}}
  */
 export function createRun({ canonRoot = CANON_ROOT, target, ts = mintTs() }) {
   if (!isValidTs(ts)) throw new RunError(`不正な <ts> 形式: ${ts}（期待形式: YYYYMMDD_hhmmss）`);
@@ -63,22 +54,21 @@ export function createRun({ canonRoot = CANON_ROOT, target, ts = mintTs() }) {
   if (!existsSync(targetAbs) || !statSync(targetAbs).isDirectory()) {
     throw new RunError(`対象プロジェクトのディレクトリが無い: ${targetAbs}`);
   }
-  const worktree = path.resolve(canonRoot, '..', 'canon-runs', ts);
-  const branch = `run/${ts}`;
-  if (existsSync(worktree)) throw new RunError(`worktree の置き場所が既にある: ${worktree}`);
-  if (branchExists(canonRoot, branch)) throw new RunError(`ブランチ ${branch} が既にある。`);
-
+  for (const d of [`work/${ts}`, `output/${ts}`]) {
+    if (existsSync(path.join(canonRoot, d))) throw new RunError(`同じ ts の run が既にある: ${path.join(canonRoot, d)}`);
+  }
+  let canonCommit;
   try {
-    git(canonRoot, ['worktree', 'add', worktree, '-b', branch]);
+    canonCommit = git(canonRoot, ['log', '-1', '--format=%H']).trim();
   } catch (e) {
-    throw new RunError(`git worktree add に失敗した: ${(e.stderr ?? e.message).toString().trim()}`);
+    throw new RunError(`canon の HEAD を取れない: ${(e.stderr ?? e.message).toString().trim()}`);
   }
 
-  for (const d of skeletonDirs(ts)) mkdirSync(path.join(worktree, d), { recursive: true });
+  for (const d of skeletonDirs(ts)) mkdirSync(path.join(canonRoot, d), { recursive: true });
   const mode = walkManaged(targetAbs).length > 0 ? 'refactor' : 'new';
-  const handoff = path.join(worktree, 'work', ts, HANDOFF_FILE);
-  writeFileSync(handoff, renderHandoff({ ts, target: targetAbs.split(path.sep).join('/'), mode }));
-  return { ts, worktree, branch, mode, handoff };
+  const handoff = path.join(canonRoot, 'work', ts, HANDOFF_FILE);
+  writeFileSync(handoff, renderHandoff({ ts, target: targetAbs.split(path.sep).join('/'), mode, canonCommit }));
+  return { ts, mode, handoff, canonCommit };
 }
 
 if (isMainModule(import.meta.url)) {
@@ -90,7 +80,7 @@ if (isMainModule(import.meta.url)) {
   try {
     const r = createRun({ target, ts: ts ?? mintTs() });
     process.stdout.write(
-      [`ts: ${r.ts}`, `worktree: ${r.worktree}`, `branch: ${r.branch}`, `mode: ${r.mode}`, `handoff: ${r.handoff}`].join('\n') + '\n'
+      [`ts: ${r.ts}`, `mode: ${r.mode}`, `handoff: ${r.handoff}`, `canon_commit: ${r.canonCommit}`].join('\n') + '\n'
     );
   } catch (e) {
     if (!(e instanceof RunError)) throw e;

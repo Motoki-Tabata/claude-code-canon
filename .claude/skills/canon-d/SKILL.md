@@ -1,6 +1,6 @@
 ---
 name: canon-d
-description: Drive Phase D of a claude-canon run — verify the earlier approvals, write the deploy runbook and the pre-deploy check, take the P5 deploy approval, guide the human to run the deploy outside the sandbox, confirm the result, and copy the run's canon issue candidates into the main tasks/lessons.md. Use only when the user invokes /canon-d with the run timestamp, in a session started inside the run worktree.
+description: Drive Phase D of a claude-canon run — verify the earlier approvals, write the deploy runbook and the pre-deploy check, take the P5 deploy approval, guide the human to run the deploy outside the sandbox, and confirm the result. Use only when the user invokes /canon-d with the run timestamp, in a session started at the claude-canon root.
 disable-model-invocation: true
 argument-hint: "<ts>"
 ---
@@ -11,19 +11,19 @@ Phase D は承認済みの生成物を対象プロジェクトへ届ける。工
 
 あなたは inline のメイン Claude としてオーケストレーターを務める。この Phase ではワーカーを起動しない。**配置（`--confirm`）はあなたが実行しない**。sandbox がファイルをバインドマウントしていると退避の rename が失敗するので、人間が sandbox の外で実行する。
 
-Phase C で済ませたレビュー（reviewer・keep-reviewer・prompt-audit・security-review・code-review）は再実行しない。生成物は P4 で承認済みで、承認後に変わっていないことは開始時の照合で確かめる。
+Phase C で済ませたレビュー（reviewer・keep-reviewer・prompt-audit）は再実行しない。生成物は P4 で承認済みで、承認後に変わっていないことは開始時の照合で確かめる。
 
 ## 0. 開始手順
 
 `$ARGUMENTS` は run の ts である。
 
-1. **worktree の確認**: `git branch --show-current` が `run/<ts>` であることを確かめる。違えば、`cd ../canon-runs/<ts> && claude --model sonnet` で起動し直すよう案内して止まる。
-2. `work/<ts>/handoff.md` を読む。frontmatter の `target` を控える。以降、`<out>` は `output/<ts>` の絶対パス、`<target>` は handoff の `target` を指す。
+1. `work/<ts>/handoff.md` を読む。frontmatter の `target` を控える。以降、`<out>` は `output/<ts>` の絶対パス、`<target>` は handoff の `target` を指す。
+2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs` を示す。`git status --short -- .claude lib gates tools docs` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
 3. **承認の照合**: `npm run approvals -- <ts> check --expect P1,P2,P3,P4` を実行する。exit 1 なら、どのファイルが承認後に変わったか（または承認行が無いか）を示し、そのゲートで承認を取り直すまで先へ進まない。P4 が無効なら、generated/ が承認後に変わっている。配置してはならない。
 4. **申し送り**: handoff の「申し送り」のうち Phase D 向けのものを先に実施する。結果は P5 の提示に含める。実施しなかったものは理由を添えて示す。
 5. handoff の frontmatter を `phase: D`・`status: in_progress` にする。
 
-claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その場で handoff の「canon 課題候補」に書く（書式は `tasks/lessons.md` 冒頭と同じ）。この Phase の最後に main の台帳へ転記する。
+claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その場で `tasks/lessons.md` の末尾に書く（書式は同ファイル冒頭）。見出しの出典欄は `run <ts>・Phase D` とする。
 
 ## 工程9 配置前照合
 
@@ -60,22 +60,11 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 3. 対象リポジトリへのコミットと push は、**対象リポジトリで起動したセッション**で行うよう案内する（このセッションからは対象側のサンドボックスの例外が効かない。SSH のリモートなら接続先の許可も要る）。
 4. MCP サーバーの新規実装が要ると「申し送り」にあれば、対象側で `mcp-builder` Skill を使うよう案内する（canon では実装しない）。
 
-## canon 課題候補の転記
-
-1. main のチェックアウトの場所を `git worktree list` で確かめる（先頭の行が main の worktree）。main への書込は、権限の確認が出る場合がある。出たら承認して続行する。拒否されたら、転記する内容を人間に渡して転記を依頼する。
-2. handoff の「canon 課題候補」の各項目を、main の `tasks/lessons.md` の末尾へ、書式（同ファイル冒頭）のまま転記する。見出しの出典欄は `run <ts>・Phase <A〜D>` とする。
-3. 候補の件数と、転記した見出しの一覧を報告する。0件なら「0件」と報告する。
-4. main 側のコミットは、ユーザーの指示を待つ。
-
 ## Phase D の終わり
 
 1. 設定済みの ScheduleWakeup・loop があれば止める。
 2. handoff.md を更新する: 進捗に工程9・P5・配置の結果の行（工程N → ゲート）を追記して印を付け、frontmatter を `status: done` にする。
-3. run ブランチにコミットする（パスを明示する。push しない）。
-   ```sh
-   git add -f work/<ts> output/<ts>
-   git commit -m "run <ts>: Phase D（P5 承認・配置）"
-   ```
-4. run の worktree（`../canon-runs/<ts>`）とブランチ `run/<ts>` の片付け、`.claude-canon.bak.<ts>/` の掃除は人間が判断する、と伝えて終える。自分では消さない。
+3. この run で `tasks/lessons.md` に書いた canon 課題の件数と見出しを報告する。0件なら「0件」と報告する。canon 側のコミットは、ユーザーの指示を待つ。
+4. `work/<ts>`・`output/<ts>` の片付けと、対象側の `.claude-canon.bak.<ts>/` の掃除は人間が判断する、と伝えて終える。自分では消さない。
 
 canon の Phase（A〜D）と、対象プロジェクト側のワークフローの段階は別物である。対象側の段階に触れるときは「対象側の〜」と書き分ける。

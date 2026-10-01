@@ -19,7 +19,7 @@ canon_version: v2.1.280
 
 ```text
 work/<ts>/
-├─ handoff.md                      run の状態・承認・差し戻し・申し送り・canon 課題候補（architecture.md §6）
+├─ handoff.md                      run の状態・承認・差し戻し・申し送り（architecture.md §6）
 ├─ investigation/
 │   ├─ existing.md                 工程1: 既存カスタマイズの棚卸し（§2.1）
 │   ├─ profile.md                  工程1: プロジェクトの実態（浅く広く・§2.2）
@@ -37,7 +37,7 @@ output/<ts>/
 ├─ MANIFEST.md                     何が変わるか（§7.2）
 ├─ verify-report.md                工程7（§8.1）
 ├─ review/                         工程8（§9.3）
-│   └─ review.md・keep-review.md・prompt-audit.md・security-review.md・code-review.md
+│   └─ review.md・keep-review.md・prompt-audit.md
 └─ deploy/                         Phase C・D（§10）
     ├─ managed-paths.list・retired.list          Phase C で emit-manifest.js が出力
     ├─ RUN.md・pre-deploy-report.txt             工程9（P5 の対象は pre-deploy-report.txt）
@@ -584,7 +584,6 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 | `review.md` | reviewer（4観点） |
 | `keep-review.md` | keep-reviewer（refactor モードのみ） |
 | `prompt-audit.md` | `/claude-api prompt-audit` の結果をオーケストレーターが保存 |
-| `security-review.md`・`code-review.md` | `/security-review`・`/code-review` の結果をオーケストレーターが保存 |
 
 各指摘は「観点・対象（`file:line`）・根拠・重大度・提案」を持つ。修正ループで直した指摘と、直さないと決めた指摘（とその理由）は handoff.md の「差し戻し」に記録する。
 

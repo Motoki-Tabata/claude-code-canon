@@ -3,8 +3,8 @@
     "claude-canon 自身の運用設定。フックは使わない（design/architecture.md §9）。",
     "allow: Phase Skill が繰り返し実行する canon のスクリプト（npm run）と、読み取りだけの git。",
     "deny: deploy の --confirm は人間が sandbox の外で実行する（P5 の承認の機械的な裏付け・artifacts.md §10.3）。",
-    "ask: run ブランチは push しない。main の保守で push するときは確認を挟む。",
-    "additionalDirectories: Phase A は main のチェックアウトで起動し、run の worktree（../canon-runs/<ts>）に書く。Phase B〜D は worktree で起動し、Phase D は main の tasks/lessons.md へ書く（main への書込は権限確認が出る場合があり、承認して続行する）。"
+    "ask: push するときは確認を挟む。",
+    "run はすべて canon のルートで起動し、成果物は work/<ts>・output/<ts> に置く（architecture.md §7）。対象プロジェクトは調査で読むだけで、配置は人間が sandbox の外で行う。"
   ],
   "permissions": {
     "allow": [
@@ -13,8 +13,7 @@
       "Bash(git status*)",
       "Bash(git diff *)",
       "Bash(git log *)",
-      "Bash(git branch --show-current)",
-      "Bash(git worktree list*)"
+      "Bash(git branch --show-current)"
     ],
     "deny": [
       "Bash(npm run deploy * --confirm*)",
@@ -22,9 +21,6 @@
     ],
     "ask": [
       "Bash(git push*)"
-    ],
-    "additionalDirectories": [
-      "../canon-runs/"
     ]
   }
 }

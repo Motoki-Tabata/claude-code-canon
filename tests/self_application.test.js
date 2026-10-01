@@ -229,7 +229,7 @@ test('検出器の素振り: 旧体系の語を含む行を上の検査が拾う
   for (const bad of ['G9 が止める', 'C2_no_requirement_conflict', 'P8 で確認', '工程10', 'run 20260927_003229', 'fixtures/sample-repos', '.requests/spec', '基本設計書 §8', '系統A']) {
     assert.ok(OLD.test(bad), `${bad} を見逃した`);
   }
-  for (const ok of ['V7 が止める', 'K2_no_requirement_conflict', 'P3 で確認', 'run ブランチ']) {
+  for (const ok of ['V7 が止める', 'K2_no_requirement_conflict', 'P3 で確認', 'run の骨格']) {
     assert.ok(!OLD.test(ok), `${ok} を過検出した`);
   }
 });
@@ -284,6 +284,42 @@ test('Phase Skill に旧体系の用語・番号が残っていない（SendMess
       .split('\n')
       .flatMap((line, i) => (OLD.test(line) ? [`${n}:${i + 1}: ${line.trim().slice(0, 80)}`] : []))
   );
+  assert.deepEqual(hits, []);
+});
+
+/**
+ * run の worktree 方式（run ごとの worktree・run ブランチ・成果物の強制追加・handoff の課題候補の転記）の
+ * 語が canon 本体に残っていないか。run は canon のルートで行う（architecture.md §7）。正典 docs/ と
+ * 過去の版を記録する CHANGELOG.md、検出器自身を含む tests/ は対象外。
+ */
+const RUN_WORKTREE_TERMS = /canon-runs|run ブランチ|run\/<ts>|git add -f|canon 課題候補/;
+
+test('canon 本体に run の worktree 方式の語が残っていない', () => {
+  const out = execFileSync('git', ['ls-files', '-z', '--', '.claude', 'lib', 'tools', 'gates/*.js', 'design', 'guide', 'tasks', 'README.md', '.gitignore', 'package.json'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  });
+  const files = out.split('\0').filter(Boolean);
+  assert.ok(files.length >= 50, `検査対象が少なすぎる（実際: ${files.length}）`);
+  const hits = files.flatMap((rel) =>
+    readFileSync(path.join(ROOT, rel), 'utf8')
+      .split('\n')
+      .flatMap((line, i) => (RUN_WORKTREE_TERMS.test(line) ? [`${rel}:${i + 1}: ${line.trim().slice(0, 80)}`] : []))
+  );
+  assert.deepEqual(hits, []);
+});
+
+test('検出器の素振り: run の worktree 方式の語を拾い、新方式の語は拾わない', () => {
+  for (const bad of ['cd ../canon-runs/<ts>', 'run ブランチにコミットする', 'git branch -D run/<ts>', 'git add -f work/<ts>', '## canon 課題候補']) {
+    assert.ok(RUN_WORKTREE_TERMS.test(bad), `${bad} を見逃した`);
+  }
+  for (const ok of ['canon のルートで起動する', 'canon_commit', 'tasks/lessons.md に書く', 'git worktree list --porcelain']) {
+    assert.ok(!RUN_WORKTREE_TERMS.test(ok), `${ok} を過検出した`);
+  }
+});
+
+test('Phase Skill が、廃止した標準レビュー（/security-review・/code-review）を呼ばない', () => {
+  const hits = PHASE_SKILLS.filter((n) => /security-review|code-review/.test(phaseSkillText(n)));
   assert.deepEqual(hits, []);
 });
 
