@@ -145,18 +145,25 @@ export function formatMarkdown(groups) {
   return lines.join('\n');
 }
 
+/**
+ * Claude Code のプロジェクトディレクトリ名（`~/.claude/projects/<slug>/`）。
+ * 英数字以外の文字をすべて `-` に置き換えたもの（`/` `\\` `:` `.` `_` など。Windows のパスでも同じ）。
+ */
+export function projectSlug(projectPath) {
+  return projectPath.replace(/[^A-Za-z0-9]/g, '-');
+}
+
 /** セッション ID／パスから jsonl の絶対パスを解決する（ID は canon の projects ディレクトリ配下を探す）。 */
 export function resolveSessionPath(arg) {
   if (arg.endsWith('.jsonl')) return path.resolve(arg);
-  const slug = CANON_ROOT.replace(/[\\/]/g, '-');
-  return path.join(os.homedir(), '.claude', 'projects', slug, `${arg}.jsonl`);
+  return path.join(os.homedir(), '.claude', 'projects', projectSlug(CANON_ROOT), `${arg}.jsonl`);
 }
 
 if (isMainModule(import.meta.url)) {
   const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
   if (args.length !== 1) {
     process.stderr.write('使い方: npm run tokens -- <session-id | session.jsonl のパス> [--json]\n');
-    process.exit(1);
+    process.exit(2);
   }
   const p = resolveSessionPath(args[0]);
   if (!existsSync(p)) {

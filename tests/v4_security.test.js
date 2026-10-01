@@ -91,3 +91,11 @@ describe('V4 セキュリティ（.mcp.json 側）', () => {
     assert.match(v[0].message, /JSON として解析できない/);
   });
 });
+
+test('checkMcpJsonText: トップレベルが object でない JSON（null・配列・文字列・数値）は例外にせず違反にする', () => {
+  for (const json of ['null', '[]', '"x"', '1', 'true']) {
+    const v = checkMcpJsonText(json, '.mcp.json');
+    assert.equal(v.length, 1, json);
+    assert.match(v[0].message ?? v[0], /object/, json);
+  }
+});

@@ -16,7 +16,8 @@
  *
  *   usage: node .claude/skills/canon-d/scripts/emit-run-manifest.js <output-dir> <target-repo-dir>
  *   exit 0 : RUN.md を出力した
- *   exit 1 : 引数不正・入力不在
+ *   exit 1 : 入力不在／自己指定の拒否
+ *   exit 2 : 引数不正
  */
 
 import path from 'node:path';
@@ -122,7 +123,8 @@ export function renderRunManifest(outputDir, targetDir) {
     '```',
     '',
     '- exit 0: 消えるものが無い／retired のみ → 配置してよい。',
-    '- exit 2: **uncaptured または managed-paths.list の集合外・`..` 等の行を検出** → 配置を止め、調査 or design-map へ差し戻す。',
+    '- exit 1: **uncaptured または managed-paths.list の集合外・`..` 等の行を検出** → 配置を止め、調査 or design-map へ差し戻す（入力不在・引数不正と区別するには、stdout のレポートに uncaptured や書式欠陥の行があるかを見る）。',
+    '- exit 2: 引数不正（<output-dir>・<target-repo-dir> の渡し間違い）。',
     '  レポートは `deploy/pre-deploy-report.txt` にも出力されます。',
     '',
     '### 2. P5: 消失予定を人間が確認',
@@ -150,7 +152,7 @@ export function renderRunManifest(outputDir, targetDir) {
     '```',
     '',
     '- exit 0: 配置成功（`.bak` は revert 用に保持されます。対象に管理ファイルが無く退避が0件のときは`.bak`は作られません）。',
-    '- exit 2: uncaptured・list の集合外の行・退避先 `.bak.<ts>` の既存で拒否、退避できないファイルがあり事前検査で拒否（対象は無変更）、または post-check 失敗で自動 restore（配置前状態へ復帰）。',
+    '- exit 1: uncaptured・list の集合外の行・退避先 `.bak.<ts>` の既存で拒否、退避できないファイルがあり事前検査で拒否（対象は無変更）、または post-check 失敗で自動 restore（配置前状態へ復帰）。',
     '',
     '配置に成功すると `deploy/deploy-result.json` が書かれます（存在すること＝配置済み）。',
     '',
@@ -190,7 +192,7 @@ if (isMain) {
   const [outputDir, targetDir] = process.argv.slice(2);
   if (!outputDir || !targetDir) {
     process.stderr.write('usage: npm run run-manifest -- <output-dir> <target-repo-dir>\n');
-    process.exit(1);
+    process.exit(2);
   }
   if (!existsSync(path.join(outputDir, 'generated'))) {
     process.stderr.write(`入力不在: ${path.join(outputDir, 'generated')} が無い（output/<ts>/generated）。\n`);

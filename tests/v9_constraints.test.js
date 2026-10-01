@@ -70,9 +70,9 @@ test('V9: hooks allowed:true + reason「既存維持・新規追加なし」× �
       )
       // hooks が許可されたので fixture の conflicts（R1×hooks禁止・deterministic の縮退記録）は
       // 前提を失う。本テストは hooks 検出器の allowed:true 分岐のみを見るため、無関係になった
-      // conflicts の整合違反を避けて節ごと除去する（登録漏れ検査も hooks が非禁止になった時点で
-      // R1 を対象外にするため、除去しても vacuous にはならない）。
-      .replace(/## 制約と要件の衝突[\s\S]*$/, '')
+      // conflicts の整合違反を避けて空にする（`conflicts: []`。ブロック自体を消すと別の違反になる）。
+      // 登録漏れ検査も hooks が非禁止になった時点で R1 を対象外にするため、空でも vacuous にはならない。
+      .replace(/conflicts:[\s\S]*$/, 'conflicts: []\n')
   );
   write(
     c,
@@ -125,6 +125,18 @@ test('V9: hooks 禁止 × plugin 同梱 hooks（settings.json 以外の経路③
     r.violations.some((v) => v.includes('plugin/hooks/on-write.js') && v.includes('hooks')),
     '実体配置の経路で検出されること'
   );
+});
+
+test('V9: hooks 禁止でも、skill の supporting dir にある hooks/*.md は hook の実体とみなさない（.claude/hooks/** と plugin/hooks/** に限る）', (t) => {
+  const c = setupSampleRepo(t, 'constrained', nextTs());
+  write(c, '.claude/skills/style-guide/hooks/overview.md', '# フックの説明資料\n');
+  write(c, '.claude/skills/style-guide/references/hooks/notes.md', '# メモ\n');
+  assert.equal(v9(c.ts).ok, true, JSON.stringify(v9(c.ts).violations));
+  // 対比: 本物の置き場は従来どおり検出する（検出器が死んでいないことの確認）
+  write(c, '.claude/hooks/block-rm.sh', '#!/bin/sh\nexit 0\n');
+  const r = v9(c.ts);
+  assert.ok(r.violations.some((v) => v.includes('.claude/hooks/block-rm.sh')), JSON.stringify(r.violations));
+  assert.ok(!r.violations.some((v) => v.includes('overview.md') || v.includes('notes.md')), JSON.stringify(r.violations));
 });
 
 test('V9: hooks 禁止 × plugin.json 内の hooks 宣言（経路①の別ファイル）を検出', (t) => {
@@ -265,6 +277,20 @@ test('V9: conflicts ブロック自体が無い場合も登録漏れとして違
   assert.ok(r.violations.some((v) => v.includes('R1')));
 });
 
+test('V9: conflicts ブロック自体が無いのは、登録漏れが無くても違反（「無い」と空 `conflicts: []` を区別する）', (t) => {
+  const c = setupSampleRepo(t, 'constrained', nextTs());
+  const allowHooks = (text) =>
+    text.replace(
+      'hooks:        { allowed: false, reason: "組織ポリシーで自動実行される仕組みを禁止（監査ログの対象にできない）" }',
+      'hooks:        { allowed: true, reason: "x" }'
+    );
+  patchRequirements(c, (text) => allowHooks(text).replace(/conflicts:[\s\S]*$/, 'conflicts: []\n'));
+  assert.equal(v9(c.ts).ok, true, '空の `conflicts: []` は通る');
+  patchRequirements(c, (text) => text.replace(/## 制約と要件の衝突[\s\S]*$/, ''));
+  const r = v9(c.ts);
+  assert.ok(r.violations.some((v) => v.includes('conflicts ブロックが無い')), JSON.stringify(r.violations));
+});
+
 // conflicts の【整合】（artifacts.md §8.2 V9）: 無関係な conflicts を1件書けば登録漏れ検査が通る、
 // という形骸化を防ぐ。
 test('V9（違反注入）: conflicts が実在しない要件 id や禁止していないキーを指せば違反', (t) => {
@@ -347,6 +373,13 @@ test('requirements パーサ: インライン形の constraints と conflicts �
   assert.equal(org.freeform, true);
   assert.equal(doc.conflicts.length, 1);
   assert.match(doc.conflicts[0].requirement, /R1/);
+});
+
+test('requirements パーサ: `conflicts: []` は空（[]）で、ブロックが無いとき（null）と区別する', () => {
+  const base = '## 確定要件\n- id: R1\n  strength_needed: advisory\n  priority: must\n\n## 使用可能なカスタマイズ機能\nconstraints:\n  hooks: { allowed: true, reason: "x" }\n';
+  assert.deepEqual(parseRequirementsDoc(base + '\n## 制約と要件の衝突\nconflicts: []\n').conflicts, []);
+  assert.deepEqual(parseRequirementsDoc(base + '\nconflicts: [ ]  # 無し\n').conflicts, []);
+  assert.equal(parseRequirementsDoc(base).conflicts, null);
 });
 
 test('requirements パーサ: 複数行形の constraints も読む（書式の揺れで沈黙しない）', () => {

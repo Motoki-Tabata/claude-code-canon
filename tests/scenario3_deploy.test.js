@@ -77,12 +77,12 @@ test('代表シナリオ(3): 管理パス集合内の未捕捉ファイルは un
   writeFileSync(stray, '---\nname: stray\ndescription: 取りこぼし\n---\n本文\n');
 
   const pre = runScript('canon-d', 'pre-deploy-check.js', [c.output, c.target]);
-  assert.equal(pre.code, 2, 'uncaptured 検出で exit 2');
+  assert.equal(pre.code, 1, 'uncaptured 検出で exit 1');
   assert.match(pre.stdout, /uncaptured\] \.claude\/skills\/stray\/SKILL\.md/);
 
   // deploy も P5 を飛ばした配置を拒否し、対象は変更されない（stray は残る・退避されない）。
   const dep = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
-  assert.equal(dep.code, 2, 'uncaptured があると deploy は拒否');
+  assert.equal(dep.code, 1, 'uncaptured があると deploy は拒否');
   assert.ok(existsSync(stray), '拒否時に対象は不変（stray は退避されない）');
   assert.ok(existsSync(path.join(c.target, '.claude/settings.json')), '拒否時は retire も実行しない');
 });

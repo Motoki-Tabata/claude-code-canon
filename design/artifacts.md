@@ -11,6 +11,8 @@ canon_version: v2.1.280
 
 書式を機械で読むのは、スクリプト（`verify.js`・`slice.js`・`copy-keep.js`・`emit-manifest.js`・`review-bundle.js`・deploy 系）である。各節の「値の語彙」はスクリプトとワーカー定義の双方が守る契約で、書き方の揺れはそのまま判定の誤りになる。
 
+**CLI の終了コード（全スクリプト共通）**: 0＝合格・成功／1＝違反・拒否・失敗（入力の不在・自己指定の拒否・deploy の拒否と巻き戻しを含む）／2＝引数不正（引数が無い・`<ts>` の形式違い）。呼び出し側は 2 を「コマンドの渡し方の誤り」、1 を「中身の問題」と読む。
+
 ---
 
 ## 1. work/ と output/
@@ -158,6 +160,7 @@ conflicts:
 - `strength_needed` は正典 `00_INDEX.md` の強度3段階（advisory＝CLAUDE.md、deterministic＝Hooks、enforced＝permissions）に対応し、制約との衝突の検出に使う。
 - `constraints` は要件とは独立した環境条件で、機能選定の分岐を先に刈り込む。制約は、調査での検出（Hook が無い・MCP の設定が無い・ポリシーの痕跡）とヒアリングでの確認（禁止なのか、使っていないだけなのか）を合わせて拾う。
 - `conflicts` は方向づけまでにとどめ、判定しない。
+- **`conflicts` のブロック自体が無いのと、空（`conflicts: []`）とは区別する**。衝突が無ければ `conflicts: []` と明示する。ブロックが無いのは記録漏れで、V9 が違反にする（§8.2）。
 - **`allowed: false` は「生成物のどこにも現れてはならない」を意味する**（V9 が機械で強制する）。refactor モードで「既存が既に使っていて、維持はしたいが新規には足さない」場合は、`allowed: false` にしない。`allowed: true` にして、`reason` に「既存を維持・新規追加なし」と書く。`allowed: false` にすると、既存の keep 対象がその機能を使っているだけで違反になる。ヒアリングでこの区別をユーザーに確かめる。
 - 禁止したときの波及: MCP を禁止すると外部連携を含められない（手動手順の L1・L2 化で代える）。Hooks を禁止すると決定論のガードレールを含められない（permissions による承認に下げるか、断念する）。Plugins を禁止すると L5 の配布はできず、個別ファイルの配置だけになる。experimental を禁止すると `context: fork`・Agent Teams・Channels・Monitors・Themes は使えない。
 
@@ -431,7 +434,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 `npm run verify -- <ts>`（`canon-c/scripts/verify.js`）は、V1〜V9 を1本の CLI で実行する。
 
 - **1回の走査**: generated/ を1回だけ走査し、ファイルごとに V1〜V6 を当て、全体に V7〜V9 を当てる。検査ごとに同じツリーを読み直さない。
-- **出力**: `output/<ts>/verify-report.md` を書き、違反が1件でもあれば exit 1、無ければ exit 0 を返す。report には、検査ごとの結果（pass／違反の一覧／warning の一覧／「対象なし」とその理由）、検査した generated/ のハッシュ（architecture.md §6.2 と同じ計算）、実行時刻を載せる。
+- **出力**: `output/<ts>/verify-report.md` を書き、違反が1件でもあれば exit 1、無ければ exit 0 を返す。`<ts>` の形式違い、または `output/<ts>/` が無いときは何も作らず exit 2 を返す。想定外の例外で検査が中断しても、その検査の違反として report に載せる。report には、検査ごとの結果（pass／違反の一覧／warning の一覧／「対象なし」とその理由）、検査した generated/ のハッシュ（architecture.md §6.2 と同じ計算）、実行時刻を載せる。
 - **検査対象ゼロは違反**: generated/ が無い・空、design-map・requirements.md が無い、など判定の入力が揃わないときは、合格にせず違反にする。「対象なし」と書けるのは、定義上対象が無いと確定する場合（new モードの V7 など）だけで、その理由を report に明記する。
 - **error と warning**: 正典に MUST の明文があるか、規則として確定したものは error（違反）、正典が観測されたパターンとしてしか示していないものは warning（報告のみ）にする。warning も黙って捨てない。
 - **判定表の出典**: frontmatter の必須キー・正規のツール名・パス規約はハードコードせず、`docs/` から生成した `gates/conformance_tables/*.json` を使う。判定表が「できない」と自己申告している検査（型の照合が未提供・語彙が open など）は実装しない。正典に根拠が無い規則は §8.3 の例外として出典を明記する。
@@ -533,7 +536,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
   - 登録漏れ: `strength_needed: deterministic` の要件があり、その実現手段（deterministic→Hooks、enforced→permissions）が禁止されているのに、`conflicts` にその要件 id を指すエントリが無ければ違反。
   - 整合: `conflicts[].requirement` が実在する要件 id を指し、`conflicts[].constraint` が実在し、かつ禁止されている constraints のキーを指すこと（無関係な conflicts を1件書けば通る、という形骸化を防ぐ）。
   - design-map の散文との突合はしない。縮退の意味的な妥当性（advisory に下げて要件を満たせるか）は P3・P4 で人間が読む。
-- **検査対象ゼロの封鎖**: 次はすべて違反。① requirements.md が無い ② constraints の節が無い ③ constraints のキーが0件 ④ `allowed` が真偽値でない ⑤ generated/ が無いか空。「制約が書かれていない＝制約なし＝合格」と読まない。すべて `allowed: true` であること（実際に制約が無い）と、制約が記録されていないことは別の事象である。
+- **検査対象ゼロの封鎖**: 次はすべて違反。① requirements.md が無い ② constraints の節が無い ③ constraints のキーが0件 ④ `allowed` が真偽値でない ⑤ generated/ が無いか空 ⑥ `conflicts` のブロック自体が無い（衝突が無いなら `conflicts: []` と明示する）。「制約が書かれていない＝制約なし＝合格」と読まない。すべて `allowed: true` であること（実際に制約が無い）と、制約が記録されていないことは別の事象である。
 - **V4 との違い**: V4 は普遍的な安全性（experimental 依存を**明示**しているか）、V9 はこのプロジェクト固有の環境制約（experimental を**使ってよいか**）を見る。同じ `context: fork` でも見るものが違う。
 
 ### 8.3 正典に由来しない規則
@@ -609,6 +612,7 @@ plugin/**                  L5 にする場合
 
 - パターンの定義は共有 lib の1か所に置き、V8・V9 と pre-deploy-check・deploy が同じものを使う。複製すると一方だけが仕様に追従し、集合の網羅性が崩れて退避スワップが集合外を壊しうる。
 - **`.claude/hooks/**` を含める理由**: 正典 `L4_AUTOMATION.md` の公式例は Hook の実体を `${CLAUDE_PROJECT_DIR}/.claude/hooks/` に置く。集合に含めないと、(1) 正典どおりの生成物が V8 の集合検査で弾かれ、canon が正典の示す形を生成できない、(2) settings.json だけが配置されて参照先のスクリプトが配置されない壊れた配線を作る。代わりに `.claude/hooks/**` は退避スワップの管理下（＝廃止もありうる）に入るが、対象側にある canon 管理外の Hook を消す危険は pre-deploy-check の uncaptured（§10.2）が引き受ける。集合の外に置いたままでは、取りこぼしを検出する機会そのものが無い。
+- **走査は `node_modules/` へ降りない**: 対象側の実ファイルを列挙する pre-deploy-check・deploy・new-run の mode 判定は、集合の内側（`plugin/` や skill の `scripts/`）にある `node_modules/` を管理対象にも uncaptured にもしない。
 - **集合の外は触れない**: CI のワークフロー（`.github/workflows/`）・`CODEOWNERS`・その他プロジェクト固有のファイルは、削除も上書きもしない。
 - **`~/.claude/`（ユーザー設定）は含めない**: プロジェクトをまたぐ個人設定で、対象の版管理の外にある。
 
@@ -621,7 +625,7 @@ keep の verbatim コピーは「調査で把握済みの keep が消える」�
 - **入力**: 対象の管理パス集合の実ファイル全部（パターンを対象に当てて列挙する）と、output の全ファイル。`managed-paths.list` は「output が配置する集合」を、パターンは「取りこぼしを探す走査範囲」を与え、両者は独立に効く（list だけを読むと取りこぼしを検出できない）。
 - **判定**: 集合の中で「対象にあって output に無い」ファイルを列挙し、`retired.list` と一致するものを **retired**（意図した廃止）、それ以外を **uncaptured**（調査の取りこぼし・要注意）に分ける。
 - **出力**: `output/<ts>/deploy/pre-deploy-report.txt`（と stdout）。消えるファイルの一覧と区分、件数、配置予定と退避予定（上書き・消失）の件数を載せる。管理パス集合の走査で種別を判定できなかったエントリ（unreadable）は「列挙できなかった範囲」として別に載せる（照合の盲点を黙って落とさない）。
-- **終了コード**: uncaptured が1件以上、または `deploy/*.list` に書式欠陥（glob の混入・実在しないエントリ）が1件以上、または `managed-paths.list` に集合外・`..`・絶対パス・未正規化の行が1件以上なら exit 2（配置を止め、調査か design-map へ差し戻す）。retired だけ、または0件なら exit 0。
+- **終了コード**: uncaptured が1件以上、または `deploy/*.list` に書式欠陥（glob の混入・実在しないエントリ）が1件以上、または `managed-paths.list` に集合外・`..`・絶対パス・未正規化の行が1件以上なら exit 1（配置を止め、調査か design-map へ差し戻す）。retired だけ、または0件なら exit 0。引数不正は exit 2。
 
 ### 10.3 deploy（退避スワップ）
 
@@ -641,7 +645,7 @@ step4 成功なら .bak を残す（ローカルで戻すため）。失敗な�
 ```
 
 - **原子性**: mv で退避するので「対象にも .bak にも無い」時間を最小にでき、コピーの途中で失敗しても配置前の状態へ戻せる。
-- **戻す範囲**: step1 も失敗を捕捉する範囲に入れ、戻すのは**実際に退避したファイルと実際に置いたファイルだけ**にする（まだ退避していない元のファイルを消さない）。全部戻れば `state: restored`、戻せないものがあれば `.bak` を残して `state: partial` と残った問題を返す（黙って片付けない）。どちらも exit 2。
+- **戻す範囲**: step1 も失敗を捕捉する範囲に入れ、戻すのは**実際に退避したファイルと実際に置いたファイルだけ**にする（まだ退避していない元のファイルを消さない）。全部戻れば `state: restored`、戻せないものがあれば `.bak` を残して `state: partial` と残った問題を返す（黙って片付けない）。どちらも exit 1（拒否も同じ。2 は引数不正だけ）。
 - **退避が0件のとき**: `.bak` は退避の副作用でしか作られない。成功時の案内は、`.bak` の実在と退避した件数を確かめてから出す。
 - **記録**: 成功したときだけ `deploy/deploy-result.json`（`bak_dir`・`bak_exists`・`baked`・配置件数・廃止）を書く。存在すること＝配置済みである。試行のたびに `deploy/deploy-attempt.json`（状態・動かせなかったファイル・戻せなかったもの）を書く。
 - **ロールバック**: 対象側の git で revert するか、直近の `.claude-canon.bak.<ts>/` から手で戻す。`.bak` の掃除は人間が明示的に行う。

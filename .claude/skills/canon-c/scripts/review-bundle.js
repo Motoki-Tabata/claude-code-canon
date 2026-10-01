@@ -26,7 +26,7 @@ import path from 'node:path';
 import { findHeading, sectionSlice } from '../../../../lib/markdown.js';
 import { parseExistingDisposition } from '../../../../lib/design-map.js';
 import { parseExisting } from '../../../../lib/investigation.js';
-import { workDir, outputDir, resolveTargetRoot, isMainModule } from '../../../../lib/run.js';
+import { workDir, outputDir, resolveTargetRoot, isMainModule, isValidTs } from '../../../../lib/run.js';
 
 export class BundleError extends Error {
   constructor(message) {
@@ -58,10 +58,19 @@ function section(text, heading) {
 export function collectKeepReviewCases(designMapText) {
   const records = parseExistingDisposition(designMapText); // 0件は throw（vacuous 防止）
   const cases = [];
+  // 非英数字を `_` に潰すので別パスが同じ ID になりうる。衝突したら 2・3… の連番を付ける（出力名の上書きを防ぐ）。
+  const used = new Set();
+  const uniqueCaseId = (relPath) => {
+    const base = caseIdFor(relPath);
+    let id = base;
+    for (let n = 2; used.has(id); n++) id = `${base}_${n}`;
+    used.add(id);
+    return id;
+  };
   for (const r of records) {
     if (r.disposition === 'keep') {
       cases.push({
-        caseId: caseIdFor(r.path),
+        caseId: uniqueCaseId(r.path),
         target: r.path,
         disposition: 'keep',
         supersededBy: null,
@@ -69,7 +78,7 @@ export function collectKeepReviewCases(designMapText) {
       });
     } else if (r.disposition === 'merge') {
       cases.push({
-        caseId: caseIdFor(r.path),
+        caseId: uniqueCaseId(r.path),
         target: r.path,
         disposition: 'merge',
         supersededBy: r.superseded_by,
@@ -283,8 +292,8 @@ export function buildKeepReviewBundles({ ts, write = true, roots = {} }) {
       ts,
       targetBody: readIfExists(targetAbs),
       existingRecord: renderExistingRecord(existing.get(c.target)),
-      specRequirements: section(specText, '新要件'),
-      specIntegration: section(specText, '統合方針'),
+      specRequirements: section(specText, '§2 新要件'),
+      specIntegration: section(specText, '§4 統合方針'),
       requirements: reqParts || null,
       references: findReferencesToTarget(generatedRoot, c.target),
     };
@@ -310,8 +319,8 @@ export function buildKeepReviewBundles({ ts, write = true, roots = {} }) {
 
 export function main(argv = process.argv.slice(2)) {
   const ts = argv[0];
-  if (!ts) {
-    process.stderr.write('使い方: npm run review-bundle -- <ts>\n');
+  if (!isValidTs(ts)) {
+    process.stderr.write('使い方: npm run review-bundle -- <ts>（<ts> は YYYYMMDD_hhmmss）\n');
     process.exitCode = 2;
     return;
   }
@@ -334,6 +343,6 @@ if (isMainModule(import.meta.url)) {
     main();
   } catch (err) {
     process.stderr.write(`review-bundle: ${err.message}\n`);
-    process.exit(2);
+    process.exit(1);
   }
 }

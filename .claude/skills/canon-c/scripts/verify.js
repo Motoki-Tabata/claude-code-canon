@@ -3,7 +3,7 @@
  * verify.js（npm run verify -- <ts>）— 工程7 の検証 CLI（artifacts.md §8）。
  *
  * V1〜V9 を1本で実行し、`output/<ts>/verify-report.md` を書く。違反が1件でもあれば exit 1、
- * 無ければ exit 0、引数が不正なら exit 2。
+ * 無ければ exit 0、引数が不正（<ts> の形式違い・output/<ts>/ が無い）なら exit 2。
  *
  * - **1回の走査**: generated/ を1回だけ歩き、各ファイルを1回だけ読む（buildContext）。ファイルごとに
  *   V1〜V5 を当て、全体に V6〜V9 を当てる。各検査は同じツリーを読み直さない。output/ は gitignore の
@@ -151,9 +151,20 @@ export function runChecks(ctx) {
     for (const [id] of CHECKS) results[id].violations.push(`${id}: ${why}（検査対象ゼロを合格にしない）。`);
     return results;
   }
-  runPerFile(ctx, results);
+  // 想定外の例外は、その検査の違反にして続行する（例外終了すると verify-report.md が書かれず、
+  // 「違反」と「検査が壊れた」を exit 1 から区別できない）。
+  const crashed = (id, err) => `${id}: 検査が例外で中断した（${err?.message ?? err}）。入力の形を確かめること。`;
+  try {
+    runPerFile(ctx, results);
+  } catch (err) {
+    for (const id of ['V1', 'V2', 'V3', 'V4', 'V5']) results[id].violations.push(crashed(id, err));
+  }
   for (const [id, fn] of [['V6', checkV6], ['V7', checkV7], ['V8', checkV8], ['V9', checkV9]]) {
-    Object.assign(results[id], emptyResult(), fn(ctx));
+    try {
+      Object.assign(results[id], emptyResult(), fn(ctx));
+    } catch (err) {
+      results[id].violations.push(crashed(id, err));
+    }
   }
   return results;
 }
@@ -210,6 +221,11 @@ export function verify(ts, { now = new Date() } = {}) {
 
 if (isMainModule(import.meta.url)) {
   const ts = readTsArg('npm run verify -- <ts>');
+  if (!existsSync(outputDir(ts))) {
+    // 存在しない <ts> は引数の誤り。report を書くために output/<ts>/ を作ってはならない。
+    process.stderr.write(`[verify] output/${ts}/ が無い。<ts> を確かめること（npm run verify -- <ts>）。\n`);
+    process.exit(2);
+  }
   const r = verify(ts);
   const summary = CHECKS.map(([id]) => `${id}:${statusOf(r.results[id])}`).join(' ');
   process.stdout.write(

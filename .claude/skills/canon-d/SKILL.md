@@ -29,8 +29,8 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 1. `npm run run-manifest -- <out> <target>` で配置手順書 `<out>/deploy/RUN.md` を書く。以降の手順は RUN.md と同じである。
 2. `npm run pre-deploy -- <out> <target>` で対象の現物と output を突き合わせ、`<out>/deploy/pre-deploy-report.txt` を書く。
-   - **exit 2（uncaptured がある、または配置リストに書式の欠陥がある）なら配置しない**。uncaptured は、調査が取りこぼしたか、調査の後に対象側で増えた管理ファイルで、配置すると黙って消える。一覧を示し、Phase A の調査（existing の取りこぼし）か Phase B の設計（disposition の付け忘れ）に差し戻すことをユーザーに提案して止まる。
-   - exit 1（引数不正・入力が無い・対象に claude-canon 自身を指定した）なら、stderr を示して止まる。
+   - **exit 1 で stdout の report に uncaptured または配置リストの書式の欠陥があるなら、配置しない**。uncaptured は、調査が取りこぼしたか、調査の後に対象側で増えた管理ファイルで、配置すると黙って消える。一覧を示し、Phase A の調査（existing の取りこぼし）か Phase B の設計（disposition の付け忘れ）に差し戻すことをユーザーに提案して止まる。
+   - exit 1 で report が出ていない（入力が無い・対象に claude-canon 自身を指定した）、または exit 2（引数不正）なら、stderr を示して止まる。
 3. `npm run deploy -- <out> <target>`（`--confirm` を付けない）で配置予定を表示する。これは何も変えない。
 
 ## P5 配置承認

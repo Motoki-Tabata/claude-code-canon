@@ -81,7 +81,7 @@ test('deploy: uncaptured があると配置を拒否（対象不変・P5 の機�
   writeFileSync(surprise, '---\nname: surprise\ndescription: x\n---\n本文\n');
   const before = snapshot(c.target);
   const r = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
-  assert.equal(r.code, 2, 'uncaptured は配置拒否');
+  assert.equal(r.code, 1, 'uncaptured は配置拒否');
   assert.match(r.stderr, /拒否/);
   assert.deepEqual(snapshot(c.target), before, '拒否時は対象不変');
   assert.ok(!existsSync(path.join(c.target, BAK)));
@@ -96,7 +96,7 @@ test('deploy: 配置失敗で自動 restore（配置前と完全一致・.bak �
   );
   const before = snapshot(c.target);
   const r = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
-  assert.equal(r.code, 2, '失敗は非ゼロ');
+  assert.equal(r.code, 1, '失敗は非ゼロ');
   assert.match(r.stderr, /rolled-back|復帰/);
   assert.deepEqual(snapshot(c.target), before, 'restore で配置前と完全一致');
   assert.ok(!existsSync(path.join(c.target, BAK)), 'restore 後は .bak を掃除して配置前状態へ');
@@ -242,7 +242,7 @@ test('deploy-result.json は成功時だけ書かれ（配置済みの判定材�
 
   const ng = setupTmpCase(t, 'existing');
   appendFileSync(path.join(ng.output, 'deploy', 'managed-paths.list'), '.claude/skills/ghost/SKILL.md\n');
-  assert.equal(runScript('canon-d', 'deploy.js', [ng.output, ng.target, '--confirm']).code, 2);
+  assert.equal(runScript('canon-d', 'deploy.js', [ng.output, ng.target, '--confirm']).code, 1);
   assert.ok(!existsSync(path.join(ng.output, 'deploy', 'deploy-result.json')), '失敗したのに配置済みの印がある');
   assert.equal(JSON.parse(readFileSync(path.join(ng.output, 'deploy', 'deploy-attempt.json'), 'utf8')).status, 'rolled-back');
 });
@@ -266,7 +266,7 @@ test('deploy: managed-paths.list に `..` で集合外へ出る行があれば�
   writeFileSync(path.join(c.output, 'deploy', 'managed-paths.list'), 'CLAUDE.md\n.claude/rules/../../x\n');
   const before = snapshot(c.target);
   const r = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
-  assert.equal(r.code, 2, r.stdout + r.stderr);
+  assert.equal(r.code, 1, r.stdout + r.stderr);
   assert.match(r.stderr, /管理パス集合/);
   assert.ok(!existsSync(path.join(c.target, 'x')), '集合外へ書かれた');
   assert.deepEqual(snapshot(c.target), before);
@@ -280,7 +280,7 @@ test('deploy: 退避先 .bak.<ts> が既にあれば step0 で拒否し、既存
   writeFileSync(sentinel, '前回の退避（元ファイル）\n');
   const before = snapshot(c.target);
   const r = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
-  assert.equal(r.code, 2, r.stdout + r.stderr);
+  assert.equal(r.code, 1, r.stdout + r.stderr);
   assert.match(r.stderr, /退避先/);
   assert.equal(readFileSync(sentinel, 'utf8'), '前回の退避（元ファイル）\n');
   assert.deepEqual(snapshot(c.target), before, '対象は一切変更されない');
@@ -293,7 +293,7 @@ test('deploy: 同じ ts で2回配置すると、2回目は拒否され1回目�
   assert.equal(runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']).code, 0);
   assert.equal(readFileSync(bakFile, 'utf8'), original);
   const second = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
-  assert.equal(second.code, 2, second.stdout + second.stderr);
+  assert.equal(second.code, 1, second.stdout + second.stderr);
   assert.equal(readFileSync(bakFile, 'utf8'), original, '1回目の退避（元ファイル）が上書きされた');
 });
 

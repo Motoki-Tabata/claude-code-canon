@@ -13,8 +13,8 @@
  *
  *   usage: node .claude/skills/canon-d/scripts/pre-deploy-check.js <output-dir> <target-repo-dir>
  *   exit 0 : 消えるものが無い／retired のみ（配置してよい）
- *   exit 2 : uncaptured または list の書式欠陥（glob・実在しない行・管理パス集合外の行）を検出（配置を止め、調査 or design-map へ差し戻す）
- *   exit 1 : 引数不正・入力不在
+ *   exit 1 : uncaptured または list の書式欠陥（glob・実在しない行・管理パス集合外の行）を検出（配置を止め、調査 or design-map へ差し戻す）／入力不在／自己指定の拒否
+ *   exit 2 : 引数不正
  */
 
 import path from 'node:path';
@@ -156,7 +156,7 @@ if (isMain) {
   const [outputDir, targetDir] = process.argv.slice(2);
   if (!outputDir || !targetDir) {
     process.stderr.write('usage: npm run pre-deploy -- <output-dir> <target-repo-dir>\n');
-    process.exit(1);
+    process.exit(2);
   }
   if (!existsSync(path.join(outputDir, 'generated'))) {
     process.stderr.write(`入力不在: ${path.join(outputDir, 'generated')} が無い（output/<ts>/generated）。\n`);
@@ -175,7 +175,7 @@ if (isMain) {
   process.stdout.write(body);
   const defectCount = r.listDefects.globEntries.length + r.listDefects.missingEntries.length + r.listDefects.unmanagedEntries.length;
   if (r.uncaptured.length > 0 || defectCount > 0) {
-    process.exit(2); // 配置中断＝差し戻し（uncaptured・list の書式欠陥）
+    process.exit(1); // 配置中断＝差し戻し（uncaptured・list の書式欠陥）
   }
   process.exit(0);
 }

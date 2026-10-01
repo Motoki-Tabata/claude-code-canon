@@ -228,3 +228,15 @@ test('README と MANIFEST: README 自身も MANIFEST の全ファイルと manag
   assert.ok(readList(path.join(outputDir(ts), 'deploy', 'managed-paths.list')).includes('.claude/README.md'));
   assert.ok(existsSync(path.join(outputDir(ts), 'deploy', 'retired.list')), '廃止が無くても retired.list は空で書く');
 });
+
+test('emit-manifest CLI: settings.json・.mcp.json・plugin.json のトップレベルが object でなければ、例外でなく exit 1 で拒否する', (t) => {
+  for (const rel of ['.claude/settings.json', '.mcp.json', 'plugin/.claude-plugin/plugin.json']) {
+    const c = setupSampleRepo(t, 'constrained', nextTs());
+    stripEmitted(c);
+    write(c.gen, rel, 'null');
+    const r = manifestCli([c.ts]);
+    assert.equal(r.code, 1, `${rel}: ${r.stdout}${r.stderr}`);
+    assert.doesNotMatch(r.stderr, /TypeError/, rel);
+    assert.match(r.stderr, new RegExp(`${rel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*object`), rel);
+  }
+});

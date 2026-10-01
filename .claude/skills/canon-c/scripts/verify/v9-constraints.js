@@ -140,8 +140,9 @@ const CAPABILITY_DETECTORS = {
       if (f.frontmatter && fraw(f.frontmatter, 'hooks') !== undefined) {
         hits.push(ev(f.rel, 'frontmatter に hooks 宣言がある'));
       }
-      // 経路③: hook スクリプトの実体配置（.claude/hooks/**・plugin/hooks/**・hooks/**）
-      if (/(^|\/)hooks\//.test(f.rel) || /(^|\/)hooks\.json$/.test(f.rel)) {
+      // 経路③: hook スクリプトの実体配置（.claude/hooks/**・plugin/hooks/**）。
+      // skill の supporting dir にある `hooks/*.md`（説明資料）は hook の実体ではないので含めない。
+      if (/^(\.claude|plugin)\/hooks\//.test(f.rel) || /(^|\/)hooks\.json$/.test(f.rel)) {
         hits.push(ev(f.rel, 'hook スクリプト／設定の実体が配置されている'));
       }
     }
@@ -261,6 +262,14 @@ const mentions = mentionsIdentifier;
 
 function checkDegradation(doc, prohibitedKeys) {
   const violations = [];
+  if (doc.conflicts === null) {
+    // 「ブロックが無い」と「空 `conflicts: []`」は別の事象（requirements-template.md）。
+    // 記録が無いことを「衝突なし」と読まない（constraints ブロックと同じ規律）。
+    violations.push(
+      `${CHECK}: requirements.md に conflicts ブロックが無い。衝突が無ければ \`conflicts: []\` と明示する` +
+        '（記録が無いことを「衝突なし」と読まない・artifacts.md §3）。'
+    );
+  }
   const conflicts = doc.conflicts ?? [];
 
   // 登録漏れ: 強度の実現手段が禁止されている要件は conflicts に載っていなければならない

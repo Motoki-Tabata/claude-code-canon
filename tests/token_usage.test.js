@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseJsonl, aggregateRecords, countDesignMapReads, totalInput, formatMarkdown } from '../tools/token-usage.js';
+import { parseJsonl, aggregateRecords, countDesignMapReads, totalInput, formatMarkdown, projectSlug } from '../tools/token-usage.js';
 
 const asst = (id, model, usage, content = []) => ({ type: 'assistant', message: { id, model, usage, content } });
 const u = (i, cc, cr, o) => ({ input_tokens: i, cache_creation_input_tokens: cc, cache_read_input_tokens: cr, output_tokens: o });
@@ -49,4 +49,11 @@ test('Markdown 表は main を先頭に、以降を総入力の降順で並べ�
   assert.match(lines[2], /^\| main /);
   assert.match(lines[3], /^\| big /);
   assert.match(lines[4], /^\| small /);
+});
+
+test('projectSlug: Claude Code のプロジェクトディレクトリ名は英数字以外をすべて - にしたもの', () => {
+  // ~/.claude/projects/ に実在するディレクトリ名
+  assert.equal(projectSlug('/home/motoki-tabata/work/claude-code-canon'), '-home-motoki-tabata-work-claude-code-canon');
+  // Windows: ドライブ文字の `:`・`\`・`.`・`_` も置換する
+  assert.equal(projectSlug('C:\\Users\\a.b\\work_x'), 'C--Users-a-b-work-x');
 });

@@ -60,9 +60,19 @@ test('verify CLI: 引数が無い・形式違いなら exit 2（report を書か
   assert.match(bad.stderr, /npm run verify -- <ts>/);
 });
 
+test('verify CLI: 存在しない <ts>（output/<ts>/ が無い）は引数不正の exit 2 で、output/<ts>/ を作らない', (t) => {
+  const ts = nextTs();
+  cleanupTs(t, ts);
+  const r = verifyCli(ts);
+  assert.equal(r.code, 2, r.stdout + r.stderr);
+  assert.match(r.stderr, /output\/.*が無い/);
+  assert.ok(!existsSync(outputDir(ts)), 'verify が output/<ts>/ を作った');
+});
+
 test('verify CLI: generated/ が無いときは全検査を違反にして exit 1（検査対象ゼロを合格にしない）', (t) => {
   const ts = nextTs();
   cleanupTs(t, ts);
+  mkdirSync(outputDir(ts), { recursive: true });
   const r = verifyCli(ts);
   assert.equal(r.code, 1);
   const report = reportOf(ts);
@@ -149,4 +159,29 @@ test('verify: 生成物を1回だけ読む（各ファイルの本文と artifac
   rmSync(c.gen, { recursive: true, force: true });
   const after = runChecks(ctx);
   for (const [id] of CHECKS) assert.deepEqual(after[id], before[id], id);
+});
+
+// ---- 不正な JSON のトップレベル（object でない）を例外終了にしない ----
+
+for (const [label, body] of [['null', 'null'], ['配列', '[]'], ['文字列', '"x"'], ['数値', '1']]) {
+  test(`verify CLI: .mcp.json・plugin.json のトップレベルが ${label} でも例外終了せず、違反として report を書く（exit 1）`, (t) => {
+    const c = setupSampleRepo(t, 'constrained', nextTs());
+    write(c.gen, '.mcp.json', body);
+    write(c.gen, 'plugin/.claude-plugin/plugin.json', body);
+    const r = verifyCli(c.ts);
+    assert.equal(r.code, 1, r.stdout + r.stderr);
+    assert.doesNotMatch(r.stderr, /TypeError/);
+    const report = reportOf(c.ts);
+    assert.match(report, /- 違反: V4 .*\.mcp\.json.*object/);
+    assert.match(report, /- 違反: V6 .*plugin\.json.*object/);
+  });
+}
+
+test('verify: 検査が想定外の例外を投げても、その検査の違反として report に載せる（report を書かずに落ちない）', (t) => {
+  const c = setupSampleRepo(t, 'constrained', nextTs());
+  const ctx = buildContext(c.ts);
+  ctx.byRel = null; // V6 以降を壊す
+  const r = runChecks(ctx);
+  assert.ok(r.V6.violations.some((v) => v.startsWith('V6: 検査が例外で中断した')), JSON.stringify(r.V6.violations));
+  assert.ok(CHECKS.every(([id]) => r[id]), '全検査の結果が揃っている');
 });

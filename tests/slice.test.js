@@ -9,8 +9,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs';
-import { outputDir, workDir } from './helpers/paths.js';
+import { outputDir, workDir, scriptsDir } from './helpers/paths.js';
 import { runScript } from './helpers/run-cli.js';
 import { cleanupTs } from './helpers/fixtures.js';
 import { SAMPLE_REPOS } from './helpers/sample-repos.js';
@@ -206,4 +208,12 @@ test('.claude/README.md は層に属さない: targets-*.txt に出ず、レコ�
   assert.doesNotMatch(files['l5.md'], /path: \.claude\/README\.md/);
   assert.match(files['disposition-other.md'], /path: \.claude\/README\.md/);
   assert.ok(!listDeclaredArtifacts(OTHER_MAP).some((d) => d.path === '.claude/README.md'), 'V8 の宣言源にも入れない（emit-manifest が必ず書く）');
+});
+
+test('slice.js は import しただけでは実行されない（main ガード。process.exit も書込も起きない）', () => {
+  const url = pathToFileURL(path.join(scriptsDir('canon-c'), 'slice.js')).href;
+  const out = execFileSync(process.execPath, ['--input-type=module', '-e', `await import(${JSON.stringify(url)}); console.log('imported');`], {
+    encoding: 'utf8',
+  });
+  assert.equal(out.trim(), 'imported');
 });

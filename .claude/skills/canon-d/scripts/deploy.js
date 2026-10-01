@@ -28,8 +28,8 @@
  *
  *   usage: node .claude/skills/canon-d/scripts/deploy.js <output-dir> <target-repo-dir> [--confirm]
  *   exit 0 : dry-run（配置予定表示）／deployed（配置成功）
- *   exit 2 : refused（uncaptured で拒否）／rolled-back（post-check 失敗で復帰）
- *   exit 1 : 引数不正・入力不在
+ *   exit 1 : refused（uncaptured 等で拒否）／rolled-back（post-check 失敗で復帰）／入力不在／自己指定の拒否
+ *   exit 2 : 引数不正
  */
 
 import path from 'node:path';
@@ -241,7 +241,7 @@ if (isMain) {
   const [outputDir, targetDir] = argv.filter((a) => a !== '--confirm');
   if (!outputDir || !targetDir) {
     process.stderr.write('usage: npm run deploy -- <output-dir> <target-repo-dir> [--confirm]\n');
-    process.exit(1);
+    process.exit(2);
   }
   if (!existsSync(path.join(outputDir, 'generated'))) {
     process.stderr.write(`入力不在: ${path.join(outputDir, 'generated')} が無い。\n`);
@@ -288,7 +288,7 @@ if (isMain) {
             `先に npm run pre-deploy で確認し、調査 or design-map へ差し戻すこと。\n`
         );
       }
-      process.exit(2);
+      process.exit(1);
       break;
     case 'dry-run':
       process.stdout.write(
@@ -310,7 +310,7 @@ if (isMain) {
             `\n退避物は ${r.bakDir} に残してある。対象の状態を確認し、必要なら .bak から手動で戻すこと。\n`
         );
       }
-      process.exit(2);
+      process.exit(1);
       break;
     case 'deployed':
       process.stdout.write(

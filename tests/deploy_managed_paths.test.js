@@ -262,3 +262,25 @@ test('findUnmanagedEntries: 集合外・`..`・絶対パス・未正規化の行
   assert.deepEqual(findUnmanagedEntries(entries), ['.claude/rules/../../x', '/abs/CLAUDE.md', 'src/app.js', '.claude/rules/./a.md']);
   assert.deepEqual(findUnmanagedEntries(['CLAUDE.md']), []);
 });
+
+test('walkManaged: 管理根の内側にある node_modules/ へは降りない（plugin/node_modules・skill の scripts/node_modules）', (t) => {
+  const dir = scratchDir(t, 'canon-nm-');
+  const w = (rel) => {
+    const abs = path.join(dir, rel);
+    mkdirSync(path.dirname(abs), { recursive: true });
+    writeFileSync(abs, 'x\n');
+  };
+  w('plugin/.claude-plugin/plugin.json');
+  w('plugin/skills/s/SKILL.md');
+  w('plugin/node_modules/left-pad/index.js');
+  w('.claude/skills/s/SKILL.md');
+  w('.claude/skills/s/scripts/node_modules/x/index.js');
+  const seen = [];
+  const spyReaddir = (p, ...rest) => {
+    seen.push(path.basename(String(p)));
+    return readdirSync(p, ...rest);
+  };
+  const files = walkManaged(dir, { readdir: spyReaddir });
+  assert.deepEqual(files, ['.claude/skills/s/SKILL.md', 'plugin/.claude-plugin/plugin.json', 'plugin/skills/s/SKILL.md']);
+  assert.ok(!seen.includes('node_modules'), 'node_modules を readdir した（巨大な依存木の走査）');
+});

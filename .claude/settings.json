@@ -18,7 +18,7 @@
     ],
     "deny": [
       "Bash(npm run deploy * --confirm*)",
-      "Bash(node *deploy.js * --confirm*)"
+      "Bash(node *deploy.js* --confirm*)"
     ],
     "ask": [
       "Bash(git push*)"

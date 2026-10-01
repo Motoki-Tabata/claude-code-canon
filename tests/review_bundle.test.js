@@ -81,6 +81,9 @@ test('判定に要る事実は渡っている（実体・existing.md の強度�
   assert.ok(t.includes('strength: advisory'), 'existing.md の強度が無い（K4 の判定材料）');
   assert.ok(t.includes('strength_needed: deterministic'), 'requirements の強度が無い');
   assert.ok(t.includes('統合方針'), 'spec 統合方針が無い');
+  // 見出しの語だけでなく本文が渡っていること（spec の見出しは `## §2 新要件`・`## §4 統合方針（…）`。節の取り違えで空になる退行を捕まえる）
+  assert.ok(t.includes('阻止の担い手は新設する PreToolUse Hook'), 'spec 統合方針の本文が無い');
+  assert.ok(t.includes('認証情報を含むコミットを機械的に阻止する'), 'spec 新要件の本文が無い');
   assert.ok(t.includes('review_conditions: [K2, K4]'));
 });
 
@@ -172,4 +175,16 @@ test('掃除: 前回のバンドルは書き出し前に消える（消えた ke
   const names = readdirSync(path.join(tmp, 'review-bundle', 'keep-review'));
   assert.ok(!names.includes('old_removed_keep.md'), '前回の古いバンドルが残っている');
   assert.equal(names.length, written.length, '今回の対象以外のファイルが残っている');
+});
+
+test('caseId の衝突（foo-bar.md と foo_bar.md）は決定論的な連番で避け、どのケースも別ファイルになる', () => {
+  const rec = (p) =>
+    `  - path: ${p}\n    disposition: keep\n    keep_conditions:\n      K1_canon_clean: true\n    rationale: "x"\n`;
+  const text = (paths) => `# dm\n\n## 既存判定\n\n\`\`\`yaml\nexisting_disposition:\n${paths.map(rec).join('')}\`\`\`\n`;
+  const paths = ['.claude/rules/foo-bar.md', '.claude/rules/foo_bar.md', '.claude/rules/foo bar.md'];
+  const ids = collectKeepReviewCases(text(paths)).map((c) => c.caseId);
+  assert.equal(ids.length, 3);
+  assert.equal(new Set(ids).size, 3, `caseId が衝突している: ${ids}`);
+  assert.deepEqual(ids, collectKeepReviewCases(text(paths)).map((c) => c.caseId), '同じ入力で同じ ID（決定論）');
+  assert.equal(ids[0], caseIdFor(paths[0]), '衝突しないケースの ID は変わらない');
 });

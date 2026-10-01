@@ -52,13 +52,13 @@ export function copyKeep(ts) {
 }
 
 if (isMainModule(import.meta.url)) {
-  const fail = (msg) => {
+  const fail = (msg, code = 1) => {
     process.stderr.write(`[copy-keep] ${msg}\n`);
-    process.exit(1);
+    process.exit(code);
   };
   const [ts] = process.argv.slice(2);
-  if (!ts) fail('使い方: npm run copy-keep -- <ts>');
-  if (!isValidTs(ts)) fail(`不正な <ts> 形式: ${ts}（期待形式: YYYYMMDD_hhmmss）`);
+  if (!ts) fail('使い方: npm run copy-keep -- <ts>', 2);
+  if (!isValidTs(ts)) fail(`不正な <ts> 形式: ${ts}（期待形式: YYYYMMDD_hhmmss）`, 2);
   if (!existsSync(path.join(outputDir(ts), 'design-map.md'))) fail(`output/${ts}/design-map.md が無い。`);
   let r;
   try {
