@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { detectKind, skillPathRole, parseFrontmatter, splitListValue, artifactFromText } from '../gates/lib/artifact.js';
+import { detectKind, skillPathRole, parseFrontmatter, splitListValue, artifactFromText } from '../lib/artifact.js';
 
 describe('detectKind', () => {
   test('SKILL.md はどこにあっても skill', () => {
@@ -107,7 +107,7 @@ describe('artifactFromText', () => {
 });
 
 /**
- * skillPathRole: skill パッケージ内の役割判定（G3・G7・non-schema.js が共有する SSoT）。
+ * skillPathRole: skill パッケージ内の役割判定（V1・V6・non-schema.js が共有する SSoT）。
  * 正典 docs/L2_SKILLS.md §2.1「ディレクトリ構造」が SKILL.md（必須）＋supporting files（任意）を
  * 許可することの機械的表現。
  */
@@ -121,7 +121,7 @@ describe('skillPathRole', () => {
     assert.equal(skillPathRole('.claude/skills/foo/template.md'), 'supporting');
     assert.equal(skillPathRole('.claude/skills/foo/examples/sample.md'), 'supporting');
     assert.equal(skillPathRole('.claude/skills/foo/scripts/validate.sh'), 'supporting');
-    // supporting として置かれた例示 SKILL.md は定義ファイルではない（G7 の registry も拾わない）。
+    // supporting として置かれた例示 SKILL.md は定義ファイルではない（V6 の registry も拾わない）。
     assert.equal(skillPathRole('.claude/skills/foo/examples/SKILL.md'), 'supporting');
   });
 
@@ -129,7 +129,7 @@ describe('skillPathRole', () => {
     assert.equal(skillPathRole('.claude/skills/foo.md'), 'orphan');
   });
 
-  test('.claude/skills/ 配下でなければ null（plugin スコープは G3 の既知の対象外）', () => {
+  test('.claude/skills/ 配下でなければ null（plugin スコープは V1 の既知の対象外）', () => {
     assert.equal(skillPathRole('plugin/skills/foo/SKILL.md'), null);
     assert.equal(skillPathRole('.claude/agents/a/a.md'), null);
   });
@@ -137,5 +137,29 @@ describe('skillPathRole', () => {
   test('Windows のバックスラッシュ区切りも判定できる', () => {
     const B = String.fromCharCode(92);
     assert.equal(skillPathRole(['C:', 'w', '.claude', 'skills', 'foo', 'template.md'].join(B)), 'supporting');
+  });
+});
+
+describe('parseFrontmatter: 複数行の値（key: の次行以降）', () => {
+  test('複数行リスト（key:\\n  - a）は配列として解釈し、unparsed_line にしない', () => {
+    const r = parseFrontmatter('---\ntools:\n  - Task\n  - "Bogus"  # 注釈\nname: x\n---\n');
+    assert.deepEqual(r.errors, []);
+    assert.deepEqual(r.frontmatter.tools.value, ['Task', 'Bogus']);
+    assert.equal(r.frontmatter.tools.raw, 'Task, Bogus');
+    assert.equal(r.frontmatter.name.value, 'x');
+    assert.deepEqual(splitListValue(r.frontmatter.tools), ['Task', 'Bogus']);
+  });
+
+  test('ネストしたマップ（hooks:・metadata:）は nested として保持し、エラーにしない', () => {
+    const r = parseFrontmatter('---\nhooks:\n  PreToolUse:\n    - matcher: Bash\nname: x\n---\n');
+    assert.deepEqual(r.errors, []);
+    assert.equal(r.frontmatter.hooks.nested, true);
+    assert.equal(r.frontmatter.name.value, 'x');
+  });
+
+  test('値のあるキーの後のインデント行は、従来どおり unparsed_line', () => {
+    const r = parseFrontmatter('---\nname: x\n  - 迷子\n---\n');
+    assert.equal(r.errors.length, 1);
+    assert.equal(r.errors[0].type, 'unparsed_line');
   });
 });

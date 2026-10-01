@@ -125,11 +125,11 @@ Built-in は Skill の `context: fork` でも、Subagent delegation でも参照
 >
 > 可否を決めるのは実行環境の種別ではなく設定と状態である。Agent SDK では `settingSources` の指定がこれを決め、**省略時は CLI と同じく user / project / local を読み `.claude/` の skills・agents・commands をロードする**（＝canon agent は登録される）。`settingSources: []` や `project` を外した構成では project の `.claude/agents/` がロードされない。ほかに、セッション開始後に新設した `agents` ディレクトリ（watcher 対象外・再起動が要る）・frontmatter 不備・`name` 重複・同名の programmatic 定義による上書きでもロードされない（出典: `agent-sdk/claude-code-features`・`agent-sdk/subagents`）。
 >
-> 本システムの orchestrator（`/canon`）およびメンテナンス Skill（`/update-docs`。機能X 実装契約により `canon-updater` を起動する。`/update-system` は実装されておらず本システムには存在しない）は、**登録済みのネイティブ `subagent_type` を優先して起動する**。未登録の環境に限り、次の方式で同等動作を得る（フォールバック）:
+> 一般に、カスタム agent が `subagent_type` として登録されていない環境では、次の方式で同等動作を得られる（フォールバック）。本システムのオーケストレーター（Phase Skill `canon-a`〜`canon-d`）は、登録済みのネイティブ `subagent_type` でだけワーカーを起動し、このフォールバックは使わない（4. の理由・`design/architecture.md` §5.4）:
 > 1. `subagent_type: general-purpose` で起動する（`model` はタスク性質で選択。設計判断は `opus`、生成/レビューは `sonnet`）。
 > 2. プロンプトに「`.claude/agents/<name>/<name>.md` を Read し、その定義（手順・制約・返却形式）に従うこと」を**明示注入**する。
 > 3. その定義が preload する Skill があれば、Skill 内容も明示的に読ませる（frontmatter `skills:` preload と同等の効果を手動で得る）。
-> 4. フォールバック時は、`general-purpose` が `tools: *` で Bash/PowerShell/Monitor を含み、ワーカーからコマンド実行系ツールを剥奪する前提（基本設計書 §5.3 の G13）を無効化する旨をユーザーへ明示する。
+> 4. `general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含む。ワーカーからコマンド実行系ツールを外す前提（本システムでは自己適用テストが検査する）は、フォールバックでは成り立たない。
 >
 > これは「`subagent_type` がビルトイン型しか受け付けない」からではなく、**当該環境で canon agent が `subagent_type` として登録されていない**ための代替（フォールバック）である。公式 Claude Code CLI 上では、`name` 必須フィールドを満たせばカスタム名を `subagent_type` に直接指定できる。
 >
@@ -192,7 +192,7 @@ author: name
 
 > **公式キー名の補足**: deny list の公式キー名は `disallowedTools`（camelCase）。permission モードのキーは `permissionMode`（tool 全体の allow/deny は settings.json の `permissions` 側で行う）。
 >
-> **`disallowed-tools`（ハイフン形）の互換受理は不可**: 公式 [sub-agents](https://code.claude.com/docs/en/sub-agents) の Subagent frontmatter フィールド表は `disallowedTools` のみを列挙する（ハイフン形は現れない）。**Skill 側の `allowed-tools`（ハイフン）との混同に注意**（L2 参照）。Subagent に `disallowed-tools` と書くと**黙って未知キーとして無視され deny が効かない**——静かな失敗様式であり危険なため、G4（`gates/g4_frontmatter_schema.js`）はこのキーを Subagent の未知キーとして検出する。**Subagent には必ず `disallowedTools`（camelCase）のみを使うこと**。
+> **`disallowed-tools`（ハイフン形）の互換受理は不可**: 公式 [sub-agents](https://code.claude.com/docs/en/sub-agents) の Subagent frontmatter フィールド表は `disallowedTools` のみを列挙する（ハイフン形は現れない）。**Skill 側の `allowed-tools`（ハイフン）との混同に注意**（L2 参照）。Subagent に `disallowed-tools` と書くと**黙って未知キーとして無視され deny が効かない**——静かな失敗様式であり危険なため、verify の V2（`.claude/skills/canon-c/scripts/verify/v2-frontmatter.js`）はこのキーを Subagent の未知キーとして検出する。**Subagent には必ず `disallowedTools`（camelCase）のみを使うこと**。
 
 **主要フィールド**:
 
@@ -201,7 +201,7 @@ author: name
 | `name` | **必須**。subagent の一意な識別子。**小文字とハイフンのみ（`:` は使用不可・プラグイン名前空間 `plugin:sub:name` 用に予約）**。`subagent_type` および Hook の `agent_type` の値。**ファイル名・配置パスは識別に無関係**（識別は `name` のみ）。tree 全体で一意に保つ。**`:` を含む `name` のファイルは Claude Code がロードせず、デバッグログにエラーを出す**（＝UI 上は「その agent が存在しないだけ」に見える静かな失敗様式） |
 | `description` | Claude が delegation 判断に使う。最大1536文字 |
 | `tools` | 許可ツール（spaces/commas/YAMLリスト）。未指定は**subagent が使える全ツール**を継承。`Agent(type1, type2)` 構文で spawn 可能な subagent 型を allowlist 化（`--agent` 主スレッド時のみ有効）。**リスト中のどのエントリもツールに解決できない場合、subagent は通常そのエントリ名を挙げたエラーで起動に失敗する**。**Skill を context に preload する目的で `Skill` をここに列挙しないこと——preload は `skills` フィールドで行う** |
-| `disallowedTools` | 禁止ツール（公式キー名。`disallowed-tools`（ハイフン形）は不可・G4 が未知キーとして検出）。`tools` と併用時は先に deny を適用 |
+| `disallowedTools` | 禁止ツール（公式キー名。`disallowed-tools`（ハイフン形）は不可・verify の V2 が未知キーとして検出）。`tools` と併用時は先に deny を適用 |
 | `model` | モデル override。値: `sonnet`/`opus`/`haiku`/`fable`/full ID（例 `claude-opus-5-5`）/`inherit`。未指定時は後述の解決順序で決まる。**新規セッションの既定モデル自体は `ANTHROPIC_DEFAULT_MODEL` で指定できる**——`/model` でのユーザー選択が優先され、その選択は再起動をまたいで残る点が `ANTHROPIC_MODEL`（常に強制）と異なる（出典 `model-config`）。`CLAUDE_CODE_SUBAGENT_MODEL` との解決順序は直後の注記を参照 |
 | `effort` | 推論努力レベルの override: `low`/`medium`/`high`/`xhigh`/`max`。未指定時はセッションの effort を継承 |
 | `permissionMode` | パーミッション挙動: `default`/`acceptEdits`/`auto`/`dontAsk`/`bypassPermissions`/`plan`（`manual` は `default` のエイリアス。UI 上は「default」モードが "Manual" と表示される）。plugin agent では無視。親が `bypassPermissions`/`acceptEdits`/`auto` の場合は親が優先 |
@@ -321,7 +321,7 @@ Subagent は自身の subagent を spawn できる。委譲タスクがさらに
 | 抑止 | `tools` から `Agent` を外す、または `disallowedTools` に追加すると当該 subagent は spawn 不可 |
 | fork の特例 | fork は別の fork を spawn できない（named subagent は spawn 可で深さに数える） |
 
-> ⚠ **本システム運用ノート**: nesting が解禁されても、本システムのワーカー起動は**ネイティブの `subagent_type` を優先**する（canon agent が `subagent_type` として登録されている環境ではそれで起動する）。未登録の環境に限り general-purpose 経由 + 定義ファイル Read 注入へフォールバックする（前掲の運用ノート参照）。フォールバック時は `general-purpose` が `tools: *` で Bash/PowerShell/Monitor を含み、G13（基本設計書 §5.3）が強制するワーカーのコマンド実行系ツール剥奪を無効化するため、その旨をユーザーへ明示する。多段委譲が必要なら、起動した subagent のプロンプト内でさらなる subagent 起動を指示する設計が可能になった。ただし既定の深度上限は3階層である点に注意。
+> ⚠ **本システム運用ノート**: nesting が解禁されても、本システムのワーカー起動は**ネイティブの `subagent_type` を優先**する（canon agent が `subagent_type` として登録されている環境ではそれで起動する）。未登録の環境に限り general-purpose 経由 + 定義ファイル Read 注入へフォールバックする（前掲の運用ノート参照）。フォールバック時は `general-purpose` が `tools: *` で Bash/PowerShell/Monitor を含み、自己適用テスト（`design/architecture.md` §5.4）が担保するワーカーのコマンド実行系ツールの除外を無効化するため、その旨をユーザーへ明示する。多段委譲が必要なら、起動した subagent のプロンプト内でさらなる subagent 起動を指示する設計が可能になった。ただし既定の深度上限は3階層である点に注意。
 
 ---
 

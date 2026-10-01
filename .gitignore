@@ -1,4 +1,4 @@
-# 基本設計書 §14「output/work は gitignore（実行結果は対象プロジェクト側で版管理）。システム本体は git 管理」
+# output/・work/ は run の成果物なので gitignore（architecture.md §10。run ブランチでだけ git add -f して追跡する・§7）。
 # ディレクトリ自体は .gitkeep で追跡し、中身のみ除外する（除外ディレクトリの中に git は降りないため
 # `/output/` 形式ではなく `/output/*` 形式にする）。
 
@@ -6,25 +6,20 @@
 /output/*
 !/output/.gitkeep
 
-# 【調査中間成果物】work/<ts>/ と SessionStart が採番する .session-ts
+# 【調査中間成果物】work/<ts>/
 /work/*
 !/work/.gitkeep
 
-# 配置時の退避先（§10.2 退避スワップ・対象リポジトリ側に生成されるが念のため）
+# 配置時の退避先（artifacts.md §10.3 退避スワップ・対象リポジトリ側に生成されるが念のため）
 .claude-canon.bak.*/
-
-# 【機能Y・世代管理】§13.2。generations/ 配下は全て実行結果（2026-08-28 に README.md・CURRENT
-# の git 管理も廃止し一本化。レイアウト契約は詳細設計書 §13.2 が権威）。
-/generations/
 
 # node
 /node_modules/
 npm-debug.log*
 
-# 注: gates/conformance_tables/ は【除外しない】。docs/ からの生成物だが §14 は gates/ 全体を
-# 「git 管理」と規定する。除外すると新規クローンで照合表が不在となりゲートが沈黙＝vacuous pass
-# （配線の生存検証 と同種の失敗様式）を招く。「手動編集しない」（§14.2）は編集の規律であって除外の理由ではなく、
-# コミットすることで正典更新に伴う照合表の差分が追える（§3.3 運用トレーサビリティ）。
+# 注: gates/conformance_tables/ は【除外しない】。docs/ からの生成物だが、除外すると新規クローンで判定表が
+# 不在となり検査が沈黙＝vacuous pass を招く。「手で編集しない」は編集の規律であって除外の理由ではなく、
+# コミットすることで正典更新に伴う判定表の差分が追える（CI が鮮度を検査する・architecture.md §10）。
 
 # OS
 Thumbs.db

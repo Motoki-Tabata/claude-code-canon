@@ -1,0 +1,127 @@
+/**
+ * V3 ツール名（per-file・artifacts.md §8.2）。
+ *
+ * 出典: gates/conformance_tables/tools.json（正典 docs/TOOLS.md から生成）。
+ * 実装前に必ず tools.json の `v3_capability` を見ること（判定表の能力宣言・artifacts.md §8.1）。
+ *
+ * 検査内容:
+ *   - 正規ツール名照合（canonical_name_allowlist_check: true）
+ *   - 旧称・非実在ツール検出（deprecated_name_detection / nonexistent_tool_detection: true）
+ *   - MCP `mcp__server__tool` 構文（mcp_syntax_check: true）
+ *
+ * 実装しない検査（tools.json.v3_capability が false／限定と申告している範囲）:
+ *   - 大文字小文字の厳密性（case_sensitivity_check: false・TOOLS.md §3 [要確認]）。
+ *     完全一致しない名前は「非実在」側に落ちるだけで、"大文字小文字違い" という
+ *     専用の違反種別は作らない。
+ *   - 「この環境で利用可能か」の判定（nonexistent_tool_detection.caveat）。
+ *     判定できるのは「正規の名前set に含まれるか」のみ。
+ *   - subagent_unavailable_tools（AskUserQuestion 等5種）は正規名なので違反にしない
+ *     （tools: に書いても無視されるだけ、というのが正典の立場）。
+ *   - 旧称のうち「非推奨」「既定無効」（TaskOutput / TodoWrite）は実在する正規名として
+ *     通す。violation にしてよいのは deprecated_tools.renamed_only（= Task）のみ。
+ *
+ * 純関数。副作用なし。
+ */
+
+import { toolsTable } from '../../../../../lib/tables.js';
+import { violation, splitListValue } from '../../../../../lib/artifact.js';
+
+const CHECK = 'V3';
+
+const CANONICAL_NAMES = new Set(toolsTable.canonical_tool_set.tools.map((t) => t.name));
+const RENAMED_ONLY = new Set(toolsTable.deprecated_tools.renamed_only);
+const RENAMED_DETAIL = new Map(
+  toolsTable.deprecated_tools.all.filter((d) => toolsTable.deprecated_tools.renamed_only.includes(d.name)).map((d) => [d.name, d])
+);
+const MCP_FULL_RE = new RegExp(toolsTable.mcp_tool_syntax.regex);
+
+// tools.json は agent/skill 双方の tools 系フィールド名までは列挙していないため、
+// frontmatter.json（V2 の出典）から「tools っぽい」フィールドを拾う代わりに、
+// L3/L2 の frontmatter 完全リファレンスで実際に使われているキー名をここで固定する
+// （agent: tools/disallowedTools・skill: allowed-tools/disallowed-tools）。
+// agent の `disallowed-tools`（ハイフン形）は対象にしない——公式に互換受理の裏付けが無く、
+// V2 が未知キーとして検出する側へ倒しているため（L3_AGENTS.md:198）。
+const TOOL_LIST_FIELDS = {
+  agent: ['tools', 'disallowedTools'],
+  skill: ['allowed-tools', 'disallowed-tools'],
+};
+
+function isWildcardMcpForm(tok) {
+  // mcp__* / mcp__<server> / mcp__<server>__*
+  if (tok === 'mcp__*') return true;
+  if (/^mcp__[A-Za-z0-9_-]+$/.test(tok)) return true;
+  if (/^mcp__[A-Za-z0-9_-]+__\*$/.test(tok)) return true;
+  return false;
+}
+
+function checkToken(tok, artifact, field) {
+  const violations = [];
+  if (tok.startsWith('mcp__')) {
+    if (!MCP_FULL_RE.test(tok) && !isWildcardMcpForm(tok)) {
+      violations.push(
+        violation(
+          CHECK,
+          artifact.path,
+          `frontmatter "${field}" のツール名 "${tok}" が MCP 命名規約（${toolsTable.mcp_tool_syntax.forms.map((f) => f.form).join(' / ')}）に合致しない。`,
+          `${toolsTable.mcp_tool_syntax.forms[0].source}（regex_confidence: ${toolsTable.mcp_tool_syntax.regex_confidence}）`
+        )
+      );
+    }
+    return violations;
+  }
+
+  if (CANONICAL_NAMES.has(tok)) return violations; // 正規名（非推奨・既定無効を含む）は pass
+
+  if (RENAMED_ONLY.has(tok)) {
+    const d = RENAMED_DETAIL.get(tok);
+    violations.push(
+      violation(
+        CHECK,
+        artifact.path,
+        `frontmatter "${field}" のツール名 "${tok}" は旧称（改名済み）。正規名 "Agent" を使うこと。${d?.note ?? ''}`,
+        d?.source ?? toolsTable.canonical_tool_set.source
+      )
+    );
+    return violations;
+  }
+
+  violations.push(
+    violation(
+      CHECK,
+      artifact.path,
+      `frontmatter "${field}" のツール名 "${tok}" は正典 docs/TOOLS.md の正規ツール名に無い（非実在の疑い）。` +
+        `${toolsTable.v3_capability.nonexistent_tool_detection.caveat}`,
+      toolsTable.canonical_tool_set.source
+    )
+  );
+  return violations;
+}
+
+export function checkV3(artifact) {
+  const violations = [];
+  const fields = TOOL_LIST_FIELDS[artifact.kind];
+  if (!fields) return violations; // rule/unknown には tools 系フィールドが無い（正典に規定なし）
+
+  for (const field of fields) {
+    const entry = artifact.frontmatter[field];
+    if (!entry) continue;
+    if (entry.nested) {
+      // `tools:` の次行以降がリスト（`- Read`）でなくマップ等。トークンを取り出せず、0件のまま通すと素通りになる。
+      violations.push(
+        violation(
+          CHECK,
+          artifact.path,
+          `frontmatter "${field}" の複数行の値をツール名のリストとして解釈できない（\`- Read\` 形のリスト、またはカンマ・空白区切りの1行で書くこと）。`,
+          'lib/artifact.js parseFrontmatter()'
+        )
+      );
+      continue;
+    }
+    const tokens = splitListValue(entry);
+    for (const tok of tokens) {
+      violations.push(...checkToken(tok, artifact, field));
+    }
+  }
+  return violations;
+}
+

@@ -183,9 +183,9 @@ L4 は **イベント駆動の自動化 / 外部システム連携** を扱う�
 > のような**シェル用コマンド行（プログラム名＋引数・スペース・引用符）**を書くと、`node "..."`
 > 全体が1個の実行ファイル名として spawn され失敗する。hook は**黙って落ち**、PreToolUse なら
 > **ツールがそのまま素通り（silent allow）**する——npm test（ロジック）は緑のまま配線だけが
-> 沈黙する典型（§11.5 の vacuous pass）。実際に決定論ゲート全 hook がこの書式で沈黙していた。
+> 沈黙する典型（検査が走らないまま合格に見える vacuous pass）。
 > **規則**: node スクリプトを回すなら次の**どちらか**にし、混在させない。
-> - shell form: `"command": "node \"${CLAUDE_PROJECT_DIR}/gates/x.js\""`（`args` を書かない）← 本プロジェクトの採用形
+> - shell form: `"command": "node \"${CLAUDE_PROJECT_DIR}/gates/x.js\""`（`args` を書かない）
 > - exec form : `"command": "node", "args": ["${CLAUDE_PROJECT_DIR}/gates/x.js"]`（実行ファイルと引数を分離）
 
 ##### Type 2: `http`（HTTPエンドポイント）

@@ -1,12 +1,8 @@
 /**
- * 自己適用の回帰スイート（詳細設計書 §15.3）。
+ * 自己適用の回帰スイート（architecture.md §9.2）。
  *
- * G1〜G12 は「生成物」の検証だが、claude-canon 自身の `.claude/`（agents・skills）も
- * 同じ正典に従う成果物である。§15.3 は「自己適用を回帰スイート化する」と規定するが、
- * 開発初期は移植元の旧 `.claude`（`_old/`・2026-08-28 に削除済み）への回帰テストしか
- * 存在せず、**現行の `.claude/` を検査するテストが無かった**（追跡外の資産に依存する回帰
- * テストだけが自己適用を名乗っていた）。その後 eval-* 5体と quality-checklist を足すに
- * あたり、この空白を埋めた。
+ * verify の検査は「生成物」の検証だが、claude-canon 自身の `.claude/`（agents・skills）も
+ * 同じ正典に従う成果物である。フックを使わない v2 では、ワーカーの権限の制限もここで担保する。
  *
  * ここが無いと、ワーカー定義の改変でパス規約・frontmatter・ツール名が壊れても
  * `npm test` は緑のまま——検証系が自分自身には目を閉じている状態になる。
@@ -17,18 +13,13 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { loadArtifact } from '../gates/lib/artifact.js';
-import { splitListValue } from '../gates/lib/artifact.js';
-import { checkG3 } from '../gates/g3_path_convention.js';
-import { checkG4 } from '../gates/g4_frontmatter_schema.js';
-import { checkG5 } from '../gates/g5_tool_names.js';
-import { checkG6 } from '../gates/g6_security.js';
-import { checkG13 } from '../gates/g13_worker_privilege.js';
-import { listCandidates, candidateClaudeDir } from '../gates/lib/generations.js';
-import { readdirSync, statSync } from 'node:fs';
-import { isNonSchemaRel } from '../gates/lib/non-schema.js';
-import { deriveLaunchMethod } from '../gates/g10_readme.js';
-import { collectListingEntries, analyzeReadmeMentions } from '../gates/lib/readme-listing.js';
+import { loadArtifact, parseFrontmatter, splitListValue, skillPathRole } from '../lib/artifact.js';
+import { checkV1 } from '../.claude/skills/canon-c/scripts/verify/v1-paths.js';
+import { checkV2 } from '../.claude/skills/canon-c/scripts/verify/v2-frontmatter.js';
+import { checkV3 } from '../.claude/skills/canon-c/scripts/verify/v3-tool-names.js';
+import { checkV4 } from '../.claude/skills/canon-c/scripts/verify/v4-security.js';
+import { readdirSync } from 'node:fs';
+import { isNonSchemaRel } from '../lib/non-schema.js';
 import { ROOT } from './helpers/paths.js';
 
 const SELF = path.join(ROOT, '.claude');
@@ -36,10 +27,9 @@ const SELF = path.join(ROOT, '.claude');
 /**
  * `git ls-files` で追跡対象の .md だけを歩く。素朴な readdirSync 再帰だと
  * `.claude/worktrees/<name>/`（.git/info/exclude で除外されたセッション用の
- * ネスト git worktree）配下の無関係なファイルまで拾ってしまう（L017 系の罠）。
+ * ネスト git worktree）配下の無関係なファイルまで拾ってしまう。
  *
- * 非スキーマ判定は gates/lib/non-schema.js が SSoT（L005／L027／L029・walkMd/walkMdFs の
- * 姉妹関数が同じ除外を独立に複製し波及漏れを2度起こした経緯がある）。dir は常に SELF
+ * 非スキーマ判定は lib/non-schema.js が SSoT（同じ除外を独立に複製すると波及漏れが起きる）。dir は常に SELF
  * （`.claude`）またはその配下なので base:'claude' で判定する。
  */
 function walkMd(dir) {
@@ -55,27 +45,74 @@ function walkMd(dir) {
     .map((f) => path.join(ROOT, f));
 }
 
-test('claude-canon 自身の .claude/**.md が G3〜G6 で違反0件', () => {
+test('claude-canon 自身の .claude/**.md が V1〜V4 で違反0件', () => {
   const files = walkMd(SELF);
-  assert.ok(files.length >= 20, `検査対象が少なすぎる（実際: ${files.length}）。0件を成功と誤認しない。`);
+  assert.ok(files.length >= 15, `検査対象が少なすぎる（実際: ${files.length}）。0件を成功と誤認しない。`);
 
   const found = [];
   for (const f of files) {
     const a = loadArtifact(f);
-    for (const v of [...checkG3(a), ...checkG4(a), ...checkG5(a), ...checkG6(a)]) {
-      found.push(`${path.relative(ROOT, f)}: ${v.gate} ${v.message}`);
+    for (const v of [...checkV1(a), ...checkV2(a), ...checkV3(a), ...checkV4(a)]) {
+      found.push(`${path.relative(ROOT, f)}: ${v.check} ${v.message}`);
     }
   }
   assert.deepEqual(found, [], `自己適用で違反を検出:\n${found.join('\n')}`);
 });
 
-test('claude-canon 自身のワーカー定義が G13（シェル剥奪）を通る', () => {
-  const r = checkG13({});
-  assert.equal(r.ok, true, JSON.stringify(r.violations));
-  assert.ok(r.checked >= 17, `検査対象が少なすぎる（実際: ${r.checked}）。agents 不在を合格と誤認しない。`);
+test('Phase Skill の scripts/ は skill パッケージの supporting files として扱われる（V1・V2 の対象外）', () => {
+  const out = execFileSync('git', ['ls-files', '-z', '--', '.claude/skills'], { cwd: ROOT, encoding: 'utf8' });
+  const scripts = out.split('\0').filter((f) => /^\.claude\/skills\/[^/]+\/scripts\//.test(f));
+  assert.ok(scripts.length >= 10, `scripts が少なすぎる（実際: ${scripts.length}）。0件を成功と誤認しない。`);
+  const misfiled = scripts.filter((f) => skillPathRole(f) !== 'supporting' || !isNonSchemaRel(f, 'generated'));
+  assert.deepEqual(misfiled, []);
 });
 
-test('agent の skills: preload が実在し、disable-model-invocation な Skill を preload していない（G7 相当の自己適用）', () => {
+// ---- ワーカーの権限: コマンド実行系ツールを持たない ----
+//
+// claude-canon 自身のワーカー（.claude/agents/**）はコマンド実行系ツールを持たない。実行を要する処理は
+// オーケストレーターが scripts の CLI で行う。禁止集合は代表例でなく能力で定義する: Bash と同じ
+// permission rule で駆動される Monitor、Windows の PowerShell も同じ能力である。tools: の省略は
+// 全ツール継承（docs/TOOLS.md「Inherits all tools if omitted.」）なので違反とする。frontmatter が
+// 読めない定義は tools を安全に判定できないため違反とする（黙って通すと vacuous pass になる）。
+
+/** コマンド実行系ツール（能力で定義した禁止集合）。 */
+const COMMAND_EXECUTION_TOOLS = ['Bash', 'PowerShell', 'Monitor'];
+
+/** agent 定義の本文から、コマンド実行権限に関する違反メッセージを返す（違反なしなら空配列）。 */
+function commandToolViolations(text) {
+  const { present, frontmatter, errors } = parseFrontmatter(text);
+  if (!present) return ['frontmatter（--- ブロック）が無く tools を判定できない'];
+  if (errors.length > 0) return [`frontmatter の解析に失敗した（${errors.map((e) => e.type).join(', ')}）`];
+  if (!frontmatter.tools) return ['tools: が無い（省略は全ツール継承でコマンド実行系を含む）'];
+  const found = splitListValue(frontmatter.tools)
+    .map((t) => t.replace(/\(.*$/, '')) // `Bash(git *)` は空白で `Bash(git` と `*)` に割れるため括弧以降を落とす
+    .filter((t) => COMMAND_EXECUTION_TOOLS.includes(t));
+  return found.length > 0 ? [`tools: にコマンド実行系ツール（${found.join(', ')}）が含まれる`] : [];
+}
+
+test('claude-canon 自身のワーカー定義がコマンド実行系ツールを持たない', () => {
+  const agents = walkMd(path.join(SELF, 'agents'));
+  assert.ok(agents.length > 0, 'agent 定義が0件（検査対象なしを合格と誤認しない）');
+  const found = agents.flatMap((f) =>
+    commandToolViolations(readFileSync(f, 'utf8')).map((m) => `${path.relative(ROOT, f)}: ${m}`)
+  );
+  assert.deepEqual(found, [], found.join('\n'));
+});
+
+test('検出器の素振り: コマンド実行系ツール・tools 省略・frontmatter 破損を違反として拾う', () => {
+  const def = (fm) => `---\nname: x\ndescription: x\n${fm}---\n本文\n`;
+  for (const tools of ['Read, Bash', 'Read PowerShell', 'Read, Monitor', 'Read, Bash(git *)']) {
+    assert.equal(commandToolViolations(def(`tools: ${tools}\n`)).length, 1, `tools: ${tools} を見逃した`);
+  }
+  assert.equal(commandToolViolations(def('')).length, 1, 'tools 省略を見逃した');
+  assert.equal(commandToolViolations('---\nname: x\ntools: Read\n本文\n').length, 1, '終端 --- の無い frontmatter を見逃した');
+  assert.equal(commandToolViolations('本文だけ\n').length, 1, 'frontmatter 無しを見逃した');
+  // 対照: 過剰に弾かない（Read/Grep/Write や、名前に Bash を含むだけの別ツールは通す）。
+  assert.deepEqual(commandToolViolations(def('tools: Read, Grep, Glob, Write\n')), []);
+  assert.deepEqual(commandToolViolations(def('tools: Read, BashOutput\n')), []);
+});
+
+test('agent の skills: preload が実在し、disable-model-invocation な Skill を preload していない（V6 相当の自己適用）', () => {
   const agents = walkMd(path.join(SELF, 'agents'));
   let preloads = 0;
   for (const f of agents) {
@@ -95,187 +132,193 @@ test('agent の skills: preload が実在し、disable-model-invocation な Skil
   assert.ok(preloads > 0, 'preload が1件も無い（検査が発火していない＝vacuous）');
 });
 
-/** readdirSync 再帰版の .md 列挙。generations/candidate-<label>/ は .gitignore 対象で
- * git ls-files に現れないため、walkMd（git ベース）は使えない（§13.2）。
- * 非スキーマ判定は gates/lib/non-schema.js が SSoT（L005／L027／L029）: ワーカー定義
- * （agent/skill/rule）ではなく G10 の担当のため G3/G4 の対象外（機能Y ライブ e2e で
- * candidate-readme/ 実測時に発見）。dir は常に候補の `.claude` 直下（またはその配下）を
- * 指すため base:'claude' で判定する（root は再帰の起点＝最初の呼び出しの dir を保つ）。 */
-function walkMdFs(dir, root = dir) {
-  if (!existsSync(dir)) return [];
-  let out = [];
-  for (const name of readdirSync(dir)) {
-    const p = path.join(dir, name);
-    const st = statSync(p);
-    if (st.isDirectory()) out = out.concat(walkMdFs(p, root));
-    else if (name.endsWith('.md') && !isNonSchemaRel(path.relative(root, p), 'claude')) out.push(p);
+// ---- Agent 6体と知識 Skill 5件（architecture.md §4）----
+
+/** Agent と、preload する知識 Skill の対応（architecture.md §4.1）。 */
+const EXPECTED_AGENTS = {
+  investigator: 'investigation',
+  'spec-writer': 'requirements',
+  designer: 'design',
+  builder: 'generation',
+  reviewer: 'review',
+  'keep-reviewer': 'review',
+};
+const KNOWLEDGE_SKILLS = ['investigation', 'requirements', 'design', 'generation', 'review'];
+
+/** parseFrontmatter の値（文字列、または { value } を持つオブジェクト）を文字列で返す。 */
+const fmValue = (v) => (v && typeof v === 'object' ? String(v.value ?? '') : String(v ?? ''));
+
+test('Agent は6体ちょうどで、それぞれ期待する知識 Skill を preload する', () => {
+  // `.claude` などサンドボックスのマウント点は定義ではないので、<名前>/<名前>.md を持つものだけを数える。
+  const actual = readdirSync(path.join(SELF, 'agents'))
+    .filter((n) => existsSync(path.join(SELF, 'agents', n, `${n}.md`)))
+    .sort();
+  assert.deepEqual(actual, Object.keys(EXPECTED_AGENTS).sort(), '旧定義の残存、または新定義の欠落');
+  for (const [name, skill] of Object.entries(EXPECTED_AGENTS)) {
+    const a = loadArtifact(path.join(SELF, 'agents', name, `${name}.md`));
+    assert.deepEqual(splitListValue(a.frontmatter?.skills), [skill], `${name} の skills: は [${skill}] のはず`);
   }
-  return out;
+});
+
+test('Agent は description に委譲条件（Delegate when）を持ち、本文で書込先を明示する', () => {
+  for (const name of Object.keys(EXPECTED_AGENTS)) {
+    const text = readFileSync(path.join(SELF, 'agents', name, `${name}.md`), 'utf8');
+    const { frontmatter } = parseFrontmatter(text);
+    assert.match(fmValue(frontmatter.description), /Delegate when/, `${name}: description に "Delegate when" が無い`);
+    const body = text.split(/^---\s*$/m).slice(2).join('---');
+    assert.match(body, /(work|output)\/<ts>\//, `${name}: 本文に書込先（work/<ts>/ または output/<ts>/）が無い`);
+    assert.match(body, /他の Subagent を起動しない/, `${name}: 本文に「他の Subagent を起動しない」が無い`);
+  }
+});
+
+test('知識 Skill は5件ちょうどで、user-invocable: false・本文500行未満・disable-model-invocation なし', () => {
+  const skillDirs = readdirSync(path.join(SELF, 'skills')).filter((n) => !/^canon-[a-d]$/.test(n)).sort();
+  assert.deepEqual(skillDirs, [...KNOWLEDGE_SKILLS].sort(), '旧知識 Skill の残存、または新 Skill の欠落');
+  for (const name of KNOWLEDGE_SKILLS) {
+    const text = readFileSync(path.join(SELF, 'skills', name, 'SKILL.md'), 'utf8');
+    const fm = text.split(/^---\s*$/m)[1] ?? '';
+    assert.match(fm, /^user-invocable:\s*false\s*$/m, `${name}: user-invocable: false が無い`);
+    assert.doesNotMatch(fm, /disable-model-invocation/, `${name}: preload されるので disable-model-invocation を付けない`);
+    assert.ok(text.split('\n').length < 500, `${name}: SKILL.md が500行以上`);
+    assert.ok(existsSync(path.join(SELF, 'skills', name, 'references')), `${name}: references/ が無い`);
+  }
+});
+
+/** ディレクトリ配下の .md を再帰で集める（追跡外を含まない前提のコーパス：知識 Skill と Agent）。 */
+function mdUnder(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const p = path.join(dir, e.name);
+    return e.isDirectory() ? mdUnder(p) : e.name.endsWith('.md') ? [p] : [];
+  });
 }
 
-test('機能Y: generations/candidate-*/ が存在すれば G3〜G6＋G13 を適用する（不在ならスキップ・§13.2）', () => {
-  const labels = listCandidates(ROOT);
-  if (labels.length === 0) {
-    // 候補世代が無いのは正当な状態（機能Yの自己再生成は未着手・§13.2末尾）。
-    // 0件を「検査した」と誤認しないよう、スキップである旨を明示する。
-    return;
-  }
-  for (const label of labels) {
-    const candDir = candidateClaudeDir(label, ROOT);
-    const files = walkMdFs(candDir);
-    const found = [];
-    for (const f of files) {
-      const a = loadArtifact(f);
-      for (const v of [...checkG3(a), ...checkG4(a), ...checkG5(a), ...checkG6(a)]) {
-        found.push(`${path.relative(candDir, f)}: ${v.gate} ${v.message}`);
-      }
+test('知識 Skill の Markdown リンクがすべて実在する（references への道しるべが切れていない）', () => {
+  const files = KNOWLEDGE_SKILLS.flatMap((n) => mdUnder(path.join(SELF, 'skills', n)));
+  assert.ok(files.length >= 20, `検査対象が少なすぎる（実際: ${files.length}）`);
+  const broken = [];
+  let links = 0;
+  for (const f of files) {
+    for (const m of readFileSync(f, 'utf8').matchAll(/\]\(([^)\s]+)\)/g)) {
+      const target = m[1];
+      if (/^(https?:|#)/.test(target)) continue;
+      links++;
+      if (!existsSync(path.resolve(path.dirname(f), target.split('#')[0]))) broken.push(`${path.relative(ROOT, f)} → ${target}`);
     }
-    assert.deepEqual(found, [], `候補世代 ${label} が G3〜G6 に違反:\n${found.join('\n')}`);
+  }
+  assert.ok(links >= 15, `リンクが少なすぎる（実際: ${links}）。検査が発火していない`);
+  assert.deepEqual(broken, []);
+});
 
-    const r = checkG13({ canonRoot: path.dirname(candDir) });
-    assert.equal(r.ok, true, `候補世代 ${label} が G13 に違反（自己欺瞞の可能性）: ${JSON.stringify(r.violations)}`);
+test('新しい Agent・知識 Skill に、旧体系の用語・番号が残っていない', () => {
+  // 旧ゲート番号・旧 keep 条件・旧ゲート・run 番号・旧機構の語。新番号は V1〜V9・K1〜K5・P1〜P5・工程1〜9。
+  const OLD = /\bG\d{1,2}\b|\bC[1-5]_|\bP[6-8]\b|工程10|run 20\d{6}|fixtures\/|marker|\.requests|\.gate|基本設計書|詳細設計書|SendMessage|systemA|系統[AB]|eval-|quality-checklist/;
+  const files = [
+    ...mdUnder(path.join(SELF, 'agents')),
+    ...KNOWLEDGE_SKILLS.flatMap((n) => mdUnder(path.join(SELF, 'skills', n))),
+  ];
+  const hits = files.flatMap((f) =>
+    readFileSync(f, 'utf8')
+      .split('\n')
+      .flatMap((line, i) => (OLD.test(line) ? [`${path.relative(ROOT, f)}:${i + 1}: ${line.trim().slice(0, 80)}`] : []))
+  );
+  assert.deepEqual(hits, []);
+});
+
+test('検出器の素振り: 旧体系の語を含む行を上の検査が拾う', () => {
+  const OLD = /\bG\d{1,2}\b|\bC[1-5]_|\bP[6-8]\b|工程10|run 20\d{6}|fixtures\/|marker|\.requests|\.gate|基本設計書|詳細設計書|SendMessage|systemA|系統[AB]|eval-|quality-checklist/;
+  for (const bad of ['G9 が止める', 'C2_no_requirement_conflict', 'P8 で確認', '工程10', 'run 20260927_003229', 'fixtures/sample-repos', '.requests/spec', '基本設計書 §8', '系統A']) {
+    assert.ok(OLD.test(bad), `${bad} を見逃した`);
+  }
+  for (const ok of ['V7 が止める', 'K2_no_requirement_conflict', 'P3 で確認', 'run ブランチ']) {
+    assert.ok(!OLD.test(ok), `${ok} を過検出した`);
   }
 });
 
-test('eval-* 5体と quality-checklist が実在する（工程9の成果物が消えたら落ちる）', () => {
-  for (const name of [
-    'eval-correctness',
-    'eval-security',
-    'eval-canon',
-    'eval-context',
-    'eval-keep-review',
-  ]) {
-    assert.ok(existsSync(path.join(SELF, 'agents', name, `${name}.md`)), `${name} が無い`);
+// ---- Phase Skill（オーケストレーター） ----
+
+const PHASE_SKILLS = ['canon-a', 'canon-b', 'canon-c', 'canon-d'];
+const phaseSkillText = (n) => readFileSync(path.join(SELF, 'skills', n, 'SKILL.md'), 'utf8');
+
+test('Phase Skill は4件そろい、手動起動専用・inline 実行・本文500行未満', () => {
+  for (const name of PHASE_SKILLS) {
+    const text = phaseSkillText(name);
+    const fm = text.split(/^---\s*$/m)[1] ?? '';
+    assert.match(fm, new RegExp(`^name:\\s*${name}\\s*$`, 'm'), `${name}: name が無い`);
+    assert.match(fm, /^disable-model-invocation:\s*true\s*$/m, `${name}: disable-model-invocation: true が無い`);
+    assert.match(fm, /^argument-hint:/m, `${name}: argument-hint が無い`);
+    // fork するとメインの会話履歴を継承せず、ヒアリングと人間ゲートの対話が成り立たない
+    assert.doesNotMatch(fm, /^context:\s*fork/m, `${name}: context: fork を付けない`);
+    assert.ok(text.split('\n').length < 500, `${name}: SKILL.md が500行以上`);
   }
-  assert.ok(existsSync(path.join(SELF, 'skills', 'quality-checklist', 'SKILL.md')));
 });
 
-test('J-1: preload 専用 Skill（user-invocable:false）が .claude/README.md に露出していない（§12.4 自己適用）', () => {
-  // G10 自身は output/<ts>/generated/ 固定で自己適用できないため、export 済みの
-  // deriveLaunchMethod（起動方式の導出ロジック・SSoT）を稼働中の .claude/skills/*/SKILL.md へ
-  // 直接適用する（実昇格準備2・J-1 決着）。
-  const skillsDir = path.join(SELF, 'skills');
-  const readme = readFileSync(path.join(SELF, 'README.md'), 'utf8');
-  const internal = [];
-  const listed = [];
-  for (const name of readdirSync(skillsDir)) {
-    const skillPath = path.join(skillsDir, name, 'SKILL.md');
-    if (!existsSync(skillPath)) continue;
-    const a = loadArtifact(skillPath);
-    const { listed: isListed } = deriveLaunchMethod('skill', a.frontmatter);
-    (isListed ? listed : internal).push(name);
+test('Phase Skill の本文が呼ぶ npm scripts がすべて package.json に実在する', () => {
+  const scripts = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8')).scripts;
+  const missing = [];
+  let calls = 0;
+  for (const name of PHASE_SKILLS) {
+    for (const m of phaseSkillText(name).matchAll(/npm run ([a-z][a-z0-9:-]*)/g)) {
+      calls++;
+      if (!scripts[m[1]]) missing.push(`${name}: npm run ${m[1]}`);
+    }
   }
-  assert.equal(internal.length, 11, `内部専用 Skill は11件のはず（実際: ${internal.length}）`);
-  assert.equal(listed.length, 3, `ユーザー起動可能な Skill は3件（canon/self-optimize/update-docs）のはず（実際: ${listed.length}）`);
+  assert.ok(calls >= 15, `npm run の呼び出しが少なすぎる（実際: ${calls}）。検査が発火していない`);
+  assert.deepEqual(missing, []);
+});
 
-  // 判定式は G10 と同じ SSoT（gates/lib/readme-listing.js）を使う。ここへ独立実装を
-  // 置くと、片側だけが §12.4 の改訂に追従しない（gates-and-tests.md「複製しない」）。
-  const entries = collectListingEntries(readme);
-  for (const name of internal) {
-    const { slash, listing } = analyzeReadmeMentions(readme, name, entries);
-    assert.equal(listing.length, 0, `内部専用 Skill "${name}" が利用者向け一覧に載っている（§12.4 違反）`);
-    assert.equal(slash.length, 0, `内部専用 Skill "${name}" の起動表記 \`/${name}\` が README にある（§12.4 起動不可）`);
+test('Phase Skill は開始時に承認を照合し、ゲートで承認を記録する', () => {
+  const expect = { 'canon-b': 'P1,P2', 'canon-c': 'P1,P2,P3', 'canon-d': 'P1,P2,P3,P4' };
+  for (const [name, gates] of Object.entries(expect)) {
+    assert.ok(phaseSkillText(name).includes(`approvals -- <ts> check --expect ${gates}`), `${name}: 開始時の照合（--expect ${gates}）が無い`);
   }
-  for (const name of listed) {
-    assert.ok(readme.includes(name), `ユーザー起動可能な Skill "${name}" が README に登場しない（網羅性・§12.2 違反）`);
-    const { slash } = analyzeReadmeMentions(readme, name, entries);
-    assert.ok(slash.length > 0, `Skill "${name}" の起動方法 \`/${name}\` が README に無い（起動方式の正典整合・§12.4）`);
+  const gatesOf = { 'canon-a': ['P1', 'P2'], 'canon-b': ['P3'], 'canon-c': ['P4'], 'canon-d': ['P5'] };
+  for (const [name, gates] of Object.entries(gatesOf)) {
+    for (const g of gates) assert.ok(phaseSkillText(name).includes(`record ${g} `), `${name}: ${g} の記録が無い`);
   }
+});
 
-  // 検出力の証明: 上のループが「一覧が空だから素通りしている」のでないことを、README 文字列へ
-  // 一覧行を注入して確かめる（実ファイルは触らない・.claude/rules/gates-and-tests.md）。
-  const victim = internal[0];
-  const injected = `${readme}\n\n| Skill | 起動方法 |\n|---|---|\n| \`${victim}\` | 起動不可 |\n`;
-  assert.ok(
-    analyzeReadmeMentions(injected, victim).listing.length > 0,
-    `一覧への注入が検出されない——J-1 の述語が vacuous（対象: ${victim}）`
+test('Phase Skill に旧体系の用語・番号が残っていない（SendMessage は「再開しない」の規則として許す）', () => {
+  const OLD = /\bG\d{1,2}\b|\bC[1-5]_|\bP[6-8]\b|工程10|run 20\d{6}|fixtures\/|marker|\.requests|\.gate|基本設計書|詳細設計書|systemA|系統[AB]|eval-|quality-checklist|\bS[1-4]\b|state:record|recheck|resume/;
+  const hits = PHASE_SKILLS.flatMap((n) =>
+    phaseSkillText(n)
+      .split('\n')
+      .flatMap((line, i) => (OLD.test(line) ? [`${n}:${i + 1}: ${line.trim().slice(0, 80)}`] : []))
   );
-  assert.ok(
-    analyzeReadmeMentions(`${readme}\n\n\`/${victim}\` で起動。\n`, victim).slash.length > 0,
-    `スラッシュ表記の注入が検出されない——J-1 の述語が vacuous（対象: ${victim}）`
-  );
+  assert.deepEqual(hits, []);
 });
 
 /**
- * L035 の機構化: 決定論ゲート（gates/*.js）の判定基準を変更したとき、それを人間可読な形で
- * 説明するワーカー定義（.claude/agents/<name>/<name>.md・.claude/skills/<name>/SKILL.md）が追従しているかを
- * npm test で検出する。L035 は「grep で横断検索せよ」という人間向けの規律だったが、これを
- * 怠ると npm test は緑のまま追従漏れが放置される（実際に3回目の /self-optimize run で発生）。
+ * 決定論の検査（verify）の判定基準を変更したとき、それを人間可読な形で説明するワーカー定義
+ * （.claude/agents/<name>/<name>.md・.claude/skills/<name>/SKILL.md）が追従しているかを npm test で検出する。
+ * 「grep で横断検索せよ」という人間向けの規律だけだと、怠っても npm test は緑のまま追従漏れが放置される。
  *
- * gates/g2_keep_judgement.js の INTERFACE_CHANGE_VALUES/BREAKING_DISPOSITIONS は export
- * されておらず（gates/ 側のコードは本 run のスコープ外で変更しない）、ここでは実装契約が
- * 変わったときに人間が最初に触るであろう固有の語彙（interface_change・旧規則の断片）を
- * 直接照合する。
+ * ここでは実装契約が変わったときに人間が最初に触るであろう固有の語彙
+ * （interface_change・旧規則の断片）を直接照合する。
  */
-test('L035: designer/existing-disposition の C3 説明が interface_change 機構に追従している', () => {
+test('design Skill の keep 条件の説明が interface_change 機構に追従している', () => {
   const targets = [
-    path.join(SELF, 'agents', 'designer', 'designer.md'),
-    path.join(SELF, 'skills', 'existing-disposition', 'SKILL.md'),
+    path.join(SELF, 'skills', 'design', 'references', 'existing-disposition.md'),
+    path.join(SELF, 'skills', 'design', 'references', 'design-map-template.md'),
   ];
   for (const f of targets) {
     const body = readFileSync(f, 'utf8');
     const rel = path.relative(ROOT, f);
-    assert.ok(body.includes('interface_change'), `${rel}: C3 の説明に interface_change 機構への言及が無い（L035）`);
+    assert.ok(body.includes('interface_change'), `${rel}: keep 条件の説明に interface_change 機構への言及が無い`);
     assert.ok(/interface_change:\s*none/.test(body), `${rel}: interface_change: none の具体例が無い`);
     assert.ok(
       !body.includes('廃止/改修されない'),
-      `${rel}: C3 の旧規則の断片（廃止/改修されない）が残っている——interface_change 機構に置き換わっていない`
+      `${rel}: 旧規則の断片（廃止/改修されない）が残っている——interface_change 機構に置き換わっていない`
     );
   }
 });
 
-test('L035: 系統A/B・eval-keep-review の調査スコープ説明が /self-optimize 例外（§5.1）に追従している', () => {
-  const targets = [
-    path.join(SELF, 'agents', 'existing-customization-analyzer', 'existing-customization-analyzer.md'),
-    path.join(SELF, 'agents', 'project-profiler', 'project-profiler.md'),
-    path.join(SELF, 'agents', 'eval-keep-review', 'eval-keep-review.md'),
-  ];
-  for (const f of targets) {
-    const body = readFileSync(f, 'utf8');
-    const rel = path.relative(ROOT, f);
-    // 「claude-canon 自身は（棚卸し）対象にしません」型の記述自体は /canon の既定動作として
-    // 正しい。stale の兆候は、その記述の近くに /self-optimize 例外への言及が一切無いこと
-    // （基本設計書 §5.1 の唯一の例外を無条件表現のまま読者に伝え損ねている状態）。
-    assert.ok(
-      body.includes('self-optimize'),
-      `${rel}: 調査スコープの説明が /self-optimize 例外（基本設計書 §5.1）に触れていない`
-    );
-  }
-});
-
-test('L035: G13 matcher を引用する SKILL.md が .claude/settings.json の実値と一致する', () => {
-  const settings = JSON.parse(readFileSync(path.join(SELF, 'settings.json'), 'utf8'));
-  const actualMatcher = settings.hooks?.UserPromptExpansion?.[0]?.matcher;
-  assert.ok(actualMatcher, 'settings.json から UserPromptExpansion matcher を読めない（検査対象なし）');
-
-  const targets = [
-    path.join(SELF, 'skills', 'canon', 'SKILL.md'),
-    path.join(SELF, 'skills', 'update-docs', 'SKILL.md'),
-    path.join(SELF, 'skills', 'self-optimize', 'SKILL.md'),
-  ];
-  let quoted = 0;
-  const matcherLiteralRe = /`([a-z][a-z-]*(?:\|[a-z][a-z-]*)+)`/g;
-  for (const f of targets) {
-    const body = readFileSync(f, 'utf8');
-    const rel = path.relative(ROOT, f);
-    for (const m of body.matchAll(matcherLiteralRe)) {
-      // matcher らしき文字列（"canon" を含むパイプ区切り）だけを対象にする。他の無関係な
-      // パイプ区切りバッククォート文字列（無い想定だが将来の誤検知を避ける）は無視する。
-      if (!m[1].includes('canon')) continue;
-      quoted++;
-      assert.equal(m[1], actualMatcher, `${rel}: matcher 引用 "${m[1]}" が settings.json の実値 "${actualMatcher}" と不一致`);
-    }
-  }
-  assert.ok(quoted > 0, 'matcher を引用する SKILL.md が1件も見つからない（検査が発火していない＝vacuous）');
-});
-
-// ── モデルルーティング（run 20260919 の実測欠陥の回帰） ─────────────────────────
+// ── モデルルーティング ─────────────────────────
 // ネイティブ起動で Agent の model 引数を渡すと frontmatter を上書きする（正典 L3 §2.1）。
-// オーケストレータ系の定義が例示で固定のモデル名を渡すと LLM が真似て、spec-writer・generator が
-// frontmatter sonnet のまま Opus で走った。ネイティブ起動の例示に model 引数を書かない。
+// オーケストレーターの定義が例示で固定のモデル名を渡すと LLM が真似て、ワーカーが frontmatter と
+// 違うモデルで走る。ネイティブ起動の例示に model 引数を書かない。
 const ORCHESTRATOR_DOCS = [
   ...readdirSync(path.join(SELF, 'agents')).map((n) => path.join(SELF, 'agents', n, `${n}.md`)),
-  ...['canon', 'self-optimize', 'update-docs'].map((n) => path.join(SELF, 'skills', n, 'SKILL.md')),
+  ...PHASE_SKILLS.map((n) => path.join(SELF, 'skills', n, 'SKILL.md')),
 ].filter((p) => existsSync(p));
 
 test('ネイティブ起動の Agent 例示が model 引数を渡していない（frontmatter を唯一の正にする）', () => {
@@ -312,52 +355,38 @@ test('全 agent が effort を明示している（未指定だとセッショ�
   assert.deepEqual(missing, []);
 });
 
-// ---- 調査ワーカーの直接起動（中継役 investigator の廃止）----
+// ---- ワーカーの書込権限（tools）の設計 ----
 
-test('investigator（深さ2の中継役）は廃止済み。系統A/B は自分の成果物を書ける（Write）が、コマンド実行系ツールは持たない', () => {
-  assert.equal(existsSync(path.join(SELF, 'agents', 'investigator')), false, 'investigator を復活させない（深さ2の報告が呼び出し元に届かない failure mode の再発）');
-  const toolsOf = (n) => (/^tools:\s*(.+)$/m.exec(readFileSync(path.join(SELF, 'agents', n, `${n}.md`), 'utf8').split('---')[1])?.[1] ?? '').split(/\s+/);
-  for (const n of ['existing-customization-analyzer', 'project-profiler']) {
-    const tools = toolsOf(n);
-    assert.ok(tools.includes('Write'), `${n} は自分の成果物を書くために Write が要る`);
-    for (const banned of ['Bash', 'PowerShell', 'Monitor']) {
-      assert.ok(!tools.includes(banned), `${n} がコマンド実行系ツール ${banned} を持っている（G13・承認の偽造経路）`);
-    }
+test('読むだけの役割に Edit を与えない／書く役割は自分の成果物を書ける', () => {
+  const toolsOf = (n) => splitListValue(loadArtifact(path.join(SELF, 'agents', n, `${n}.md`)).frontmatter.tools);
+  // investigator・reviewer・keep-reviewer は自分の成果物を1ファイル書くだけ（Write）。Edit は要らない。
+  for (const n of ['investigator', 'reviewer', 'keep-reviewer']) {
+    assert.ok(toolsOf(n).includes('Write'), `${n} は自分の成果物を書くために Write が要る`);
+    assert.ok(!toolsOf(n).includes('Edit'), `${n} に Edit は不要（差し戻しを受けない読み取り中心の役割）`);
+  }
+  // 差し戻しで指示の箇所だけを直す役割は Edit を持つ。
+  for (const n of ['spec-writer', 'designer', 'builder']) {
+    assert.ok(toolsOf(n).includes('Edit'), `${n} は差し戻しで該当箇所だけを直すために Edit が要る`);
   }
 });
 
-test('廃止済みの承認サイドカー（npm run approve・.gate/approvals）を .claude/** が指示していない（run 20260927_003229 で spec §0 に混入）', () => {
-  const offenders = walkMd(SELF).filter((f) => {
-    const text = readFileSync(f, 'utf8');
-    return /npm run approve\b|\.gate\/(?:approvals|\{[^}]*\bapprovals\b)/.test(text) && !/廃止/.test(text.split('\n').find((l) => /npm run approve\b|\.gate\/(?:approvals|\{[^}]*\bapprovals\b)/.test(l)) ?? '');
-  });
-  assert.deepEqual(offenders.map((f) => path.relative(SELF, f)), []);
-});
+// ---- 定義に残すべき契約語（消えたら落ちる） ----
 
-test('run 20260925・20260927 の分析で入れた規律が定義から消えていない（文言の回帰ロック）', () => {
+test('定義から消えてはならない契約語（生成物の読み手に向けた規約・信頼境界・再発防止の規則）', () => {
   const read = (rel) => readFileSync(path.join(SELF, rel), 'utf8');
   const must = [
-    ['agents/generator/generator.md', /run_in_background: false` を明示/, 'builder の非同期起動'],
-    ['agents/generator/generator.md', /ポーリングしない/, 'Glob ポーリング'],
-    ['agents/generator/generator.md', /別の Builder に振り直さない/, '担当の二重振り'],
-    ['agents/generator/generator.md', /copy-keep/, 'keep の決定論コピー'],
-    ['skills/canon/SKILL.md', /model: "sonnet"` を明示/, '場当たりの調査 agent の Opus 継承'],
-    ['skills/canon/SKILL.md', /handoff_notes/, '申し送りの実施'],
-    ['skills/canon/SKILL.md', /canon-issues-candidates\.md/, 'run 中の canon 課題の記録'],
-    ['skills/canon/SKILL.md', /報告を受け取っても、それは完了ではない/, 'handback と完了の区別'],
-    ['skills/canon/SKILL.md', /先に P5 を差し戻す/, 'keep に及ぶ修正'],
-    ['skills/canon/SKILL.md', /発火は未検証/, '配置後のカナリア'],
-    ['agents/designer/designer.md', /他の run の `output\/\*\/design-map\.md`/, 'designer の過剰読込'],
-    ['agents/readme-writer/readme-writer.md', /全件を載せる/, 'Rules 表の網羅'],
-    ['skills/requirement-elicitation/SKILL.md', /preview は表示されない環境がある/, 'preview の位置参照'],
+    ['skills/generation/references/no-leaks.md', /読み手が解決できない参照/, '未定義の参照を書かない'],
+    ['skills/generation/references/no-leaks.md', /編集メモ/, '編集メモを書かない'],
+    ['skills/generation/references/no-leaks.md', /差分・経緯/, '差分・経緯の表現を書かない'],
+    ['skills/generation/SKILL.md', /design-map.md の全文は読まない/, 'builder の過剰読込'],
+    ['skills/generation/SKILL.md', /宣言一覧の全件が書けていること/, '件数の突き合わせ'],
+    ['skills/generation/SKILL.md', /emit-manifest/, 'README・MANIFEST は builder が書かない'],
+    ['skills/design/SKILL.md', /他の run の design-map/, 'designer の過剰読込'],
+    ['skills/requirements/references/interview.md', /preview が表示されない環境がある/, 'preview の位置参照'],
+    ['skills/requirements/references/requirements-template.md', /生成物のどこにも現れてはならない/, 'allowed: false の意味'],
+    ['skills/review/references/keep-review.md', /意図的に含まれていない/, 'designer の主張を除く契約'],
+    ['skills/review/SKILL.md', /Grep で確かめる/, '不在を根拠にする前の確認'],
   ];
   const missing = must.filter(([rel, re]) => !re.test(read(rel))).map(([rel, , why]) => `${rel}（${why}）`);
   assert.deepEqual(missing, []);
-});
-
-test('.requests を書く全ワーカー定義が、完了リクエストの中身の規約を直書きしている（書式を探し回らない）', () => {
-  const writers = walkMd(path.join(SELF, 'agents')).filter((f) => /\.requests\//.test(readFileSync(f, 'utf8')));
-  assert.ok(writers.length >= 5, `対象が少なすぎる（${writers.length}）＝検査が vacuous`);
-  const missing = writers.filter((f) => !/存在だけ\*\*を見て中身は読まない/.test(readFileSync(f, 'utf8')));
-  assert.deepEqual(missing.map((f) => path.relative(SELF, f)), []);
 });

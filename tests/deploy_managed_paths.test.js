@@ -1,6 +1,6 @@
 /**
- * gates/lib/managed-paths.js（管理パス集合 SSoT・§10.1）のユニットテスト。
- * G9 と deploy が本 lib を共有する（G9 はローカル定義を持たず import する＝構造で SSoT を担保）。
+ * lib/managed-paths.js（管理パス集合 SSoT・artifacts.md §10.1）のユニットテスト。
+ * V8・V9 と canon-d のスクリプトが本 lib を共有する（ローカル定義を持たず import する＝構造で SSoT を担保）。
  */
 
 import test from 'node:test';
@@ -16,14 +16,15 @@ import {
   walkManaged,
   walkManagedDetailed,
   sha256File,
-} from '../gates/lib/managed-paths.js';
+  findUnmanagedEntries,
+} from '../lib/managed-paths.js';
 import { sampleRepoDir as fixtureCase, scratchDir } from './helpers/fixtures.js';
 
-test('MANAGED_PATTERNS: base 集合の10パターン（§10.1）', () => {
-  // 9 → 10: `.claude/hooks/**`（hook ハンドラ実体）を追加（2026-09-03・§10.1）。
+test('MANAGED_PATTERNS: base 集合の9パターン（artifacts.md §10.1）', () => {
+  // `.claude/hooks/**`（hook ハンドラ実体）を含む。
   // 件数を固定するのは、集合の拡大が「気づかれずに」起きないようにするため——集合が
-  // 広がることは退避スワップが破壊しうる範囲が広がることと同義である（§10.1 の単一障害点）。
-  assert.equal(MANAGED_PATTERNS.length, 10);
+  // 広がることは退避スワップが破壊しうる範囲が広がることと同義である（列挙の網羅性が単一障害点）。
+  assert.equal(MANAGED_PATTERNS.length, 9);
 });
 
 test('isManaged: 集合内は true', () => {
@@ -34,7 +35,6 @@ test('isManaged: 集合内は true', () => {
     '.claude/agents/a/a.md',
     '.claude/settings.json',
     '.claude/README.md',
-    '.claude/EXTRA.md',
     '.claude/hooks/block-rm.sh',
     '.claude/hooks/nested/format.mjs',
     '.mcp.json',
@@ -49,6 +49,8 @@ test('isManaged: 集合外（不可侵）は false', () => {
     '.github/workflows/ci.yml',
     'CODEOWNERS',
     'hooks/stray.sh', // `.claude/` の外の hooks/ は集合外のまま（拡張しすぎていないこと）
+    '.claude/EXTRA.md', // §10.1 に無い `.claude/<名前>.md` は集合外（.claude/README.md だけが集合内）
+    '.claude/CLAUDE.md',
     '.claude/hooks', // ディレクトリ自身は対象外（`.+` が要る）
     'src/.claude/hooks/x.sh', // 集合パターンは先頭アンカー。サブツリーの同名は拾わない
     'src/app.js',
@@ -65,7 +67,7 @@ test('normalizeRel: バックスラッシュ→スラッシュ・先頭 ./ 除�
   assert.equal(normalizeRel('./CLAUDE.md'), 'CLAUDE.md');
 });
 
-test('parseListText: # コメント・空行を除去し正規化する（G9 従来挙動と同一）', () => {
+test('parseListText: # コメント・空行を除去し正規化する', () => {
   const text = '# コメント\nCLAUDE.md\n\n  .claude/skills/s/SKILL.md \n./x.md\n.claude\\a\\b.md\n';
   assert.deepEqual(parseListText(text), [
     'CLAUDE.md',
@@ -89,10 +91,10 @@ test('walkManaged: 対象配下の管理ファイルのみ列挙（集合外・e
 // ---------------------------------------------------------------------------
 // walkManaged の頑健性と走査範囲
 //
-// 実観測の事故（<ts> 20260903_091044・対象 vehicle-intake-management）: 旧 walkManaged は
+// 実際に起きた事故: 旧 walkManaged は
 // 全ツリーを再帰しつつ全エントリへノーガードで statSync していたため、対象リポジトリの
 // socket 実在物（backend/ 配下13件＋ルート1件、いずれも .gitignore 済み）1件目の EACCES で
-// pre-deploy-check ごと落ち、P8 の最終防波堤が起動不能になった。
+// pre-deploy-check ごと落ち、P5 の前の最終防波堤が起動不能になった。
 // ---------------------------------------------------------------------------
 
 /** 事故当時の対象リポジトリの形（管理パス＋走査根の外の重量物＋socket 実在物）を作る。 */
@@ -137,14 +139,14 @@ function eaccesOnSockets(p, ...rest) {
 
 test('managedRoots: MANAGED_PATTERNS から機械導出する（走査根を二重管理しない）', () => {
   // 走査根を手書きの第二リストとして持つと、パターンだけ足して走査根を足し忘れた瞬間
-  // walkManaged が黙って列挙漏れを起こす（§10.1 の単一障害点）。導出であることを固定する。
+  // walkManaged が黙って列挙漏れを起こす（列挙の網羅性が単一障害点）。導出であることを固定する。
   assert.deepEqual([...managedRoots()].sort(), ['.claude', '.mcp.json', 'CLAUDE.md', 'plugin']);
 });
 
 test('walkManaged: stat 不能なエントリ（EACCES socket）が在っても走査全体が落ちない', (t) => {
   const dir = targetLike(t);
 
-  // 対照実験（L002: vacuous pass 対策）——注入した EACCES が「旧実装なら本当に致死」で
+  // 対照実験（vacuous pass 対策）——注入した EACCES が「旧実装なら本当に致死」で
   // あることを先に示す。これが throw しないなら以降のアサーションは何も証明していない。
   const walkWholeTree = (root) => {
     for (const name of readdirSync(root)) {
@@ -236,4 +238,27 @@ test('sha256File: keep 対象は target と expected-output でバイト同一�
     path.join(fixtureCase('existing'), 'expected-output/generated/.claude/skills/kept-skill/SKILL.md')
   );
   assert.equal(a, b, 'keep は verbatim コピーゆえ sha256 が一致していなければならない');
+});
+
+test('isManaged: `..`・`.`・空セグメント・絶対パス・バックスラッシュを含む表記は、パターンに合っても集合外', () => {
+  for (const rel of [
+    '.claude/rules/../../x', // `.+` を素通りして集合外へ出る
+    '.claude/rules/../CLAUDE.md',
+    '.claude/skills/./s/SKILL.md',
+    '.claude/skills//s/SKILL.md',
+    '/etc/passwd',
+    '/.claude/rules/a.md',
+    'C:/x/.claude/rules/a.md',
+    '.claude\\rules\\a.md',
+    'plugin/../src/app.js',
+    '',
+  ]) {
+    assert.equal(isManaged(rel), false, JSON.stringify(rel));
+  }
+});
+
+test('findUnmanagedEntries: 集合外・`..`・絶対パス・未正規化の行だけを返す', () => {
+  const entries = ['CLAUDE.md', '.claude/rules/../../x', '/abs/CLAUDE.md', 'src/app.js', '.claude/rules/./a.md', '.claude/rules/a.md'];
+  assert.deepEqual(findUnmanagedEntries(entries), ['.claude/rules/../../x', '/abs/CLAUDE.md', 'src/app.js', '.claude/rules/./a.md']);
+  assert.deepEqual(findUnmanagedEntries(['CLAUDE.md']), []);
 });

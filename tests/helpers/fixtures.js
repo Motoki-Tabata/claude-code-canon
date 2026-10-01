@@ -1,17 +1,17 @@
 /**
- * 成果物 fixture（agent/skill の frontmatter）とサンプルリポジトリ配置の共通ヘルパ。
+ * テスト入力の生成ヘルパ: 成果物（agent/skill の frontmatter）の文字列、サンプルリポジトリと
+ * keep-review ケースの書き出し（データは tests/helpers/sample-repos.js・keep-review-cases.js）。
  *
- * 継ぎ足しで16ファイル・55箇所に散っていた frontmatter リテラル文字列と、
- * scenario2_helpers.js／scenario3_helpers.js／deploy_helpers.js の3実装
- * （いずれも fixtures/sample-repos/<case>/expected-output→output/<ts>/・
- * expected-work→work/<ts>/ という同一規約）を統合する。
+ * サンプルリポジトリは expected-output/→output/<ts>/・expected-work/→work/<ts>/ という規約で配置する。
  */
 
 import { mkdirSync, writeFileSync, cpSync, mkdtempSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ROOT, outputDir, workDir } from './paths.js';
-import { mintMarker } from '../../gates/lib/run.js';
+import { outputDir, workDir } from './paths.js';
+import { SAMPLE_REPOS, SAMPLE_MODES } from './sample-repos.js';
+import { renderHandoff } from '../../lib/handoff.js';
+import { KEEP_REVIEW_CASES } from './keep-review-cases.js';
 
 // ---------------------------------------------------------------------------
 // frontmatter 文字列生成
@@ -55,13 +55,20 @@ export function writeSkill(genRoot, name, fields = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// 使い捨てスクラッチディレクトリ
+// 使い捨てスクラッチディレクトリ・実 work/<ts>・output/<ts> の後始末
 // ---------------------------------------------------------------------------
 
-/**
- * `os.tmpdir()` 配下に使い捨てディレクトリを作り、t.after() で削除する。
- * `makeCanonRoot`/`makeStageScratch`/`makeScratchRoot`/`makeDivergenceScratch` の置換。
- */
+/** 実 output/<ts>・work/<ts> の後始末を t.after() へ登録する（複数 ts をまとめて渡せる）。 */
+export function cleanupTs(t, ...tsList) {
+  t.after(() => {
+    for (const ts of tsList) {
+      rmSync(outputDir(ts), { recursive: true, force: true });
+      rmSync(workDir(ts), { recursive: true, force: true });
+    }
+  });
+}
+
+/** `os.tmpdir()` 配下に使い捨てディレクトリを作り、t.after() で削除する。 */
 export function scratchDir(t, prefix) {
   const dir = mkdtempSync(path.join(os.tmpdir(), prefix));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
@@ -69,21 +76,48 @@ export function scratchDir(t, prefix) {
 }
 
 // ---------------------------------------------------------------------------
-// サンプルリポジトリ配置（fixtures/sample-repos/<name>/）
+// サンプルリポジトリ・keep-review ケースの書き出し
 // ---------------------------------------------------------------------------
 
+/** { 相対パス: 内容 } を root 配下へ書き出す。 */
+export function writeTree(root, files) {
+  for (const [rel, content] of Object.entries(files)) {
+    const p = path.join(root, rel);
+    mkdirSync(path.dirname(p), { recursive: true });
+    writeFileSync(p, content);
+  }
+}
+
+// 書き出しはテストプロセスごとに1回だけ行い、プロセス終了時に消す。複写元として読むだけで
+// 書き換えないこと（書き換えるテストは setupSampleRepo・setupTmpCase のコピーを使う）。
+let materializedRoot = null;
+function materialize(kind, name, table) {
+  if (!table[name]) throw new Error(`未知の ${kind}: ${name}`);
+  if (!materializedRoot) {
+    materializedRoot = mkdtempSync(path.join(os.tmpdir(), 'canon-fixtures-'));
+    process.on('exit', () => rmSync(materializedRoot, { recursive: true, force: true }));
+  }
+  const dir = path.join(materializedRoot, kind, name);
+  if (!existsSync(dir)) writeTree(dir, table[name]);
+  return dir;
+}
+
+/** サンプルリポジトリ（new・existing・constrained）を書き出したディレクトリ。 */
 export function sampleRepoDir(name) {
-  return path.join(ROOT, 'fixtures', 'sample-repos', name);
+  return materialize('sample-repos', name, SAMPLE_REPOS);
+}
+
+/** keep-review ケース（k4-strength-gap・merge-target-bad）を書き出したディレクトリ。 */
+export function keepReviewCaseDir(name) {
+  return materialize('keep-review', name, KEEP_REVIEW_CASES);
 }
 
 /**
- * `fixtures/sample-repos/<name>/expected-output/**` を実 `output/<ts>/` へ、
- * `expected-work/**` を実 `work/<ts>/` へ配置し、`target.txt`（対象リポの絶対パス）を書く。
- * `scenario2_helpers.setupScenario2` と `scenario3_helpers.setupScenario3` を統合したもの
- * （両者は `markers` の有無以外は同一規約——`expected-output/` の中身をそのまま複写する）。
- * t.after() で実 output/work の当該 <ts> を削除する。
+ * サンプルリポジトリの `expected-output/**` を実 `output/<ts>/` へ、
+ * `expected-work/**` を実 `work/<ts>/` へ配置し、`work/<ts>/handoff.md`（target＝対象リポの絶対パス・
+ * mode は SAMPLE_MODES）を書く。t.after() で実 output/work の当該 <ts> を削除する。
  */
-export function setupSampleRepo(t, name, ts, { markers = [] } = {}) {
+export function setupSampleRepo(t, name, ts) {
   const caseDir = sampleRepoDir(name);
   const o = outputDir(ts);
   const w = workDir(ts);
@@ -91,22 +125,22 @@ export function setupSampleRepo(t, name, ts, { markers = [] } = {}) {
   mkdirSync(w, { recursive: true });
   cpSync(path.join(caseDir, 'expected-output'), o, { recursive: true });
   cpSync(path.join(caseDir, 'expected-work'), w, { recursive: true });
-  writeFileSync(path.join(w, 'target.txt'), caseDir + '\n');
+  writeHandoff(ts, { target: caseDir, mode: SAMPLE_MODES[name] });
 
-  // 前段工程の完了マーカー（G1 の design／generation ステージは前段の done を前提とする）。
-  for (const stage of markers) mintMarker(ts, stage, { fixture: true });
-
-  t.after(() => {
-    rmSync(o, { recursive: true, force: true });
-    rmSync(w, { recursive: true, force: true });
-  });
+  cleanupTs(t, ts);
 
   return { ts, out: o, work: w, gen: path.join(o, 'generated'), req: path.join(w, 'requirements.md') };
 }
 
+/** 実 `work/<ts>/handoff.md` を書く（new-run.js と同じ雛形）。 */
+export function writeHandoff(ts, { target, mode = 'new' }) {
+  mkdirSync(workDir(ts), { recursive: true });
+  writeFileSync(path.join(workDir(ts), 'handoff.md'), renderHandoff({ ts, target: target.split(path.sep).join('/'), mode }));
+}
+
 /**
- * deploy/ 系向け: 対象リポ（expected-output を除く）と `output/<ts>/`（= expected-output）を
- * tmpdir へ複写する。fixture 本体・実 work/output を一切汚さない（`deploy_helpers.setupCase` 相当）。
+ * canon-d 系向け: 対象リポ（expected-output を除く）と `output/<ts>/`（= expected-output）を
+ * tmpdir へ複写する。複写元・実 work/output を一切汚さない。
  */
 export function setupTmpCase(t, name, ts = '20260722_000000') {
   const caseDir = sampleRepoDir(name);
@@ -124,7 +158,7 @@ export function setupTmpCase(t, name, ts = '20260722_000000') {
 
 /**
  * `output/<ts>/MANIFEST.md` を、その時点の generated/ の全ファイルを `## 全ファイル` 節に列挙して書く
- * （G9 が MANIFEST ⇔ generated/ を双方向に照合する契約・S1-3）。generated/ を書き終えてから呼ぶこと。
+ * （V8 が MANIFEST ⇔ generated/ を双方向に照合する契約）。generated/ を書き終えてから呼ぶこと。
  * `extra` は節の外（差分サマリ）に足す本文。
  */
 export function writeManifest(ts, { extra = '' } = {}) {
