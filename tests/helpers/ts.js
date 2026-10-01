@@ -22,6 +22,7 @@ export const TS_NAMESPACES = {
   emit_manifest: '29990306',
   slice: '29991204',
   copy_keep: '29991402',
+  approvals: '29990401',
 };
 
 function nameFromUrl(importMetaUrl) {
