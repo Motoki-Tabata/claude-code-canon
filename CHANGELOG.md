@@ -3,109 +3,64 @@
 このファイルは [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) の形式に、
 [Semantic Versioning](https://semver.org/lang/ja/) を準拠のバージョニング規約として従います。
 
-> **運用ルール**: 正典 `docs/` 配下（Claude Code 公式仕様の確認バージョン・調査日）の更新履歴は
+> **運用ルール**: 正典 `docs/` の更新履歴（Claude Code 公式仕様の確認バージョン・調査日）は
 > `docs/SOURCES.md` が権威であり、本ファイルには書きません。本ファイルが記録するのは
-> claude-canon 自身（本リポジトリ）の変更のみです。
+> claude-canon 自身の変更だけです。
 
 ## [Unreleased]
 
-### Changed（2026-09-27・run 20260925_004359・20260927_003229 の transcript 分析の反映）
+## [2.0.0] - 2026-10-01
 
-改修前後のトークン消費は `design/canon-token-baseline-20260924.md`「改修後の実測」を参照。
-
-- **G9・slice**: 層の節を括弧書き付きの見出し（`## L1（l1-builder）`）でも拾う。2 run とも新規ファイルの
-  宣言が0件で「宣言⇒実在」が vacuous pass していた。`generated/` ⊆ `managed-paths.list` も照合する。
-- **gen-guard・stage-guard**: 同じ違反による Stop・SubagentStop の再ブロックを繰り返さない（S3 メインで44回・約5.1M）。
-- **recheck**: 冪等スキップの表示を markerKey で出し、hook 経路で pass 済みなら「検査済み」と区別する。
-- **G1**: evidence_paths をキー行だけから読む。系統A の定義ファイルのレイヤー誤分類を検出する。spec に
-  未解決の参照（resolved:false）を全件載せさせる。mandatory の受入基準を design-map の反映追跡と照合する。
-- **G2**: 系統B が書き落とした具体パスの参照は、対象リポジトリでの実在で C5 を確かめる。
-- **G8**: paths: の無い rule を「無条件ロード」の署名で実照合する。
-- **G12**: ツール呼び出しの書式片（`</content>` 等）の残骸を検出する。
-- **resume**: stale 判定から `.cc-writes` とディレクトリ mtime を除く。`handoff_notes`・`canon_issue_candidates` を出す。
-- **工程10**: RUN.md に MANIFEST「P8 の追加手順」と README「前提セットアップと配置後の手作業」を逐語転記する。
-  配置前レポートに配置予定・退避予定件数を出す。SessionStart は配置前の run を「完了済み」と言わない。
-- **`npm run copy-keep`**（新設）: keep を決定論でコピーし sha256 を照合する（LLM の Read/Write をやめる）。
-- **ワーカー定義・/canon SKILL**: 報告受信と完了の区別、judge の同一メッセージ起動、ScheduleWakeup の不使用、
-  generator のポーリング・二重振りの禁止、場当たりの Explore 等への `model: "sonnet"` 明示、designer の読む範囲、
-  完了リクエストの中身の規約、keep に及ぶ修正は先に P5 差し戻し、P8 の実件数提示と配置後の逐語提示・発火未検証の明示、
-  run 中の canon 課題を `work/<ts>/canon-issues-candidates.md` に書き S4 で台帳へ転記。
-- `.claude/README.md`・`README.md` の Subagent 数を実数（17体）に直す（investigator・eval-reviewer の廃止が未反映だった）。
-
-### Added
-
-- **canon 本体への改修要求の台帳 `tasks/lessons.md`**（2026-09-27）: vehicle-intake-management と同じ軽量書式
-  （日付見出し・種別・何が起きたか・提案）で、未対応の backlog を1か所に集める。反映したコミットで項目を削除する。
-  `design/canon-issues-*-resolved.md`・`canon-optimization-20260924.md` ⑥ の未対応項目を移管し、
-  run 20260925_004359・20260927_003229 の transcript 分析から起票した。run 中は `work/<ts>/canon-issues-candidates.md` に書き、
-  S4 の最後に転記する（`.claude/rules/workflow.md`）。`.gitignore` は `tasks/lessons.md` だけを追跡する。
-
-### Fixed
-
-- **G3 が正典の許可する skill supporting files を弾いていた**（`gates/g3_path_convention.js`）:
-  `.claude/skills/<name>/template.md`・`examples/*.md` を「ファイル名は固定 `SKILL.md`」として
-  一律違反にしていたが、正典 `docs/L2_SKILLS.md §2.1`「ディレクトリ構造」はこれらを明示的に
-  許可しており、G7 の判定④は逆に**その実在を要求**していた（ゲート間の正面衝突）。
-  許可の出典を `gates/conformance_tables/paths.json` の `kinds.skill.package_layout` として
-  正典から抽出し（`build-conformance-tables.js`）、G3 を定義ファイルのみに狭めた。
-  併せて `.claude/skills/skill-generation/SKILL.md` の誤った出典（§2.3 → §2.1）を訂正。
-- **旧規則が副作用で担っていた保証を明示化**（`gates/g7_ref_integrity.js`）: G7 に判定⑥
-  「skill パッケージに定義ファイル `SKILL.md` が実在する」を新設。綴り違い（`Skill.md`）による
-  サイレント不発火を検出する。実在判定は大小無視 FS（Windows）を避けてディレクトリエントリ名の
-  完全一致で行う。
-- **`walkManaged` が stat 不能なエントリ1件で配置を完全にブロックしていた**
-  （`gates/lib/managed-paths.js`・`deploy/pre-deploy-check.js`）: 走査が全エントリへ
-  `statSync` を try/catch 無しで呼んでいたため、ソケット・FIFO・権限拒否・走査中に消えた
-  ファイルが1つあるだけで走査全体が中断していた。`deploy/deploy.js` も同じ走査を共有するため
-  **迂回経路が無く**、P8 の uncaptured 安全網ごと配置が実行不能になる。実測は
-  `/canon run 20260903_091044`——対象リポジトリの socket 様エントリ14件（全て `EACCES`）で
-  `pre-deploy-check` が `EACCES: permission denied, stat` を投げて落ちた。
-  走査根を `managedRoots()`（`MANAGED_PATTERNS` から機械導出・走査根を二重管理しない）へ限定し、
-  ツリー全体の再帰をやめた。読めないエントリは走査を止めず `unreadable` として記録し、
-  `pre-deploy-report` が**本照合の盲点として明示**する（黙って 0 件と報告しない）。
-- **生成物が対象プロジェクトの非管理ファイルを行番号で引用できてしまう脆さ**
-  （`gates/g7_ref_integrity.js`）: G7 に判定⑦を新設。`output/<ts>/generated/**` が
-  canon の管理パス集合（`isManaged()`）に属さない対象プロジェクトのファイル（`README.md`・
-  `contracts/README.md` 等）を `` `path:N` `` 形式で行番号引用していたら違反にする。行番号は
-  対象側の編集で無言でずれ、生成物側にはずれを検知する手段が無い。実測は
-  vehicle-intake-management（改善バックログ E1・2026-09-04）——
-  `.claude/rules/tsod-workflow.md:23` の `README.md:266-269` 引用がブランチ戦略節の
-  全面置換で陳腐化、`.claude/skills/impact-scope/SKILL.md:13` の `contracts/README.md:64-68`
-  引用はファイル末尾の節を指すため1行挿入するだけで壊れる構造だった。是正は節見出し参照
-  （例:「README.md の『main への直接 push を防ぐ』節」）。管理ファイル間（生成物同士）の
-  行番号参照は対象外（正当な参照）。design-map テンプレート（詳細設計書 §9.2・`designer.md`）に
-  `## 生成上の制約` 節を新設し、`generator`・`l1-generation`・`skill-generation`・
-  `agent-generation` へ同じ規約を明記した。
+構成を作り替えました。フックと完了マーカーで工程を進める方式をやめ、Phase ごとのセッションで動くオーケストレーターと、
+1本にまとめた検証 CLI、Agent Skills の仕様に沿った軽い構成にしています。設計は `design/architecture.md` と
+`design/artifacts.md` の2冊にまとめ直しました。1.x からの run の引き継ぎはできません（新しい run を始めてください）。
 
 ### Changed
 
-- **管理パス集合に `.claude/hooks/**` を追加**（`gates/lib/managed-paths.js`・詳細設計書 §10.1）:
-  正典 `docs/L4_AUTOMATION.md §2.1` の公式例が hook ハンドラ実体をこの位置に置くため、集合外の
-  ままでは正典どおりの生成物が G9 で弾かれ、`settings.json` だけが配置されて参照先スクリプトが
-  配置されない壊れた配線を deploy が作っていた。**退避スワップの管理範囲が広がる**点は
-  `deploy/pre-deploy-check.js` の uncaptured 判定（exit 2・P8）が引き受ける。
-- 非スキーマ判定の SSoT（`gates/lib/non-schema.js`）が、固定名3件に加えて skill supporting files と
-  `.claude/hooks/**` をパターンで持つようになった（判定の複製を増やさないため）。
-
-## [1.0.0] - 2026-08-31
+- **Phase A〜D とセッション**: 1つの Phase を1つのセッションで行い、ユーザーが `/canon-a <target>`・`/canon-b <ts>`・
+  `/canon-c <ts>`・`/canon-d <ts>` で起動します。spec は Phase A で確定し、Phase B は承認済みの spec だけを入力にします。
+- **番号を振り直しました**: 工程1〜9・人間ゲート P1〜P5（要件・spec・design-map・生成物とレビュー・配置）・
+  verify の検査 V1〜V9・keep の条件 K1〜K5。報告だけだったゲートは廃止しました。
+- **状態と承認**: run の状態は `work/<ts>/handoff.md` だけが持ちます（進捗・承認・差し戻し・申し送り・canon 課題候補）。
+  承認は対象の sha256 を付けて記録し、次の Phase の開始時に照合します。承認の後で対象が変わっていれば無効です。
+- **run の git 運用**: run ごとに worktree `../canon-runs/<ts>` とブランチ `run/<ts>` を作り、Phase の終わりごとに
+  `work/<ts>`・`output/<ts>` をコミットします。run ブランチは push しません。
+- **検証**: 成果物の検査を `npm run verify -- <ts>`（V1〜V9）の1本にまとめ、`verify-report.md` と exit code を返します。
+  検査対象がゼロなら違反にし、検査した generated/ のハッシュを記録します。
+- **品質検査**: reviewer（correctness・security・正典の意図・context）と keep-reviewer（K2・K4・merge 先）に、
+  標準 Skill の `/claude-api prompt-audit`・`/security-review`・`/code-review` を加えました。指摘は修正ループで
+  直してから P4 に出します。
+- **Agent を17体から6体に**: `investigator`（existing・profile・focused の3モード）・`spec-writer`・`designer`
+  （機能選定を含む）・`builder`（層を引数で受け、層ごとに並列に起動）・`reviewer`・`keep-reviewer`。
+  ワーカーを束ねる中継役は置かず、オーケストレーターが直接起動します。
+- **Skill を14件から9件に**: Phase Skill `canon-a`〜`canon-d` と、知識 Skill `investigation`・`requirements`・`design`・
+  `generation`・`review`。書式の実例は各 Skill の `references/` に置きました。
+- **スクリプトの置き場**: 入口は各 Phase Skill の `scripts/`、共有のパーサと管理パス集合は `lib/` に置きました。
+  MANIFEST・README・配置リストは `emit-manifest.js` が決定論で生成します。
+- **`.claude/settings.json`**: hooks を除き、permissions だけにしました（canon のスクリプトの許可、deploy の
+  `--confirm` の拒否、`git push` の確認、run の worktree へのファイルアクセス）。
 
 ### Added
 
-- **10工程パイプライン**（`/canon <target_project_path>`）: プロジェクト調査（2系統×2段）→
-  要件ヒアリング → spec 策定 → 機能選定+設計（design-map）→ 生成 → 決定論ゲート検証 →
-  eval 品質検査 → 配置まで、人間ゲート P1〜P8 で確認を挟みながら半自律で構築。
-- **決定論ゲート G1〜G16** と PreToolUse 3ガード（write-scope / approval / advance）による
-  vacuous pass 対策二重化: `.claude/settings.json` の hooks 配線と、run 内のランタイム・
-  カナリア（工程1直前）で配線の実発火を検証。
-- **eval 品質検査**（工程9・5軸: correctness / security / canon / context / keep-review）と
-  ラベル付きコーパスによるメタ評価（judge の precision/recall 較正）。
-- **機能X（正典更新・`/update-docs`）**: `docs/` 配下9ファイルを公式ドキュメントの一次ソースに
-  照らして更新するワークフロー。差分候補の提示 → 承認 → 適用 → G14〜G16 検証。
-- **機能Y（自己最適化・`/self-optimize`）**: claude-canon 自身の `.claude/` を対象に同じ10工程を
-  回し、`generations/candidate-<label>/` へ次世代候補を用意。世代管理台帳・実昇格機構
-  （`npm run promote`・乖離検出・失敗時自動ロールバック）を含む。
-- **配置系**（工程10）: `deploy/pre-deploy-check.js` による取りこぼし（uncaptured）照合と、
-  退避スワップ方式（`.claude-canon.bak.<ts>/`）の `deploy/deploy.js`。
-- **自己検証スイート**: `npm test`（Node 組み込み `node --test`）394件。配線テスト・
-  ゲート単体テスト・代表シナリオ統合テスト・自己適用回帰テストを含む。
-- **依存ゼロ設計**: 外部 npm パッケージを使用しない（`npm install` 不要）。
+- `npm run new-run`（ts の採番・worktree・骨格・handoff.md の雛形）
+- `npm run approvals`（承認行の記録と照合）
+- `npm run review-bundle`（keep-reviewer の判定入力。designer の主張を機械的に除く）
+- 自己適用テストに、ワーカーがコマンド実行系ツールを持たないことと、Phase Skill の構成の検査を追加
+
+### Removed
+
+- フックによる工程制御の全体（書込ガード・前進ガード・停止時の検査・完了マーカーとリクエスト・ブロックの記録・
+  配線の生存確認・セッション開始時の初期化）と、その操作用の CLI（再検査・巻き戻し・ブロック解除・状態の記録・再開）
+- 正典更新と自己最適化の専用コマンドと、その世代管理
+- 5軸の評価ハーネス（判定の集約・round 管理・較正）
+- テスト用の `fixtures/`（テスト入力は `tests/helpers` でインライン生成）
+- 旧設計書（基本・詳細の2冊と、運用記録の文書）
+
+### 移行
+
+- 1.x の run の成果物はそのまま使えません。新しい run を `/canon-a` から始めてください。
+- Phase C の標準 Skill のために、プラグイン `example-skills@anthropic-agent-skills` を入れてください（`guide/setup.md`）。
+
+## 1.x
+
+1.x 系の変更履歴は、タグ `v1.0.0` と、2.0.0 より前の main のコミット履歴を参照してください。

@@ -18,6 +18,7 @@
 | `/canon-d <ts>` | run の worktree | sonnet | 9 配置前照合 → P5 → 配置（人間が sandbox の外で実行）→ 配置後の手順・canon 課題候補の転記 |
 
 - `<ts>` は `/canon-a` が採番する run の識別子（`YYYYMMDD_hhmmss`）です。
+- 中断した Phase A は、run の worktree で `/canon-a <ts>` を実行すると再開します。
 - 2つ目以降の Phase は、`cd ../canon-runs/<ts> && claude --model <opus|sonnet>` で新しいセッションを起動してから実行します。
 - run の状態・承認・差し戻し・申し送りは `work/<ts>/handoff.md` に記録されます。各 Phase の開始時に、前の Phase までの承認が承認後に変わっていないかを `npm run approvals` で照合します。
 

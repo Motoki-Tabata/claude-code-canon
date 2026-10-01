@@ -1,8 +1,8 @@
 ---
 name: canon-a
-description: Start a claude-canon run for a target project and drive Phase A — create the run worktree, investigate the target (existing and profile in parallel), interview the user for requirements (P1), run the focused investigation, and have the spec written (P2). Use only when the user invokes /canon-a with the target project path.
+description: Start a claude-canon run for a target project and drive Phase A — create the run worktree, investigate the target (existing and profile in parallel), interview the user for requirements (P1), run the focused investigation, and have the spec written (P2). Use only when the user invokes /canon-a with the target project path, or with a run timestamp to continue an interrupted Phase A.
 disable-model-invocation: true
-argument-hint: "<target_project_path>"
+argument-hint: "<target_project_path> | <ts>"
 ---
 
 # canon-a（Phase A: 調査①・要件ヒアリング・調査②・spec）
@@ -11,9 +11,15 @@ Phase A は「何を作るか」を確定する。工程1〜4 を進め、P1（�
 
 あなたは inline のメイン Claude としてオーケストレーターを務める。ヒアリングは人間との往復そのものなので、Subagent に任せず自分で行う。調査と spec の執筆はワーカーに任せ、成果物はワーカー自身がファイルに書く。
 
-## 0. run を作る
+## 0. run を作る（または再開する）
 
-`$ARGUMENTS` は対象プロジェクトのパスである。
+`$ARGUMENTS` が `YYYYMMDD_hhmmss` の形なら、中断した Phase A の**再開**である。次の手順で再開し、進捗の印が付いていない最初の工程から続ける。
+
+1. `git branch --show-current` が `run/<ts>` であることを確かめる。違えば、`cd ../canon-runs/<ts> && claude --model opus` で起動し直すよう案内して止まる。再開では `<wt>` はこの worktree のルートである。
+2. `work/<ts>/handoff.md` を読み、進捗・承認・差し戻しを確かめる。承認行があれば `npm run approvals -- <ts> check` で照合する。
+3. ヒアリングの途中で切れていたら、会話は失われている。調査サマリの提示からやり直す。
+
+それ以外は、`$ARGUMENTS` は対象プロジェクトのパスである。
 
 1. `npm run new-run -- <target>` を実行する。stdout の `ts`・`worktree`・`branch`・`mode`・`handoff` を控える。
    - exit 1（対象が無い・同じ worktree かブランチが既にある）なら、stderr をそのまま示して止まる。
