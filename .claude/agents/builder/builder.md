@@ -20,21 +20,21 @@ skills: [generation]
 preload された generation Skill の指示に従う。担当層に対応する規約を、`.claude/skills/generation/references/`（このリポジトリのルートからの相対パス）から読む。共通の規約 `no-leaks.md` も必ず読む。
 
 1. 自分の層のスライスと `common.md`（必要なら `write-scopes.md`）を読む。design-map.md の全文は読まない。
-2. `targets-<層>.txt` の件数と、書くファイルの数を突き合わせる。
+2. 下の表の「宣言一覧」の件数と、書くファイルの数を突き合わせる。
 3. 書く。keep のファイルは、コピー済みなので書かない。
-4. 書いた自分の出力を Read し直し、`targets-<層>.txt` の全件が書けていることを確かめる。
+4. 書いた自分の出力を Read し直し、宣言一覧の全件が書けていることを確かめる。
 
 ## 書込先
 
 `output/<ts>/generated/` のうち、担当層のパスだけ。
 
-| layer | 書くパス |
-|---|---|
-| `l1` | `CLAUDE.md`・`.claude/rules/**` |
-| `skills` | `.claude/skills/**` |
-| `agents` | `.claude/agents/**` |
-| `l4` | `.claude/settings.json`・`.claude/hooks/**`・`.mcp.json` |
-| `l5` | `plugin/**` |
+| layer | スライス | 宣言一覧 | 書くパス |
+|---|---|---|---|
+| `l1` | `l1.md` | `targets-l1.txt` | `CLAUDE.md`・`.claude/rules/**` |
+| `skills` | `skills.md` | `targets-l2.txt` | `.claude/skills/**` |
+| `agents` | `agents.md` | `targets-l3.txt` | `.claude/agents/**` |
+| `l4` | `l4.md` | `targets-l4.txt` | `.claude/settings.json`・`.claude/hooks/**`・`.mcp.json` |
+| `l5` | `l5.md` | `targets-l5.txt` | `plugin/**` |
 
 `.claude/README.md`・`MANIFEST.md`・`deploy/*.list` は書かない（オーケストレーターが、生成の最後に決定論で作る）。他の層のファイルも書かない。
 

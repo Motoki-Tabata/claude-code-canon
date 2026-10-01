@@ -274,10 +274,10 @@ existing_disposition:
 
 design-map は大きくなり（実測で約96KB）、全文を各ワーカーが読むと読み込みが積み上がる。Phase C の冒頭で `slice.js` が `work/<ts>/slices/` にワーカー別のスライスを書く。
 
-- **出力**: `common.md`（メタ・Used Features・Model Assignments・Interface Contracts・生成上の制約・要件→生成物の対応・Experimental Dependencies・依存フラグ）／`write-scopes.md`／層ごとの `l1.md`・`skills.md`・`agents.md`・`l4.md`・`l5.md`（その層の節と、その層の modify・merge レコード）／`disposition-other.md`（keep・retire・out_of_scope）／`other-sections.md`（どこにも属さない節の受け皿）／`targets-<層>.txt`・`targets-all.txt`（宣言された生成物。V8 と同じ宣言源）／`INDEX.md`。
+- **出力**: `common.md`（メタ・Used Features・Model Assignments・Interface Contracts・生成上の制約・要件→生成物の対応・Experimental Dependencies・依存フラグ）／`write-scopes.md`／層ごとの `l1.md`・`skills.md`・`agents.md`・`l4.md`・`l5.md`（その層の節と、その層の modify・merge レコード）／`disposition-other.md`（keep・retire・out_of_scope）／`other-sections.md`（どこにも属さない節の受け皿）／`targets-l1.txt`〜`targets-l5.txt`・`targets-other.txt`・`targets-all.txt`（宣言された生成物。V8 と同じ宣言源）／`INDEX.md`。
 - **規約**: 切り出しは節見出しと disposition レコードの単位で行い、記述を1文字も変えない。未知の節は `other-sections.md` に集め、黙って落とさない（全スライスの和が design-map の全節を覆う）。`## Used Features` が無ければ失敗する。書き出す前に出力先を空にする（古いスライスを読ませない）。差し戻しで design-map を直したら、スライスを作り直す。
 - **層の節の照合**: 見出しは完全一致を優先し、無ければ前方一致で拾う（`## L1（builder）` のような書き方を取りこぼさない）。この照合は V8 と共有する。
-- **読み手**: 各 builder は自分の層のスライスと `common.md`・`write-scopes.md`、reviewer はスライス一式を読む。design-map の全文は読ませない。builder は書く前に `targets-<層>.txt` の件数と書くファイルの数を突き合わせる。
+- **読み手**: 各 builder は自分の層のスライスと `common.md`・`write-scopes.md`、reviewer はスライス一式を読む。design-map の全文は読ませない。builder は書く前に自分の層の `targets-l<n>.txt` の件数と書くファイルの数を突き合わせる。
 
 ### 5.5 モデル割当の根拠
 

@@ -22,20 +22,20 @@ Agent・L1・L4・L5 は、この Skill の references だけで生成する。s
 
 プロンプトで渡された層に対応する1つと、共通の [references/no-leaks.md](references/no-leaks.md) を読む。
 
-| 層 | 書くもの | 読む | スライス |
-|---|---|---|---|
-| `l1` | `CLAUDE.md`・`.claude/rules/*.md` | [references/l1.md](references/l1.md) | `l1.md` |
-| `skills` | `.claude/skills/<name>/SKILL.md` と supporting files | [references/skills.md](references/skills.md)・[references/skill-writing.md](references/skill-writing.md) | `skills.md` |
-| `agents` | `.claude/agents/<name>/<name>.md` | [references/agents.md](references/agents.md) | `agents.md` |
-| `l4` | `.claude/settings.json` の hooks 配線・`.claude/hooks/**`・`.mcp.json` | [references/l4.md](references/l4.md) | `l4.md` |
-| `l5` | `plugin/**` | [references/l5.md](references/l5.md) | `l5.md` |
+| 層 | 書くもの | 読む | スライス | 宣言一覧 |
+|---|---|---|---|---|
+| `l1` | `CLAUDE.md`・`.claude/rules/*.md` | [references/l1.md](references/l1.md) | `l1.md` | `targets-l1.txt` |
+| `skills` | `.claude/skills/<name>/SKILL.md` と supporting files | [references/skills.md](references/skills.md)・[references/skill-writing.md](references/skill-writing.md) | `skills.md` | `targets-l2.txt` |
+| `agents` | `.claude/agents/<name>/<name>.md` | [references/agents.md](references/agents.md) | `agents.md` | `targets-l3.txt` |
+| `l4` | `.claude/settings.json` の hooks 配線・`.claude/hooks/**`・`.mcp.json` | [references/l4.md](references/l4.md) | `l4.md` | `targets-l4.txt` |
+| `l5` | `plugin/**` | [references/l5.md](references/l5.md) | `l5.md` | `targets-l5.txt` |
 
 ## 共通の手順
 
 1. `work/<ts>/slices/` の、自分の層のスライスと `common.md`（モデル割当・生成上の制約・Interface Contracts）を読む。`write-scopes.md` に自分の役割の記載があれば併せて読む。**design-map.md の全文は読まない**（大きく、全ワーカーが読むと消費が積み上がる）。スライスに無い情報が要るときだけ、design-map.md の該当の節を読む。
-2. 書く前に、`targets-<層>.txt`（この層で生成される宣言済みのパスの一覧）の件数と、自分が書くファイルの数を突き合わせる。委譲の途中でファイルが1件脱落しても、ほかの検査は書く側より先に気づけない。
+2. 書く前に、表の「宣言一覧」（`work/<ts>/slices/` にある、この層で生成される宣言済みのパスの一覧）の件数と、自分が書くファイルの数を突き合わせる。委譲の途中でファイルが1件脱落しても、ほかの検査は書く側より先に気づけない。
 3. 書く。**書込先は担当層の範囲だけ**（`output/<ts>/generated/` のうち、自分の層のパス）。他の層のファイルや、対象リポジトリ、`output/<ts>/` の他の成果物には書かない。
-4. 書き終えたら、自分の出力を Read し直して、`targets-<層>.txt` の全件が書けていること、frontmatter が崩れていないことを確かめる。
+4. 書き終えたら、自分の出力を Read し直して、宣言一覧の全件が書けていること、frontmatter が崩れていないことを確かめる。
 
 ## この層では書かないもの
 

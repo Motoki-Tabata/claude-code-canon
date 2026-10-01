@@ -234,6 +234,59 @@ test('検出器の素振り: 旧体系の語を含む行を上の検査が拾う
   }
 });
 
+// ---- Phase Skill（オーケストレーター） ----
+
+const PHASE_SKILLS = ['canon-a', 'canon-b', 'canon-c', 'canon-d'];
+const phaseSkillText = (n) => readFileSync(path.join(SELF, 'skills', n, 'SKILL.md'), 'utf8');
+
+test('Phase Skill は4件そろい、手動起動専用・inline 実行・本文500行未満', () => {
+  for (const name of PHASE_SKILLS) {
+    const text = phaseSkillText(name);
+    const fm = text.split(/^---\s*$/m)[1] ?? '';
+    assert.match(fm, new RegExp(`^name:\\s*${name}\\s*$`, 'm'), `${name}: name が無い`);
+    assert.match(fm, /^disable-model-invocation:\s*true\s*$/m, `${name}: disable-model-invocation: true が無い`);
+    assert.match(fm, /^argument-hint:/m, `${name}: argument-hint が無い`);
+    // fork するとメインの会話履歴を継承せず、ヒアリングと人間ゲートの対話が成り立たない
+    assert.doesNotMatch(fm, /^context:\s*fork/m, `${name}: context: fork を付けない`);
+    assert.ok(text.split('\n').length < 500, `${name}: SKILL.md が500行以上`);
+  }
+});
+
+test('Phase Skill の本文が呼ぶ npm scripts がすべて package.json に実在する', () => {
+  const scripts = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8')).scripts;
+  const missing = [];
+  let calls = 0;
+  for (const name of PHASE_SKILLS) {
+    for (const m of phaseSkillText(name).matchAll(/npm run ([a-z][a-z0-9:-]*)/g)) {
+      calls++;
+      if (!scripts[m[1]]) missing.push(`${name}: npm run ${m[1]}`);
+    }
+  }
+  assert.ok(calls >= 15, `npm run の呼び出しが少なすぎる（実際: ${calls}）。検査が発火していない`);
+  assert.deepEqual(missing, []);
+});
+
+test('Phase Skill は開始時に承認を照合し、ゲートで承認を記録する', () => {
+  const expect = { 'canon-b': 'P1,P2', 'canon-c': 'P1,P2,P3', 'canon-d': 'P1,P2,P3,P4' };
+  for (const [name, gates] of Object.entries(expect)) {
+    assert.ok(phaseSkillText(name).includes(`approvals -- <ts> check --expect ${gates}`), `${name}: 開始時の照合（--expect ${gates}）が無い`);
+  }
+  const gatesOf = { 'canon-a': ['P1', 'P2'], 'canon-b': ['P3'], 'canon-c': ['P4'], 'canon-d': ['P5'] };
+  for (const [name, gates] of Object.entries(gatesOf)) {
+    for (const g of gates) assert.ok(phaseSkillText(name).includes(`record ${g} `), `${name}: ${g} の記録が無い`);
+  }
+});
+
+test('Phase Skill に旧体系の用語・番号が残っていない（SendMessage は「再開しない」の規則として許す）', () => {
+  const OLD = /\bG\d{1,2}\b|\bC[1-5]_|\bP[6-8]\b|工程10|run 20\d{6}|fixtures\/|marker|\.requests|\.gate|基本設計書|詳細設計書|systemA|系統[AB]|eval-|quality-checklist|\bS[1-4]\b|state:record|recheck|resume/;
+  const hits = PHASE_SKILLS.flatMap((n) =>
+    phaseSkillText(n)
+      .split('\n')
+      .flatMap((line, i) => (OLD.test(line) ? [`${n}:${i + 1}: ${line.trim().slice(0, 80)}`] : []))
+  );
+  assert.deepEqual(hits, []);
+});
+
 /**
  * 決定論の検査（verify）の判定基準を変更したとき、それを人間可読な形で説明するワーカー定義
  * （.claude/agents/<name>/<name>.md・.claude/skills/<name>/SKILL.md）が追従しているかを npm test で検出する。
@@ -261,10 +314,11 @@ test('design Skill の keep 条件の説明が interface_change 機構に追従�
 
 // ── モデルルーティング ─────────────────────────
 // ネイティブ起動で Agent の model 引数を渡すと frontmatter を上書きする（正典 L3 §2.1）。
-// オーケストレータ系の定義が例示で固定のモデル名を渡すと LLM が真似て、spec-writer・generator が
-// frontmatter sonnet のまま Opus で走った。ネイティブ起動の例示に model 引数を書かない。
+// オーケストレーターの定義が例示で固定のモデル名を渡すと LLM が真似て、ワーカーが frontmatter と
+// 違うモデルで走る。ネイティブ起動の例示に model 引数を書かない。
 const ORCHESTRATOR_DOCS = [
   ...readdirSync(path.join(SELF, 'agents')).map((n) => path.join(SELF, 'agents', n, `${n}.md`)),
+  ...PHASE_SKILLS.map((n) => path.join(SELF, 'skills', n, 'SKILL.md')),
 ].filter((p) => existsSync(p));
 
 test('ネイティブ起動の Agent 例示が model 引数を渡していない（frontmatter を唯一の正にする）', () => {
@@ -325,7 +379,7 @@ test('定義から消えてはならない契約語（生成物の読み手に�
     ['skills/generation/references/no-leaks.md', /編集メモ/, '編集メモを書かない'],
     ['skills/generation/references/no-leaks.md', /差分・経緯/, '差分・経緯の表現を書かない'],
     ['skills/generation/SKILL.md', /design-map.md の全文は読まない/, 'builder の過剰読込'],
-    ['skills/generation/SKILL.md', /targets-<層>\.txt/, '件数の突き合わせ'],
+    ['skills/generation/SKILL.md', /宣言一覧の全件が書けていること/, '件数の突き合わせ'],
     ['skills/generation/SKILL.md', /emit-manifest/, 'README・MANIFEST は builder が書かない'],
     ['skills/design/SKILL.md', /他の run の design-map/, 'designer の過剰読込'],
     ['skills/requirements/references/interview.md', /preview が表示されない環境がある/, 'preview の位置参照'],
