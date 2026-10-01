@@ -89,7 +89,7 @@ test('walkManaged: 対象配下の管理ファイルのみ列挙（集合外・e
 // ---------------------------------------------------------------------------
 // walkManaged の頑健性と走査範囲
 //
-// 実観測の事故（<ts> 20260903_091044・対象 vehicle-intake-management）: 旧 walkManaged は
+// 実際に起きた事故: 旧 walkManaged は
 // 全ツリーを再帰しつつ全エントリへノーガードで statSync していたため、対象リポジトリの
 // socket 実在物（backend/ 配下13件＋ルート1件、いずれも .gitignore 済み）1件目の EACCES で
 // pre-deploy-check ごと落ち、P5 の前の最終防波堤が起動不能になった。

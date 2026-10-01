@@ -315,7 +315,7 @@ Enforced 行の根拠は `permissions` ページの tiered permission system（�
 
 #### `llms.txt` 突合で検出した未登録ページ（19件）
 
-**正典本文または一次ソース間リンクから参照されているのに、§8 対応表にも `docs/SOURCES.md` にも無い**公式ページ。次回以降の `/update-docs` で本文取得のうえ収録可否を判断すること。
+**正典本文または一次ソース間リンクから参照されているのに、§8 対応表にも `docs/SOURCES.md` にも無い**公式ページ。次回以降の正典の更新（`SOURCES.md`「調査手順」）で本文取得のうえ収録可否を判断すること。
 
 | ページ | 依存元・備考 |
 |---|---|
@@ -356,7 +356,7 @@ Enforced 行の根拠は `permissions` ページの tiered permission system（�
 | context:fork | Skill `isolation: subagent` frontmatter / "Skill isolation" | 公式は frontmatter キーで表現 |
 | Subagent | Subagent（公式同名）"Single session delegation" | - |
 | fork | fork（公式同名）"A special subagent type that inherits the entire parent conversation" | `subagent_type: "fork"`。対話セッション既定ON。手動起動は `/subtask`。詳細は [L3_AGENTS.md §2.1a](./L3_AGENTS.md) |
-| subagent_type | `Agent` tool の `subagent_type` パラメータ | **ビルトイン型に限らずカスタム agent 名（必須 `name`）も受付**（大文字小文字・区切り文字非依存）。本システムはネイティブの `subagent_type` を優先し、canon agent が未登録の環境に限り `general-purpose` + 定義ファイル Read 注入へフォールバックする（フォールバック時は `general-purpose` の `tools: *` が G13 のツール剥奪を無効化する旨をユーザーへ明示する。[L3_AGENTS.md §2.1](./L3_AGENTS.md) / [ORCHESTRATION.md §2.3 Custom Subagent の起動方式](./ORCHESTRATION.md)） |
+| subagent_type | `Agent` tool の `subagent_type` パラメータ | **ビルトイン型に限らずカスタム agent 名（必須 `name`）も受付**（大文字小文字・区切り文字非依存）。本システムは登録済みのネイティブ `subagent_type` でだけワーカーを起動し、`general-purpose` + 定義ファイル Read 注入へのフォールバックはしない（`general-purpose` の `tools: *` がワーカーからコマンド実行系ツールを外す前提を崩すため。[L3_AGENTS.md §2.1](./L3_AGENTS.md) / [ORCHESTRATION.md §2.3 Custom Subagent の起動方式](./ORCHESTRATION.md)） |
 | Agent Team | Agent Team（公式同名）"Coordinate multiple Claude Code instances" | 実験機能 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`。`TeamCreate`/`TeamDelete` ツールは無く、セッションごとに**暗黙の1チーム**。teammate は Agent tool で直接 spawn する（`team_name` 入力は無視される）。nested team 不可（teammate は teammate を spawn できない） |
 | Fable（モデルティア） | Claude Fable 5.1（Mythos クラス） | `model: fable` で指定可。`ANTHROPIC_DEFAULT_FABLE_MODEL` 未設定時は Fable 5.1 に解決され、Claude apps gateway セッションでは `fable` / `best` が Fable 5 に解決される。Subagent/Skill の `model` フィールドのエイリアス `sonnet`/`opus`/`haiku`/`fable` の1つ |
 | Worktree | Worktree（公式同名）"Git worktree isolation" | `.claude/worktrees/` に自動配置 |
@@ -398,4 +398,4 @@ Enforced 行の根拠は `permissions` ページの tiered permission system（�
 - L1〜L5に新機能が追加された場合は §2 図と §3 表に反映、対応する `L?_*.md` を更新
 - 公式の章立て構造が変わった場合は §8 対応表を更新
 - `[要確認]` 項目が解消されたら §10 から削除し、該当箇所に追記
-- 解消済みの経緯を残したい場合は行を削除せず、項目・所在の列を取り消し線（`~~...~~`）で囲み、検証方法欄を `**解決済（YYYY-MM-DD）**: <根拠>` で書き換えてよい（機能X の G16 がこの形式を照合する）
+- 解消済みの経緯を残したい場合は行を削除せず、項目・所在の列を取り消し線（`~~...~~`）で囲み、検証方法欄を `**解決済（YYYY-MM-DD）**: <根拠>` で書き換えてよい

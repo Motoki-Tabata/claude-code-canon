@@ -16,7 +16,7 @@ export const SAMPLE_REPOS = {
 A small REST API for managing todos, built with Express.
 
 This is a **fixture target project** for claude-canon's acceptance scenario (1):
-a greenfield project with **no existing \`.claude/\` customization**. Running \`/canon\`
+a greenfield project with **no existing \`.claude/\` customization**. Running a claude-canon run
 against this directory should produce a from-scratch customization set.
 
 ## Endpoints

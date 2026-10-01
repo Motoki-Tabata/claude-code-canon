@@ -181,7 +181,7 @@ Agent(subagent_type="general-purpose", model=<タスクに応じて opus/sonnet>
 | Skill preload | frontmatter `skills:` で自動 | プロンプトで明示的に読ませる |
 | model | frontmatter `model:` | Agent 起動時の `model` 引数で指定 |
 
-⚠ このフォールバックは「`subagent_type` がビルトイン型しか受け付けない」ためでも SDK/harness であることが理由でもなく、**当該環境で canon agent が `subagent_type` 未登録**である場合の代替である。加えて `general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、G13（基本設計書 §5.3）が強制するワーカーのコマンド実行系ツール剥奪を無効化するため、フォールバックを使った run ではその旨をユーザーへ明示する。CLI ネイティブで `subagent_type` 起動するには frontmatter 必須 `name:` の付与が要る（`.claude/agents/**` は人間の実装作業で直す。機能X の `canon-updater` は `docs/` のみを更新し `.claude/` は書き換えない——波及の**検出**は G15 が担うが、修正の実行は人間の仕事のまま・`/update-system` 相当の自動反映は実装しない）。
+⚠ このフォールバックは「`subagent_type` がビルトイン型しか受け付けない」ためでも SDK/harness であることが理由でもなく、**当該環境で canon agent が `subagent_type` 未登録**である場合の代替である。加えて `general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含み、ワーカーからコマンド実行系ツールを外す前提を崩す。本システムはこのフォールバックを使わず、登録済みのネイティブ `subagent_type` でだけワーカーを起動する（`design/architecture.md` §5.4）。CLI ネイティブで `subagent_type` 起動するには frontmatter 必須 `name:` の付与が要る。
 
 ### 2.4 完全な実装例
 

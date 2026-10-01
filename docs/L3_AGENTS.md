@@ -125,11 +125,11 @@ Built-in は Skill の `context: fork` でも、Subagent delegation でも参照
 >
 > 可否を決めるのは実行環境の種別ではなく設定と状態である。Agent SDK では `settingSources` の指定がこれを決め、**省略時は CLI と同じく user / project / local を読み `.claude/` の skills・agents・commands をロードする**（＝canon agent は登録される）。`settingSources: []` や `project` を外した構成では project の `.claude/agents/` がロードされない。ほかに、セッション開始後に新設した `agents` ディレクトリ（watcher 対象外・再起動が要る）・frontmatter 不備・`name` 重複・同名の programmatic 定義による上書きでもロードされない（出典: `agent-sdk/claude-code-features`・`agent-sdk/subagents`）。
 >
-> 本システムの orchestrator（`/canon`）およびメンテナンス Skill（`/update-docs`。機能X 実装契約により `canon-updater` を起動する。`/update-system` は実装されておらず本システムには存在しない）は、**登録済みのネイティブ `subagent_type` を優先して起動する**。未登録の環境に限り、次の方式で同等動作を得る（フォールバック）:
+> 一般に、カスタム agent が `subagent_type` として登録されていない環境では、次の方式で同等動作を得られる（フォールバック）。本システムのオーケストレーター（Phase Skill `canon-a`〜`canon-d`）は、登録済みのネイティブ `subagent_type` でだけワーカーを起動し、このフォールバックは使わない（4. の理由・`design/architecture.md` §5.4）:
 > 1. `subagent_type: general-purpose` で起動する（`model` はタスク性質で選択。設計判断は `opus`、生成/レビューは `sonnet`）。
 > 2. プロンプトに「`.claude/agents/<name>/<name>.md` を Read し、その定義（手順・制約・返却形式）に従うこと」を**明示注入**する。
 > 3. その定義が preload する Skill があれば、Skill 内容も明示的に読ませる（frontmatter `skills:` preload と同等の効果を手動で得る）。
-> 4. フォールバック時は、`general-purpose` が `tools: *` で Bash/PowerShell/Monitor を含み、ワーカーからコマンド実行系ツールを外す前提（`design/architecture.md` §5.4・自己適用テストが検査する）を無効化する旨をユーザーへ明示する。
+> 4. `general-purpose` は `tools: *` で Bash/PowerShell/Monitor を含む。ワーカーからコマンド実行系ツールを外す前提（本システムでは自己適用テストが検査する）は、フォールバックでは成り立たない。
 >
 > これは「`subagent_type` がビルトイン型しか受け付けない」からではなく、**当該環境で canon agent が `subagent_type` として登録されていない**ための代替（フォールバック）である。公式 Claude Code CLI 上では、`name` 必須フィールドを満たせばカスタム名を `subagent_type` に直接指定できる。
 >

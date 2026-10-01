@@ -301,9 +301,9 @@ refactor モードでは、差分パッチを当てずに「既存＋新しい�
 - 「keep＝再生成しない」を「output に置かない」と読んではならない。配置は管理パス集合の全置換なので、output に無いファイルは対象から消える。
 - 廃止は MANIFEST に明示する。全置換で黙って消える事故と区別するためである。
 
-### 6.2 4択の判定
+### 6.2 既存の判定
 
-designer が existing.md の各レコードに1つを割り当てる。
+designer が existing.md の各レコードに1つを割り当てる。管理パス集合の中のレコードは keep・modify・merge・retire の4択で、out_of_scope は集合の外の実体にだけ使う（集合の外のものを retire にすると、配置で消える対象と誤読される）。
 
 | 判定 | output での扱い |
 |---|---|
@@ -311,6 +311,7 @@ designer が existing.md の各レコードに1つを割り当てる。
 | modify | 新しい内容で生成する |
 | merge | 他と統合する（複数を1つに、または新規のものに吸収する）。統合される側は output に置かない |
 | retire | output に置かない。MANIFEST と `retired.list` に明示する |
+| out_of_scope | 管理パス集合の外にある既存の実体。output に置かず、配置でも触れない（設計の判断として言及するだけ）。`manifest_note` に管理対象外の理由を書く |
 
 ### 6.3 keep の5条件（K1〜K5）
 

@@ -51,7 +51,7 @@ test('pre-deploy-check: managed-paths.list の glob 行を P5 の前に検出し
 test('pre-deploy-report: 走査不能エントリを本照合の盲点として明示する', () => {
   // walkManaged が種別判定に失敗したエントリは「管理パス集合の一部を列挙できていない」
   // ことを意味する。落ちずに続行する代わりに黙殺すると、防波堤が静かに素通りになる。
-  const body = renderReport('/o/20260903_091044', '/t', {
+  const body = renderReport('/o/20260722_000000', '/t', {
     vanishing: [],
     retired: [],
     uncaptured: [],

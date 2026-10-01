@@ -4,7 +4,7 @@
  *
  * セッション transcript（`~/.claude/projects/<slug>/<sid>.jsonl` と
  * `<sid>/subagents/agent-*.jsonl` ＋ `.meta.json`）から、トークン消費を **メイン／agentType ×
- * model** 別に集計する。/canon の改修前後で「何がトークンを使ったか」を実測比較するための計測器で、
+ * model** 別に集計する。claude-canon の改修前後で「何がトークンを使ったか」を実測比較するための計測器で、
  * 5時間枠の消費主因（メイン履歴の再読込・長時間稼働 agent・差し戻し・design-map の重複 Read）を
  * 数字で確かめるために使う。読み取り専用（何も書かない）。
  *

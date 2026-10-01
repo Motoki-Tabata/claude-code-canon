@@ -16,7 +16,7 @@ claude-canon の設計は本書と [artifacts.md](artifacts.md) の2冊にまと
 
 節番号は冊ごとに §1 から振る。もう一方の冊を参照するときは「artifacts.md §8」のように冊名を付けて書く。
 
-frontmatter の `canon_version` は、本書を書いたときに参照していた正典のバージョン（`docs/` のメタ情報表にある「確認したClaude Codeバージョン」）である。本書自体の版ではない。正典が更新されたら、人が手で追従させる。docs/ の値と一致していることは `tests/settings_wiring.test.js` が検査する。
+frontmatter の `canon_version` は、本書を書いたときに参照していた正典のバージョン（`docs/` のメタ情報表にある「確認したClaude Codeバージョン」）である。本書自体の版ではない。正典が更新されたら、人が手で追従させる。docs/ の値と一致していることは `tests/conformance_tables.test.js` が検査する。
 
 ---
 
@@ -157,6 +157,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 | `.claude/skills/canon-d/scripts/` | `emit-run-manifest.js`・`pre-deploy-check.js`・`deploy.js` |
 | `lib/`（リポジトリ直下） | 複数のスクリプトが共有するパーサと管理パス集合（1か所にだけ置く） |
 | `gates/build-conformance-tables.js`・`gates/conformance_tables/` | `docs/` から判定表を生成する |
+| `tools/approvals.js` | 承認行の記録と照合（§6.3）。すべての Phase が使うので、Phase Skill ではなく tools/ に置く |
 | `tools/token-usage.js` | セッションのトークン消費を集計する |
 
 入口はすべて `package.json` の scripts から呼べるようにする。
@@ -237,9 +238,11 @@ status: in_progress | waiting_approval | done
 
 承認したあとで対象を作り直した場合、古い承認を無効にしなければならない。そのために承認行に対象の sha256 を残す。
 
-1. 承認を記録するとき、オーケストレーターは対象の sha256 を計算し、先頭12桁を承認行に書く。
-2. **次の Phase を始めるとき**、オーケストレーターは前の Phase までの承認行をすべて再計算して照合する。
+1. 承認を記録するとき、オーケストレーターは `npm run approvals -- <ts> record <ゲート> "<要旨>"` を実行する。CLI が対象の sha256（P4 はディレクトリのハッシュ）を計算し、実時刻と先頭12桁を承認行に書く。
+2. **次の Phase を始めるとき**、オーケストレーターは `npm run approvals -- <ts> check --expect <前の Phase までのゲート>` を実行し、承認行をすべて再計算して照合する。同じゲートの行が複数あれば最後の行が有効である。`--expect` に挙げたゲートの行が無いのも無効とする（承認0件の照合が素通りしないように）。
 3. 一致しなければ、その承認は無効である。どのファイルが承認後に変わったかをユーザーに示し、そのゲートで承認を取り直すまで先へ進まない。
+
+記録と照合を同じ CLI にまとめるのは、ハッシュの手計算による写し違いと、ディレクトリのハッシュを求める複合シェルコマンドを避けるためである。
 
 同じ Phase の中で差し戻して作り直した場合も、作り直した後に承認を取り直す（承認は対象が確定した後にだけ記録する）。
 
@@ -283,9 +286,9 @@ Anthropic が提供する Skill を、プラグインへの依存として取り
 
 Agent・L1・L4・L5 は `generation/references/` だけで生成する。
 
-### 8.2 未確認事項
+### 8.2 skill-creator を preload しない理由
 
-Agent の frontmatter `skills:` にプラグインの Skill（skill-creator）を指定して preload できるかは確認していない。セッション4の冒頭で公式ドキュメントまたは実際の起動で確かめ、できなければ執筆指針の要約を `generation/references/` に置く。
+Agent の frontmatter `skills:` にプラグインの Skill を指定したときの名前の解決は、公式ドキュメントに明記が無く、見つからない Skill は警告だけでスキップされる（失敗に気づけない）。skill-creator の本文の大半は eval の実行手順で、builder が毎回読む必要も無い。そこで builder には preload させず、執筆指針の要約を `generation/references/skill-writing.md` に置いている。
 
 ---
 
