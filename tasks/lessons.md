@@ -31,3 +31,43 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: artifacts.md §9.1 は reviewer 用のバンドル（生成物の実体と接地材料・design-map の rationale を除く）を定めるが、`.claude/skills/canon-c/scripts/review-bundle.js` は keep-reviewer 用しか作らない。reviewer は generated/・spec・slices・investigation を直接読んでおり、入力を探し損ねて「問題なし」と答える経路と、slices 経由で designer の rationale を読む経路が残っている。
 - 提案: review-bundle.js に reviewer 用の出力（`work/<ts>/review-bundle/reviewer/`）を足し、rationale を除くことをテストで固定する。reviewer 定義の「入力」と canon-c の工程8 をバンドルの読みに切り替える。
 
+
+## 2026-10-01 セッション分析の「逐語保存」がメインの出力トークンを大量に使う（run 20261001_184754・Phase A）
+- 種別: 効率化
+- 何が起きたか: interview.md は、分析を Explore（読み取り専用）に任せ、その応答本文をメインが逐語で `work/<ts>/session-analysis-<名前>.md` に保存するよう定めている。2件で約3万字あり、メインがこれを Write で書き直すことになった。opus の出力トークンを、転記のためだけに使っている。
+- 提案: `.claude/skills/requirements/references/interview.md` の分析手順を変える。書込先を `work/<ts>/session-analysis-*.md` の1ファイルに限る分析専用の Subagent 定義（tools: Read, Grep, Glob, Bash（読み取り）, Write）を用意し、その Subagent が自分で保存する。メインは実在と要旨だけを確かめる。
+
+## 2026-10-01 investigator（focused）が公式ドキュメントを読めず、Claude Code の仕様に関わる要件を裏取りできない（run 20261001_184754・Phase A）
+- 種別: 欠陥修正
+- 何が起きたか: R3（組込み Skill をモデルから起動できるか）・R15（allow と分類器の関係）・R6（待ちの手段）について、investigator は「確かめられなかった」と返した。investigator の tools は Read・Grep・Glob・Write だけで、WebFetch を持たないためである。オーケストレーターが claude-code-guide に確かめさせ、その結果を `investigation/official-check.md` に手で残した。手順の外の工程になっている。
+- 提案: canon-a の工程3に「要件が Claude Code の仕様に依存するときは、claude-code-guide で公式の仕様を確かめ、`investigation/official-check.md` に残す」を足し、spec-writer の入力に加える。または investigator（focused）に WebFetch を足す。
+
+## 2026-10-01 管理パスの外の改修を要件にしたとき、それを運ぶ正規の経路が無い（run 20261001_184754・Phase A）
+- 種別: 欠陥修正
+- 何が起きたか: ユーザーが「スコープ外（vitest.config.ts・ci.yml・scripts/）でも、要件の実現に要るなら今回は改修してよい」と指示した（R18）。しかし generated/ は管理パス集合の中に限られ（spec A4-1）、管理パスの外の変更は「配置時の追加手順（散文）」に書くしかない。差分の実体・検証・適用の記録が、どこにも機械的に残らない。
+- 提案: design-map と RUN.md に「管理パス外の変更」の節（対象のパス・変更内容・適用後の確かめ方）を設け、canon-d の配置の後で、適用と確認をチェックリストとして扱う。requirements-template.md にも、管理パスの外を改修対象にするときの書き方を足す。
+
+## 2026-10-02 emit-manifest が生成する README の「使用例」に、spec の受入基準 A1 を逐語で載せる（run 20261001_184754・Phase C）
+- 種別: 欠陥修正
+- 何が起きたか: `generated/.claude/README.md` の「使用例」節が spec §8 の A1（28件・約30行）の転記になっている。受入基準は run の道具で、配置後の人間向け README に置くと、廃止予定のパス（`tsod-implement` など）と旧番号の語を指したまま腐る。README の約3割を占める。reviewer・prompt-audit の両方が指摘したが、README は emit-manifest.js の出力なので builder でも直せない。
+- 提案: emit-manifest.js の「使用例」を、区間コマンドの起動手順（Skill の `argument-hint` と description から導く）に変える。受入基準の転記はやめる。
+
+## 2026-10-02 refactor の keep 判定で、同梱データの件数を固定したテストを見落とす（run 20261001_184754・Phase B→C）
+- 種別: 欠陥修正
+- 何が起きたか: designer が `lessons-ledger.test.mjs` を keep（K3 健全）にしたが、このテストは reflection.json の件数を13と固定していた。今回17件になるため `node --test` が落ち、工程7 で P3 に差し戻すことになった（keep→modify・P3 再承認）。K3 の「参照先が interface_change: none」では、参照先のデータが変わる場合を見ていない。
+- 提案: design スキルの K3 に、「keep のテストが、同じ run で書き換える同梱データ（reflection.json・スナップショット等）の件数・内容を固定していないか」を確かめる項目を足す。
+
+## 2026-10-02 生成した drift-scan.mjs を対象の現物で動かさずに承認され、配置後の確認で偽陽性が出た（run 20261001_184754・Phase D）
+- 種別: 規律昇華
+- 何が起きたか: 配置後の確認（追加手順 2-6）で `node drift-scan.mjs 009` を対象で実行すると、「Commands にあるが verify.mjs に無い: pnpm:test:e2e」と「ci.yml にあるが…」の2件が出た。`buildPlan(parseVerifyArgs([]))`（`tsod-ship/scripts/drift-scan.mjs:553`）は e2e を含まない既定の計画で、e2e は `--e2e` のときだけ入るため、「不一致0件」（A1-26）を満たさない。Phase C の工程7 は `node --test` と `bash -n` までで、生成したスクリプトを対象の現物に向けて実行していない。
+- 提案: canon-c の工程7（または spec の受入基準の書き方）に、「CLI・スクリプトを生成物に含める run は、配置前に generated/ のスクリプトを対象の現物に向けて1回実行し、出力を P4 の提示に含める」を足す（`.claude/rules/workflow.md` の「実際の経路で動く」と同じ規律）。drift-scan.mjs 自体は、e2e を含む計画（`--e2e` 相当）で突き合わせる直し方を次の run の design で扱う。
+
+## 2026-10-02 R18 の追加手順 2-2（setup.ts の enableAutoUnmount）が実際には 175 件のテストを壊した（run 20261001_184754・Phase B→D）
+- 種別: 規律昇華
+- 何が起きたか: design-map の 2-2 は「現状どの spec も enableAutoUnmount を呼んでいない」ことだけを根拠に、`setupFiles` で `enableAutoUnmount(afterEach)` を足す設計だった。配置後に適用して `pnpm test:unit` を実行すると、Dialog 系 spec が `document.body.innerHTML = ''` の後に自動 unmount して `Cannot read properties of null (reading 'nextSibling')` で 175 件失敗した（setupFiles を外すと元に戻る）。2-2 の確認欄に書いてあった撤回手順どおり、setup.ts と setupFiles を外し、規約の明示だけで運用することにした。
+- 提案: R18 の追加手順のうち、対象のテスト・ビルドの振る舞いを変えるもの（テスト設定・CI・スクリプト）は、design の段階で対象のブランチ上で試して結果を根拠にする（investigator の focused か、設計後の検証工程）。「現状どの spec も呼んでいない」のような不在の根拠だけで設計しない。
+
+## 2026-10-02 生成した rule が、配置されない（撤回した）追加手順の成果物を前提に書かれていた（run 20261001_184754・Phase D）
+- 種別: 規律昇華
+- 何が起きたか: 追加手順 2-2 の setup.ts を撤回したのに、生成物の `.claude/rules/frontend-pnpm.md`「モーダル／ダイアログ系 spec の後始末」は「`frontend/src/test/setup.ts` のグローバルな enableAutoUnmount」の存在を前提に書かれていた。管理パスの外の成果物を前提にする生成物は、その手順を撤回すると宙に浮く。対象側で rule を直接直した。
+- 提案: design-map で、生成物の本文が R18 の追加手順の成果物を参照するときは、その参照を追加手順の確認欄の撤回条件にも書く（撤回したら直す生成物を明示する）。

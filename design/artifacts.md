@@ -487,7 +487,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
    - **warning**: それ以外のトークンは、skill ディレクトリ → generated/ のルート → 対象のルートの順に解決を試み、どこでも解決できないものだけを報告する（リポジトリ相対の地の文の参照や、一般名詞としてのファイル名を違反にしない）。
 5. plugin.json の `skills`・`commands`・`agents`・`hooks`・`mcpServers`・`outputStyles`・`lspServers`・`experimental.themes`・`experimental.monitors` のパスが plugin のルート相対で実在する（`L5_DISTRIBUTION.md`）。
 6. skill パッケージに定義ファイル `SKILL.md` が実在する。V1 が supporting files を許す以上、ここで明示的に確かめないと、`Skill.md` のような綴り違いで Skill が読み込まれない失敗が検査をすり抜ける。
-7. **非管理ファイルへの行番号引用の禁止**（本書由来の規律）: 生成物が、管理パス集合（§10.1）に属さない対象プロジェクトのファイル（`README.md`・`contracts/README.md` など）を `` `path:N` `` や `` `path:N-M` `` の形で行番号引用していたら error。行番号は対象側の編集で黙ってずれ、生成物の側にはずれを検知する手段が無い。節見出しで参照させる（例: `` `README.md` の「main への直接 push を防ぐ」節 ``）。見出しと行番号の併記も不可。走査するのは generated/ だけで、spec・design-map・review（調査の根拠を行番号で記録する正当な場所）は対象外。管理ファイル同士（生成物同士）の行番号参照は、同じ run で一括生成されてずれる余地が無いので許す。
+7. **非管理ファイルへの行番号引用の禁止**（本書由来の規律）: 生成物が、管理パス集合（§10.1）に属さない対象プロジェクトのファイル（`README.md`・`contracts/README.md` など）を `` `path:N` `` や `` `path:N-M` `` の形で行番号引用していたら error。行番号は対象側の編集で黙ってずれ、生成物の側にはずれを検知する手段が無い。節見出しで参照させる（例: `` `README.md` の「main への直接 push を防ぐ」節 ``）。見出しと行番号の併記も不可。走査するのは generated/ だけで、spec・design-map・review（調査の根拠を行番号で記録する正当な場所）は対象外。管理ファイル同士（生成物同士）の行番号参照は、同じ run で一括生成されてずれる余地が無いので許す。対象の台帳のバイト単位のコピー（`.claude/skills/lessons-ledger/ledger-snapshot.txt`）は、中身が対象プロジェクトの記述で直せない（バイト一致が V8・照合の前提）ので検査から除く。
 
 **V7 keep**（design-map の `existing_disposition` と investigation を読む）
 1. **非回帰**: disposition が keep のファイルがすべて output にあり、対象の原本 `<target>/<パス>` と `generated/<パス>` の sha256 が一致する。

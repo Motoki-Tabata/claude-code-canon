@@ -348,6 +348,12 @@ function checkSkillPackages(ctx) {
 const BACKTICK_RE = /`([^`\n]+)`/g;
 const LINE_REF_RE = /^((?:[\w.-]+\/)*[\w.-]+\.[A-Za-z0-9]{1,6}):(\d+)(?:-(\d+))?$/;
 
+/**
+ * 対象の台帳（tasks/lessons.md）のバイト単位のコピー。内容は対象プロジェクトの記述で、
+ * バイト一致が照合の前提（V8・lessons-ledger）なので、中身の行番号引用は直せず、V6-7 の対象にしない。
+ */
+const VERBATIM_COPY_PATHS = new Set(['.claude/skills/lessons-ledger/ledger-snapshot.txt']);
+
 /** テキスト中のバッククォート囲みトークンから「パス:行番号」形の参照だけを抽出する。 */
 function extractLineNumberRefs(text) {
   const refs = [];
@@ -373,6 +379,7 @@ function checkUnmanagedLineRefs(ctx) {
   let checked = 0;
   for (const f of ctx.files) {
     if (!isManaged(f.rel)) continue; // 集合外の生成物は V8 が違反にする
+    if (VERBATIM_COPY_PATHS.has(f.rel)) continue; // 逐語コピーの中身は生成物の記述ではない
     for (const { token, refPath } of extractLineNumberRefs(f.text)) {
       checked++;
       if (isManaged(refPath)) continue; // 生成物同士の行番号参照は正当
