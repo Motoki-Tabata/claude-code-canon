@@ -1,6 +1,6 @@
 ---
 name: canon-c
-description: Drive Phase C of a claude-canon run — copy keep files and slice the design-map, spawn one builder per layer in parallel to generate the customizations, run verify (V1-V9), run the quality review (reviewer, keep-reviewer, /claude-api prompt-audit, /security-review, /code-review), loop fixes until done, and take the P4 approval. Use only when the user invokes /canon-c with the run timestamp, in a session started inside the run worktree.
+description: Drive Phase C of a claude-canon run — copy keep files and slice the design-map, spawn one builder per layer in parallel to generate the customizations, run verify (V1-V9), run the quality review (reviewer, keep-reviewer, /claude-api prompt-audit), loop fixes until done, and take the P4 approval. Use only when the user invokes /canon-c with the run timestamp, in a session started at the claude-canon root.
 disable-model-invocation: true
 argument-hint: "<ts>"
 ---
@@ -15,13 +15,13 @@ Phase C は承認済みの design-map から生成物を作り、工程6〜8 と
 
 `$ARGUMENTS` は run の ts である。
 
-1. **worktree の確認**: `git branch --show-current` が `run/<ts>` であることを確かめる。違えば、`cd ../canon-runs/<ts> && claude --model sonnet` で起動し直すよう案内して止まる。
-2. `work/<ts>/handoff.md` を読む。frontmatter の `target`・`mode` を控える。
+1. `work/<ts>/handoff.md` を読む。frontmatter の `target`・`mode` を控える。
+2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs` を示す。`git status --short -- .claude lib gates tools docs` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
 3. **承認の照合**: `npm run approvals -- <ts> check --expect P1,P2,P3` を実行する。exit 1 なら、どのファイルが承認後に変わったか（または承認行が無いか）を示し、そのゲートで承認を取り直すまで先へ進まない。
 4. **申し送り**: handoff の「申し送り」のうち Phase C 向けのものを先に実施する。結果は P4 の提示に含める。実施しなかったものは理由を添えて示す。
 5. handoff の frontmatter を `phase: C`・`status: in_progress` にする。
 
-claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その場で handoff の「canon 課題候補」に書く（書式は `tasks/lessons.md` 冒頭と同じ）。
+claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その場で `tasks/lessons.md` の末尾に書く（書式は同ファイル冒頭）。見出しの出典欄は `run <ts>・Phase C` とする。
 
 ## ワーカーの起動規則
 
@@ -61,22 +61,15 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 ## 工程8 品質検査
 
-1. **チェックポイントのコミット**: `/security-review`・`/code-review` は run ブランチと main の差分を見るので、先に生成物をコミットする。
-   ```sh
-   git add -f work/<ts> output/<ts>
-   git commit -m "run <ts>: Phase C 生成と verify"
-   ```
-2. refactor モードなら `npm run review-bundle -- <ts>` で keep-reviewer の判定入力を `work/<ts>/review-bundle/keep-review/` に作る（designer の `keep_conditions` と rationale は機械的に除かれている）。
-3. **reviewer と keep-reviewer を1つのメッセージで並列に**起動する。keep-reviewer は、review-bundle が keep または merge のケースを1件以上作ったときだけ起動する（new モード、またはケースが0件なら reviewer だけ）。
+1. refactor モードなら `npm run review-bundle -- <ts>` で keep-reviewer の判定入力を `work/<ts>/review-bundle/keep-review/` に作る（designer の `keep_conditions` と rationale は機械的に除かれている）。
+2. **reviewer と keep-reviewer を1つのメッセージで並列に**起動する。keep-reviewer は、review-bundle が keep または merge のケースを1件以上作ったときだけ起動する（new モード、またはケースが0件なら reviewer だけ）。
    - reviewer: `output/<ts>/generated/`・`output/<ts>/spec.md`・`work/<ts>/slices/`・`work/<ts>/investigation/`・`work/<ts>/requirements.md`・対象のルートの絶対パス。書込先は `output/<ts>/review/review.md`。
    - keep-reviewer: `work/<ts>/review-bundle/keep-review/` のケースファイル一式と `output/<ts>/` の絶対パス。書込先は `output/<ts>/review/keep-review.md`。
-4. **標準 Skill のレビュー**を自分で実行し、各 Skill の報告を**要約せずにそのまま**書き出す。
+3. **標準 Skill のレビュー**を自分で実行し、報告を**要約せずにそのまま**書き出す。
    - Skill `claude-api` に `prompt-audit output/<ts>/generated/` を渡す。報告と diff 案だけを求め、編集は適用させない。報告を `output/<ts>/review/prompt-audit.md` に書く。
-   - Skill `security-review` を実行する（run ブランチの main との差分が対象）。報告を `output/<ts>/review/security-review.md` に書く。
-   - Skill `code-review` に、run ブランチと main の差分（`main...HEAD`）を対象として渡す。報告を `output/<ts>/review/code-review.md` に書く。
    - Skill が使えない環境なら、そのファイルに「実行できなかった」と理由を書き、P4 で明示する。実行していないレビューを「指摘なし」と書かない。
-5. **不在を根拠にした指摘を裏取りする**: 「〜が無い」「〜への言及が無い」を根拠にした指摘は、提示の前に Grep で `generated/` を横断して確かめる。見つかったら、その事実（`file:line`）を指摘に添えて示す。指摘そのものは書き換えない。
-6. **実行を要する受入基準**: spec §8 の受入基準や design-map が、生成物に含まれるテストやスクリプトの実行を求めているなら、あなたが Bash で実行し、コマンド行と実際の出力を P4 に含める。実行できない環境なら「実行して確かめていない」と明記する。読んだだけで「動作を確認した」と言わない。
+4. **不在を根拠にした指摘を裏取りする**: 「〜が無い」「〜への言及が無い」を根拠にした指摘は、提示の前に Grep で `generated/` を横断して確かめる。見つかったら、その事実（`file:line`）を指摘に添えて示す。指摘そのものは書き換えない。
+5. **実行を要する受入基準**: spec §8 の受入基準や design-map が、生成物に含まれるテストやスクリプトの実行を求めているなら、あなたが Bash で実行し、コマンド行と実際の出力を P4 に含める。実行できない環境なら「実行して確かめていない」と明記する。読んだだけで「動作を確認した」と言わない。
 
 ## 修正ループ
 
@@ -95,7 +88,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
    - 生成物の一覧（新規・改修・維持・廃止。`MANIFEST.md` から）と `generated/.claude/README.md` のパス
    - verify-report の結果（違反0件であること・warning の全件）
    - review.md・keep-review.md の指摘の全件（重大度別）。K2・K4 に疑いありとされた keep は必ず示す
-   - prompt-audit・security-review・code-review の要点と、実行できなかったもの
+   - prompt-audit の要点、または実行できなかったこと
    - 修正ループで直した指摘と、直さないと決めた指摘とその理由
    - 実行を要する受入基準の実行結果、または「未実行」
 3. 承認を求めて**止まる**。
@@ -107,13 +100,8 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 1. 設定済みの ScheduleWakeup・loop があれば止める。
 2. handoff.md を更新する: 進捗に工程6〜8 と P4 の行（工程N → ゲート）を追記して印を付け、frontmatter を `phase: D`・`status: waiting_approval` に、「申し送り」に Phase D でやること（例: 配置前に人間が行う手作業）を書く。
 3. `npm run approvals -- <ts> check --expect P1,P2,P3,P4` が exit 0 であることを確かめる。
-4. コミットする（パスを明示する。push しない）。
-   ```sh
-   git add -f work/<ts> output/<ts>
-   git commit -m "run <ts>: Phase C（P4 承認）"
-   ```
-5. 次のように案内して止まる。
+4. 次のように案内して止まる。
    > Phase C が完了しました。次は新しいセッションで Phase D を実行してください。
-   > `claude --model sonnet`（この worktree で起動）→ `/canon-d <ts>`
+   > `claude --model sonnet`（canon のルートで起動）→ `/canon-d <ts>`
 
 canon の Phase（A〜D）と、対象プロジェクト側のワークフローの段階は別物である。対象側の段階に触れるときは「対象側の〜」と書き分ける。

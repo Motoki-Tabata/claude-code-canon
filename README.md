@@ -30,12 +30,11 @@ Phase の境界でセッションを切っても失うものはありません�
 | D | `/canon-d <ts>` | 9 配置前照合 → 配置（人間が sandbox の外で実行）→ 配置後の手順 | P5 配置 | sonnet |
 
 - **検証と品質検査は別系統**です。検証（`npm run verify`）は機械的に真偽が決まる V1〜V9 を判定し、
-  品質検査（reviewer・keep-reviewer と、標準 Skill の `/claude-api prompt-audit`・`/security-review`・
-  `/code-review`）は意味の判断を扱います。レビューは verify が見た項目を判定し直しません。
+  品質検査（reviewer・keep-reviewer と、標準 Skill の `/claude-api prompt-audit`）は意味の判断を扱います。レビューは verify が見た項目を判定し直しません。
 - **承認は handoff.md に sha256 付きで記録**し（`npm run approvals`）、次の Phase の開始時に照合します。
   承認の後で対象が変わっていれば、承認は無効です。
-- **run は専用の git worktree で行います**（`../canon-runs/<ts>`・ブランチ `run/<ts>`）。run の間は
-  canon の版が固定され、Phase の終わりごとに成果物をコミットします。run ブランチは push しません。
+- **run は canon のルートで行います**。成果物は `work/<ts>`・`output/<ts>` に置き、git では追跡しません。
+  run を始めたときの canon のコミットを handoff.md に記録し、Phase の開始時に canon 本体が変わっていれば警告します。
 - フックは使いません。工程の順序と承認は対話と handoff.md で扱います（理由は architecture.md §9）。
 
 ## 前提
@@ -69,7 +68,7 @@ npm test               # 検査・スクリプト・自己適用のテスト
 - `design/` — 設計書2冊
 - `guide/` — セットアップと運用の手順
 - `tasks/lessons.md` — claude-canon 本体への改修要求の台帳
-- `work/`・`output/` — run の中間物と成果物（gitignore。run ブランチでだけ追跡）
+- `work/`・`output/` — run の中間物と成果物（gitignore）
 - `.github/workflows/` — CI（判定表の鮮度の検査と `npm test`）
 
 ## ライセンス

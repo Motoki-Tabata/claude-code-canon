@@ -3,8 +3,7 @@
 claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・`guide/`）への改修要求を置く唯一の台帳。
 
 - **即時記録**: canon 側の欠陥・浪費・規律の穴を見つけたら、その場で下の軽量書式で追記する。
-  run の途中（run ブランチの worktree）で見つけたら `work/<ts>/handoff.md` の「canon 課題候補」に同じ書式で書き、
-  Phase D の最後に本台帳へ転記する（`design/architecture.md` §6.4）。
+  run の途中でも、本台帳に直接書く（`design/architecture.md` §6.4）。
 - **反映したら削除**: 項目を直したコミットの中で、その項目を本台帳から削除する（履歴は commit・PR 本文・`git log` で追う）。
   未反映が0件でもファイルは消さない（`.claude/rules/workflow.md` が参照する）。
 - **ID を振らない**: 見出しは日付＋要約にする。

@@ -9,6 +9,26 @@
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-01
+
+run の置き場所を、canon と対象プロジェクトの2フォルダだけで完結する形に戻しました。2.0.0 で始めた run は引き継げません（新しい run を始めてください）。
+
+### Changed
+
+- **run は canon のルートで行います**: run ごとの worktree `../canon-runs/<ts>` とブランチ `run/<ts>` をやめました。
+  すべての Phase を canon のルートで起動し、成果物は `work/<ts>`・`output/<ts>` に置きます。成果物はコミットしません。
+- **canon の版の確認**: `npm run new-run` が run を始めたときの canon の HEAD を handoff.md の `canon_commit` に記録し、
+  各 Phase の開始時に、canon 本体（`.claude/`・`lib/`・`gates/`・`tools/`・`docs/`）が変わっていれば差分を示して確認します。
+- **canon 課題の記録**: run 中に見つけた canon 本体の問題は、その場で `tasks/lessons.md` に書きます。
+  handoff.md の「canon 課題候補」と、Phase D の転記の工程は廃止しました。
+- **品質検査**: reviewer の correctness・security に、生成物に含まれる実行コード（Hook のスクリプト・MCP の command）と
+  `permissions` の確認を足しました。
+- **`.claude/settings.json`**: `additionalDirectories`（`../canon-runs/`）と `git worktree list` の許可を外しました。
+
+### Removed
+
+- Phase C の `/security-review`・`/code-review`。run の成果物を追跡しないので差分が無く、確認の範囲は reviewer が受け持ちます。
+
 ## [2.0.0] - 2026-10-01
 
 構成を作り替えました。フックと完了マーカーで工程を進める方式をやめ、Phase ごとのセッションで動くオーケストレーターと、

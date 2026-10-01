@@ -1,6 +1,6 @@
 {
   "name": "claude-canon",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "description": "Claude Code のカスタマイズ一式を Phase A〜D・工程1〜9 で半自律構築するメタジェネレータ。正典 docs/ を SSoT とする。",

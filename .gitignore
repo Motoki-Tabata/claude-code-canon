@@ -1,4 +1,4 @@
-# output/・work/ は run の成果物なので gitignore（architecture.md §10。run ブランチでだけ git add -f して追跡する・§7）。
+# output/・work/ は run の成果物なので gitignore（architecture.md §7・§10）。
 # ディレクトリ自体は .gitkeep で追跡し、中身のみ除外する（除外ディレクトリの中に git は降りないため
 # `/output/` 形式ではなく `/output/*` 形式にする）。
 

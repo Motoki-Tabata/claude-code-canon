@@ -1,6 +1,6 @@
 ---
 title: claude-canon アーキテクチャ
-purpose: claude-canon の全体像を定める。Phase A〜D と工程1〜9・人間ゲート P1〜P5、Agent と Skill の責務、handoff.md による状態と承認の引き継ぎ、run の git 運用、標準 Skill の取り込み、フックを使わない理由を扱う。成果物の書式・verify の検査契約・deploy の契約は artifacts.md に置く。
+purpose: claude-canon の全体像を定める。Phase A〜D と工程1〜9・人間ゲート P1〜P5、Agent と Skill の責務、handoff.md による状態と承認の引き継ぎ、run の置き場所と canon の版、標準 Skill の取り込み、フックを使わない理由を扱う。成果物の書式・verify の検査契約・deploy の契約は artifacts.md に置く。
 audience: [ai, human]
 canon_version: v2.1.280
 ---
@@ -11,7 +11,7 @@ claude-canon の設計は本書と [artifacts.md](artifacts.md) の2冊にまと
 
 | 文書 | 扱う範囲 |
 |---|---|
-| architecture.md（本書） | 位置づけ・Phase と工程・人間ゲート・責務・オーケストレーションの原則・handoff.md・git 運用・標準 Skill・フック全廃の理由・リポジトリ構成 |
+| architecture.md（本書） | 位置づけ・Phase と工程・人間ゲート・責務・オーケストレーションの原則・handoff.md・run の置き場所・標準 Skill・フック全廃の理由・リポジトリ構成 |
 | [artifacts.md](artifacts.md) | work/ と output/ の構成・各成果物の書式・既存カスタマイズの扱い（keep 条件 K1〜K5）・MANIFEST と README の生成規則・verify の検査 V1〜V9・review-bundle・deploy の契約 |
 
 節番号は冊ごとに §1 から振る。もう一方の冊を参照するときは「artifacts.md §8」のように冊名を付けて書く。
@@ -59,7 +59,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 | C | `/canon-c <ts>` | 6 生成 → 7 検証（verify）→ 8 品質検査と修正ループ | P4 生成物とレビューの承認 | sonnet |
 | D | `/canon-d <ts>` | 9 配置前照合 → P5 → 配置（人間が sandbox の外で `--confirm`）→ 配置後の手順・lessons への転記 | P5 配置承認 | sonnet |
 
-- 各 Phase は、最後の人間ゲートの承認を handoff.md に記録してコミットしたら止まる。次の Phase は新しいセッションで起動する。
+- 各 Phase は、最後の人間ゲートの承認を handoff.md に記録したら止まる。次の Phase は新しいセッションで起動する。どの Phase も canon のルートで起動する（§7）。
 - 推奨モデルは、判断の精度が要る Phase（ヒアリング・spec の精査・keep と retire の議論）を opus、委譲と機械的な手順が中心の Phase を sonnet とした。強制はしない。Phase C で意味の判断が要るのは keep-reviewer（opus）だけで、これは Agent の frontmatter で指定する。
 
 ### 2.2 この分け方にした理由
@@ -74,22 +74,22 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 ## 3. Phase ごとの流れ
 
-各 Phase の開始時にすることは共通である（§6.3）: handoff.md を読む → 承認の sha256 を照合する → 申し送りを先に片付ける。
+各 Phase の開始時にすることは共通である: handoff.md を読む → canon の版を確かめる（§7）→ 承認の sha256 を照合する（§6.3）→ 申し送りを先に片付ける。
 
 ### 3.1 Phase A（工程1〜4・P1・P2）
 
-1. `canon-a/scripts/new-run.js` が `<ts>` を採番し、run の worktree とブランチ（§7）、`work/<ts>`・`output/<ts>` の骨格、handoff.md の雛形を作る。以降の工程はこの worktree の中で行う。
+1. `canon-a/scripts/new-run.js` が `<ts>` を採番し、canon のルートに `work/<ts>`・`output/<ts>` の骨格と handoff.md の雛形を作る。handoff には run を始めたときの canon のコミット（`canon_commit`）を記録する（§7）。
 2. **工程1 調査①**: investigator を `existing` モードと `profile` モードで同一 turn に並列 spawn する。それぞれが `work/<ts>/investigation/existing.md`・`profile.md` を自分で書く。オーケストレーターは両ファイルの実在を確かめてから次に進む。
 3. **工程2 要件ヒアリング**: オーケストレーターが requirements Skill の質問セットと調査結果を使い、ユーザーと直接対話する。合意したら `work/<ts>/requirements.md` を書き、**P1** で承認を取る。
 4. **工程3 調査②**: investigator を `focused` モードで spawn し、確定した要件と existing.md の project_refs を渡す。`work/<ts>/investigation/focused.md` が書かれる。
 5. **工程4 spec**: spec-writer を spawn し、`output/<ts>/spec.md` を書かせる。オーケストレーターは spec の未決事項が空であることを確かめてから **P2** に出す。
-6. handoff.md に承認を記録し、Phase A の終わりのコミットをして、Phase B の起動方法（モデル指定を含む）を案内する。
+6. handoff.md に承認を記録し、Phase B の起動方法（モデル指定を含む）を案内する。
 
 ### 3.2 Phase B（工程5・P3）
 
 1. **工程5 機能選定と設計**: designer を spawn する。入力は承認済みの spec・requirements・investigation の3ファイル。designer は design Skill（機能選定フローチャート・層数と責務・オーケストレーションのパターン・モデル割当・既存の処遇）に従って `output/<ts>/design-map.md` を書く。
 2. **P3**: 提示の重点は artifacts.md §6.5 に従う（retire の全件、意味の判断に疑いがある keep、merge の統合先）。
-3. 承認を記録してコミットし、Phase C を案内する。
+3. 承認を記録し、Phase C を案内する。
 
 ### 3.3 Phase C（工程6〜8・P4）
 
@@ -99,19 +99,19 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 4. **工程8 品質検査**: 次を行う。
    - `review-bundle.js` で判定入力を作る（artifacts.md §9）。
    - reviewer を spawn する（correctness・security・正典の意図・context の4観点）。refactor モードでは keep-reviewer も spawn する（K2・K4 と merge 先の妥当性）。両者は同一 turn で並列に動かす。
-   - オーケストレーターが標準 Skill のレビューを直接実行する: `generated/` に対する `/claude-api prompt-audit`、run ブランチと main の差分に対する `/security-review` と `/code-review`（§8）。
+   - オーケストレーターが標準 Skill のレビュー（`generated/` に対する `/claude-api prompt-audit`）を直接実行する（§8）。
    - 結果は `output/<ts>/review/` に置く。
 5. **修正ループ**: 直すと決めた指摘は、handoff.md の「差し戻し」に逐語で記録し、該当層の builder を新規 spawn して直させる → verify → 変更した箇所だけを再レビュー、を指摘が尽きるまで繰り返す。
 6. **P4**: 生成物・verify-report・レビュー結果を1回で提示する。生成物を単独で見ても判断材料が揃わないので、レビュー結果と分けずに出す。P4 に出す前に、verify-report に記録された generated/ のハッシュが現在の generated/ と一致することを確かめる（修正後に verify を回し忘れていないことの確認・§9.3）。
-7. 承認を記録してコミットし、Phase D を案内する。
+7. 承認を記録し、Phase D を案内する。
 
 ### 3.4 Phase D（工程9・P5）
 
 1. **工程9 配置前照合**: `canon-d/scripts/emit-run-manifest.js` が配置手順書 `output/<ts>/deploy/RUN.md` を作り、`pre-deploy-check.js` が対象の現物と output を突き合わせて `pre-deploy-report.txt` を書く（artifacts.md §10）。
 2. **P5**: 消える予定のファイル（retired / uncaptured）を人間が確認する。uncaptured が1件でもあれば配置しない（Phase A の調査または Phase B の設計へ差し戻す）。
 3. **配置**: 人間が sandbox の外で `deploy.js --confirm` を実行する。オーケストレーターは実行しない。sandbox がファイルをバインドマウントしていると退避の rename が失敗するためである。
-4. **配置後**: RUN.md の配置後の手順を案内する。handoff.md の「canon 課題候補」を main の `tasks/lessons.md` へ転記し、件数と見出しを報告する。コミットするかはユーザーの指示を待つ。
-5. Phase C で済ませた `/security-review` などのレビューは再実行しない。
+4. **配置後**: RUN.md の配置後の手順を案内する。この run で `tasks/lessons.md` に書いた canon 課題の件数と見出しを報告する（§6.4）。コミットするかはユーザーの指示を待つ。
+5. Phase C で済ませたレビューは再実行しない。
 
 ---
 
@@ -192,7 +192,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 ### 6.1 役割
 
-`work/<ts>/handoff.md` は run の状態を持つ唯一のファイルで、オーケストレーターだけが直接編集する。進捗・承認・差し戻し・申し送り・canon 課題候補を1か所に集め、Phase をまたいで引き継ぐ。
+`work/<ts>/handoff.md` は run の状態を持つ唯一のファイルで、オーケストレーターだけが直接編集する。進捗・承認・差し戻し・申し送りを1か所に集め、Phase をまたいで引き継ぐ。
 
 ### 6.2 書式
 
@@ -203,6 +203,7 @@ target: <対象プロジェクトの絶対パス>
 mode: new | refactor
 phase: A | B | C | D
 status: in_progress | waiting_approval | done
+canon_commit: <run を始めたときの canon の HEAD（new-run が記録する）>
 ---
 
 ## 進捗
@@ -217,9 +218,6 @@ status: in_progress | waiting_approval | done
 
 ## 申し送り
 <次の Phase が最初に実施すること>
-
-## canon 課題候補
-<claude-canon 本体の欠陥・浪費・規律の穴。書式は tasks/lessons.md 冒頭と同じ>
 ```
 
 承認の対象ファイルは次のとおり。
@@ -246,19 +244,19 @@ status: in_progress | waiting_approval | done
 
 同じ Phase の中で差し戻して作り直した場合も、作り直した後に承認を取り直す（承認は対象が確定した後にだけ記録する）。
 
-### 6.4 canon 課題候補の転記
+### 6.4 canon 課題の記録
 
-run の途中で claude-canon 本体の問題を見つけたら、見つけたその場で「canon 課題候補」に書く。run は worktree の run ブランチで動くので、main の `tasks/lessons.md` にはその場で書かない。Phase D の最後に main の `tasks/lessons.md` へ転記し、件数と見出しを報告する。
+run の途中で claude-canon 本体の問題を見つけたら、見つけたその場で `tasks/lessons.md` に書く（書式は同ファイル冒頭・出典欄は `run <ts>・Phase <A〜D>`）。run は canon のルートで動くので、handoff に溜めて後で転記する必要は無い。Phase D の最後に、その run で書いた件数と見出しを報告する。
 
 ---
 
-## 7. run の git 運用
+## 7. run の置き場所と canon の版
 
-- **worktree**: Phase A の開始時に `git worktree add ../canon-runs/<ts> -b run/<ts>` で run 専用の worktree を作る。以降の Phase もその worktree でセッションを起動する。run の間は canon 本体のバージョンが固定され、main での保守作業と干渉しない。
-- **成果物の追跡**: `work/<ts>`・`output/<ts>` は `.gitignore` の対象だが、run ブランチの上でだけ `git add -f` して追跡する。各 Phase の終わりにコミットし、進捗のチェックポイントにする。Phase C の `/security-review`・`/code-review` はこのコミットの main との差分を対象にする。
-- **push しない**: 公開リポジトリなので、run ブランチは push しない。
-- **片付け**: run が終わった後の worktree とブランチの削除は、人間が判断する。
-- **main の worktree で run をしない**: main の `work/`・`output/` に置いた run の成果物は追跡されず、Phase のチェックポイントも作れない。
+- **置き場所**: run はすべて canon のルートで行う。どの Phase のセッションも canon のルートで起動し、成果物は `work/<ts>`・`output/<ts>` に置く。扱うフォルダは canon と対象プロジェクトの2つだけである。
+- **成果物は追跡しない**: `work/`・`output/` は `.gitignore` の対象で、run の成果物はコミットしない。Phase をまたぐ状態は handoff.md が持ち、承認の後で成果物が変わったことは sha256 の照合（§6.3）が検出する。
+- **canon の版**: run の間、canon 本体の版は固定されない（main を直せば、進行中の run にも効く）。そこで new-run が run を始めたときの HEAD を handoff の `canon_commit` に記録し、各 Phase の開始時にオーケストレーターが現在の HEAD と比べる。違っていれば、`git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs` を示す。`git status --short` で同じパスの未コミットの改修も示す。どちらかがあれば、続けてよいかをユーザーに尋ねる。続けるか、run を作り直すかは人間が決める。
+- **片付け**: run が終わった後の `work/<ts>`・`output/<ts>` の削除は、人間が判断する。追跡していないので、消すと戻せない。
+- **この方式にした理由**: run ごとに git worktree と専用のブランチを作る方式は、Phase ごとの `cd`、作業ツリーの絶対パスの使い分け、Phase ごとのコミットの権限確認、3つ目のフォルダの管理が運用の負担になった。版の固定とコミットのチェックポイントは、`canon_commit` の照合と承認の sha256 照合で実用上足りる。
 
 ---
 
@@ -270,8 +268,8 @@ Anthropic が提供する Skill を、プラグインへの依存として取り
 |---|---|
 | `skill-creator` | Phase C で builder が対象向けの Skill を書くときの執筆指針。description の trigger eval と最適化は任意で、使う場合は Phase C でオーケストレーターが `/skill-creator` を直接呼ぶ（eval は並列 spawn を要し、Subagent である builder には回せない） |
 | `/claude-api prompt-audit` | Phase C で `generated/` に対して実行する |
-| `/security-review`・`/code-review` | Phase C で run ブランチの main との差分に対して実行する |
 | `mcp-builder` | MCP サーバーの新規実装が必要なときだけ、handoff の申し送りで対象側に案内する（canon では実装しない） |
+| `/security-review`・`/code-review` | 採用しない。どちらもコードの差分を前提にするが、run の成果物は追跡しないので差分が無い。生成物の大半は Markdown と設定で、実行コード（Hook のスクリプト・MCP の command）の確認は reviewer の correctness・security の観点が担う |
 | `cost-optimize` | 採用しない |
 
 ### 8.1 情報源の優先順位
@@ -313,7 +311,7 @@ claude-canon 自身の運用にはフック（`.claude/settings.json` の hooks�
 |---|---|
 | 成果物の検査 | `npm run verify`（V1〜V9 を1本の CLI にまとめる・artifacts.md §8） |
 | 工程の順序と承認 | 対話と handoff.md。承認後の改変は sha256 で検出する（§6.3） |
-| 実行中の canon 本体の保護 | run 専用の worktree による版の固定（§7） |
+| 実行中の canon 本体の保護 | `canon_commit` の記録と、各 Phase の開始時の差分の警告（§7） |
 | ワーカーの権限の制限 | 自己適用テストが `.claude/agents/**` の tools を検査する（§5.4） |
 
 ### 9.3 空振り（vacuous pass）への対策
@@ -348,7 +346,7 @@ claude-canon/
 ├─ design/                architecture.md・artifacts.md
 ├─ guide/                 セットアップと運用の手順
 ├─ tasks/lessons.md       claude-canon 本体への改修要求の台帳
-├─ work/  output/         run の成果物（gitignore。run ブランチでだけ追跡・§7）
+├─ work/  output/         run の成果物（gitignore・§7）
 └─ package.json・CHANGELOG.md・README.md
 ```
 

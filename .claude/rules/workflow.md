@@ -18,6 +18,5 @@
   同じ計画の後続フェーズや別ファイルがそのパスを参照していないかを確かめてから消す。gitignore
   済み（追跡外）の資産は git 履歴からも戻らないため、追跡状況を確認してから判断する。
 - **canon 本体への改修要求は見つけたその場で `tasks/lessons.md` に起票する**（書式は同ファイル冒頭）。
-  run の途中（run ブランチの worktree）で見つけたら `work/<ts>/handoff.md` の「canon 課題候補」に書き、
-  Phase D の最後に main の台帳へ転記する（design/architecture.md §6.4）。
+  run の途中でも同じ（run は canon のルートで動くので、台帳に直接書ける・design/architecture.md §6.4）。
   項目を直したコミットの中で台帳から消す。backlog を `design/` の文書に置かない。

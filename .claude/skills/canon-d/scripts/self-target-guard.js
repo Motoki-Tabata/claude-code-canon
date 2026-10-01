@@ -50,7 +50,7 @@ function isSameOrInside(parent, child) {
 
 /**
  * canonRoot と同じ git リポジトリの全 worktree のルート（main のチェックアウトを含む）。
- * run のブランチ（worktree）で実行しているとき、main の canon を対象に指定されても自己指定になる。
+ * セッション用の worktree（`.claude/worktrees/` など）で実行しているとき、main の canon を対象に指定されても自己指定になる。
  * git が無い・リポジトリでないときは判定できないので空配列（その場合に検出できる範囲は realpath と包含判定まで）。
  */
 function sameRepoWorktreeRoots(canonRoot) {
@@ -70,7 +70,7 @@ function sameRepoWorktreeRoots(canonRoot) {
  *   - canon のルートそのもの（symlink・`..`・末尾区切り・Windows の大文字小文字違いを解決したうえで）
  *   - canon の配下（サブディレクトリ。そこにも .claude/ を置けるが、canon の一部を壊しうる）
  *   - canon を配下に含む祖先（その管理パス集合の走査・退避が canon に及ぶ）
- *   - 同じ git リポジトリの別 worktree（run の worktree から main の canon を指定した場合など）
+ *   - 同じ git リポジトリの別 worktree（セッション用の worktree から main の canon を指定した場合など）
  * @param {string} targetDir
  * @param {string} [canonRoot] テストで差し替える。既定は実行中の canon のルート。
  */

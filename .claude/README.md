@@ -12,15 +12,16 @@
 
 | コマンド | 起動する場所 | 推奨モデル | 工程と人間ゲート |
 |---|---|---|---|
-| `/canon-a <対象プロジェクトのパス>` | canon の main のチェックアウト | opus | run の worktree を作る → 1 調査① → 2 要件ヒアリング → P1 → 3 調査② → 4 spec → P2 |
-| `/canon-b <ts>` | run の worktree（`../canon-runs/<ts>`） | opus | 5 機能選定と設計（design-map）→ P3 |
-| `/canon-c <ts>` | run の worktree | sonnet | 6 生成 → 7 検証（verify）→ 8 品質検査と修正ループ → P4 |
-| `/canon-d <ts>` | run の worktree | sonnet | 9 配置前照合 → P5 → 配置（人間が sandbox の外で実行）→ 配置後の手順・canon 課題候補の転記 |
+| `/canon-a <対象プロジェクトのパス>` | canon のルート | opus | run の骨格を作る → 1 調査① → 2 要件ヒアリング → P1 → 3 調査② → 4 spec → P2 |
+| `/canon-b <ts>` | canon のルート | opus | 5 機能選定と設計（design-map）→ P3 |
+| `/canon-c <ts>` | canon のルート | sonnet | 6 生成 → 7 検証（verify）→ 8 品質検査と修正ループ → P4 |
+| `/canon-d <ts>` | canon のルート | sonnet | 9 配置前照合 → P5 → 配置（人間が sandbox の外で実行）→ 配置後の手順 |
 
 - `<ts>` は `/canon-a` が採番する run の識別子（`YYYYMMDD_hhmmss`）です。
-- 中断した Phase A は、run の worktree で `/canon-a <ts>` を実行すると再開します。
-- 2つ目以降の Phase は、`cd ../canon-runs/<ts> && claude --model <opus|sonnet>` で新しいセッションを起動してから実行します。
-- run の状態・承認・差し戻し・申し送りは `work/<ts>/handoff.md` に記録されます。各 Phase の開始時に、前の Phase までの承認が承認後に変わっていないかを `npm run approvals` で照合します。
+- 中断した Phase A は、`/canon-a <ts>` を実行すると再開します。
+- 2つ目以降の Phase も、canon のルートで `claude --model <opus|sonnet>` の新しいセッションを起動してから実行します。
+- run の状態・承認・差し戻し・申し送りは `work/<ts>/handoff.md` に記録されます。各 Phase の開始時に、前の Phase までの承認が承認後に変わっていないかを `npm run approvals` で照合し、run を始めたときから canon 本体が変わっていないか（`canon_commit`）も確かめます。
+- run 中に見つけた canon 本体の問題は、その場で `tasks/lessons.md` に書きます。
 
 ## 2. 自動で使われるもの（Subagent）
 
@@ -52,7 +53,7 @@ claude-canon 本体を保守するときの規律です。run の生成物には
 
 - **Node.js 22 以上と git**。依存パッケージはありません（`npm install` は不要）。
 - **照合表**: `npm run build:tables` で `docs/` から verify の判定表を作ります（`docs/` を変えたら作り直す）。
-- **標準 Skill**: Phase C は `/claude-api prompt-audit`・`/security-review`・`/code-review` を使い、builder は skill-creator の執筆指針の要約に従います。claude-api などはプラグイン `example-skills@anthropic-agent-skills`（marketplace `anthropics/skills`）で入れます。手順は [guide/setup.md](../guide/setup.md) にあります。
+- **標準 Skill**: Phase C は `/claude-api prompt-audit` を使い、builder は skill-creator の執筆指針の要約に従います。claude-api などはプラグイン `example-skills@anthropic-agent-skills`（marketplace `anthropics/skills`）で入れます。手順は [guide/setup.md](../guide/setup.md) にあります。
 - **フック・MCP・実験的機能**: この `.claude/` は使いません。
 
 ## 5. 注意と制約
@@ -60,9 +61,7 @@ claude-canon 本体を保守するときの規律です。run の生成物には
 - **`settings.json` の permissions**:
   - canon のスクリプト（`npm run …`）と読み取り専用の git は許可しています。
   - `deploy` の `--confirm` は拒否しています。配置は人間が sandbox の外で実行します。
-  - `git push` は毎回確認を求めます（run ブランチは push しません）。
-  - 各 Phase の終わりの `git add -f`・`git commit` は許可に含めていないので、そのつど確認が出ます。コミットの内容を人間が見る機会として、意図してそうしています。
-  - run の worktree（`../canon-runs/`）へのファイルアクセスを許可しています。
+  - `git push` は毎回確認を求めます。
 - **人間ゲートは自動で進みません**。P1〜P5 では、チャットで承認を得るまで止まります。
-- **run の worktree とブランチは自動で消しません**。片付けは人間が判断します。
+- **run の成果物（`work/<ts>`・`output/<ts>`）は自動で消しません**。片付けは人間が判断します。
 - **配置先に claude-canon 自身は指定できません**。canon 本体の変更は、ブランチで `npm test` を通し、PR で main に入れます。

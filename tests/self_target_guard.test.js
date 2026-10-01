@@ -84,7 +84,7 @@ test('pathKey: Windows では大文字小文字を区別しない比較キーに
   assert.notEqual(pathKey('/Foo/Bar', 'linux'), pathKey('/foo/bar', 'linux'));
 });
 
-test('guard: 別 worktree（run のブランチ）から実行しても、main の canon を指定されたら自己指定', (t) => {
+test('guard: 別 worktree（セッション用）から実行しても、main の canon を指定されたら自己指定', (t) => {
   const base = scratchDir(t, 'canon-guard-wt-');
   const main = path.join(base, 'main');
   const wt = path.join(base, 'wt');
@@ -95,12 +95,12 @@ test('guard: 別 worktree（run のブランチ）から実行しても、main �
     writeFileSync(path.join(main, 'f.txt'), 'x\n');
     git('add', '.');
     git('commit', '-q', '-m', 'init');
-    git('worktree', 'add', '-q', '-b', 'run', wt);
+    git('worktree', 'add', '-q', '-b', 'session', wt);
   } catch (e) {
     t.skip(`git worktree を作れない環境: ${e.message}`);
     return;
   }
-  // canonRoot は「いま実行している canon」＝ run の worktree。対象に main のチェックアウトが指定された。
+  // canonRoot は「いま実行している canon」＝ セッション用の worktree。対象に main のチェックアウトが指定された。
   assert.equal(isCanonSelfTarget(main, wt), true);
   assert.equal(isCanonSelfTarget(path.join(main, 'sub-not-exist'), wt), true);
   assert.equal(isCanonSelfTarget(path.join(base, 'elsewhere'), wt), false);
