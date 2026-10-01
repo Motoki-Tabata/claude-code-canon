@@ -1,100 +1,66 @@
-# claude-canon `.claude/` 使用説明書
+# claude-canon `.claude/` の使い方
 
-この文書は現行 `.claude/`（Subagent 17体・Skill 14件・Rule 4件・`settings.json` 1件）の**使い方**をまとめたものです。各コンポーネントの frontmatter から起動方式を機械的に導いて記載しています。
+この `.claude/` は claude-canon 本体です。対象プロジェクトの Claude Code カスタマイズ一式を、Phase A〜D の4つのセッションに分けて、調査・要件確定・設計・生成・検証・配置します。構成は Phase Skill 4件・知識 Skill 5件・Subagent 6体・Rule 4件・`settings.json` です。
 
----
-
-## 1. 何ができるか
-
-この一式は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules・Skills・Subagents・設定）を、対象プロジェクトの要件に合わせて調査・設計・生成・検証するための claude-canon 本体です。ユーザーが直接使う入口は次の3つの Slash Command です。
-
-- `/canon` — 対象プロジェクトのパスを渡すと、調査・要件確定・仕様策定・設計・生成・検証・品質検査・配置までの10工程を、人間ゲート（P2・P4・P5・P6+7・P8）で立ち止まりながら進めます。5時間枠を使い切らないよう工程を4区間（S1 調査〜spec／S2 設計／S3 生成〜eval／S4 配置）に分け、区間の終わりで停止して案内します。次の区間は新しいセッションで `/canon resume <ts>` を実行して続けます。
-- `/self-optimize` — claude-canon 自身の `.claude/` を対象に同じ工程を回し、`generations/candidate-<label>/` に次世代候補を用意します。候補を作るところまでで、現行 `.claude/` への実昇格（`npm run promote` の本実行）は行いません。
-- `/update-docs` — `docs/` 配下の正典リファレンスを公式ドキュメントの一次ソースに照らして更新します。`/canon`・`/self-optimize` の実行フローには組み込まれていません。
-
-これら3つの起動の裏側で、17体の Subagent がメイン Claude から場面ごとに自動的に呼び出され、調査・要件記録・仕様執筆・機能選定・設計・生成・検証・品質検査を分担します。ユーザーが Subagent を個別に起動する操作はありません。
-
-このほかに、設計・生成・品質検査の判断基準（機能選定の基準、レイヤー構成や連携パターンの選び方、モデル階層の割当基準、既存カスタマイズの処遇判定基準、生成スキーマの規約、品質検査の観点定義、ヒアリング質問集など）を定めた11件の内部参照知識があります。これらは対応する Subagent が起動時に自動的に読み込むものであり、ユーザーが `/` コマンドや依頼文で直接呼び出す対象ではないため、以下の起動一覧には含めません。
+設計の全体像は [design/architecture.md](../design/architecture.md)、セットアップと運用の手順は [guide/setup.md](../guide/setup.md) を参照してください。
 
 ---
 
-## 2. どう起動するか
+## 1. 起動するもの（Phase Skill）
 
-### Slash Command（明示起動のみ・自動では発動しない）
+4つとも `/名前` で起動したときだけ動きます（自動では動きません）。1つの Phase を1つのセッションで行い、最後の人間ゲートを承認すると、次の Phase の起動方法を案内して止まります。
 
-| コマンド | 引数 | 起動方式 |
+| コマンド | 起動する場所 | 推奨モデル | 工程と人間ゲート |
+|---|---|---|---|
+| `/canon-a <対象プロジェクトのパス>` | canon の main のチェックアウト | opus | run の worktree を作る → 1 調査① → 2 要件ヒアリング → P1 → 3 調査② → 4 spec → P2 |
+| `/canon-b <ts>` | run の worktree（`../canon-runs/<ts>`） | opus | 5 機能選定と設計（design-map）→ P3 |
+| `/canon-c <ts>` | run の worktree | sonnet | 6 生成 → 7 検証（verify）→ 8 品質検査と修正ループ → P4 |
+| `/canon-d <ts>` | run の worktree | sonnet | 9 配置前照合 → P5 → 配置（人間が sandbox の外で実行）→ 配置後の手順・canon 課題候補の転記 |
+
+- `<ts>` は `/canon-a` が採番する run の識別子（`YYYYMMDD_hhmmss`）です。
+- 2つ目以降の Phase は、`cd ../canon-runs/<ts> && claude --model <opus|sonnet>` で新しいセッションを起動してから実行します。
+- run の状態・承認・差し戻し・申し送りは `work/<ts>/handoff.md` に記録されます。各 Phase の開始時に、前の Phase までの承認が承認後に変わっていないかを `npm run approvals` で照合します。
+
+## 2. 自動で使われるもの（Subagent）
+
+Phase Skill が工程ごとに起動します。ユーザーが直接起動する手順はありません。いずれもコマンド実行系のツールを持たず、決められたファイルだけを書きます。
+
+| Subagent | 使われる場面 | 書くもの |
 |---|---|---|
-| `/canon <target_project_path>` / `/canon resume <ts>` | 対象プロジェクトのパス、または再開する run の `<ts>` | `/canon <target_project_path>` で新規開始、`/canon resume <ts>` で別セッションからの再開。明示起動のみで、自動では発動しない。 |
-| `/update-docs` | なし | `/update-docs` で明示起動。自動では発動しない。 |
-| `/self-optimize <label>` | 候補世代のラベル（英数字と `-`/`_`） | `/self-optimize <label>` で明示起動。自動では発動しない。 |
+| `investigator` | Phase A の工程1（existing・profile）と工程3（focused） | `work/<ts>/investigation/<mode>.md` |
+| `spec-writer` | Phase A の工程4 | `output/<ts>/spec.md` |
+| `designer` | Phase B の工程5（P3 の差し戻し、Phase C で keep に及ぶ修正をするときも） | `output/<ts>/design-map.md` |
+| `builder` | Phase C の工程6（層ごとに並列）と修正ループ | `output/<ts>/generated/` の担当層 |
+| `reviewer` | Phase C の工程8 | `output/<ts>/review/review.md` |
+| `keep-reviewer` | Phase C の工程8（既存を改修する run のときだけ） | `output/<ts>/review/keep-review.md` |
 
-### Rule（`.claude/rules/` 配下・自動ロード。ユーザーが個別に起動する対象ではありません）
+このほか、調査・要件・設計・生成・レビューの判断基準とテンプレートをまとめた内部参照の知識が5件あり、それぞれの Subagent が起動時に読み込みます。直接呼び出すものではないので、ここには並べません。
 
-| Rule | 適用範囲 | 内容 |
+## 3. 自動で読み込まれるもの（Rule）
+
+claude-canon 本体を保守するときの規律です。run の生成物には関係しません。
+
+| Rule | 読み込まれるとき | 内容 |
 |---|---|---|
-| `workflow` | 無条件（全ファイル） | 日本語応答・申し送りの裏取り・数量要約の数え直し・承認ゲートの規律等、claude-canon の開発作業全般に関わる規律。 |
-| `gates-and-tests` | `gates/** tests/** eval/** tools/** deploy/**` | vacuous pass の回避・能力ベースの検出器設計・複製排除（`tests/helpers/*` への集約含む）・`git ls-files` ベースの走査・ts 名前空間の機械検査・追跡外コーパス不在時の明示スキップ・ゲートの人間オーバーライド手順・judge/ラベル不一致の裁定・隔離生成物の鮮度検出等、検証ハーネス実装の規律。 |
-| `canon-docs` | `docs/**` | 一次ソースの不在と捏造の区別・WebFetch の網羅列挙の限界等、正典更新作業の規律。 |
-| `worker-definitions` | `.claude/agents/** .claude/skills/** .claude/settings.json` | hooks 書式の落とし穴・ゲート変更のワーカー定義への追従・自己参照構造のトラップ対処等、ワーカー定義編集の規律。 |
+| `workflow` | 常に | 日本語で応答する・申し送りを裏取りする・件数を数え直す・承認ゲートを縮めない・削除の前に参照を確かめる・canon への改修要求を `tasks/lessons.md` に起票する |
+| `gates-and-tests` | `lib/**`・`.claude/skills/*/scripts/**`・`gates/**`・`tools/**`・`tests/**` を扱うとき | 検査対象ゼロを合格にしない・禁止リストを能力で書く・判定ロジックを複製しない、など検査とテストの書き方 |
+| `canon-docs` | `docs/**` を扱うとき | 正典を一次ソースで更新する・ページに無いことと存在しないことを区別する |
+| `worker-definitions` | `.claude/agents/**`・`.claude/skills/**`・`.claude/settings.json` を扱うとき | 検査の変更をワーカー定義に追従させる・値の書式を実例で示す・応答を逐語で書き出す |
 
-### Subagent（メイン Claude が場面に応じて自動的に使う。ユーザーが直接起動する手順はありません）
+## 4. 前提のセットアップ
 
-| Subagent | メインが自動的に使う場面 |
-|---|---|
-| `existing-customization-analyzer` | 調査工程1（ヒアリング前・浅く広く）で、系統A（既存カスタマイズの棚卸し）を行い `work/<ts>/existing_customizations.md` を書くために、メインが直接使う。 |
-| `project-profiler` | 調査工程1（"profile" モード・系統Aと並列）でプロジェクト実態を調べ `work/<ts>/project_profile.md` を書くとき、および要件確定後の深掘り調査（工程3の "focused" モード）で `## focused` 節を追記するときに、メインが直接使う。 |
-| `requirements-recorder` | ヒアリングでユーザーと合意済みの要件を `work/<ts>/requirements.md` に書き出す、工程2の最終アクションとして使われる。 |
-| `spec-writer` | 調査結果と確定要件を統合して `output/<ts>/spec.md` を書く、工程4で使われる。 |
-| `selector` | 承認済み仕様から使用するレイヤー機能を選ぶ、工程5で使われる。 |
-| `designer` | 承認済み仕様と機能選定結果から `design-map.md`（設計判断）を書く、工程6で使われる。 |
-| `generator` | 設計マップに基づき必要な Builder だけを起動して生成をまとめる、工程7で使われる。 |
-| `l1-builder` | 生成対象に L1（CLAUDE.md・Rules）が含まれるとき、`generator` から工程7で使われる。 |
-| `skill-builder` | 生成対象に Skills / Slash Commands が含まれるとき、`generator` から工程7で使われる。 |
-| `agent-builder` | 生成対象に Subagent が含まれるとき、`generator` から工程7で使われる。 |
-| `readme-writer` | 全 Builder が完了した後、この README.md 自体を書く工程7の最終ステップとして `generator` から使われる。 |
-| `eval-correctness` | 決定論ゲート（工程8）の後、品質検査（工程9）で、メインが生成物と受け入れ基準(A1)の整合を判定させるときに直接使う（2周目は変更分だけ再判定）。 |
-| `eval-security` | 品質検査（工程9）で、メインが権限設計・安全性を判定させるときに直接使う（変更があれば2周目も必ず再判定）。 |
-| `eval-canon` | 品質検査（工程9）で、メインが正典の趣旨適合を判定させるときに直接使う。 |
-| `eval-context` | 品質検査（工程9）で、メインがコンテキスト効率を判定させるときに直接使う。 |
-| `eval-keep-review` | 品質検査（工程9）で、メインが維持判定の意味的妥当性を判定させるときに直接使う。 |
-| `canon-updater` | `/update-docs` からのみ使われる。`/canon`・`/self-optimize` の実行中に使われることはない。 |
+- **Node.js 22 以上と git**。依存パッケージはありません（`npm install` は不要）。
+- **照合表**: `npm run build:tables` で `docs/` から verify の判定表を作ります（`docs/` を変えたら作り直す）。
+- **標準 Skill**: Phase C は `/claude-api prompt-audit`・`/security-review`・`/code-review` を使い、builder は skill-creator の執筆指針の要約に従います。claude-api などはプラグイン `example-skills@anthropic-agent-skills`（marketplace `anthropics/skills`）で入れます。手順は [guide/setup.md](../guide/setup.md) にあります。
+- **フック・MCP・実験的機能**: この `.claude/` は使いません。
 
----
+## 5. 注意と制約
 
-## 3. 前提セットアップ
-
-- **Hooks の配線**: `.claude/settings.json` に `UserPromptExpansion`・`PreToolUse`・`PostToolUse`・`SubagentStop`・`Stop`・`SessionStart` の各イベントが `node "${CLAUDE_PROJECT_DIR}/gates/*.js"` を直接呼び出す形で配線済みです。実行環境に Node.js が入っており、`gates/` 配下の参照スクリプトが存在し実行できる状態であることが前提です。新規の配線作業は不要です（既存のまま）。
-- **MCP**: この一式に MCP サーバーの定義は含まれていません。シークレットや OAuth 認可のセットアップは不要です。
-- **Experimental 機能**: この一式は Experimental 依存を含みません（`constraints.experimental.allowed: false` で使用しない方針が確定済み）。追加のフラグ設定は不要です。
-- **Skill 内シェル実行**: `.claude/settings.json` の `disableSkillShellExecution: true` により、Skill 本文内の `!command` 形式のインラインシェル実行は使えません。
-
----
-
-## 4. 使用例
-
-`/self-optimize <label>` を実行すると、preflight（`<ts>` 採番＋sentinel・カナリア確認）を経て工程1（調査1）が走り、その完了直後・工程2（要件ヒアリング）開始前に C1/C5 の試し打ち手順が実行されます。手順は次のとおりです。
-
-1. **対象を得る**: 工程1完了時点で既に存在する `work/<ts>/existing_customizations.md`（系統Aの成果物）を確認します。C5用の確認先は `fixtures/sample-repos/existing/expected-work/project_profile.md:15-16` という裸のパス+行範囲形式で明記されています。
-2. **実行して観測する**: `gates/lib/investigation.js` の `parseSystemA`・`isCanonClean`（C1用）・`parseSystemB`（C5の書式契約確認用）を呼び出すスクリプトを `work/<ts>/` 配下に置いて `node` で実行します。
-3. **結果を報告する**: `isCanonClean` が返した C1 の真偽と根拠キー、および C5 側の書式契約または fixture での確認結果をチャット上で報告します。keep/modify/merge/retire の最終判定自体は工程6の `designer` が行います。
-
-この手順は次の2点を区別します。
-
-- **C1**（`parseSystemA` + `isCanonClean`）は、工程1完了直後に既にある実データ（`work/<ts>/existing_customizations.md`）に対してそのまま確認できます。
-- **C5**（`parseSystemB`）が要る `## focused`/`ref_resolution` は `requirements.md` 確定後（工程3）にしか書かれないため、工程1直後は fixture または書式契約の確認にとどまります。実データでの C5 検証（`resolved` の真偽が実際にどう出るか）は工程3（focused）以降に行われるものであり、本手順の C5 確認は書式契約の確認までが範囲です。
-
-また、以降の各工程（工程2〜9）が読み書きするパスの一覧・規約は、`/canon` と共通の内部参照知識を通じて一貫した形で解決されるようになっています（利用者が個別に参照する対象ではありません）。
-
----
-
-## 5. 注意・制約
-
-- **PreToolUse はブロックする**: `Write`・`Edit`・`NotebookEdit`・`Bash`・`PowerShell`・`Monitor` の実行時に、書込範囲チェック（`/canon` 用・`/update-docs` 用・`/self-optimize` 用の3系統）・前進チェック（前段工程の完了マーカーがない書込の拒否を含む）が自動で走り、範囲外の操作はブロックされます。
-- **UserPromptExpansion はブロックする**: `/canon`・`/update-docs`・`/self-optimize` の展開時に、ワーカー権限検査が自動で走ります。違反があれば run の開始自体がブロックされます。
-- **PostToolUse はブロックしない**: `Write`・`Edit`・`NotebookEdit` の後に前進チェックが走りますが、この段階では止まりません。違反は記録され、`Stop` 時に権威判定されます。
-- **SubagentStop・Stop はブロックする**: Subagent 終了時・ターン終了時に、完了リクエストの処理が自動で走ります。`Stop` は連続8回ブロックするとターンが強制終了します。
-- **SessionStart はブロックしない**: セッション開始時に足場作りのみが行われます。
-- **`/self-optimize` は実昇格しない**: 生成された候補は `generations/candidate-<label>/` に置かれるだけで、`npm run promote` の本実行（現行 `.claude/` への実際の入れ替え）は別の明示的な操作としてユーザーが行う必要があります。また、工程7完了後も `.self-optim` の印が残っている間は、`.claude/`・`docs/`・`gates/`・`tests/`・`generations/` への書込みが拒否され続けます。
-- **`self-optimize/SKILL.md` の起動方法・引数**: `name`/`description`/`disable-model-invocation`/`user-invocable`/`argument-hint` の各 frontmatter により、`/self-optimize <label>` という呼び出し方のみが有効です。
-- **`/canon` の委譲チェーンの外にあるもの**: `canon-updater` は `/update-docs` からのみ起動され、`/canon`・`/self-optimize` の実行中に自動的に使われることはありません。
-- **人間ゲートは自動で進まない**: `/canon`・`/self-optimize` の人間ゲート（P2・P4・P5・P6+7・P8。`/self-optimize` は P8 なし）で、チャット上でユーザーの確認を待って停止します。P1・P3 は報告のみで停止しません。
+- **`settings.json` の permissions**:
+  - canon のスクリプト（`npm run …`）と読み取り専用の git は許可しています。
+  - `deploy` の `--confirm` は拒否しています。配置は人間が sandbox の外で実行します。
+  - `git push` は毎回確認を求めます（run ブランチは push しません）。
+  - run の worktree（`../canon-runs/`）へのファイルアクセスを許可しています。
+- **人間ゲートは自動で進みません**。P1〜P5 では、チャットで承認を得るまで止まります。
+- **run の worktree とブランチは自動で消しません**。片付けは人間が判断します。
+- **配置先に claude-canon 自身は指定できません**。canon 本体の変更は、ブランチで `npm test` を通し、PR で main に入れます。
