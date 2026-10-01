@@ -32,7 +32,3 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: artifacts.md §9.1 は reviewer 用のバンドル（生成物の実体と接地材料・design-map の rationale を除く）を定めるが、`.claude/skills/canon-c/scripts/review-bundle.js` は keep-reviewer 用しか作らない。reviewer は generated/・spec・slices・investigation を直接読んでおり、入力を探し損ねて「問題なし」と答える経路と、slices 経由で designer の rationale を読む経路が残っている。
 - 提案: review-bundle.js に reviewer 用の出力（`work/<ts>/review-bundle/reviewer/`）を足し、rationale を除くことをテストで固定する。reviewer 定義の「入力」と canon-c の工程8 をバンドルの読みに切り替える。
 
-## 2026-10-01 対象プロジェクト自前の plugin/ を管理対象とみなす（保守作業）
-- 種別: 規律昇華
-- 何が起きたか: L5_PLUGIN_PATTERN（`^plugin/.+`）により、対象自前の plugin/** が管理対象になり new-run.js の mode 判定が refactor になる。退避・走査からの node_modules の除外は済み。調査の取りこぼしは pre-deploy が uncaptured にして配置を止めるので事故にはならない。
-- 提案: 管理対象を `plugin/.claude-plugin/plugin.json` を持つ plugin だけにする案（MANAGED_PATTERNS が静的でなくなる）と、design-map で宣言した範囲だけにする案（9本の固定が崩れる）がある。設計判断が要るので、実 run で困るまで現状維持でよい。

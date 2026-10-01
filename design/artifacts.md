@@ -610,6 +610,7 @@ CLAUDE.md
 plugin/**                  L5 にする場合
 ```
 
+- **`plugin/**` を対象側の走査で数える条件**: 対象に `plugin/.claude-plugin/plugin.json` が実在するときだけ、`plugin/` を走査根として降りる。所属判定（上のパターン）は変えない。対象プロジェクトが別の用途で持つ `plugin/`（マニフェスト無し）を管理対象と誤認して、new/refactor の判定や退避の対象に混ぜないため。
 - パターンの定義は共有 lib の1か所に置き、V8・V9 と pre-deploy-check・deploy が同じものを使う。複製すると一方だけが仕様に追従し、集合の網羅性が崩れて退避スワップが集合外を壊しうる。
 - **`.claude/hooks/**` を含める理由**: 正典 `L4_AUTOMATION.md` の公式例は Hook の実体を `${CLAUDE_PROJECT_DIR}/.claude/hooks/` に置く。集合に含めないと、(1) 正典どおりの生成物が V8 の集合検査で弾かれ、canon が正典の示す形を生成できない、(2) settings.json だけが配置されて参照先のスクリプトが配置されない壊れた配線を作る。代わりに `.claude/hooks/**` は退避スワップの管理下（＝廃止もありうる）に入るが、対象側にある canon 管理外の Hook を消す危険は pre-deploy-check の uncaptured（§10.2）が引き受ける。集合の外に置いたままでは、取りこぼしを検出する機会そのものが無い。
 - **走査は `node_modules/` へ降りない**: 対象側の実ファイルを列挙する pre-deploy-check・deploy・new-run の mode 判定は、集合の内側（`plugin/` や skill の `scripts/`）にある `node_modules/` を管理対象にも uncaptured にもしない。

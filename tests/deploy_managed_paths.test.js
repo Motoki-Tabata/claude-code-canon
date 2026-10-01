@@ -284,3 +284,33 @@ test('walkManaged: 管理根の内側にある node_modules/ へは降りない�
   assert.deepEqual(files, ['.claude/skills/s/SKILL.md', 'plugin/.claude-plugin/plugin.json', 'plugin/skills/s/SKILL.md']);
   assert.ok(!seen.includes('node_modules'), 'node_modules を readdir した（巨大な依存木の走査）');
 });
+
+test('walkManaged: plugin/ はマニフェスト（.claude-plugin/plugin.json）を持つときだけ管理対象に数える', (t) => {
+  const dir = scratchDir(t, 'canon-plugin-root-');
+  const w = (rel, body = 'x\n') => {
+    const abs = path.join(dir, rel);
+    mkdirSync(path.dirname(abs), { recursive: true });
+    writeFileSync(abs, body);
+  };
+  w('.claude/rules/a.md');
+  // 対象プロジェクトが別の用途で持つ plugin/（マニフェスト無し）は管理対象ではない
+  w('plugin/src/index.js');
+  w('plugin/README.md');
+  assert.deepEqual(walkManaged(dir), ['.claude/rules/a.md']);
+
+  // マニフェストが実在すれば plugin/ 全体が管理対象になる
+  w('plugin/.claude-plugin/plugin.json', '{}\n');
+  assert.deepEqual(walkManaged(dir), [
+    '.claude/rules/a.md',
+    'plugin/.claude-plugin/plugin.json',
+    'plugin/README.md',
+    'plugin/src/index.js',
+  ]);
+});
+
+test('walkManaged: plugin/ だけでマニフェスト無しなら管理対象は 0 件（new-run の mode は new になる）', (t) => {
+  const dir = scratchDir(t, 'canon-plugin-only-');
+  mkdirSync(path.join(dir, 'plugin'), { recursive: true });
+  writeFileSync(path.join(dir, 'plugin', 'main.js'), 'x\n');
+  assert.deepEqual(walkManaged(dir), []);
+});
