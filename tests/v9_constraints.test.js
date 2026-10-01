@@ -377,3 +377,33 @@ test('requirements パーサ: 要件0件・確定要件節なしは throw（0件
   assert.throws(() => parseRequirementsDoc('# 何もない\n'), /確定要件/);
   assert.throws(() => parseRequirementsDoc('## 確定要件\n\n（なし）\n'), /1件もレコードが無い/);
 });
+
+// ---------------------------------------------------------------------------
+// frontmatter 経路（hooks:・allowed-tools の mcp__・disallowedTools）
+// ---------------------------------------------------------------------------
+
+test('V9: frontmatter の hooks: 宣言も hooks 禁止の違反になる（agent・skill）', (t) => {
+  const c = setupSampleRepo(t, 'constrained', nextTs());
+  write(c, '.claude/agents/h/h.md', '---\nname: h\ndescription: d\nhooks:\n  PreToolUse:\n    - matcher: Bash\n---\n本文\n');
+  write(c, '.claude/skills/hs/SKILL.md', '---\nname: hs\ndescription: d\nhooks: {}\n---\n本文\n');
+  const r = v9(c.ts);
+  assert.equal(r.ok, false);
+  assert.ok(r.violations.some((v) => v.includes('agents/h/h.md') && v.includes('hooks')), JSON.stringify(r.violations));
+  assert.ok(r.violations.some((v) => v.includes('skills/hs/SKILL.md') && v.includes('hooks')), JSON.stringify(r.violations));
+});
+
+test('V9: skill の allowed-tools に mcp__ ツールがあれば mcp 禁止の違反（複数行リストも）', (t) => {
+  const c = setupSampleRepo(t, 'constrained', nextTs());
+  write(c, '.claude/skills/m1/SKILL.md', '---\nname: m1\ndescription: d\nallowed-tools: Read mcp__srv__tool\n---\n本文\n');
+  write(c, '.claude/skills/m2/SKILL.md', '---\nname: m2\ndescription: d\nallowed-tools:\n  - Read\n  - mcp__srv__tool\n---\n本文\n');
+  const r = v9(c.ts);
+  assert.ok(r.violations.some((v) => v.includes('skills/m1/SKILL.md') && v.includes('mcp')), JSON.stringify(r.violations));
+  assert.ok(r.violations.some((v) => v.includes('skills/m2/SKILL.md') && v.includes('mcp')), JSON.stringify(r.violations));
+});
+
+test('V9: disallowedTools の mcp__ 指定も mcp の痕跡として検出する', (t) => {
+  const c = setupSampleRepo(t, 'constrained', nextTs());
+  write(c, '.claude/agents/d/d.md', '---\nname: d\ndescription: d\ndisallowedTools: mcp__srv__tool\n---\n本文\n');
+  const r = v9(c.ts);
+  assert.ok(r.violations.some((v) => v.includes('agents/d/d.md') && v.includes('mcp')), JSON.stringify(r.violations));
+});

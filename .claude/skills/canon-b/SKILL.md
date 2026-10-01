@@ -64,7 +64,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 ## Phase B の終わり
 
 1. 設定済みの ScheduleWakeup・loop があれば止める。
-2. handoff.md を更新する: 進捗に「工程5 → P3」の印、frontmatter を `phase: C`・`status: waiting_approval` に、「申し送り」に Phase C 以降でやること（例: P4 で特に見る生成物）を書く。
+2. handoff.md を更新する: 進捗に「工程5 → P3」の行を追記して印を付け、frontmatter を `phase: C`・`status: waiting_approval` に、「申し送り」に Phase C 以降でやること（例: P4 で特に見る生成物）を書く。
 3. `npm run approvals -- <ts> check --expect P1,P2,P3` が exit 0 であることを確かめる。
 4. コミットする（パスを明示する。push しない）。
    ```sh

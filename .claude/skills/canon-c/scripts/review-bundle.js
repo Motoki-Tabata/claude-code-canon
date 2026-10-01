@@ -164,7 +164,7 @@ export function renderBundle(c, ctx) {
   out.push('## 出力');
   out.push('');
   out.push('判定は `output/<ts>/review/keep-review.md` に書く。各指摘は観点・対象（file:line）・根拠・重大度・提案を持つ');
-  out.push('（artifacts.md §9.3）。判定した target を必ず列挙する（空の判定を「問題なし」と読ませないため）。');
+  out.push('（output-contract.md の書式）。判定した target を必ず列挙する（空の判定を「問題なし」と読ませないため）。');
   out.push('');
   return out.join('\n') + '\n';
 }

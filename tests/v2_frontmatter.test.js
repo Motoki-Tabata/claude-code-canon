@@ -99,3 +99,29 @@ describe('V2 frontmatter スキーマ', () => {
     assert.match(v[0].message, /種別/);
   });
 });
+
+describe('V2: frontmatter の構文エラー（artifact.errors）を違反として報告する', () => {
+  test('key: value 形に一致しない行（unparsed_line）は違反', () => {
+    const v = checkV2(agent('name: x\ndescription: d\n  - 迷子の行'));
+    assert.equal(v.length, 1);
+    assert.match(v[0].message, /構文/);
+    assert.match(v[0].message, /unparsed_line/);
+  });
+
+  test('キー重複（duplicate_key）は違反', () => {
+    const v = checkV2(agent('name: x\ndescription: d\nname: y'));
+    assert.equal(v.length, 1);
+    assert.match(v[0].message, /duplicate_key/);
+  });
+
+  test('閉じ無しブロック（unterminated_block）は違反（必須キー欠落とは別に報告する）', () => {
+    const a = artifactFromText('.claude/agents/x/x.md', '---\nname: x\ndescription: d\n本文');
+    const v = checkV2(a);
+    assert.ok(v.some((x) => /unterminated_block/.test(x.message)), JSON.stringify(v));
+  });
+
+  test('複数行リスト・ネストしたマップは構文エラーにしない（rule の paths:・skill の hooks:）', () => {
+    assert.deepEqual(checkV2(rule('paths:\n  - "lib/**"\n  - "tests/**"')), []);
+    assert.deepEqual(checkV2(skill('name: x\ndescription: d\nhooks:\n  PreToolUse:\n    - matcher: Bash')), []);
+  });
+});

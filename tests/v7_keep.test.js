@@ -286,3 +286,19 @@ test('V7: paths の無い rule は「無条件に読み込まれること」が�
   });
   assert.ok(has(v7(scoped.ts), 'rule-paths'));
 });
+
+// ---- disposition の語彙 ----
+
+test('V7: disposition が語彙（keep・modify・merge・retire・out_of_scope）に無いレコードは違反（typo・null）', (t) => {
+  const c = setupSampleRepo(t, 'existing', tsFor(import.meta.url, 90));
+  editDesignMap(c, (s) => s.replace('disposition: keep', 'disposition: keeep'));
+  const r = v7(c.ts);
+  assert.ok(has(r, 'disposition', 'keeep'), JSON.stringify(r.violations));
+});
+
+test('V7: disposition が空（null・未記入）のレコードも違反', (t) => {
+  const c = setupSampleRepo(t, 'existing', tsFor(import.meta.url, 91));
+  editDesignMap(c, (s) => s.replace('disposition: keep', 'disposition:'));
+  const r = v7(c.ts);
+  assert.ok(has(r, 'disposition', '未記入'), JSON.stringify(r.violations));
+});

@@ -102,6 +102,9 @@ function findJsonKeys(node, pred, trail = [], out = []) {
   return out;
 }
 
+/** MCP ツール名を書きうる frontmatter のキー（tools.json の TOOL_LIST_FIELDS と同じ顔ぶれ）。 */
+const MCP_TOOL_FIELDS = ['tools', 'disallowedTools', 'allowed-tools', 'disallowed-tools'];
+
 const ev = (file, evidence) => ({ file, evidence });
 
 // ---------------------------------------------------------------------------
@@ -133,6 +136,10 @@ const CAPABILITY_DETECTORS = {
           }
         }
       }
+      // 経路④: frontmatter の hooks 宣言（agent・skill がライフサイクルフックを自前で持てる・L2/L3 の完全リファレンス）
+      if (f.frontmatter && fraw(f.frontmatter, 'hooks') !== undefined) {
+        hits.push(ev(f.rel, 'frontmatter に hooks 宣言がある'));
+      }
       // 経路③: hook スクリプトの実体配置（.claude/hooks/**・plugin/hooks/**・hooks/**）
       if (/(^|\/)hooks\//.test(f.rel) || /(^|\/)hooks\.json$/.test(f.rel)) {
         hits.push(ev(f.rel, 'hook スクリプト／設定の実体が配置されている'));
@@ -155,9 +162,13 @@ const CAPABILITY_DETECTORS = {
         if (fraw(f.frontmatter, 'mcpServers') !== undefined) {
           hits.push(ev(f.rel, 'frontmatter に mcpServers 宣言がある'));
         }
-        const tools = fraw(f.frontmatter, 'tools');
-        if (typeof tools === 'string' && /\bmcp__[\w-]+__/.test(tools)) {
-          hits.push(ev(f.rel, `frontmatter tools に MCP ツール（mcp__<server>__<tool> 構文）がある: ${tools.trim()}`));
+        // MCP ツール名（mcp__<server>__<tool>・mcp__<server>・mcp__*）の参照。agent の tools・disallowedTools と
+        // skill の allowed-tools・disallowed-tools が対象。複数行リストは raw に「a, b」で入る。
+        for (const key of MCP_TOOL_FIELDS) {
+          const v = fraw(f.frontmatter, key);
+          if (typeof v === 'string' && /\bmcp__/.test(v)) {
+            hits.push(ev(f.rel, `frontmatter ${key} に MCP ツール（mcp__ 構文）がある: ${v.trim()}`));
+          }
         }
       }
     }

@@ -139,3 +139,27 @@ describe('skillPathRole', () => {
     assert.equal(skillPathRole(['C:', 'w', '.claude', 'skills', 'foo', 'template.md'].join(B)), 'supporting');
   });
 });
+
+describe('parseFrontmatter: 複数行の値（key: の次行以降）', () => {
+  test('複数行リスト（key:\\n  - a）は配列として解釈し、unparsed_line にしない', () => {
+    const r = parseFrontmatter('---\ntools:\n  - Task\n  - "Bogus"  # 注釈\nname: x\n---\n');
+    assert.deepEqual(r.errors, []);
+    assert.deepEqual(r.frontmatter.tools.value, ['Task', 'Bogus']);
+    assert.equal(r.frontmatter.tools.raw, 'Task, Bogus');
+    assert.equal(r.frontmatter.name.value, 'x');
+    assert.deepEqual(splitListValue(r.frontmatter.tools), ['Task', 'Bogus']);
+  });
+
+  test('ネストしたマップ（hooks:・metadata:）は nested として保持し、エラーにしない', () => {
+    const r = parseFrontmatter('---\nhooks:\n  PreToolUse:\n    - matcher: Bash\nname: x\n---\n');
+    assert.deepEqual(r.errors, []);
+    assert.equal(r.frontmatter.hooks.nested, true);
+    assert.equal(r.frontmatter.name.value, 'x');
+  });
+
+  test('値のあるキーの後のインデント行は、従来どおり unparsed_line', () => {
+    const r = parseFrontmatter('---\nname: x\n  - 迷子\n---\n');
+    assert.equal(r.errors.length, 1);
+    assert.equal(r.errors[0].type, 'unparsed_line');
+  });
+});

@@ -49,7 +49,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
    | L5（Plugin） | `l5` | `targets-l5.txt` |
 
 2. 使う層の builder を、**1つのメッセージで並列に**起動する。渡すもの: `layer`・ts・`output/<ts>/` と `work/<ts>/slices/` の絶対パス。
-3. 全員が終わったら、層ごとに宣言一覧の各パスが `generated/` に実在するかを確かめる。欠けていれば、その層の builder を新しく起動し、欠けたパスを渡して書かせる。`targets-other.txt` が空でなければ、どの層にも属さない宣言があるので、内容を示して扱いを決める。
+3. 全員が終わったら、層ごとに宣言一覧の各パスが `generated/` に実在するかを確かめる。欠けていれば、その層の builder を新しく起動し、欠けたパスを渡して書かせる。`targets-other.txt` が空でなければ、どの層にも属さない宣言があるので、内容を示して扱いを決める。 `.claude/README.md` は層に属さず工程6-4 の emit-manifest が書くので、`targets-*.txt` に出ず存在確認の対象にもしない（design-map が modify と宣言していても `disposition-other.md` にレコードが入るだけ）。層に属さない modify・merge のレコードも `disposition-other.md` に入る。
 4. `npm run manifest -- <ts>` で `generated/.claude/README.md`・`MANIFEST.md`・`deploy/managed-paths.list`・`deploy/retired.list` を決定論で生成する。これらは builder にも自分にも書かせない。
 
 ## 工程7 検証
@@ -105,7 +105,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 ## Phase C の終わり
 
 1. 設定済みの ScheduleWakeup・loop があれば止める。
-2. handoff.md を更新する: 進捗に工程6〜8 と P4 の印、frontmatter を `phase: D`・`status: waiting_approval` に、「申し送り」に Phase D でやること（例: 配置前に人間が行う手作業）を書く。
+2. handoff.md を更新する: 進捗に工程6〜8 と P4 の行（工程N → ゲート）を追記して印を付け、frontmatter を `phase: D`・`status: waiting_approval` に、「申し送り」に Phase D でやること（例: 配置前に人間が行う手作業）を書く。
 3. `npm run approvals -- <ts> check --expect P1,P2,P3,P4` が exit 0 であることを確かめる。
 4. コミットする（パスを明示する。push しない）。
    ```sh

@@ -131,6 +131,20 @@ function checkTypes(artifact, kindTable, check) {
 
 const CHECK = 'V2';
 
+/** parseFrontmatter が積んだ構文エラー（unparsed_line・duplicate_key・unterminated_block）を違反にする。 */
+function checkParseErrors(artifact, check) {
+  return (artifact.errors ?? [])
+    .filter((e) => e.type !== 'missing_file') // 欠落は呼び出し側（loadArtifact の利用者）の領分
+    .map((e) =>
+      violation(
+        check,
+        artifact.path,
+        `frontmatter の構文エラー（${e.type}${e.line ? `・${e.line}行目` : ''}）: ${e.message}`,
+        'lib/artifact.js parseFrontmatter()'
+      )
+    );
+}
+
 /**
  * 1件の artifact に対して V2 を判定する。kind が agent/skill/rule 以外（unknown）は
  * どのスキーマも適用できないため検査自体をスキップせず「種別不明」を1件返す
@@ -150,6 +164,7 @@ export function checkV2(artifact) {
   }
 
   return [
+    ...checkParseErrors(artifact, CHECK),
     ...checkRequiredKeys(artifact, kindTable, CHECK),
     ...checkUnknownKeys(artifact, kindTable, CHECK),
     ...checkClosedVocab(artifact, kindTable, CHECK),

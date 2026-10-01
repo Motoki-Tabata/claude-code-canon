@@ -62,7 +62,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 ## canon 課題候補の転記
 
-1. main のチェックアウトの場所を `git worktree list` で確かめる（先頭の行が main の worktree）。
+1. main のチェックアウトの場所を `git worktree list` で確かめる（先頭の行が main の worktree）。main への書込は、権限の確認が出る場合がある。出たら承認して続行する。拒否されたら、転記する内容を人間に渡して転記を依頼する。
 2. handoff の「canon 課題候補」の各項目を、main の `tasks/lessons.md` の末尾へ、書式（同ファイル冒頭）のまま転記する。見出しの出典欄は `run <ts>・Phase <A〜D>` とする。
 3. 候補の件数と、転記した見出しの一覧を報告する。0件なら「0件」と報告する。
 4. main 側のコミットは、ユーザーの指示を待つ。
@@ -70,7 +70,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 ## Phase D の終わり
 
 1. 設定済みの ScheduleWakeup・loop があれば止める。
-2. handoff.md を更新する: 進捗に工程9・P5・配置の結果の印、frontmatter を `status: done` にする。
+2. handoff.md を更新する: 進捗に工程9・P5・配置の結果の行（工程N → ゲート）を追記して印を付け、frontmatter を `status: done` にする。
 3. run ブランチにコミットする（パスを明示する。push しない）。
    ```sh
    git add -f work/<ts> output/<ts>

@@ -105,6 +105,18 @@ export function checkV3(artifact) {
   for (const field of fields) {
     const entry = artifact.frontmatter[field];
     if (!entry) continue;
+    if (entry.nested) {
+      // `tools:` の次行以降がリスト（`- Read`）でなくマップ等。トークンを取り出せず、0件のまま通すと素通りになる。
+      violations.push(
+        violation(
+          CHECK,
+          artifact.path,
+          `frontmatter "${field}" の複数行の値をツール名のリストとして解釈できない（\`- Read\` 形のリスト、またはカンマ・空白区切りの1行で書くこと）。`,
+          'lib/artifact.js parseFrontmatter()'
+        )
+      );
+      continue;
+    }
     const tokens = splitListValue(entry);
     for (const tok of tokens) {
       violations.push(...checkToken(tok, artifact, field));

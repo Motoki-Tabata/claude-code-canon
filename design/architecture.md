@@ -153,8 +153,8 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 | 置き場 | 内容 |
 |---|---|
 | `.claude/skills/canon-a/scripts/` | `new-run.js` |
-| `.claude/skills/canon-c/scripts/` | `verify.js`・`slice.js`・`copy-keep.js`・`emit-manifest.js`・`review-bundle.js` |
-| `.claude/skills/canon-d/scripts/` | `emit-run-manifest.js`・`pre-deploy-check.js`・`deploy.js` |
+| `.claude/skills/canon-c/scripts/` | `verify.js`・`verify/*.js`（V1〜V9 の各検査と共通の書式）・`slice.js`・`copy-keep.js`・`emit-manifest.js`・`review-bundle.js` |
+| `.claude/skills/canon-d/scripts/` | `emit-run-manifest.js`・`pre-deploy-check.js`・`deploy.js`・`self-target-guard.js`（自己指定の拒否・artifacts.md §10.5） |
 | `lib/`（リポジトリ直下） | 複数のスクリプトが共有するパーサと管理パス集合（1か所にだけ置く） |
 | `gates/build-conformance-tables.js`・`gates/conformance_tables/` | `docs/` から判定表を生成する |
 | `tools/approvals.js` | 承認行の記録と照合（§6.3）。すべての Phase が使うので、Phase Skill ではなく tools/ に置く |
@@ -328,7 +328,7 @@ claude-canon 自身の運用にはフック（`.claude/settings.json` の hooks�
 
 ## 10. リポジトリ構成
 
-刷新を終えたときの姿を示す。
+リポジトリの構成を示す。
 
 ```text
 claude-canon/
@@ -343,7 +343,7 @@ claude-canon/
 │   └─ README.md          起動方法の説明
 ├─ lib/                   スクリプトが共有するパーサ・管理パス集合
 ├─ gates/                 build-conformance-tables.js と conformance_tables/（docs/ から生成・手で編集しない）
-├─ tools/                 token-usage.js
+├─ tools/                 approvals.js・token-usage.js
 ├─ tests/                 自己検証（verify の各検査・スクリプト・自己適用）
 ├─ design/                architecture.md・artifacts.md
 ├─ guide/                 セットアップと運用の手順

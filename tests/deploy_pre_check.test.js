@@ -60,3 +60,16 @@ test('pre-deploy-report: 走査不能エントリを本照合の盲点として�
   assert.match(body, /走査不能: 1 件/);
   assert.match(body, /\[unreadable:EACCES\] \.claude\/skills/);
 });
+
+test('pre-deploy-check: managed-paths.list の `..`・集合外・絶対パスの行を P5 の前に検出して exit 2', (t) => {
+  // `.claude/rules/../../x` は generated/ に実在し（join で解決される）、パターン `.claude/rules/.+` にも合うが、
+  // 配置すると対象ルート直下の x を書く＝集合の外へ出る。
+  const c = setupTmpCase(t, 'new');
+  writeFileSync(path.join(c.output, 'generated', 'x'), 'escaped\n');
+  writeFileSync(path.join(c.output, 'deploy', 'managed-paths.list'), 'CLAUDE.md\n.claude/rules/../../x\nsrc/app.js\n');
+  const r = runScript('canon-d', 'pre-deploy-check.js', [c.output, c.target]);
+  assert.equal(r.code, 2, r.stdout);
+  assert.match(r.stdout, /\[unmanaged\] managed-paths\.list: \.claude\/rules\/\.\.\/\.\.\/x/);
+  assert.match(r.stdout, /\[unmanaged\] managed-paths\.list: src\/app\.js/);
+  assert.doesNotMatch(r.stdout, /\[unmanaged\] managed-paths\.list: CLAUDE\.md/);
+});

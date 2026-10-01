@@ -259,3 +259,54 @@ test('pre-deploy-report の退避予定件数は deploy の実際の退避件数
     assert.equal(Number(m[1]), r.baked, `${scenario}: 予定 ${m[1]} 件と実際の退避 ${r.baked} 件が食い違う`);
   }
 });
+
+test('deploy: managed-paths.list に `..` で集合外へ出る行があれば、配置前に拒否する（対象は無傷）', (t) => {
+  const c = setupTmpCase(t, 'new');
+  writeFileSync(path.join(c.output, 'generated', 'x'), 'escaped\n');
+  writeFileSync(path.join(c.output, 'deploy', 'managed-paths.list'), 'CLAUDE.md\n.claude/rules/../../x\n');
+  const before = snapshot(c.target);
+  const r = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
+  assert.equal(r.code, 2, r.stdout + r.stderr);
+  assert.match(r.stderr, /管理パス集合/);
+  assert.ok(!existsSync(path.join(c.target, 'x')), '集合外へ書かれた');
+  assert.deepEqual(snapshot(c.target), before);
+  assert.ok(!existsSync(path.join(c.target, BAK)));
+});
+
+test('deploy: 退避先 .bak.<ts> が既にあれば step0 で拒否し、既存の退避を消さない', (t) => {
+  const c = setupTmpCase(t, 'existing');
+  const sentinel = path.join(c.target, BAK, '.claude/skills/legacy-skill/SKILL.md');
+  mkdirSync(path.dirname(sentinel), { recursive: true });
+  writeFileSync(sentinel, '前回の退避（元ファイル）\n');
+  const before = snapshot(c.target);
+  const r = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
+  assert.equal(r.code, 2, r.stdout + r.stderr);
+  assert.match(r.stderr, /退避先/);
+  assert.equal(readFileSync(sentinel, 'utf8'), '前回の退避（元ファイル）\n');
+  assert.deepEqual(snapshot(c.target), before, '対象は一切変更されない');
+});
+
+test('deploy: 同じ ts で2回配置すると、2回目は拒否され1回目の退避が残る', (t) => {
+  const c = setupTmpCase(t, 'existing');
+  const bakFile = path.join(c.target, BAK, '.claude/skills/legacy-skill/SKILL.md');
+  const original = readFileSync(path.join(c.target, '.claude/skills/legacy-skill/SKILL.md'), 'utf8');
+  assert.equal(runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']).code, 0);
+  assert.equal(readFileSync(bakFile, 'utf8'), original);
+  const second = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
+  assert.equal(second.code, 2, second.stdout + second.stderr);
+  assert.equal(readFileSync(bakFile, 'utf8'), original, '1回目の退避（元ファイル）が上書きされた');
+});
+
+test('deploy: 退避先が既にある状態で配置が失敗しても restore は既存の退避を消さない（step0 で止まる）', (t) => {
+  const c = setupTmpCase(t, 'existing');
+  const sentinel = path.join(c.target, BAK, 'sentinel.txt');
+  mkdirSync(path.dirname(sentinel), { recursive: true });
+  writeFileSync(sentinel, 'keep me\n');
+  const failing = () => {
+    throw Object.assign(new Error('boom'), { code: 'EIO' });
+  };
+  const r = deploy(c.output, c.target, { confirm: true, moveFile: failing });
+  assert.equal(r.status, 'refused');
+  assert.equal(r.reason, 'bak-exists');
+  assert.equal(readFileSync(sentinel, 'utf8'), 'keep me\n');
+});

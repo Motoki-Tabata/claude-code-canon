@@ -216,6 +216,10 @@ layers: 2層|3層 / rationale: <層数の理由>            # docs/ORCHESTRATION
 <その層の生成物を1件ずつ宣言する。L2 は disable-model-invocation と context: fork の可否、
  L3 は責務・tools・model・preload skill、L4・L5 は constraints が許すときだけ>
 
+## レイヤー構成
+<カスタマイズごとの1文責任。L1: … / L2: … / L3: … / L4: … / L5: …。
+ `### Responsibility Map` を含めてよい（reviewer が責務の膨張を見る材料。slice.js が `responsibilities.md` に切り出す）>
+
 ## Write Scopes
 <役割ごとの常設の書込範囲・共有する構成ファイル（依存追加・実行時設定）の扱い。
  役割分担が無い設計（Subagent が1体だけ、L2 だけなど）は「N/A（役割分担なし）」と書く>
@@ -274,7 +278,7 @@ existing_disposition:
 
 design-map は大きくなり（実測で約96KB）、全文を各ワーカーが読むと読み込みが積み上がる。Phase C の冒頭で `slice.js` が `work/<ts>/slices/` にワーカー別のスライスを書く。
 
-- **出力**: `common.md`（メタ・Used Features・Model Assignments・Interface Contracts・生成上の制約・要件→生成物の対応・Experimental Dependencies・依存フラグ）／`write-scopes.md`／層ごとの `l1.md`・`skills.md`・`agents.md`・`l4.md`・`l5.md`（その層の節と、その層の modify・merge レコード）／`disposition-other.md`（keep・retire・out_of_scope）／`other-sections.md`（どこにも属さない節の受け皿）／`targets-l1.txt`〜`targets-l5.txt`・`targets-other.txt`・`targets-all.txt`（宣言された生成物。V8 と同じ宣言源）／`INDEX.md`。
+- **出力**: `common.md`（メタ・Used Features・レイヤー構成・Model Assignments・Interface Contracts・生成上の制約・要件→生成物の対応・Experimental Dependencies・依存フラグ）／`write-scopes.md`／`responsibilities.md`（レイヤー構成の `### Responsibility Map`。無ければ無い旨の1行）／層ごとの `l1.md`・`skills.md`・`agents.md`・`l4.md`・`l5.md`（その層の節と、その層の modify・merge レコード）／`disposition-other.md`（keep・retire・out_of_scope と、どの層にも属さない modify・merge。`plugin/**` は L5 に属し、`.claude/README.md` は層に属さず宣言一覧にも出ない）／`other-sections.md`（どこにも属さない節の受け皿）／`targets-l1.txt`〜`targets-l5.txt`・`targets-other.txt`・`targets-all.txt`（宣言された生成物。V8 と同じ宣言源）／`INDEX.md`。
 - **規約**: 切り出しは節見出しと disposition レコードの単位で行い、記述を1文字も変えない。未知の節は `other-sections.md` に集め、黙って落とさない（全スライスの和が design-map の全節を覆う）。`## Used Features` が無ければ失敗する。書き出す前に出力先を空にする（古いスライスを読ませない）。差し戻しで design-map を直したら、スライスを作り直す。
 - **層の節の照合**: 見出しは完全一致を優先し、無ければ前方一致で拾う（`## L1（builder）` のような書き方を取りこぼさない）。この照合は V8 と共有する。
 - **読み手**: 各 builder は自分の層のスライスと `common.md`・`write-scopes.md`、reviewer はスライス一式を読む。design-map の全文は読ませない。builder は書く前に自分の層の `targets-l<n>.txt` の件数と書くファイルの数を突き合わせる。
@@ -383,6 +387,8 @@ README は管理パス集合に含まれ、配置のたびに生成したもの�
 4. **使用例**: spec §8 の `functional`（A1）を転用する。検証したことと使い方の説明を一致させる。
 5. **注意と制約**: 副作用のある操作・Hook がブロックする挙動・適用範囲（paths）。
 
+`emit-manifest.js` は、design-map が `.claude/README.md` を `modify` 以外（`out_of_scope` を除く）にしていると失敗する。README は配置のたびに作り直すので、既存の README は modify として扱う。
+
 起動方式の導出（`L2_SKILLS.md`・`L3_AGENTS.md`）:
 
 | 種別 | 見る frontmatter | 起動方式 | README での書き方 |
@@ -437,12 +443,12 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 | 検査 | 内容 | 受入基準 | 出典 |
 |---|---|---|---|
 | V1 配置パス | 許可されたパスに置かれているか・拡張子と種別が合うか・skill のディレクトリ名が frontmatter の name と一致するか | A3 | 正典（name の一致だけ §8.3 の例外） |
-| V2 frontmatter | 必須キー・未知キー・型と語彙 | A3 | 正典 |
-| V3 ツール名 | 正規のツール名・旧称と非実在の名前・MCP の構文 | A3 | 正典 |
+| V2 frontmatter | 必須キー・未知キー・型と語彙・構文エラー（`unparsed_line`・`duplicate_key`・`unterminated_block` は違反。複数行リストは配列として解釈し、ネストしたマップは中身を見ない） | A3 | 正典 |
+| V3 ツール名 | 正規のツール名・旧称と非実在の名前・MCP の構文・複数行の値がリストでない場合は違反 | A3 | 正典 |
 | V4 secret と展開 | secret の直書き・`${VAR}` 展開・experimental 依存の明示 | A3 | 正典 |
 | V5 書式片 | 書込の閉じタグの残骸 | A3 | 本書 |
 | V6 参照整合 | preload・supporting files・plugin の参照・非管理ファイルへの行番号引用 | A3 | 正典（行番号引用だけ本書） |
-| V7 keep | keep の非回帰（sha256）・廃止の明示・interface の照合・K1/K3/K5 | A2 | 本書（§6.3） |
+| V7 keep | keep の非回帰（sha256）・廃止の明示・interface の照合・K1/K3/K5・disposition が語彙（keep・modify・merge・retire・out_of_scope）に無い、または未記入なら違反 | A2 | 本書（§6.3） |
 | V8 スナップショット完全性 | design-map の宣言・MANIFEST・配置リストと generated/ の一致 | A4 | 本書 |
 | V9 constraints | requirements.md の禁止機能が生成物に現れないか | — | requirements.md |
 
@@ -514,8 +520,8 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 
   | キー | 検出する経路 |
   |---|---|
-  | `hooks` | ① 生成した JSON（`.claude/settings.json`・`plugin.json`・`.claude-plugin/plugin.json` など）の `hooks` の宣言 ② その宣言のイベント名を正典の全イベント集合と照合 ③ hook スクリプトの実体（`.claude/hooks/**`・`plugin/hooks/**`） |
-  | `mcp` | ① `.mcp.json`（plugin 同梱を含む） ② frontmatter の `mcpServers:` ③ `tools:` の中の `mcp__<server>__<tool>` ④ settings.json の `enabledMcpjsonServers` |
+  | `hooks` | ① 生成した JSON（`.claude/settings.json`・`plugin.json`・`.claude-plugin/plugin.json` など）の `hooks` の宣言 ② その宣言のイベント名を正典の全イベント集合と照合 ③ hook スクリプトの実体（`.claude/hooks/**`・`plugin/hooks/**`） ④ frontmatter の `hooks:` |
+  | `mcp` | ① `.mcp.json`（plugin 同梱を含む） ② frontmatter の `mcpServers:` ③ `tools`・`disallowedTools`・`allowed-tools`・`disallowed-tools` の中の `mcp__<server>__<tool>` ④ settings.json の `enabledMcpjsonServers` |
   | `plugins` | ① 管理パス集合の L5 パターン（`plugin/**`）に合う生成物 ② `plugin.json`・`marketplace.json` ③ settings.json の `enabledPlugins` |
   | `experimental` | ① frontmatter の `context: fork` ② 環境変数の**接頭辞** `CLAUDE_CODE_EXPERIMENTAL_`（個別の変数名で書かない） ③ plugin 同梱の `themes/`・`monitors/` ④ design-map の `## Experimental Dependencies` 節が空でない |
   | `organization_policy` | `allowed` を持たない自由文。**機械では判定できない**ことを report に明記する（違反にはしないが、無かったことにもしない）。準拠は reviewer の security 観点が見る |
@@ -614,22 +620,23 @@ keep の verbatim コピーは「調査で把握済みの keep が消える」�
 
 - **入力**: 対象の管理パス集合の実ファイル全部（パターンを対象に当てて列挙する）と、output の全ファイル。`managed-paths.list` は「output が配置する集合」を、パターンは「取りこぼしを探す走査範囲」を与え、両者は独立に効く（list だけを読むと取りこぼしを検出できない）。
 - **判定**: 集合の中で「対象にあって output に無い」ファイルを列挙し、`retired.list` と一致するものを **retired**（意図した廃止）、それ以外を **uncaptured**（調査の取りこぼし・要注意）に分ける。
-- **出力**: `output/<ts>/deploy/pre-deploy-report.txt`（と stdout）。消えるファイルの一覧と区分、件数、配置予定と退避予定（上書き・消失）の件数を載せる。
-- **終了コード**: uncaptured が1件以上なら exit 2（配置を止め、調査か design-map へ差し戻す）。retired だけ、または0件なら exit 0。
+- **出力**: `output/<ts>/deploy/pre-deploy-report.txt`（と stdout）。消えるファイルの一覧と区分、件数、配置予定と退避予定（上書き・消失）の件数を載せる。管理パス集合の走査で種別を判定できなかったエントリ（unreadable）は「列挙できなかった範囲」として別に載せる（照合の盲点を黙って落とさない）。
+- **終了コード**: uncaptured が1件以上、または `deploy/*.list` に書式欠陥（glob の混入・実在しないエントリ）が1件以上、または `managed-paths.list` に集合外・`..`・絶対パス・未正規化の行が1件以上なら exit 2（配置を止め、調査か design-map へ差し戻す）。retired だけ、または0件なら exit 0。
 
 ### 10.3 deploy（退避スワップ）
 
 `deploy.js <output-dir> <target-dir> [--confirm]`
 
 - **`--confirm` が無ければ配置予定を表示するだけ**で、何も変えない（P5 の人間の承認を機械で裏付ける）。
-- 実行時に pre-deploy-check と同じ照合をやり直し、**uncaptured が1件でもあれば配置を拒否**する（P5 を飛ばした配置を防ぐ最後の防波堤）。
+- 実行時に pre-deploy-check と同じ照合と `managed-paths.list` の再検証（集合外・`..`・絶対パス・未正規化の行は拒否）をやり直し、退避先 `.claude-canon.bak.<ts>` が既にあれば拒否し、**uncaptured が1件でもあれば配置を拒否**する（P5 を飛ばした配置を防ぐ最後の防波堤）。
 
 ```text
 step0 事前検査: 退避するすべてのファイルが、その場で rename して戻せるかを確かめる。
                1件でも動かせなければ、対象を変えずに拒否する（原因と「sandbox の外で実行」を出力）
 step1 退避:    対象の管理パス集合を .claude-canon.bak.<ts>/ へ mv する（削除ではなく退避）
 step2 配置:    managed-paths.list の各ファイルを output から対象へコピーする
-step3 事後確認: 配置した各ファイルが output と sha256 で一致するかを確かめる
+step3 事後確認: 配置した各ファイルが output と sha256 で一致するかを確かめ、
+               配置後の管理パス集合に output に無いファイル（退避漏れ・余分な管理ファイル）が残っていないかも確かめる
 step4 成功なら .bak を残す（ローカルで戻すため）。失敗なら .bak から戻す
 ```
 
@@ -651,7 +658,7 @@ step4 成功なら .bak を残す（ローカルで戻すため）。失敗な�
 
 ### 10.5 自己指定の拒否
 
-`pre-deploy-check.js`・`deploy.js`・`emit-run-manifest.js` は、`<target-dir>` を解決した結果が claude-canon 自身のルートと一致したら exit 1 で拒否する。配置は対象プロジェクトに人間が回す前提であり、canon 自身を対象にすると、稼働中の本体をテストもレビューも通さずに置き換えられてしまう。canon 本体の変更は、ブランチで `npm test` を通し、PR を経て main に入れる。
+`pre-deploy-check.js`・`deploy.js`・`emit-run-manifest.js` は、`<target-dir>` をを実パスに解決した結果が、claude-canon 自身のルート・その配下・それを含む祖先・同一リポジトリの別 worktree のいずれかなら exit 1 で拒否する（git が使えない環境では worktree の判定ができず、実パスと包含の判定までになる）。配置は対象プロジェクトに人間が回す前提であり、canon 自身を対象にすると、稼働中の本体をテストもレビューも通さずに置き換えられてしまう。canon 本体の変更は、ブランチで `npm test` を通し、PR を経て main に入れる。
 
 ### 10.6 配置後のドリフト（判断の記録・未実装）
 

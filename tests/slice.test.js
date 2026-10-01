@@ -147,3 +147,63 @@ test('CLI: design-map が無ければ拒否し、有れば slices/ を書く。�
   assert.ok(!names.includes('stale.md'), '前回の残骸が残っている');
   assert.equal(JSON.parse(ok.stdout).declared.all, 4);
 });
+
+// ---- 層に属さないパス（A9・A10） ----
+
+const OTHER_MAP = `# dm — 層外
+
+## Used Features
+- Plugin
+
+## 既存判定
+
+\`\`\`yaml
+existing_disposition:
+  - path: plugin/x.json
+    disposition: modify
+    interface_change: none
+  - path: .claude/README.md
+    disposition: modify
+    interface_change: none
+  - path: docs/notes.md
+    disposition: modify
+  - path: docs/old.md
+    disposition: merge
+    superseded_by: docs/notes.md
+\`\`\`
+
+## L1
+### \`CLAUDE.md\`（新規）
+
+## L5
+### \`plugin/.claude-plugin/plugin.json\`（新規）
+### \`.claude/README.md\`（modify）
+`;
+
+test('plugin/ のレコードは L5 に属し、l5.md と targets-l5.txt に入る', () => {
+  const { files } = buildSlices(OTHER_MAP);
+  assert.match(files['l5.md'], /path: plugin\/x\.json/);
+  assert.match(files['targets-l5.txt'], /^plugin\/x\.json$/m);
+  assert.doesNotMatch(files['targets-other.txt'], /plugin\//);
+  assert.doesNotMatch(files['disposition-other.md'], /plugin\/x\.json/);
+});
+
+test('層に属さない modify・merge のレコードは disposition-other.md に入り、どのスライスからも落ちない', () => {
+  const { files } = buildSlices(OTHER_MAP);
+  assert.match(files['disposition-other.md'], /path: docs\/notes\.md/);
+  assert.match(files['disposition-other.md'], /path: docs\/old\.md/);
+  for (const name of ['l1.md', 'skills.md', 'agents.md', 'l4.md', 'l5.md']) {
+    assert.doesNotMatch(files[name], /path: docs\//, `${name} に層外のレコードが混ざった`);
+  }
+  assert.match(files['targets-other.txt'], /^docs\/notes\.md$/m, 'modify の宣言は targets-other に出る（既存どおり）');
+});
+
+test('.claude/README.md は層に属さない: targets-*.txt に出ず、レコードは disposition-other.md に入る', () => {
+  const { files } = buildSlices(OTHER_MAP);
+  for (const name of Object.keys(files).filter((n) => n.startsWith('targets-'))) {
+    assert.doesNotMatch(files[name], /\.claude\/README\.md/, `${name} に emit-manifest が作る README が入っている`);
+  }
+  assert.doesNotMatch(files['l5.md'], /path: \.claude\/README\.md/);
+  assert.match(files['disposition-other.md'], /path: \.claude\/README\.md/);
+  assert.ok(!listDeclaredArtifacts(OTHER_MAP).some((d) => d.path === '.claude/README.md'), 'V8 の宣言源にも入れない（emit-manifest が必ず書く）');
+});

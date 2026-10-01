@@ -61,3 +61,25 @@ describe('V3 tools/ツール名', () => {
     assert.deepEqual(checkV3(a), []);
   });
 });
+
+describe('V3: 複数行リストが素通りしない', () => {
+  test('tools: の複数行リストの旧称・非実在ツールを検出する', () => {
+    const a = artifactFromText('.claude/agents/x/x.md', '---\nname: x\ndescription: d\ntools:\n  - Task\n  - Bogus\n---\nbody');
+    const v = checkV3(a);
+    assert.equal(v.length, 2, JSON.stringify(v));
+    assert.ok(v.some((x) => x.message.includes('"Task"')));
+    assert.ok(v.some((x) => x.message.includes('"Bogus"')));
+  });
+
+  test('allowed-tools: の複数行リストも同様', () => {
+    const a = artifactFromText('.claude/skills/x/SKILL.md', '---\nname: x\nallowed-tools:\n  - Read\n  - Bogus\n---\nbody');
+    assert.equal(checkV3(a).length, 1);
+  });
+
+  test('リストとして解釈できない複数行（ネストしたマップ）は違反にする（0件で通さない）', () => {
+    const a = artifactFromText('.claude/agents/x/x.md', '---\nname: x\ndescription: d\ntools:\n  Read: yes\n---\nbody');
+    const v = checkV3(a);
+    assert.equal(v.length, 1, JSON.stringify(v));
+    assert.match(v[0].message, /リストとして解釈できない/);
+  });
+});

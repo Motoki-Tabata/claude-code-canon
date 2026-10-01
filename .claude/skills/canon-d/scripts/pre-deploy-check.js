@@ -13,14 +13,14 @@
  *
  *   usage: node .claude/skills/canon-d/scripts/pre-deploy-check.js <output-dir> <target-repo-dir>
  *   exit 0 : 消えるものが無い／retired のみ（配置してよい）
- *   exit 2 : uncaptured または list の書式欠陥を検出（配置を止め、調査 or design-map へ差し戻す）
+ *   exit 2 : uncaptured または list の書式欠陥（glob・実在しない行・管理パス集合外の行）を検出（配置を止め、調査 or design-map へ差し戻す）
  *   exit 1 : 引数不正・入力不在
  */
 
 import path from 'node:path';
 import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { walkManagedDetailed, readList, checkConcreteEntries } from '../../../../lib/managed-paths.js';
+import { walkManagedDetailed, readList, checkConcreteEntries, findUnmanagedEntries } from '../../../../lib/managed-paths.js';
 import { isCanonSelfTarget, SELF_TARGET_MESSAGE } from './self-target-guard.js';
 
 /**
@@ -31,18 +31,23 @@ import { isCanonSelfTarget, SELF_TARGET_MESSAGE } from './self-target-guard.js';
  * 無い」で初めて落ちる。V8 と同じ判定を `lib/managed-paths.js` から import して共有する
  * （判定ロジックを複製しない）。
  *
- * @returns {{ globEntries: {list:string, rel:string}[], missingEntries: {list:string, rel:string}[] }}
+ * `managed-paths.list` の各行が管理パス集合（正規化済みで `..`・絶対パスを含まない）に属することも検査する
+ * （deploy.js は行を `path.join` で解決するため、`..` を含む行は集合の外へ書く）。
+ *
+ * @returns {{ globEntries: {list:string, rel:string}[], missingEntries: {list:string, rel:string}[], unmanagedEntries: {list:string, rel:string}[] }}
  */
 export function checkDeployLists(outputDir) {
   const genRoot = path.join(outputDir, 'generated');
   const globEntries = [];
   const missingEntries = [];
+  const unmanagedEntries = [];
 
   const managed = readList(path.join(outputDir, 'deploy', 'managed-paths.list'));
   if (managed) {
     const { glob, missing } = checkConcreteEntries(managed, { genRoot });
     for (const rel of glob) globEntries.push({ list: 'managed-paths.list', rel });
     for (const rel of missing) missingEntries.push({ list: 'managed-paths.list', rel });
+    for (const rel of findUnmanagedEntries(managed)) unmanagedEntries.push({ list: 'managed-paths.list', rel });
   }
 
   // retired.list は「もう generated/ に無い」ことの宣言なので実在照合は課さない。
@@ -54,7 +59,7 @@ export function checkDeployLists(outputDir) {
     }
   }
 
-  return { globEntries, missingEntries };
+  return { globEntries, missingEntries, unmanagedEntries };
 }
 
 /**
@@ -117,12 +122,14 @@ export function renderReport(outputDir, targetDir, r) {
     lines.push('⚠ uncaptured を検出。調査取りこぼしの疑いがあるため配置を止め、調査 or design-map へ差し戻すこと。');
   }
   const d = r.listDefects;
-  if (d && (d.globEntries.length > 0 || d.missingEntries.length > 0)) {
+  const unmanaged = d?.unmanagedEntries ?? [];
+  if (d && (d.globEntries.length > 0 || d.missingEntries.length > 0 || unmanaged.length > 0)) {
     lines.push('');
     lines.push(
-      `⚠ deploy/*.list の書式欠陥: ${d.globEntries.length + d.missingEntries.length} 件。` +
-        'deploy.js は各行を具体パスとして copyFileSync に渡すため、このまま配置すると rolled-back になる。'
+      `⚠ deploy/*.list の書式欠陥: ${d.globEntries.length + d.missingEntries.length + unmanaged.length} 件。` +
+        'deploy.js は各行を具体パスとして copyFileSync に渡すため、glob・実在しない行は rolled-back になり、管理パス集合の外へ出る行は deploy.js が配置前に拒否する。'
     );
+    for (const e of unmanaged) lines.push(`  [unmanaged] ${e.list}: ${e.rel}（管理パス集合に属さない・\`..\`／絶対パス／未正規化）`);
     for (const e of d.globEntries) lines.push(`  [glob] ${e.list}: ${e.rel}`);
     for (const e of d.missingEntries) lines.push(`  [missing] ${e.list}: ${e.rel}（generated/ に実在しない）`);
   }
@@ -166,7 +173,7 @@ if (isMain) {
   const r = computeVanishing(outputDir, targetDir);
   const body = writeReport(outputDir, targetDir, r);
   process.stdout.write(body);
-  const defectCount = r.listDefects.globEntries.length + r.listDefects.missingEntries.length;
+  const defectCount = r.listDefects.globEntries.length + r.listDefects.missingEntries.length + r.listDefects.unmanagedEntries.length;
   if (r.uncaptured.length > 0 || defectCount > 0) {
     process.exit(2); // 配置中断＝差し戻し（uncaptured・list の書式欠陥）
   }

@@ -6,7 +6,8 @@
  * 管理パス集合（artifacts.md §10.1）を全置換で対象へ配置する。削除でなく mv 退避することで「対象にも .bak
  * にも無い窓」を最小化し、コピー途中失敗でも配置前状態へ restore できる（原子性）。
  *
- *   step0: 事前検査（退避できないファイルが無いか。有れば何も変えずに拒否する）
+ *   step0: 事前検査（managed-paths.list の各行が管理パス集合内か・退避先 .bak.<ts> が未使用か・退避できないファイルが無いか。
+ *          1つでも満たさなければ何も変えずに拒否する）
  *   step1: 対象の管理パス集合を .claude-canon.bak.<ts>/ へ mv で退避
  *   step2: output/<ts>/generated/ の管理パス集合（managed-paths.list）を対象へコピー配置
  *   step3: post-check（配置後に集合が output と sha256 バイト同一か・退避漏れが無いか）
@@ -34,7 +35,7 @@
 import path from 'node:path';
 import { existsSync, mkdirSync, renameSync, copyFileSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { walkManaged, readList, sha256File } from '../../../../lib/managed-paths.js';
+import { walkManaged, readList, sha256File, findUnmanagedEntries } from '../../../../lib/managed-paths.js';
 import { computeVanishing } from './pre-deploy-check.js';
 import { isCanonSelfTarget, SELF_TARGET_MESSAGE } from './self-target-guard.js';
 
@@ -140,6 +141,13 @@ export function deploy(outputDir, targetDir, { confirm, moveFile: mv = moveFile 
   const manifest = readList(path.join(outputDir, 'deploy', 'managed-paths.list'));
   if (!manifest) throw new Error(`managed-paths.list が無い: ${path.join(outputDir, 'deploy')}`);
 
+  // managed-paths.list の各行が管理パス集合に属する（正規化済みで `..`・絶対パスを含まない）ことを、
+  // 何かを動かす前に確かめる。`path.join(targetDir, rel)` は `..` を解決して対象の外へ書いてしまう。
+  const unmanaged = findUnmanagedEntries(manifest);
+  if (unmanaged.length > 0) {
+    return { status: 'refused', reason: 'unmanaged-entries', unmanaged };
+  }
+
   // P5 の機械的裏付け: uncaptured があれば配置しない（pre-deploy-check の判定を再実行）。
   const v = computeVanishing(outputDir, targetDir);
   if (v.uncaptured.length > 0) {
@@ -147,6 +155,11 @@ export function deploy(outputDir, targetDir, { confirm, moveFile: mv = moveFile 
   }
 
   const bakDir = path.join(targetDir, `.claude-canon.bak.${ts}`);
+  // 退避先が既にある（同じ ts の配置済み・失敗後の残骸）と、step1 の退避が前回の退避（＝元ファイル）を
+  // 上書きし、失敗時の restore も既存の .bak を消しうる。何も変えずに拒否する。
+  if (existsSync(bakDir)) {
+    return { status: 'refused', reason: 'bak-exists', bakDir };
+  }
   if (!confirm) {
     return { status: 'dry-run', deploy: manifest, retire: v.retired, bakDir };
   }
@@ -250,7 +263,19 @@ if (isMain) {
   }
   switch (r.status) {
     case 'refused':
-      if (r.reason === 'unmovable') {
+      if (r.reason === 'bak-exists') {
+        process.stderr.write(
+          `配置を拒否（対象は一切変更していない）: 退避先 ${r.bakDir} が既にある。\n` +
+            `同じ <ts> で配置済み、または前回の失敗の残骸。中身を確認し、不要なら人間が退避先を移すか消してから再実行すること\n` +
+            `（上書きすると退避済みの元ファイルを失う）。\n`
+        );
+      } else if (r.reason === 'unmanaged-entries') {
+        process.stderr.write(
+          `配置を拒否（対象は一切変更していない）: managed-paths.list に管理パス集合（artifacts.md §10.1）に属さない行が ${r.unmanaged.length} 件ある。\n` +
+            r.unmanaged.map((p) => `  - ${p}`).join('\n') +
+            `\n集合外・\`..\`・絶対パス・未正規化の行は配置できない。npm run manifest で list を作り直すこと。\n`
+        );
+      } else if (r.reason === 'unmovable') {
         process.stderr.write(
           `配置を拒否（対象は一切変更していない）: 退避できないファイルが ${r.unmovable.length} 件ある。\n` +
             r.unmovable.map((u) => `  - ${u.rel}（${u.code ?? 'rename 失敗'}）`).join('\n') +

@@ -27,13 +27,13 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseFrontmatter, splitListValue, skillPathRole } from '../../../../lib/artifact.js';
-import { parseExistingDisposition, DesignMapError, h2SectionText } from '../../../../lib/design-map.js';
+import { parseExistingDisposition, DesignMapError, h2SectionText, GENERATED_README_REL } from '../../../../lib/design-map.js';
 import { computeFenceMask, sectionSlice } from '../../../../lib/markdown.js';
 import { MANIFEST_FILES_HEADING } from '../../../../lib/manifest.js';
 import { parseRequirementsDoc, RequirementsError } from '../../../../lib/requirements.js';
 import { isMainModule, outputDir, readTsArg, workDir } from '../../../../lib/run.js';
 
-export const README_REL = '.claude/README.md';
+export const README_REL = GENERATED_README_REL;
 export const SETUP_HEADING = '前提セットアップと配置後の手作業';
 export const DEPLOY_STEPS_HEADING = '配置時の追加手順';
 

@@ -165,7 +165,7 @@
 
 カスタム Subagent は、公式 Claude Code CLI では `Agent` tool の `subagent_type` に**カスタム agent 名**（frontmatter の必須 `name`）を直接指定して起動できる（自動 delegation / @メンション / `--agent` も同じ識別子を使う。詳細は [L3_AGENTS.md §2.1](./L3_AGENTS.md)）。`subagent_type` がビルトイン型に限定されるわけではない。
 
-本システムの orchestrator・メンテナンス Skill は、**登録済みのネイティブ `subagent_type` を優先**して各専門 agent を起動する。`.claude/agents/` 配下のファイル定義 agent が `subagent_type` として登録されない環境（Agent SDK で `settingSources` から `project` を外した構成など）に限り、次の方式で同等動作を得る:
+本システムの orchestrator は、**登録済みのネイティブ `subagent_type` を優先**して各専門 agent を起動する。`.claude/agents/` 配下のファイル定義 agent が `subagent_type` として登録されない環境（Agent SDK で `settingSources` から `project` を外した構成など）に限り、次の方式で同等動作を得る:
 
 ```
 Agent(subagent_type="general-purpose", model=<タスクに応じて opus/sonnet>)

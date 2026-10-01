@@ -26,7 +26,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { parseExistingDisposition, DesignMapError } from '../../../../../lib/design-map.js';
+import { parseExistingDisposition, DesignMapError, DISPOSITION_VALUES } from '../../../../../lib/design-map.js';
 import { parseExisting, parseFocused, isCanonClean } from '../../../../../lib/investigation.js';
 import { sha256File, hasGlobMeta } from '../../../../../lib/managed-paths.js';
 import { interfaceSignature } from '../../../../../lib/interface-signature.js';
@@ -65,6 +65,17 @@ function loadRecords(ctx, violations) {
     violations.push(`${CHECK}: new モードなのに existing_disposition に ${records.length} 件のレコードがある（new モードでは空であるべき）。`);
   }
   return records;
+}
+
+/** disposition が語彙（DISPOSITION_VALUES）に無い・未記入のレコードを違反にする（typo は他の検査から黙って外れる）。 */
+function checkDispositionValues(records, violations) {
+  for (const r of records) {
+    if (DISPOSITION_VALUES.includes(r.disposition)) continue;
+    violations.push(
+      `${CHECK}: "${r.path}" の disposition が${r.disposition === null ? '未記入（null）' : ` "${r.disposition}"`}で、` +
+        `語彙（${DISPOSITION_VALUES.join('・')}）に無い（keep・retire 等の検査から外れて黙って通ってしまう）。`
+    );
+  }
 }
 
 /** 原本と generated/ の両方が揃っているかを確かめ、揃っていれば両方の絶対パスを返す。 */
@@ -228,6 +239,7 @@ export function checkV7(ctx) {
     return { violations, warnings: [], checked: 0, na: 'new モード（existing_disposition が空）' };
   }
 
+  checkDispositionValues(records, violations);
   const keeps = records.filter((r) => r.disposition === 'keep');
   const gone = records.filter((r) => r.disposition === 'retire' || r.disposition === 'merge');
   checkNonRegression(ctx, keeps, violations);

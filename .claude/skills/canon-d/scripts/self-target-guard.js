@@ -12,11 +12,61 @@
  */
 
 import path from 'node:path';
+import { realpathSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { CANON_ROOT } from '../../../../lib/canon.js';
 
-/** `<target-repo-dir>` が claude-canon 自身なら true。 */
-export function isCanonSelfTarget(targetDir) {
-  return path.resolve(targetDir) === CANON_ROOT;
+/** 比較用のキー。Windows（既定で大文字小文字を区別しない FS）では小文字化する。 */
+export function pathKey(p, platform = process.platform) {
+  return platform === 'win32' ? p.toLowerCase() : p;
+}
+
+/** symlink・`..`・Windows の短縮名を解決した実パス。存在しなければ path.resolve のまま（文字列で判定する）。 */
+function realOrResolved(p) {
+  const abs = path.resolve(p);
+  try {
+    return realpathSync.native(abs);
+  } catch {
+    return abs;
+  }
+}
+
+/** child が parent と同じか、その配下か。 */
+function isSameOrInside(parent, child) {
+  const rel = path.relative(pathKey(parent), pathKey(child));
+  return rel === '' || (rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel));
+}
+
+/**
+ * canonRoot と同じ git リポジトリの全 worktree のルート（main のチェックアウトを含む）。
+ * run のブランチ（worktree）で実行しているとき、main の canon を対象に指定されても自己指定になる。
+ * git が無い・リポジトリでないときは判定できないので空配列（その場合に検出できる範囲は realpath と包含判定まで）。
+ */
+function sameRepoWorktreeRoots(canonRoot) {
+  try {
+    const out = execFileSync('git', ['worktree', 'list', '--porcelain'], { cwd: canonRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    return out
+      .split(/\r?\n/)
+      .filter((l) => l.startsWith('worktree '))
+      .map((l) => realOrResolved(l.slice('worktree '.length)));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * `<target-repo-dir>` が claude-canon 自身に当たるなら true。次のどれでも true にする:
+ *   - canon のルートそのもの（symlink・`..`・末尾区切り・Windows の大文字小文字違いを解決したうえで）
+ *   - canon の配下（サブディレクトリ。そこにも .claude/ を置けるが、canon の一部を壊しうる）
+ *   - canon を配下に含む祖先（その管理パス集合の走査・退避が canon に及ぶ）
+ *   - 同じ git リポジトリの別 worktree（run の worktree から main の canon を指定した場合など）
+ * @param {string} targetDir
+ * @param {string} [canonRoot] テストで差し替える。既定は実行中の canon のルート。
+ */
+export function isCanonSelfTarget(targetDir, canonRoot = CANON_ROOT) {
+  const target = realOrResolved(targetDir);
+  const roots = [realOrResolved(canonRoot), ...sameRepoWorktreeRoots(canonRoot)];
+  return roots.some((root) => isSameOrInside(root, target) || isSameOrInside(target, root));
 }
 
 export const SELF_TARGET_MESSAGE =
