@@ -153,10 +153,25 @@ export function projectSlug(projectPath) {
   return projectPath.replace(/[^A-Za-z0-9]/g, '-');
 }
 
-/** セッション ID／パスから jsonl の絶対パスを解決する（ID は canon の projects ディレクトリ配下を探す）。 */
-export function resolveSessionPath(arg) {
+/**
+ * セッション ID／パスから jsonl の絶対パスを解決する。
+ * ID は canon の projects ディレクトリを先に探し、無ければ `~/.claude/projects/*` を横断する
+ * （対象プロジェクトで起動したセッションの transcript は対象側のディレクトリにある）。
+ * 見つからない・複数のディレクトリにあるときは、候補を挙げて throw する。
+ */
+export function resolveSessionPath(arg, projectsRoot = path.join(os.homedir(), '.claude', 'projects')) {
   if (arg.endsWith('.jsonl')) return path.resolve(arg);
-  return path.join(os.homedir(), '.claude', 'projects', projectSlug(CANON_ROOT), `${arg}.jsonl`);
+  const own = path.join(projectsRoot, projectSlug(CANON_ROOT), `${arg}.jsonl`);
+  if (existsSync(own)) return own;
+  const hits = existsSync(projectsRoot)
+    ? readdirSync(projectsRoot)
+        .sort()
+        .map((d) => path.join(projectsRoot, d, `${arg}.jsonl`))
+        .filter((p) => existsSync(p))
+    : [];
+  if (hits.length === 1) return hits[0];
+  if (hits.length === 0) throw new Error(`transcript が無い: ${projectsRoot}/*/${arg}.jsonl`);
+  throw new Error(`transcript が複数のプロジェクトにある（jsonl のパスで指定する）:\n${hits.map((h) => `  ${h}`).join('\n')}`);
 }
 
 if (isMainModule(import.meta.url)) {
@@ -165,7 +180,13 @@ if (isMainModule(import.meta.url)) {
     process.stderr.write('使い方: npm run tokens -- <session-id | session.jsonl のパス> [--json]\n');
     process.exit(2);
   }
-  const p = resolveSessionPath(args[0]);
+  let p;
+  try {
+    p = resolveSessionPath(args[0]);
+  } catch (err) {
+    process.stderr.write(`${err.message}\n`);
+    process.exit(1);
+  }
   if (!existsSync(p)) {
     process.stderr.write(`transcript が無い: ${p}\n`);
     process.exit(1);
