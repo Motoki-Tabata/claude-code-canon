@@ -20,11 +20,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 
 ---
 
-## 2026-10-01 セッション分析の「逐語保存」がメインの出力トークンを大量に使う（run 20261001_184754・Phase A）
-- 種別: 効率化
-- 何が起きたか: interview.md は、分析を Explore（読み取り専用）に任せ、その応答本文をメインが逐語で `work/<ts>/session-analysis-<名前>.md` に保存するよう定めている。2件で約3万字あり、メインがこれを Write で書き直すことになった。opus の出力トークンを、転記のためだけに使っている。
-- 提案: `.claude/skills/requirements/references/interview.md` の分析手順を変える。書込先を `work/<ts>/session-analysis-*.md` の1ファイルに限る分析専用の Subagent 定義（tools: Read, Grep, Glob, Bash（読み取り）, Write）を用意し、その Subagent が自分で保存する。メインは実在と要旨だけを確かめる。
-
 ## 2026-10-01 investigator（focused）が公式ドキュメントを読めず、Claude Code の仕様に関わる要件を裏取りできない（run 20261001_184754・Phase A）
 - 種別: 欠陥修正
 - 何が起きたか: R3（組込み Skill をモデルから起動できるか）・R15（allow と分類器の関係）・R6（待ちの手段）について、investigator は「確かめられなかった」と返した。investigator の tools は Read・Grep・Glob・Write だけで、WebFetch を持たないためである。オーケストレーターが claude-code-guide に確かめさせ、その結果を `investigation/official-check.md` に手で残した。手順の外の工程になっている。

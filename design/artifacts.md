@@ -25,6 +25,7 @@ work/<ts>/
 │   ├─ profile.md                  工程1: プロジェクトの実態（浅く広く・§2.2）
 │   └─ focused.md                  工程3: 要件に関係する箇所の深掘り（§2.3）
 ├─ requirements.md                 工程2: 合意した要件（§3）
+├─ session-analysis-<名前>.md      工程2: 過去のセッション履歴の分析（指定があるときだけ・session-analyst が書く）
 ├─ slices/                         Phase C: design-map のワーカー別スライス（§5.4）
 └─ review-bundle/                  Phase C: レビューの判定入力（§9）
 

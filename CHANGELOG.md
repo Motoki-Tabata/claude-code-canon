@@ -14,6 +14,8 @@
 - **reviewer 用の review-bundle**: `npm run review-bundle -- <ts>` が `work/<ts>/review-bundle/reviewer/` に、判定の対象の全件
   （`INDEX.md`）・rationale を除いた設計意図（`design.md`）・受入基準（`acceptance.md`）を書きます。reviewer は
   design-map の全文と slices を読まなくなりました。keep-reviewer 用は従来どおり refactor モードのときだけ作ります。
+- **Subagent `session-analyst`**: ヒアリングで過去のセッション履歴を要件の材料にするとき、分析と保存
+  （`work/<ts>/session-analysis-<名前>.md`）を本人が行います。メインが分析の応答を逐語で書き写す手順をやめました。
 
 ### Changed
 

@@ -132,9 +132,9 @@ test('agent の skills: preload が実在し、disable-model-invocation な Skil
   assert.ok(preloads > 0, 'preload が1件も無い（検査が発火していない＝vacuous）');
 });
 
-// ---- Agent 6体と知識 Skill 5件（architecture.md §4）----
+// ---- Agent 7体と知識 Skill 5件（architecture.md §4）----
 
-/** Agent と、preload する知識 Skill の対応（architecture.md §4.1）。 */
+/** Agent と、preload する知識 Skill の対応（architecture.md §4.1）。null は preload しない。 */
 const EXPECTED_AGENTS = {
   investigator: 'investigation',
   'spec-writer': 'requirements',
@@ -142,13 +142,14 @@ const EXPECTED_AGENTS = {
   builder: 'generation',
   reviewer: 'review',
   'keep-reviewer': 'review',
+  'session-analyst': null,
 };
 const KNOWLEDGE_SKILLS = ['investigation', 'requirements', 'design', 'generation', 'review'];
 
 /** parseFrontmatter の値（文字列、または { value } を持つオブジェクト）を文字列で返す。 */
 const fmValue = (v) => (v && typeof v === 'object' ? String(v.value ?? '') : String(v ?? ''));
 
-test('Agent は6体ちょうどで、それぞれ期待する知識 Skill を preload する', () => {
+test('Agent は7体ちょうどで、それぞれ期待する知識 Skill を preload する', () => {
   // `.claude` などサンドボックスのマウント点は定義ではないので、<名前>/<名前>.md を持つものだけを数える。
   const actual = readdirSync(path.join(SELF, 'agents'))
     .filter((n) => existsSync(path.join(SELF, 'agents', n, `${n}.md`)))
@@ -156,7 +157,8 @@ test('Agent は6体ちょうどで、それぞれ期待する知識 Skill を pr
   assert.deepEqual(actual, Object.keys(EXPECTED_AGENTS).sort(), '旧定義の残存、または新定義の欠落');
   for (const [name, skill] of Object.entries(EXPECTED_AGENTS)) {
     const a = loadArtifact(path.join(SELF, 'agents', name, `${name}.md`));
-    assert.deepEqual(splitListValue(a.frontmatter?.skills), [skill], `${name} の skills: は [${skill}] のはず`);
+    if (skill === null) assert.equal(a.frontmatter?.skills, undefined, `${name} は Skill を preload しないはず`);
+    else assert.deepEqual(splitListValue(a.frontmatter?.skills), [skill], `${name} の skills: は [${skill}] のはず`);
   }
 });
 

@@ -117,13 +117,14 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 ## 4. 責務
 
-### 4.1 Agent（6体）
+### 4.1 Agent（7体）
 
 いずれも**コマンド実行系ツール（`Bash`・`PowerShell` など）を持たない**。スクリプトの実行はオーケストレーターが行う（§5.4）。model は frontmatter の1か所で決め、起動時に上書きしない。
 
 | Agent | 1文責任 | preload する Skill | 書込先 | model |
 |---|---|---|---|---|
 | `investigator` | 対象プロジェクトを読み取り専用で調べ、モード（`existing`・`profile`・`focused`）に応じた調査結果を書く | investigation | `work/<ts>/investigation/<mode>.md` | sonnet |
+| `session-analyst` | ユーザーが要件の材料に指定した過去のセッション履歴を読み、分析を書く（工程2・指定があるときだけ） | なし | `work/<ts>/session-analysis-<名前>.md` | sonnet |
 | `spec-writer` | 調査結果と承認済みの要件を統合し、spec を書く | requirements | `output/<ts>/spec.md` | sonnet |
 | `designer` | 承認済みの spec から機能を選び、層・責務・既存の処遇・モデル割当を design-map に確定する | design | `output/<ts>/design-map.md` | opus |
 | `builder` | 指定された層の生成物を design-map のスライスどおりに書く | generation | `output/<ts>/generated/` のうち担当する層の範囲 | sonnet |
@@ -132,7 +133,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 - designer は機能選定と設計を一続きに行う。機能選定の結果はそのまま design-map に載るので、分けて spawn する利点が無い。
 - builder は層ごとにオーケストレーターが直接起動する。builder をまとめる中継役は置かない（§5.1）。
-- 読み取り専用の調査を担う investigator に Edit は与えず、Write も自分の成果物ファイルに限る（定義で書込先を明示する）。
+- 読み取り専用の調査を担う investigator・session-analyst に Edit は与えず、Write も自分の成果物ファイルに限る（定義で書込先を明示する）。session-analyst が自分で書くのは、分析の応答をメインが逐語で書き写すと、転記だけにメインの出力トークンを使うためである。
 
 ### 4.2 Skill（9件）
 
@@ -335,7 +336,7 @@ claude-canon/
 │   ├─ skills/
 │   │   ├─ canon-a/ … canon-d/     Phase オーケストレーター（scripts/ を含む）
 │   │   └─ investigation/ requirements/ design/ generation/ review/   知識 Skill（references/ を含む）
-│   ├─ agents/            investigator・spec-writer・designer・builder・reviewer・keep-reviewer
+│   ├─ agents/            investigator・session-analyst・spec-writer・designer・builder・reviewer・keep-reviewer
 │   ├─ rules/             claude-canon 自身の開発規律（paths: で読み込む範囲を絞る）
 │   ├─ settings.json      permissions のみ（hooks は置かない）
 │   └─ README.md          起動方法の説明
