@@ -1,6 +1,6 @@
 # claude-canon `.claude/` の使い方
 
-この `.claude/` は claude-canon 本体です。対象プロジェクトの Claude Code カスタマイズ一式を、Phase A〜D の4つのセッションに分けて、調査・要件確定・設計・生成・検証・配置します。構成は Phase Skill 4件・知識 Skill 5件・Subagent 6体・Rule 4件・`settings.json` です。
+この `.claude/` は claude-canon 本体です。対象プロジェクトの Claude Code カスタマイズ一式を、Phase A〜D の4つのセッションに分けて、調査・要件確定・設計・生成・検証・配置します。構成は Phase Skill 4件・知識 Skill 5件・Subagent 7体・Rule 4件・`settings.json` です。
 
 設計の全体像は [design/architecture.md](../design/architecture.md)、セットアップと運用の手順は [guide/setup.md](../guide/setup.md) を参照してください。
 
@@ -30,6 +30,7 @@ Phase Skill が工程ごとに起動します。ユーザーが直接起動す�
 | Subagent | 使われる場面 | 書くもの |
 |---|---|---|
 | `investigator` | Phase A の工程1（existing・profile）と工程3（focused） | `work/<ts>/investigation/<mode>.md` |
+| `session-analyst` | Phase A の工程2（過去のセッション履歴の分析を要件の材料にするときだけ） | `work/<ts>/session-analysis-<名前>.md` |
 | `spec-writer` | Phase A の工程4 | `output/<ts>/spec.md` |
 | `designer` | Phase B の工程5（P3 の差し戻し、Phase C で keep に及ぶ修正をするときも） | `output/<ts>/design-map.md` |
 | `builder` | Phase C の工程6（層ごとに並列）と修正ループ | `output/<ts>/generated/` の担当層 |

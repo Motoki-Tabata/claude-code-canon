@@ -63,6 +63,7 @@ export function readRunSpecificSteps(outputDir) {
   };
   return {
     deploySteps: extractSections(read('MANIFEST.md'), /^配置時の追加手順/),
+    outsideChanges: extractSections(read('MANIFEST.md'), /^管理パス外の変更/),
     postDeploy: extractSections(read(path.join('generated', '.claude', 'README.md')), /^前提セットアップ/),
   };
 }
@@ -83,7 +84,7 @@ export function renderRunManifest(outputDir, targetDir) {
   const bullets = (items, empty) =>
     items.length === 0 ? [`  （${empty}）`] : items.map((r) => `  - ${r}`);
 
-  const { deploySteps, postDeploy } = readRunSpecificSteps(outputDir);
+  const { deploySteps, outsideChanges, postDeploy } = readRunSpecificSteps(outputDir);
   const verbatim = (sections, empty) =>
     sections.length === 0 ? [`（${empty}）`] : ['以下は生成物からの逐語転記です（言い換えずにこのとおり実行・提示する）。', '', ...sections.map(demote).flatMap((s) => [s, ''])];
 
@@ -155,6 +156,13 @@ export function renderRunManifest(outputDir, targetDir) {
     '- exit 1: uncaptured・list の集合外の行・退避先 `.bak.<ts>` の既存で拒否、退避できないファイルがあり事前検査で拒否（対象は無変更）、または post-check 失敗で自動 restore（配置前状態へ復帰）。',
     '',
     '配置に成功すると `deploy/deploy-result.json` が書かれます（存在すること＝配置済み）。',
+    '',
+    '### 3a. 管理パス外の変更（MANIFEST の「管理パス外の変更」節）',
+    '',
+    '配置の後、同じ作業ブランチで1件ずつ適用し、配置のコミットとは別のコミットにする。各項目の「確認」を実行して結果を残す。',
+    '確認が通らなければ「撤回条件」に従って戻し、「撤回したら直す生成物」に挙がった生成物も直す。',
+    '',
+    ...verbatim(outsideChanges, 'この run に管理パス外の変更は無い'),
     '',
     '### 4. 配置後の手作業（README の「前提セットアップと配置後の手作業」節）',
     '',

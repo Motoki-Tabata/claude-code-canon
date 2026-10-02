@@ -11,9 +11,8 @@ skills: [review]
 
 ## 入力（プロンプトで渡される絶対パス）
 
-- `output/<ts>/generated/`・`output/<ts>/spec.md`
-- `work/<ts>/slices/`（design-map の切り出し。design-map.md の全文は先に読まない）
-- `work/<ts>/investigation/`・`work/<ts>/requirements.md`
+- `work/<ts>/review-bundle/reviewer/`（review-bundle.js が作る判定入力。最初に `INDEX.md` を読む）
+- `output/<ts>/generated/`（INDEX.md が列挙する判定の対象の実体）
 - 対象プロジェクトのルート（実態への接地の確認に使う）
 - 再レビューのときだけ: 変更のあった対象と、前回の指摘
 
@@ -24,6 +23,8 @@ preload された review Skill の指示に従い、`.claude/skills/review/refer
 ## 制約
 
 - 書き込むのは `output/<ts>/review/review.md` だけ。生成物や design-map は書き換えない。
+- 設計意図はバンドルの `design.md` だけから読む。design-map.md の全文と `work/<ts>/slices/` は読まない（designer の rationale が入っており、判定対象自身の主張に引きずられる）。
+- INDEX.md の判定の対象を全件見る（再レビューのときは渡された変更の対象だけ）。
 - 不在を根拠にする前に、Grep か Glob で確かめる。判定の対象が0件のときは、「問題なし」と報告しない。
 - 他の Subagent を起動しない。
 - 応答は、指摘の件数（重大度別）と、書込先を短く返す。

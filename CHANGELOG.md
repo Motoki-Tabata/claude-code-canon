@@ -9,6 +9,24 @@
 
 ## [Unreleased]
 
+### Added
+
+- **reviewer 用の review-bundle**: `npm run review-bundle -- <ts>` が `work/<ts>/review-bundle/reviewer/` に、判定の対象の全件
+  （`INDEX.md`）・rationale を除いた設計意図（`design.md`）・受入基準（`acceptance.md`）を書きます。reviewer は
+  design-map の全文と slices を読まなくなりました。keep-reviewer 用は従来どおり refactor モードのときだけ作ります。
+- **Subagent `session-analyst`**: ヒアリングで過去のセッション履歴を要件の材料にするとき、分析と保存
+  （`work/<ts>/session-analysis-<名前>.md`）を本人が行います。メインが分析の応答を逐語で書き写す手順をやめました。
+- **公式仕様の確認（Phase A 工程3）**: 要件の成否が Claude Code の仕様に依存するとき、`claude-code-guide` で確かめて
+  `work/<ts>/investigation/official-check.md` に残し、spec-writer の入力に加えます。
+- **管理パス外の変更**: design-map の `## 管理パス外の変更` に、管理パス集合の外のファイルの変更を1件ずつ
+  （要件・変更内容・根拠・確認・撤回条件・撤回したら直す生成物）書きます。emit-manifest が欄の欠けと集合内のパスを止め、
+  MANIFEST と RUN.md（「3a」）に写し、Phase D で1件ずつ適用と確認を handoff に記録します。requirements.md の要件に
+  `outside_managed:` で変えてよい範囲を書けます。
+- **管理パス外の変更の事前試行（Phase B）**: 対象の振る舞いを変える変更は、designer が `根拠: 試行待ち` と書き、
+  オーケストレーターが P3 の前に対象の一時 worktree で適用・確認して結果に書き換えます。試行待ちが残ると emit-manifest が止まります。
+- **撤回時に直す生成物**: 管理パス外の変更の成果物を前提に書く生成物を、その項目の「撤回したら直す生成物」に挙げます。
+  builder は自分のファイルが挙がっているかを確かめ、漏れていれば報告します。
+
 ### Changed
 
 - **生成物の README の「使用例」**: spec の受入基準 A1 の転記をやめ、利用者が起動する Skill の起動行

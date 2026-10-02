@@ -28,8 +28,8 @@
 ## ユーザーが過去のセッション履歴（transcript）の分析を要件の材料に指定したとき
 
 1. 先に `npm run tokens -- <session-id>` で区分別の消費を出し、分析で読む範囲を絞る。
-2. 分析は Explore（または general-purpose）に委ね、`model: "sonnet"` を明示する（定義ファイルを持たないので、明示しないと親のモデルを継承して高くつく）。読み取り専用で、ファイルを書かないことを指示する。
-3. 分析結果は、応答本文を**逐語で** `work/<ts>/session-analysis-<名前>.md` に保存する（要約・整形しない）。
+2. 分析は `session-analyst` に委ねる（transcript 1件につき1体。複数なら1つのメッセージで並列に起動する）。渡すもの: transcript の jsonl の絶対パス・tokens の集計結果・分析の観点・書込先 `work/<ts>/session-analysis-<名前>.md` の絶対パス。Explore や general-purpose に任せて応答をメインが書き写す方式は採らない（転記だけにメインの出力トークンを使う）。
+3. session-analyst が自分で書込先に保存する。メインは書込先の実在と、応答の要旨（観点ごとの1行）だけを確かめ、本文は必要な箇所だけを読む。
 
 ## 合意したら
 

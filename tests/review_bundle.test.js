@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
 import os from 'node:os';
-import { buildKeepReviewBundles, collectKeepReviewCases, caseIdFor } from '../.claude/skills/canon-c/scripts/review-bundle.js';
+import { buildKeepReviewBundles, buildReviewerBundle, collectKeepReviewCases, caseIdFor } from '../.claude/skills/canon-c/scripts/review-bundle.js';
 import { keepReviewCaseDir, scratchDir } from './helpers/fixtures.js';
 import { tsFor } from './helpers/ts.js';
 
@@ -187,4 +187,113 @@ test('caseId の衝突（foo-bar.md と foo_bar.md）は決定論的な連番で
   assert.equal(new Set(ids).size, 3, `caseId が衝突している: ${ids}`);
   assert.deepEqual(ids, collectKeepReviewCases(text(paths)).map((c) => c.caseId), '同じ入力で同じ ID（決定論）');
   assert.equal(ids[0], caseIdFor(paths[0]), '衝突しないケースの ID は変わらない');
+});
+
+// ---- reviewer 用バンドル（artifacts.md §9.1）----
+
+const DM_REVIEWER = [
+  '# dm',
+  '## メタ',
+  'layers: 2層',
+  'rationale: 層数の自己弁護',
+  '## Used Features',
+  'L1 L3',
+  '## 既存判定',
+  '```yaml',
+  'existing_disposition:',
+  '  - path: .claude/rules/keep.md',
+  '    disposition: keep',
+  '    keep_conditions:',
+  '      K1_canon_clean: true',
+  '      K2_no_requirement_conflict: true',
+  '      K3_dependency_healthy: true',
+  '      K4_strength_consistent: true',
+  '      K5_project_refs_resolved: true',
+  '    rationale: "keep の自己弁護"',
+  '  - path: .claude/agents/a/a.md',
+  '    disposition: modify',
+  '    interface_change: none',
+  '    rationale: "modify の自己弁護"',
+  '  - path: .claude/rules/old.md',
+  '    disposition: merge',
+  '    superseded_by: .claude/rules/keep.md',
+  '    manifest_note: "統合の正当化"',
+  '```',
+  '## L1（CLAUDE.md・Rules）',
+  '### `CLAUDE.md`（新規）',
+  '常に読む規約を書く',
+  '  rationale: 層の節に紛れた自己弁護',
+  '## L3',
+  '### `a`（modify）',
+  'tools は最小にする',
+  '',
+].join('\n');
+
+function reviewerRun(t, { designMap = DM_REVIEWER, generated } = {}) {
+  const tmp = mkdtempSync(path.join(os.tmpdir(), 'bundle-reviewer-'));
+  t.after(() => rmSync(tmp, { recursive: true, force: true }));
+  writeFileSync(path.join(tmp, 'design-map.md'), designMap);
+  writeFileSync(path.join(tmp, 'spec.md'), '# spec\n## §8 受入基準\n- functional（A1）: `/x` で動く\n## §9 未決事項\nなし\n');
+  for (const [rel, body] of Object.entries(
+    generated ?? {
+      'CLAUDE.md': '# c\n',
+      '.claude/rules/keep.md': 'keep\n',
+      '.claude/agents/a/a.md': '---\nname: a\ndescription: d\ntools: Read, Bash\nmodel: sonnet\n---\n本文\n',
+    }
+  )) {
+    mkdirSync(path.dirname(path.join(tmp, 'generated', rel)), { recursive: true });
+    writeFileSync(path.join(tmp, 'generated', rel), body);
+  }
+  return tmp;
+}
+
+const buildR = (tmp, write = false) =>
+  buildReviewerBundle({ ts: TS, write, roots: { outputDir: tmp, workDir: tmp, targetRoot: path.join(tmp, 'target') } });
+
+test('reviewer: 宣言を除く規約: rationale・keep_conditions・manifest_note がバンドルに現れない', (t) => {
+  const { texts } = buildR(reviewerRun(t));
+  for (const [name, text] of Object.entries(texts)) {
+    assert.ok(!/自己弁護|統合の正当化/.test(text), `${name}: designer の正当化が漏れている`);
+    assert.ok(!/K2_no_requirement_conflict|K2:\s*true|keep_conditions:/.test(text), `${name}: keep_conditions が漏れている`);
+  }
+  // 設計意図と処遇は渡っている
+  assert.match(texts['design.md'], /常に読む規約を書く/);
+  assert.match(texts['design.md'], /tools は最小にする/);
+  assert.match(texts['design.md'], /`\.claude\/agents\/a\/a\.md` — modify（interface_change: none）/);
+  assert.match(texts['design.md'], /`\.claude\/rules\/old\.md` — merge（統合先・後継: `\.claude\/rules\/keep\.md`）/);
+  assert.match(texts['acceptance.md'], /functional（A1）: `\/x` で動く/);
+  assert.doesNotMatch(texts['acceptance.md'], /未決事項/);
+});
+
+test('reviewer: INDEX は generated/ の全ファイルを処遇と security の frontmatter 付きで列挙する', (t) => {
+  const { texts, files } = buildR(reviewerRun(t));
+  assert.deepEqual(files, ['.claude/agents/a/a.md', '.claude/rules/keep.md', 'CLAUDE.md']);
+  const index = texts['INDEX.md'];
+  assert.match(index, /全ファイル・3 件/);
+  assert.match(index, /- `\.claude\/agents\/a\/a\.md` — 処遇: modify・tools: Read, Bash・model: sonnet/);
+  assert.match(index, /- `\.claude\/rules\/keep\.md` — 処遇: keep（統合先: `\.claude\/rules\/old\.md` を吸収）/);
+  assert.match(index, /- `CLAUDE\.md` — 処遇: 新規/);
+  assert.match(index, /spec: .*spec\.md/);
+});
+
+test('reviewer: new モード（既存判定の節が無い）でも作れる', (t) => {
+  const dm = '# dm\n## Used Features\nL1\n## L1\n### `CLAUDE.md`\n書く\n';
+  const { texts } = buildR(reviewerRun(t, { designMap: dm, generated: { 'CLAUDE.md': '# c\n' } }));
+  assert.match(texts['design.md'], /## 既存判定（処遇だけ）\n\nなし/);
+});
+
+test('reviewer: generated/ が空なら throw（対象0件を「問題なし」と読まない）', (t) => {
+  const tmp = reviewerRun(t, { generated: {} });
+  assert.throws(() => buildR(tmp), /generated\/ にファイルが無い/);
+});
+
+test('reviewer: 決定論で、書き出し前に前回のバンドルを消す', (t) => {
+  const tmp = reviewerRun(t);
+  const stale = path.join(tmp, 'review-bundle', 'reviewer', 'stale.md');
+  mkdirSync(path.dirname(stale), { recursive: true });
+  writeFileSync(stale, '前回');
+  const a = buildR(tmp, true);
+  const b = buildR(tmp, true);
+  assert.deepEqual(a.texts, b.texts);
+  assert.deepEqual(readdirSync(path.join(tmp, 'review-bundle', 'reviewer')).sort(), ['INDEX.md', 'acceptance.md', 'design.md']);
 });

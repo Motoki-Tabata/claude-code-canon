@@ -23,8 +23,10 @@ work/<ts>/
 ├─ investigation/
 │   ├─ existing.md                 工程1: 既存カスタマイズの棚卸し（§2.1）
 │   ├─ profile.md                  工程1: プロジェクトの実態（浅く広く・§2.2）
-│   └─ focused.md                  工程3: 要件に関係する箇所の深掘り（§2.3）
+│   ├─ focused.md                  工程3: 要件に関係する箇所の深掘り（§2.3）
+│   └─ official-check.md           工程3: Claude Code の公式仕様の確認（仕様に依存する要件があるときだけ・§2.5）
 ├─ requirements.md                 工程2: 合意した要件（§3）
+├─ session-analysis-<名前>.md      工程2: 過去のセッション履歴の分析（指定があるときだけ・session-analyst が書く）
 ├─ slices/                         Phase C: design-map のワーカー別スライス（§5.4）
 └─ review-bundle/                  Phase C: レビューの判定入力（§9）
 
@@ -125,6 +127,19 @@ ref_resolution:                 # existing.md の project_refs を実リポジ�
 2. **`deprecated_notation`** の「無し」は `[]`（または空・未定義）だけで表す。「なし」などの自然文は clean と見なされない。`tool_names_valid` は `tools:` を宣言していないレコードでも `true` と書く（検査対象が無いので適合）。
 3. **existing.md の `project_refs[].value` と focused.md の `ref_resolution[].ref` は文字列の完全一致で突き合わせる**。まとめ書き（`"design.md §8, §8.1"`）や圧縮表記（`"a.js, b.js"`）はせず、1参照につき1エントリを両方で同じ文字列で書く。
 4. **`kind: settings`（frontmatter を持たない JSON）** のレコードは `unknown_frontmatter_keys: []` に固定する。JSON のトップレベルキーを未知の frontmatter キーとして報告しない。
+
+### 2.5 official-check.md（公式仕様の確認）
+
+確定要件の成否が Claude Code 自体の仕様に依存するとき、工程3でオーケストレーターが `claude-code-guide` に確かめさせ、その結果を書く。investigator は対象の配下しか読まず WebFetch を持たないので、ここを受け持たない。機械は読まないので書式は散文でよいが、次を必ず含める。
+
+```markdown
+# 公式仕様の確認
+## <要件 ID> <論点>
+- 問い: <claude-code-guide に渡した問い>
+- 答え: <要旨。確かめられなかった点は「確かめられなかった」と書く>
+- 出典: <公式ドキュメントの URL>
+- 観測との照合: <対象の transcript や focused.md と食い違うときだけ。食い違えば観測を優先し、その旨を書く>
+```
 
 ---
 
@@ -261,7 +276,10 @@ existing_disposition:
 <spec §8 の [mandatory] を付けた受入基準 ID ごとに、それを満たす生成物>
 
 ## 配置時の追加手順
-<配置の前後に人間が行う手作業（任意）。emit-manifest.js が MANIFEST へ写し、RUN.md が逐語で転記する>
+<配置の前後に人間が行う、ファイルを変えない手作業（任意）。emit-manifest.js が MANIFEST へ写し、RUN.md が逐語で転記する>
+
+## 管理パス外の変更
+<要件の実現に要る、管理パス集合の外のファイルの変更（任意・§5.6）>
 
 ## Experimental Dependencies
 <context: fork・Agent Teams・Channels・Monitors・Themes への依存箇所（constraints が許すときだけ。V9 が見る）>
@@ -281,10 +299,10 @@ existing_disposition:
 
 design-map は大きくなり（実測で約96KB）、全文を各ワーカーが読むと読み込みが積み上がる。Phase C の冒頭で `slice.js` が `work/<ts>/slices/` にワーカー別のスライスを書く。
 
-- **出力**: `common.md`（メタ・Used Features・レイヤー構成・Model Assignments・Interface Contracts・生成上の制約・要件→生成物の対応・Experimental Dependencies・依存フラグ）／`write-scopes.md`／`responsibilities.md`（レイヤー構成の `### Responsibility Map`。無ければ無い旨の1行）／層ごとの `l1.md`・`skills.md`・`agents.md`・`l4.md`・`l5.md`（その層の節と、その層の modify・merge レコード）／`disposition-other.md`（keep・retire・out_of_scope と、どの層にも属さない modify・merge。`plugin/**` は L5 に属し、`.claude/README.md` は層に属さず宣言一覧にも出ない）／`other-sections.md`（どこにも属さない節の受け皿）／`targets-l1.txt`〜`targets-l5.txt`・`targets-other.txt`・`targets-all.txt`（宣言された生成物。V8 と同じ宣言源）／`INDEX.md`。
+- **出力**: `common.md`（メタ・Used Features・レイヤー構成・Model Assignments・Interface Contracts・生成上の制約・要件→生成物の対応・管理パス外の変更・Experimental Dependencies・依存フラグ）／`write-scopes.md`／`responsibilities.md`（レイヤー構成の `### Responsibility Map`。無ければ無い旨の1行）／層ごとの `l1.md`・`skills.md`・`agents.md`・`l4.md`・`l5.md`（その層の節と、その層の modify・merge レコード）／`disposition-other.md`（keep・retire・out_of_scope と、どの層にも属さない modify・merge。`plugin/**` は L5 に属し、`.claude/README.md` は層に属さず宣言一覧にも出ない）／`other-sections.md`（どこにも属さない節の受け皿）／`targets-l1.txt`〜`targets-l5.txt`・`targets-other.txt`・`targets-all.txt`（宣言された生成物。V8 と同じ宣言源）／`INDEX.md`。
 - **規約**: 切り出しは節見出しと disposition レコードの単位で行い、記述を1文字も変えない。未知の節は `other-sections.md` に集め、黙って落とさない（全スライスの和が design-map の全節を覆う）。`## Used Features` が無ければ失敗する。書き出す前に出力先を空にする（古いスライスを読ませない）。差し戻しで design-map を直したら、スライスを作り直す。
 - **層の節の照合**: 見出しは完全一致を優先し、無ければ前方一致で拾う（`## L1（builder）` のような書き方を取りこぼさない）。この照合は V8 と共有する。
-- **読み手**: 各 builder は自分の層のスライスと `common.md`・`write-scopes.md`、reviewer はスライス一式を読む。design-map の全文は読ませない。builder は書く前に自分の層の `targets-l<n>.txt` の件数と書くファイルの数を突き合わせる。
+- **読み手**: 各 builder は自分の層のスライスと `common.md`・`write-scopes.md`を読む。reviewer はスライスではなく review-bundle の `design.md`（rationale を除いた抜粋・§9.1）を読む。design-map の全文は読ませない。builder は書く前に自分の層の `targets-l<n>.txt` の件数と書くファイルの数を突き合わせる。
 
 ### 5.5 モデル割当の根拠
 
@@ -295,6 +313,15 @@ design-map は大きくなり（実測で約96KB）、全文を各ワーカー�
 3. 失敗のコストが低い（後段の工程かレビューが出力を検証する）。
 
 `fable` は公式のエイリアスとして指定できるが、既定では採用しない。詳細は design Skill が持ち、designer が `## Model Assignments` に記録する。
+
+### 5.6 管理パス外の変更
+
+generated/ と配置は管理パス集合の中に限られる（§10.1）。要件の実現に集合の外のファイル（テスト設定・CI・スクリプト・非管理の文書）の変更が要るときは、`## 管理パス外の変更` に1件ずつ書き、生成物とは別の経路で運ぶ。散文の追加手順に混ぜると、差分の実体・確認・適用の結果がどこにも機械的に残らない。
+
+- **書式**: ``### <ID> `<対象パス>` <要約>`` の見出しと、`要件`・`変更内容`・`根拠`・`確認`・`撤回条件`・`撤回したら直す生成物` の6欄（`- <欄>:` の箇条書き）。emit-manifest は、欄の欠け・見出しに対象パスが無い・対象パスが管理パス集合の中にある、のどれかがあれば失敗する（集合の中なら generated/ に置くべきもの）。
+- **根拠**: 対象のテスト・ビルド・CI の振る舞いを変える変更は、designer が「試行待ち」と書き、Phase B のオーケストレーターが対象の一時 worktree に適用して実行した結果に書き換える（canon-b 工程5）。「現状どこも使っていない」のような不在だけを根拠にしない。「試行待ち」が残っていれば emit-manifest が失敗する。
+- **撤回したら直す生成物**: 生成物の本文がこの変更の成果物を前提に書かれているなら、そのパスと節を挙げる。撤回したとき、宙に浮いた生成物を直す範囲がここで決まる。
+- **運び方**: MANIFEST が同名の節を写し（§7.2）、RUN.md が「3a」として逐語で転記する（§10.4）。Phase D で配置の後に1件ずつ適用・確認し、結果（撤回したなら直した生成物）を handoff.md に記録する。
 
 ---
 
@@ -378,7 +405,7 @@ spec と design-map は作った側の記録、README は使う側の説明書�
 
 - **差分の要約**: 新規・改修・維持・廃止（retire と merge の統合元）を分けて列挙し、廃止には `manifest_note` を添える。
 - **`## 全ファイル` 節**: `generated/` の全ファイルを1行1件（`` - `<generated/ からの相対パス>` ``）で列挙する。V8 が generated/ の実ファイルと双方向に照合する。MANIFEST は人間が「何が変わるか」を判断する唯一の記録なので、存在するだけでは足りず、中身が generated/ と一致していなければならない。
-- **`## 配置時の追加手順` 節**: design-map の同名の節を写す（無ければ「なし」）。RUN.md がこれを逐語で転記する（§10.4）。
+- **`## 配置時の追加手順` 節・`## 管理パス外の変更` 節**: design-map の同名の節を写す（無ければ「なし」）。RUN.md がこれらを逐語で転記する（§10.4）。
 
 ### 7.3 README（`generated/.claude/README.md`）
 
@@ -560,8 +587,8 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 
 `review-bundle.js` は、reviewer と keep-reviewer が「何を見るか」を決定論で確定し、`work/<ts>/review-bundle/` に書く。入力の収集を LLM に任せると、入力を探し損ねて何も見つけず、問題なしと答える経路ができるためである。
 
-- **keep-reviewer 用**: keep と merge のレコード1件につき1ファイル。入力は design-map の existing_disposition・spec の新要件と統合方針・requirements.md の conflicts・strength_needed・constraints・investigation・対象の原本。
-- **reviewer 用**: 生成物の実体と接地材料（spec §8 の A1・profile.md・focused.md）。security 観点には生成物の frontmatter の `tools:` と設計意図を含める。
+- **keep-reviewer 用**（`review-bundle/keep-review/`・refactor モードのときだけ作る）: keep と merge のレコード1件につき1ファイル。入力は design-map の existing_disposition・spec の新要件と統合方針・requirements.md の conflicts・strength_needed・constraints・investigation・対象の原本。
+- **reviewer 用**（`review-bundle/reviewer/`・mode によらず常に作る）: `INDEX.md`（generated/ の全ファイルを1行1件。処遇と、security 観点で見る frontmatter の `tools`・`allowed-tools`・`model` 等を併記。接地材料 spec・requirements・profile・focused（あれば official-check）と対象ルートの絶対パス）・`design.md`（design-map の共通の節と層の節。既存判定は path・disposition・統合先・interface_change だけ）・`acceptance.md`（spec §8 の逐語）。generated/ が0件なら失敗する。reviewer は design-map の全文と slices を読まない。
 - **宣言を除く規約（最重要）**: バンドルから、**designer が立てた `keep_conditions` の boolean と rationale を機械的に除く**。除かなければ、判定者は「K2: true」という判定対象自身の主張に引きずられ、常に問題なしと答える（検査が恒真になる）。merge も「統合元 → 統合先」の対応だけを渡し、妥当性の主張は落とす。reviewer 用のバンドルからも design-map の rationale（designer の自己弁護）を除く。除けていることはテストで固定する（バンドルに `keep_conditions`・`K2:` などが現れないこと）。
 - **生成物からの逆引き**: 宣言を除くと、判定者は「keep 対象の弱点を補う記述が他の生成物にあるか」を確かめる材料を失い、実在する記述を「無い」と断定しかねない。そこで、keep 対象を名指ししている生成物の箇所を `file:line` で機械的に逆引きして同梱する。designer の主張ではなく生成物の実体なので、恒真にはならない。言及が見つからなければ「Grep で確かめてから不在と言う」旨を添える。
 - **書き出す前に出力先を空にする**: 差し戻しで keep が減った後に前回のバンドルが残ると、判定の対象外のファイルを判定してしまう。
@@ -656,7 +683,7 @@ step4 成功なら .bak を残す（ローカルで戻すため）。失敗な�
 
 - 配置スクリプトは canon の本体のまま実行し、output には複製しない。スクリプトは管理パス集合の定義（共有 lib）を import しており、複製すると定義が2か所に分かれる（§10.1）。output には手順書だけを置く。
 - RUN.md は固定のテンプレートで、変数は `<ts>`・output・対象・canon の絶対パスと、`managed-paths.list`・`retired.list` から読んだ配置集合と廃止集合の要約だけにする（自由に作文しない）。
-- MANIFEST の `## 配置時の追加手順` 節と、README の前提セットアップと配置後の手作業の節を**逐語で転記**する。
+- MANIFEST の `## 配置時の追加手順` 節（「2a」）・`## 管理パス外の変更` 節（「3a」・配置の後に1件ずつ適用する）と、README の前提セットアップと配置後の手作業の節を**逐語で転記**する。
 - 固定文で次を載せる: 「`--confirm` は sandbox の外で実行する」「対象への push は、対象リポジトリで起動したセッションで行う（SSH のリモートなら接続先の許可も要る）」。
 - 生成物に書かれたコマンドを deploy.js が自動で実行する方式は採らない。LLM が生成した任意のコマンドの実行になるためである。
 

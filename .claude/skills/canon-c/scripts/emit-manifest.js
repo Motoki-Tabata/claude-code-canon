@@ -31,6 +31,8 @@ import { parseExistingDisposition, DesignMapError, h2SectionText, GENERATED_READ
 import { MANIFEST_FILES_HEADING } from '../../../../lib/manifest.js';
 import { parseRequirementsDoc, RequirementsError } from '../../../../lib/requirements.js';
 import { isMainModule, outputDir, readTsArg, workDir } from '../../../../lib/run.js';
+import { parseOutsideChanges, OUTSIDE_CHANGES_HEADING, OUTSIDE_CHANGE_FIELDS } from '../../../../lib/design-map.js';
+import { isManaged } from '../../../../lib/managed-paths.js';
 
 export const README_REL = GENERATED_README_REL;
 export const SETUP_HEADING = '前提セットアップと配置後の手作業';
@@ -317,6 +319,28 @@ function loadRecords(designMapText) {
 }
 
 /** MANIFEST の本文。 */
+/** design-map の `## <heading>` 節の本文（見出し行を除く・無ければ空文字）。 */
+function sectionBody(designMapText, heading) {
+  const sec = h2SectionText(designMapText.split(/\r?\n/), heading);
+  return sec ? sec.split('\n').slice(1).join('\n').trim() : '';
+}
+
+/**
+ * `## 管理パス外の変更` の各項目を確かめ、問題の一覧を返す（artifacts.md §5.6）。
+ * 対象パスが無い・管理パス集合の中にある（generated/ に置くべき）・必須の欄が欠けている・根拠が「試行待ち」のまま、を問題にする。
+ */
+export function checkOutsideChanges(designMapText) {
+  const problems = [];
+  for (const it of parseOutsideChanges(designMapText)) {
+    const where = `「${OUTSIDE_CHANGES_HEADING}」の ${it.line} 行目（${it.heading}）`;
+    if (!it.path) problems.push(`${where}: 見出しに対象パスがバッククォートで書かれていない`);
+    else if (isManaged(it.path)) problems.push(`${where}: \`${it.path}\` は管理パス集合の中にある。generated/ に生成物として置く`);
+    if (it.missing.length > 0) problems.push(`${where}: 欄が無い: ${it.missing.join('・')}（必須: ${OUTSIDE_CHANGE_FIELDS.join('・')}）`);
+    if (/^\s*-\s+根拠\s*[:：]\s*試行待ち/m.test(it.body)) problems.push(`${where}: 根拠が「試行待ち」のまま（canon-b 工程5 で対象に試して書き換える）`);
+  }
+  return problems;
+}
+
 export function renderManifest({ ts, files, records, designMapText }) {
   const byDisp = (d) => records.filter((r) => r.disposition === d).map((r) => r.path);
   const kept = byDisp('keep');
@@ -371,6 +395,10 @@ export function renderManifest({ ts, files, records, designMapText }) {
     `## ${DEPLOY_STEPS_HEADING}`,
     '',
     deployBody === '' ? 'なし' : deployBody,
+    '',
+    `## ${OUTSIDE_CHANGES_HEADING}`,
+    '',
+    sectionBody(designMapText, OUTSIDE_CHANGES_HEADING) || 'なし',
   ].join('\n') + '\n';
 }
 
@@ -394,6 +422,11 @@ export function emitManifest(ts) {
       `design-map が ${README_REL} を ${readmeRecord.disposition} にしている。README は配置のたびに` +
         ' emit-manifest.js が作り直すので、既存の README は modify として扱うこと（artifacts.md §7.3）。'
     );
+  }
+
+  const outsideProblems = checkOutsideChanges(designMapText);
+  if (outsideProblems.length > 0) {
+    throw new ManifestError(`design-map の「${OUTSIDE_CHANGES_HEADING}」に不備がある:\n${outsideProblems.map((p) => `  - ${p}`).join('\n')}`);
   }
 
   // 1. README（README 自身は棚卸しの対象外）

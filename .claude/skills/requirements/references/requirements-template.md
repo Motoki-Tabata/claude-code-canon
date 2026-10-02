@@ -14,6 +14,7 @@ confirmed_by: <承認者名>
   want: <ユーザーの言葉で、達成したいこと>
   strength_needed: advisory|deterministic|enforced
   priority: must|should|could
+  outside_managed: [<管理パス集合の外で変更してよいパス。無ければこの行ごと書かない>]
 
 ## 使用可能なカスタマイズ機能
 constraints:
@@ -43,4 +44,5 @@ conflicts:
 ```
 
 - 解消済みの衝突の経緯・`constraints` に由来しない方針の相違・配置後の手作業メモは、`conflicts` に入れず `## 制約と要件の衝突` の下に散文の小節として書く。記録は残しつつ、機械の照合対象から外すためである。
+- **管理パス集合の外を改修対象にするとき**: ユーザーが「スコープ外（テスト設定・CI・scripts/ など）でも、要件の実現に要るなら変えてよい」と認めた要件にだけ `outside_managed:` を書き、変えてよいパス（ディレクトリでもよい）を列挙する。認めた範囲を広げて書かない。designer はこの範囲の中でだけ `## 管理パス外の変更` を設計し、Phase D で1件ずつ適用と確認を記録する（artifacts.md §5.6）。機械はこの行を読まない。
 - 承認状態（承認した・しない）は書かない。

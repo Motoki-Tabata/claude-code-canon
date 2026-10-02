@@ -88,8 +88,19 @@ test('RUN.md に MANIFEST「配置時の追加手順」節と README「前提セ
   assert.ok(body.includes('- 台帳の反映済み5件だけを削除する（台帳ごと消さない）。'), '配置後の手作業が逐語で入っていない');
 });
 
+test('RUN.md に MANIFEST「管理パス外の変更」節を、各項目の見出しごと逐語で転記する', (t) => {
+  const c = setupTmpCase(t, 'constrained');
+  const outside = '## 管理パス外の変更\n\n### 2-1 `frontend/vitest.config.ts`\n- 要件: R18\n- 確認: `pnpm test:unit` が PASS\n- 撤回したら直す生成物: `.claude/rules/x.md`\n';
+  writeFileSync(path.join(c.output, 'MANIFEST.md'), readFileSync(path.join(c.output, 'MANIFEST.md'), 'utf8') + '\n' + outside);
+  const body = renderRunManifest(c.output, c.target);
+  assert.match(body, /### 3a\. 管理パス外の変更/);
+  assert.match(body, /#### 管理パス外の変更\n\n##### 2-1 `frontend\/vitest\.config\.ts`/, '見出しを下げて項目ごと転記する');
+  assert.ok(body.includes('- 撤回したら直す生成物: `.claude/rules/x.md`'));
+});
+
 test('RUN.md: 追加手順・配置後の手作業の節が無ければ「無い」と明示する（黙って省かない）', (t) => {
   const c = setupTmpCase(t, 'new');
   const body = renderRunManifest(c.output, c.target);
   assert.match(body, /この run に固有の追加手順は無い/);
+  assert.match(body, /この run に管理パス外の変更は無い/);
 });

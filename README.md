@@ -59,7 +59,7 @@ npm test               # 検査・スクリプト・自己適用のテスト
 ## ディレクトリ構成
 
 - `docs/` — 正典（SSoT）。判定表の生成元
-- `.claude/` — 本体。Phase Skill `canon-a`〜`canon-d`（`scripts/` を含む）、知識 Skill 5件、Subagent 6体、
+- `.claude/` — 本体。Phase Skill `canon-a`〜`canon-d`（`scripts/` を含む）、知識 Skill 5件、Subagent 7体、
   保守用の Rule、`settings.json`（permissions だけ）。使い方は [.claude/README.md](.claude/README.md)
 - `lib/` — スクリプトが共有するパーサと管理パス集合
 - `gates/` — `docs/` から判定表を生成する `build-conformance-tables.js` と、生成された `conformance_tables/`（手で編集しない）
