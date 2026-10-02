@@ -18,6 +18,10 @@
   （`work/<ts>/session-analysis-<名前>.md`）を本人が行います。メインが分析の応答を逐語で書き写す手順をやめました。
 - **公式仕様の確認（Phase A 工程3）**: 要件の成否が Claude Code の仕様に依存するとき、`claude-code-guide` で確かめて
   `work/<ts>/investigation/official-check.md` に残し、spec-writer の入力に加えます。
+- **管理パス外の変更**: design-map の `## 管理パス外の変更` に、管理パス集合の外のファイルの変更を1件ずつ
+  （要件・変更内容・根拠・確認・撤回条件・撤回したら直す生成物）書きます。emit-manifest が欄の欠けと集合内のパスを止め、
+  MANIFEST と RUN.md（「3a」）に写し、Phase D で1件ずつ適用と確認を handoff に記録します。requirements.md の要件に
+  `outside_managed:` で変えてよい範囲を書けます。
 
 ### Changed
 

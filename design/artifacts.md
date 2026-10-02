@@ -276,7 +276,10 @@ existing_disposition:
 <spec §8 の [mandatory] を付けた受入基準 ID ごとに、それを満たす生成物>
 
 ## 配置時の追加手順
-<配置の前後に人間が行う手作業（任意）。emit-manifest.js が MANIFEST へ写し、RUN.md が逐語で転記する>
+<配置の前後に人間が行う、ファイルを変えない手作業（任意）。emit-manifest.js が MANIFEST へ写し、RUN.md が逐語で転記する>
+
+## 管理パス外の変更
+<要件の実現に要る、管理パス集合の外のファイルの変更（任意・§5.6）>
 
 ## Experimental Dependencies
 <context: fork・Agent Teams・Channels・Monitors・Themes への依存箇所（constraints が許すときだけ。V9 が見る）>
@@ -296,7 +299,7 @@ existing_disposition:
 
 design-map は大きくなり（実測で約96KB）、全文を各ワーカーが読むと読み込みが積み上がる。Phase C の冒頭で `slice.js` が `work/<ts>/slices/` にワーカー別のスライスを書く。
 
-- **出力**: `common.md`（メタ・Used Features・レイヤー構成・Model Assignments・Interface Contracts・生成上の制約・要件→生成物の対応・Experimental Dependencies・依存フラグ）／`write-scopes.md`／`responsibilities.md`（レイヤー構成の `### Responsibility Map`。無ければ無い旨の1行）／層ごとの `l1.md`・`skills.md`・`agents.md`・`l4.md`・`l5.md`（その層の節と、その層の modify・merge レコード）／`disposition-other.md`（keep・retire・out_of_scope と、どの層にも属さない modify・merge。`plugin/**` は L5 に属し、`.claude/README.md` は層に属さず宣言一覧にも出ない）／`other-sections.md`（どこにも属さない節の受け皿）／`targets-l1.txt`〜`targets-l5.txt`・`targets-other.txt`・`targets-all.txt`（宣言された生成物。V8 と同じ宣言源）／`INDEX.md`。
+- **出力**: `common.md`（メタ・Used Features・レイヤー構成・Model Assignments・Interface Contracts・生成上の制約・要件→生成物の対応・管理パス外の変更・Experimental Dependencies・依存フラグ）／`write-scopes.md`／`responsibilities.md`（レイヤー構成の `### Responsibility Map`。無ければ無い旨の1行）／層ごとの `l1.md`・`skills.md`・`agents.md`・`l4.md`・`l5.md`（その層の節と、その層の modify・merge レコード）／`disposition-other.md`（keep・retire・out_of_scope と、どの層にも属さない modify・merge。`plugin/**` は L5 に属し、`.claude/README.md` は層に属さず宣言一覧にも出ない）／`other-sections.md`（どこにも属さない節の受け皿）／`targets-l1.txt`〜`targets-l5.txt`・`targets-other.txt`・`targets-all.txt`（宣言された生成物。V8 と同じ宣言源）／`INDEX.md`。
 - **規約**: 切り出しは節見出しと disposition レコードの単位で行い、記述を1文字も変えない。未知の節は `other-sections.md` に集め、黙って落とさない（全スライスの和が design-map の全節を覆う）。`## Used Features` が無ければ失敗する。書き出す前に出力先を空にする（古いスライスを読ませない）。差し戻しで design-map を直したら、スライスを作り直す。
 - **層の節の照合**: 見出しは完全一致を優先し、無ければ前方一致で拾う（`## L1（builder）` のような書き方を取りこぼさない）。この照合は V8 と共有する。
 - **読み手**: 各 builder は自分の層のスライスと `common.md`・`write-scopes.md`を読む。reviewer はスライスではなく review-bundle の `design.md`（rationale を除いた抜粋・§9.1）を読む。design-map の全文は読ませない。builder は書く前に自分の層の `targets-l<n>.txt` の件数と書くファイルの数を突き合わせる。
@@ -310,6 +313,15 @@ design-map は大きくなり（実測で約96KB）、全文を各ワーカー�
 3. 失敗のコストが低い（後段の工程かレビューが出力を検証する）。
 
 `fable` は公式のエイリアスとして指定できるが、既定では採用しない。詳細は design Skill が持ち、designer が `## Model Assignments` に記録する。
+
+### 5.6 管理パス外の変更
+
+generated/ と配置は管理パス集合の中に限られる（§10.1）。要件の実現に集合の外のファイル（テスト設定・CI・スクリプト・非管理の文書）の変更が要るときは、`## 管理パス外の変更` に1件ずつ書き、生成物とは別の経路で運ぶ。散文の追加手順に混ぜると、差分の実体・確認・適用の結果がどこにも機械的に残らない。
+
+- **書式**: ``### <ID> `<対象パス>` <要約>`` の見出しと、`要件`・`変更内容`・`根拠`・`確認`・`撤回条件`・`撤回したら直す生成物` の6欄（`- <欄>:` の箇条書き）。emit-manifest は、欄の欠け・見出しに対象パスが無い・対象パスが管理パス集合の中にある、のどれかがあれば失敗する（集合の中なら generated/ に置くべきもの）。
+- **根拠**: 対象のテスト・ビルド・CI の振る舞いを変える変更は、Phase B で対象の一時 worktree に適用して実行した結果を根拠にする（canon-b 工程5）。「現状どこも使っていない」のような不在だけを根拠にしない。
+- **撤回したら直す生成物**: 生成物の本文がこの変更の成果物を前提に書かれているなら、そのパスと節を挙げる。撤回したとき、宙に浮いた生成物を直す範囲がここで決まる。
+- **運び方**: MANIFEST が同名の節を写し（§7.2）、RUN.md が「3a」として逐語で転記する（§10.4）。Phase D で配置の後に1件ずつ適用・確認し、結果（撤回したなら直した生成物）を handoff.md に記録する。
 
 ---
 
@@ -393,7 +405,7 @@ spec と design-map は作った側の記録、README は使う側の説明書�
 
 - **差分の要約**: 新規・改修・維持・廃止（retire と merge の統合元）を分けて列挙し、廃止には `manifest_note` を添える。
 - **`## 全ファイル` 節**: `generated/` の全ファイルを1行1件（`` - `<generated/ からの相対パス>` ``）で列挙する。V8 が generated/ の実ファイルと双方向に照合する。MANIFEST は人間が「何が変わるか」を判断する唯一の記録なので、存在するだけでは足りず、中身が generated/ と一致していなければならない。
-- **`## 配置時の追加手順` 節**: design-map の同名の節を写す（無ければ「なし」）。RUN.md がこれを逐語で転記する（§10.4）。
+- **`## 配置時の追加手順` 節・`## 管理パス外の変更` 節**: design-map の同名の節を写す（無ければ「なし」）。RUN.md がこれらを逐語で転記する（§10.4）。
 
 ### 7.3 README（`generated/.claude/README.md`）
 
@@ -671,7 +683,7 @@ step4 成功なら .bak を残す（ローカルで戻すため）。失敗な�
 
 - 配置スクリプトは canon の本体のまま実行し、output には複製しない。スクリプトは管理パス集合の定義（共有 lib）を import しており、複製すると定義が2か所に分かれる（§10.1）。output には手順書だけを置く。
 - RUN.md は固定のテンプレートで、変数は `<ts>`・output・対象・canon の絶対パスと、`managed-paths.list`・`retired.list` から読んだ配置集合と廃止集合の要約だけにする（自由に作文しない）。
-- MANIFEST の `## 配置時の追加手順` 節と、README の前提セットアップと配置後の手作業の節を**逐語で転記**する。
+- MANIFEST の `## 配置時の追加手順` 節（「2a」）・`## 管理パス外の変更` 節（「3a」・配置の後に1件ずつ適用する）と、README の前提セットアップと配置後の手作業の節を**逐語で転記**する。
 - 固定文で次を載せる: 「`--confirm` は sandbox の外で実行する」「対象への push は、対象リポジトリで起動したセッションで行う（SSH のリモートなら接続先の許可も要る）」。
 - 生成物に書かれたコマンドを deploy.js が自動で実行する方式は採らない。LLM が生成した任意のコマンドの実行になるためである。
 

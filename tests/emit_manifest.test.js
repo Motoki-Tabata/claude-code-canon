@@ -16,7 +16,7 @@ import { runScript } from './helpers/run-cli.js';
 import { genDir, outputDir, workDir } from './helpers/paths.js';
 import { tsSeq } from './helpers/ts.js';
 import { collectListingEntries, analyzeReadmeMentions } from './helpers/readme-listing.js';
-import { emitManifest } from '../.claude/skills/canon-c/scripts/emit-manifest.js';
+import { emitManifest, checkOutsideChanges } from '../.claude/skills/canon-c/scripts/emit-manifest.js';
 import { parseManifestFiles } from '../lib/manifest.js';
 import { readList } from '../lib/managed-paths.js';
 
@@ -81,6 +81,38 @@ test('emit-manifest: design-map の「配置時の追加手順」節を MANIFEST
   writeFileSync(dm, `${read(dm)}\n## 配置時の追加手順\n\n${steps}\n`);
   emitManifest(c.ts);
   assert.ok(read(path.join(c.out, 'MANIFEST.md')).includes(`## 配置時の追加手順\n\n${steps}\n`));
+});
+
+const OUTSIDE_ITEM = [
+  '### 2-1 `frontend/vitest.config.ts` に setupFiles を足す',
+  '- 要件: R18',
+  '- 変更内容: `setupFiles` を足す',
+  '- 根拠: 対象の一時 worktree で `pnpm test:unit` が PASS',
+  '- 確認: `pnpm test:unit` が PASS',
+  '- 撤回条件: テストが落ちたら外す',
+  '- 撤回したら直す生成物: `.claude/rules/frontend.md`「後始末」節',
+].join('\n');
+
+test('emit-manifest: 「管理パス外の変更」を MANIFEST へ逐語で写す（無ければ「なし」）', (t) => {
+  const c = setupSampleRepo(t, 'existing', nextTs());
+  stripEmitted(c);
+  emitManifest(c.ts);
+  assert.match(read(path.join(c.out, 'MANIFEST.md')), /## 管理パス外の変更\n\nなし\n/);
+  const dm = path.join(c.out, 'design-map.md');
+  writeFileSync(dm, `${read(dm)}\n## 管理パス外の変更\n\n${OUTSIDE_ITEM}\n`);
+  emitManifest(c.ts);
+  assert.ok(read(path.join(c.out, 'MANIFEST.md')).includes(`## 管理パス外の変更\n\n${OUTSIDE_ITEM}\n`));
+});
+
+test('emit-manifest: 「管理パス外の変更」の欄の欠け・管理パス内の対象・パス無しの見出しは失敗する', () => {
+  const dm = (body) => `# dm\n## Used Features\nL1\n## 管理パス外の変更\n\n${body}\n`;
+  assert.deepEqual(checkOutsideChanges(dm(OUTSIDE_ITEM)), []);
+  assert.deepEqual(checkOutsideChanges(dm('なし')), []);
+  const missing = checkOutsideChanges(dm(OUTSIDE_ITEM.replace(/^- 撤回したら直す生成物:.*$/m, '')));
+  assert.equal(missing.length, 1);
+  assert.match(missing[0], /欄が無い: 撤回したら直す生成物/);
+  assert.match(checkOutsideChanges(dm(OUTSIDE_ITEM.replace('frontend/vitest.config.ts', '.claude/rules/x.md')))[0], /管理パス集合の中/);
+  assert.match(checkOutsideChanges(dm(OUTSIDE_ITEM.replace('`frontend/vitest.config.ts`', 'vitest')))[0], /対象パスがバッククォート/);
 });
 
 test('emit-manifest: 2回走らせても同じ出力になる（決定論）', (t) => {

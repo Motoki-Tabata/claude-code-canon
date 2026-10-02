@@ -20,11 +20,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 
 ---
 
-## 2026-10-01 管理パスの外の改修を要件にしたとき、それを運ぶ正規の経路が無い（run 20261001_184754・Phase A）
-- 種別: 欠陥修正
-- 何が起きたか: ユーザーが「スコープ外（vitest.config.ts・ci.yml・scripts/）でも、要件の実現に要るなら今回は改修してよい」と指示した（R18）。しかし generated/ は管理パス集合の中に限られ（spec A4-1）、管理パスの外の変更は「配置時の追加手順（散文）」に書くしかない。差分の実体・検証・適用の記録が、どこにも機械的に残らない。
-- 提案: design-map と RUN.md に「管理パス外の変更」の節（対象のパス・変更内容・適用後の確かめ方）を設け、canon-d の配置の後で、適用と確認をチェックリストとして扱う。requirements-template.md にも、管理パスの外を改修対象にするときの書き方を足す。
-
 ## 2026-10-02 R18 の追加手順 2-2（setup.ts の enableAutoUnmount）が実際には 175 件のテストを壊した（run 20261001_184754・Phase B→D）
 - 種別: 規律昇華
 - 何が起きたか: design-map の 2-2 は「現状どの spec も enableAutoUnmount を呼んでいない」ことだけを根拠に、`setupFiles` で `enableAutoUnmount(afterEach)` を足す設計だった。配置後に適用して `pnpm test:unit` を実行すると、Dialog 系 spec が `document.body.innerHTML = ''` の後に自動 unmount して `Cannot read properties of null (reading 'nextSibling')` で 175 件失敗した（setupFiles を外すと元に戻る）。2-2 の確認欄に書いてあった撤回手順どおり、setup.ts と setupFiles を外し、規約の明示だけで運用することにした。
