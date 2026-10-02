@@ -42,11 +42,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: ユーザーが「スコープ外（vitest.config.ts・ci.yml・scripts/）でも、要件の実現に要るなら今回は改修してよい」と指示した（R18）。しかし generated/ は管理パス集合の中に限られ（spec A4-1）、管理パスの外の変更は「配置時の追加手順（散文）」に書くしかない。差分の実体・検証・適用の記録が、どこにも機械的に残らない。
 - 提案: design-map と RUN.md に「管理パス外の変更」の節（対象のパス・変更内容・適用後の確かめ方）を設け、canon-d の配置の後で、適用と確認をチェックリストとして扱う。requirements-template.md にも、管理パスの外を改修対象にするときの書き方を足す。
 
-## 2026-10-02 refactor の keep 判定で、同梱データの件数を固定したテストを見落とす（run 20261001_184754・Phase B→C）
-- 種別: 欠陥修正
-- 何が起きたか: designer が `lessons-ledger.test.mjs` を keep（K3 健全）にしたが、このテストは reflection.json の件数を13と固定していた。今回17件になるため `node --test` が落ち、工程7 で P3 に差し戻すことになった（keep→modify・P3 再承認）。K3 の「参照先が interface_change: none」では、参照先のデータが変わる場合を見ていない。
-- 提案: design スキルの K3 に、「keep のテストが、同じ run で書き換える同梱データ（reflection.json・スナップショット等）の件数・内容を固定していないか」を確かめる項目を足す。
-
 ## 2026-10-02 生成した drift-scan.mjs を対象の現物で動かさずに承認され、配置後の確認で偽陽性が出た（run 20261001_184754・Phase D）
 - 種別: 規律昇華
 - 何が起きたか: 配置後の確認（追加手順 2-6）で `node drift-scan.mjs 009` を対象で実行すると、「Commands にあるが verify.mjs に無い: pnpm:test:e2e」と「ci.yml にあるが…」の2件が出た。`buildPlan(parseVerifyArgs([]))`（`tsod-ship/scripts/drift-scan.mjs:553`）は e2e を含まない既定の計画で、e2e は `--e2e` のときだけ入るため、「不一致0件」（A1-26）を満たさない。Phase C の工程7 は `node --test` と `bash -n` までで、生成したスクリプトを対象の現物に向けて実行していない。
