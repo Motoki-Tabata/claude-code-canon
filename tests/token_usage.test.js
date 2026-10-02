@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseJsonl, aggregateRecords, countDesignMapReads, totalInput, formatMarkdown, projectSlug } from '../tools/token-usage.js';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { parseJsonl, aggregateRecords, countDesignMapReads, totalInput, formatMarkdown, projectSlug, resolveSessionPath } from '../tools/token-usage.js';
+import { CANON_ROOT } from '../lib/canon.js';
 
 const asst = (id, model, usage, content = []) => ({ type: 'assistant', message: { id, model, usage, content } });
 const u = (i, cc, cr, o) => ({ input_tokens: i, cache_creation_input_tokens: cc, cache_read_input_tokens: cr, output_tokens: o });
@@ -56,4 +60,29 @@ test('projectSlug: Claude Code のプロジェクトディレクトリ名は英�
   assert.equal(projectSlug('/home/motoki-tabata/work/claude-code-canon'), '-home-motoki-tabata-work-claude-code-canon');
   // Windows: ドライブ文字の `:`・`\`・`.`・`_` も置換する
   assert.equal(projectSlug('C:\\Users\\a.b\\work_x'), 'C--Users-a-b-work-x');
+});
+
+test('resolveSessionPath: session-id を canon 以外のプロジェクトディレクトリからも解決する', (t) => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'tokens-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const put = (dir, id) => {
+    mkdirSync(path.join(root, dir), { recursive: true });
+    writeFileSync(path.join(root, dir, `${id}.jsonl`), '');
+    return path.join(root, dir, `${id}.jsonl`);
+  };
+  // canon 側にあればそれを採る（他にあっても曖昧にしない）
+  const own = put(projectSlug(CANON_ROOT), 'a');
+  put('-home-x-target', 'a');
+  assert.equal(resolveSessionPath('a', root), own);
+  // 対象側にだけあれば横断して採る
+  const target = put('-home-x-target', 'b');
+  assert.equal(resolveSessionPath('b', root), target);
+  // 無ければ throw
+  assert.throws(() => resolveSessionPath('none', root), /transcript が無い/);
+  // canon 以外の複数にあれば、候補を挙げて throw
+  put('-home-x-target', 'c');
+  put('-home-y-other', 'c');
+  assert.throws(() => resolveSessionPath('c', root), /複数のプロジェクト[\s\S]*-home-x-target[\s\S]*-home-y-other/);
+  // .jsonl のパスはそのまま
+  assert.equal(resolveSessionPath('rel/x.jsonl', root), path.resolve('rel/x.jsonl'));
 });

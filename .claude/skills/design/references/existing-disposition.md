@@ -35,6 +35,7 @@ refactor モード（既存のカスタマイズがある）でだけ使う。ex
 
 - K1・K3・K5 は事実と照らして機械が確かめる。K2・K4 は意味の判断を要するので、あなた（designer）は「要件と衝突しないと判断した」という宣言（boolean）を立てるだけで、意味としての正しさは keep-reviewer が、designer の主張を見ずに独立して判定する。**迷うときは true にせず、modify か merge に回すか、rationale に迷いを書く**（疑いのある keep は P3・P4 で人間に示される）。
 - K3 の `interface_change: none` は、設計の時点では確かめようがない（生成物がまだ無い）。あなたが `none` を宣言するのは「対外のインタフェースを変えないと約束する」ことで、生成後に verify V7 が原本と output の署名を照合する。正直に宣言する。
+- K3 の照合は参照の向き（`customization_refs`）しか見ない。keep にするテストやスクリプトが、同じ run で `modify` する同梱データ（`reflection.json` のような件数の決まった一覧・スナップショット・fixture）の**件数や内容を固定していないか**は、あなたが原本を読んで確かめる。固定していれば、そのデータの変更で keep のテストが落ちるので、K3 を true にせず `modify` にする（verify は件数の固定を見ない）。
 
 ## interface_change
 

@@ -27,7 +27,7 @@
 
 ## ユーザーが過去のセッション履歴（transcript）の分析を要件の材料に指定したとき
 
-1. 先に `npm run tokens -- <session-id>`（対象プロジェクトの transcript は jsonl の絶対パスで渡す）で区分別の消費を出し、分析で読む範囲を絞る。
+1. 先に `npm run tokens -- <session-id>` で区分別の消費を出し、分析で読む範囲を絞る。
 2. 分析は Explore（または general-purpose）に委ね、`model: "sonnet"` を明示する（定義ファイルを持たないので、明示しないと親のモデルを継承して高くつく）。読み取り専用で、ファイルを書かないことを指示する。
 3. 分析結果は、応答本文を**逐語で** `work/<ts>/session-analysis-<名前>.md` に保存する（要約・整形しない）。
 
