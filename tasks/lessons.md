@@ -42,11 +42,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: ユーザーが「スコープ外（vitest.config.ts・ci.yml・scripts/）でも、要件の実現に要るなら今回は改修してよい」と指示した（R18）。しかし generated/ は管理パス集合の中に限られ（spec A4-1）、管理パスの外の変更は「配置時の追加手順（散文）」に書くしかない。差分の実体・検証・適用の記録が、どこにも機械的に残らない。
 - 提案: design-map と RUN.md に「管理パス外の変更」の節（対象のパス・変更内容・適用後の確かめ方）を設け、canon-d の配置の後で、適用と確認をチェックリストとして扱う。requirements-template.md にも、管理パスの外を改修対象にするときの書き方を足す。
 
-## 2026-10-02 生成した drift-scan.mjs を対象の現物で動かさずに承認され、配置後の確認で偽陽性が出た（run 20261001_184754・Phase D）
-- 種別: 規律昇華
-- 何が起きたか: 配置後の確認（追加手順 2-6）で `node drift-scan.mjs 009` を対象で実行すると、「Commands にあるが verify.mjs に無い: pnpm:test:e2e」と「ci.yml にあるが…」の2件が出た。`buildPlan(parseVerifyArgs([]))`（`tsod-ship/scripts/drift-scan.mjs:553`）は e2e を含まない既定の計画で、e2e は `--e2e` のときだけ入るため、「不一致0件」（A1-26）を満たさない。Phase C の工程7 は `node --test` と `bash -n` までで、生成したスクリプトを対象の現物に向けて実行していない。
-- 提案: canon-c の工程7（または spec の受入基準の書き方）に、「CLI・スクリプトを生成物に含める run は、配置前に generated/ のスクリプトを対象の現物に向けて1回実行し、出力を P4 の提示に含める」を足す（`.claude/rules/workflow.md` の「実際の経路で動く」と同じ規律）。drift-scan.mjs 自体は、e2e を含む計画（`--e2e` 相当）で突き合わせる直し方を次の run の design で扱う。
-
 ## 2026-10-02 R18 の追加手順 2-2（setup.ts の enableAutoUnmount）が実際には 175 件のテストを壊した（run 20261001_184754・Phase B→D）
 - 種別: 規律昇華
 - 何が起きたか: design-map の 2-2 は「現状どの spec も enableAutoUnmount を呼んでいない」ことだけを根拠に、`setupFiles` で `enableAutoUnmount(afterEach)` を足す設計だった。配置後に適用して `pnpm test:unit` を実行すると、Dialog 系 spec が `document.body.innerHTML = ''` の後に自動 unmount して `Cannot read properties of null (reading 'nextSibling')` で 175 件失敗した（setupFiles を外すと元に戻る）。2-2 の確認欄に書いてあった撤回手順どおり、setup.ts と setupFiles を外し、規約の明示だけで運用することにした。
