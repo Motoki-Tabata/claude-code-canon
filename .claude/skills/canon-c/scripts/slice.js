@@ -3,8 +3,8 @@
  * slice.js（npm run slice -- <ts>）。
  *
  * `output/<ts>/design-map.md` を、ワーカーごとに必要な節だけのスライスへ切り出して
- * `work/<ts>/slices/` に書く（lib/design-slices.js・artifacts.md §5.4）。builder と reviewer は
- * design-map の全文でなくスライスを読む。
+ * `work/<ts>/slices/` に書く（lib/design-slices.js・artifacts.md §5.4）。builder は
+ * design-map の全文でなくスライスを読む（reviewer は review-bundle の design.md を読む）。
  *
  * 実行主体は Phase C のオーケストレーター。P3（design-map の承認）の後に実行する——
  * 承認前の design-map から切ると、書き直しのたびにスライスが古くなる。差し戻しで design-map を

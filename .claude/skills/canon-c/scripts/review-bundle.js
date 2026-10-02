@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 /**
- * review-bundle.js（npm run review-bundle -- <ts>）— keep-reviewer の判定入力バンドル（artifacts.md §9.1）。決定論。
+ * review-bundle.js（npm run review-bundle -- <ts>）— reviewer と keep-reviewer の判定入力バンドル（artifacts.md §9.1）。決定論。
+ *
+ *   work/<ts>/review-bundle/reviewer/      INDEX.md（判定の対象の全件と接地材料）・design.md・acceptance.md（常に作る）
+ *   work/<ts>/review-bundle/keep-review/   keep・merge 1件につき1ファイル（refactor モードのときだけ作る）
  *
  * ## なぜ入力収集を LLM に任せないか
  *
@@ -15,6 +18,8 @@
  * 常に問題なしと答える——検査が恒真（vacuous）になる。V4 の experimental 開示検査が
  * 環境変数名 `..._EXPERIMENTAL_...` に自己一致しうるのと同型である。
  *
+ * reviewer 用も同じ理由で、design-map の rationale（designer の自己弁護）を渡さない。
+ *
  * ゆえに本モジュールは「宣言を後から削る」のではなく、**構造的に読まない**:
  * パース済みレコードから `path` / `disposition` / `superseded_by` のみを使い、
  * `keep_conditions` ・ `rationale` ・ `manifest_note`（＝designer の正当化）には触れない。
@@ -24,9 +29,10 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { findHeading, sectionSlice } from '../../../../lib/markdown.js';
-import { parseExistingDisposition } from '../../../../lib/design-map.js';
+import { parseExistingDisposition, DesignMapError, h2SectionText, LAYER_SECTIONS } from '../../../../lib/design-map.js';
+import { parseFrontmatter } from '../../../../lib/artifact.js';
 import { parseExisting } from '../../../../lib/investigation.js';
-import { workDir, outputDir, resolveTargetRoot, isMainModule, isValidTs } from '../../../../lib/run.js';
+import { workDir, outputDir, readHandoff, resolveTargetRoot, isMainModule, isValidTs } from '../../../../lib/run.js';
 
 export class BundleError extends Error {
   constructor(message) {
@@ -314,6 +320,176 @@ export function buildKeepReviewBundles({ ts, write = true, roots = {} }) {
 }
 
 // ---------------------------------------------------------------------------
+// reviewer 用バンドル
+// ---------------------------------------------------------------------------
+
+/**
+ * reviewer に渡す design-map の節（設計意図）。層の節（`## L1`〜`## L5`）はこの後に足す。
+ * `## メタ`（層数の rationale）と `## 既存判定`（keep_conditions・rationale・manifest_note）は入れない。
+ */
+export const REVIEWER_DESIGN_SECTIONS = [
+  'Used Features',
+  'レイヤー構成',
+  'Write Scopes',
+  'Model Assignments',
+  'Interface Contracts',
+  '生成上の制約',
+  '要件→生成物の対応',
+  '配置時の追加手順',
+  '管理パス外の変更',
+  'Experimental Dependencies',
+  '依存フラグ',
+];
+
+/** frontmatter のうち、security 観点で見るキー。 */
+const SECURITY_KEYS = ['tools', 'allowed-tools', 'disallowedTools', 'model', 'permissionMode'];
+
+/** 節の本文から `rationale:` の行を落とす（designer の自己弁護を構造的に渡さない）。 */
+export function stripRationale(text) {
+  return text
+    .split(/\r?\n/)
+    .filter((l) => !/^\s*(?:-\s+)?rationale\s*:/.test(l))
+    .join('\n');
+}
+
+/** design-map から reviewer 用の design.md を組む。既存判定は path・disposition・統合先・interface_change だけにする。 */
+export function renderReviewerDesign(designMapText, records) {
+  const lines = designMapText.split(/\r?\n/);
+  const out = ['# reviewer 判定入力: 設計意図（design-map の抜粋）', ''];
+  out.push('> design-map の `rationale`・`keep_conditions`・`manifest_note` は意図的に伏せてある。設計者の正当化は判定材料にならない。');
+  out.push('');
+  for (const name of [...REVIEWER_DESIGN_SECTIONS, ...LAYER_SECTIONS.map((l) => l.heading)]) {
+    const body = h2SectionText(lines, name);
+    if (body) out.push(stripRationale(body), '');
+  }
+  out.push('## 既存判定（処遇だけ）', '');
+  if (records.length === 0) out.push('なし（new モード、または既存判定の節が無い）');
+  for (const r of records) {
+    const extra = [
+      r.superseded_by ? `統合先・後継: \`${r.superseded_by}\`` : null,
+      r.interface_change ? `interface_change: ${r.interface_change}` : null,
+    ].filter(Boolean);
+    out.push(`- \`${r.path}\` — ${r.disposition}${extra.length > 0 ? `（${extra.join('・')}）` : ''}`);
+  }
+  return out.join('\n').replace(/\s+$/, '') + '\n';
+}
+
+/** 生成物1件の INDEX 行（処遇と、security 観点で見る frontmatter）。 */
+function indexLine(rel, genRoot, dispositionOf) {
+  const parts = [`処遇: ${dispositionOf(rel)}`];
+  if (rel.endsWith('.md')) {
+    const { frontmatter } = parseFrontmatter(readFileSync(path.join(genRoot, rel), 'utf8'));
+    for (const k of SECURITY_KEYS) if (frontmatter[k]?.raw) parts.push(`${k}: ${frontmatter[k].raw}`);
+  }
+  return `- \`${rel}\` — ${parts.join('・')}`;
+}
+
+/**
+ * <ts> の run から reviewer 用バンドルを生成して work/<ts>/review-bundle/reviewer/ へ書く。
+ * @param {{ts: string, write?: boolean, roots?: object}} opts
+ * @returns {{files: string[], texts: Record<string,string>, written: string[], outDir: string}}
+ */
+export function buildReviewerBundle({ ts, write = true, roots = {} }) {
+  const oDir = roots.outputDir ?? outputDir(ts);
+  const wDir = roots.workDir ?? workDir(ts);
+  const targetRoot = roots.targetRoot ?? resolveTargetRoot(ts);
+  const genRoot = roots.generatedRoot ?? path.join(oDir, 'generated');
+
+  const designMapPath = path.join(oDir, 'design-map.md');
+  if (!existsSync(designMapPath)) {
+    throw new BundleError(`design-map.md が無い（${designMapPath}）。reviewer に設計意図を渡せない。`);
+  }
+  const files = collectGeneratedArtifacts(genRoot);
+  if (files.length === 0) {
+    throw new BundleError(`generated/ にファイルが無い（${genRoot}）。判定の対象0件を「問題なし」と読まない。`);
+  }
+
+  const designMapText = readFileSync(designMapPath, 'utf8');
+  let records = [];
+  try {
+    records = parseExistingDisposition(designMapText);
+  } catch (e) {
+    if (!(e instanceof DesignMapError)) throw e; // new モードで既存判定の節が無い
+  }
+  const byPath = new Map(records.map((r) => [r.path, r.disposition]));
+  const mergedInto = new Map();
+  for (const r of records) {
+    if (r.disposition === 'merge' && r.superseded_by) {
+      mergedInto.set(r.superseded_by, [...(mergedInto.get(r.superseded_by) ?? []), r.path]);
+    }
+  }
+  const dispositionOf = (rel) => {
+    if (rel === '.claude/README.md') return 'emit-manifest が生成（README）';
+    const d = byPath.get(rel) ?? '新規';
+    const m = mergedInto.get(rel);
+    return m ? `${d}（統合先: ${m.map((x) => `\`${x}\``).join('・')} を吸収）` : d;
+  };
+
+  const specText = readIfExists(path.join(oDir, 'spec.md'));
+  const grounding = [
+    ['spec', path.join(oDir, 'spec.md')],
+    ['requirements', path.join(wDir, 'requirements.md')],
+    ['profile', path.join(wDir, 'investigation', 'profile.md')],
+    ['focused', path.join(wDir, 'investigation', 'focused.md')],
+    ['official-check', path.join(wDir, 'investigation', 'official-check.md')],
+  ].filter(([, p]) => existsSync(p));
+
+  const index = [
+    '# reviewer 判定入力バンドル',
+    '',
+    '```yaml',
+    'axis: review',
+    `ts: ${ts}`,
+    `generated_root: ${genRoot}`,
+    `target_root: ${targetRoot ?? '(handoff.md から解決できなかった)'}`,
+    `file_count: ${files.length}`,
+    '```',
+    '',
+    '> design-map の全文と `work/<ts>/slices/` は読まない。設計意図は同梱の design.md だけを使う（designer の rationale を伏せてある）。',
+    '',
+    `## 判定の対象（generated/ の全ファイル・${files.length} 件）`,
+    '',
+    '再レビューでは、プロンプトで渡された変更の対象だけを見る。',
+    '',
+    ...files.map((rel) => indexLine(rel, genRoot, dispositionOf)),
+    '',
+    '## 同梱したもの',
+    '',
+    '- `design.md`: 設計意図（design-map の抜粋・既存判定は処遇だけ）',
+    '- `acceptance.md`: spec §8 受入基準の逐語',
+    '',
+    '## 接地材料（読む）',
+    '',
+    ...grounding.map(([k, p]) => `- ${k}: ${p}`),
+    `- 対象プロジェクトのルート: ${targetRoot ?? '(不明)'}`,
+    '',
+    '## 出力',
+    '',
+    '判定は `output/<ts>/review/review.md` に書く（output-contract.md の書式）。判定した対象を必ず列挙する（空の判定を「問題なし」と読ませないため）。',
+  ].join('\n') + '\n';
+
+  const acceptanceBody = specText ? section(specText, '§8 受入基準') ?? section(specText, '受入基準') : null;
+  const texts = {
+    'INDEX.md': index,
+    'design.md': renderReviewerDesign(designMapText, records),
+    'acceptance.md': `# reviewer 判定入力: spec §8 受入基準（逐語）\n\n${acceptanceBody ?? '(spec.md に受入基準の節が無い)'}\n`,
+  };
+
+  const outDir = path.join(wDir, 'review-bundle', 'reviewer');
+  const written = [];
+  if (write) {
+    rmSync(outDir, { recursive: true, force: true });
+    mkdirSync(outDir, { recursive: true });
+    for (const [name, text] of Object.entries(texts)) {
+      const p = path.join(outDir, name);
+      writeFileSync(p, text, 'utf8');
+      written.push(p);
+    }
+  }
+  return { files, texts, written, outDir };
+}
+
+// ---------------------------------------------------------------------------
 // CLI: npm run review-bundle -- <ts>
 // ---------------------------------------------------------------------------
 
@@ -325,6 +501,14 @@ export function main(argv = process.argv.slice(2)) {
     return;
   }
 
+  const reviewer = buildReviewerBundle({ ts });
+  process.stdout.write(`[review-bundle] ts=${ts} reviewer 対象 ${reviewer.files.length} 件 → ${reviewer.outDir}\n`);
+
+  const mode = readHandoff(ts)?.mode;
+  if (mode !== 'refactor') {
+    process.stdout.write(`  keep-review は作らない（mode: ${mode ?? '不明'}。refactor モードだけが対象）\n`);
+    return;
+  }
   const { cases, written, outDir } = buildKeepReviewBundles({ ts });
   process.stdout.write(`[review-bundle] ts=${ts} keep-review 対象 ${cases.length} 件 → ${outDir}\n`);
   for (const w of written) process.stdout.write(`  - ${path.basename(w)}\n`);

@@ -61,9 +61,9 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 ## 工程8 品質検査
 
-1. refactor モードなら `npm run review-bundle -- <ts>` で keep-reviewer の判定入力を `work/<ts>/review-bundle/keep-review/` に作る（designer の `keep_conditions` と rationale は機械的に除かれている）。
+1. `npm run review-bundle -- <ts>` で判定入力を作る。reviewer 用は常に `work/<ts>/review-bundle/reviewer/` に、keep-reviewer 用は refactor モードのときだけ `work/<ts>/review-bundle/keep-review/` に書かれる（どちらも designer の `keep_conditions` と rationale は機械的に除かれている）。
 2. **reviewer と keep-reviewer を1つのメッセージで並列に**起動する。keep-reviewer は、review-bundle が keep または merge のケースを1件以上作ったときだけ起動する（new モード、またはケースが0件なら reviewer だけ）。
-   - reviewer: `output/<ts>/generated/`・`output/<ts>/spec.md`・`work/<ts>/slices/`・`work/<ts>/investigation/`・`work/<ts>/requirements.md`・対象のルートの絶対パス。書込先は `output/<ts>/review/review.md`。
+   - reviewer: `work/<ts>/review-bundle/reviewer/`・`output/<ts>/generated/`・対象のルートの絶対パス。書込先は `output/<ts>/review/review.md`。
    - keep-reviewer: `work/<ts>/review-bundle/keep-review/` のケースファイル一式と `output/<ts>/` の絶対パス。書込先は `output/<ts>/review/keep-review.md`。
 3. **標準 Skill のレビュー**を自分で実行し、報告を**要約せずにそのまま**書き出す。
    - Skill `claude-api` に `prompt-audit output/<ts>/generated/` を渡す。報告と diff 案だけを求め、編集は適用させない。報告を `output/<ts>/review/prompt-audit.md` に書く。
@@ -77,7 +77,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 1. レビューの指摘ごとに、直すか直さないかを決める。迷うものはユーザーに尋ねる。直すものと、直さないもの（理由付き）を handoff の「差し戻し」に逐語で書く。
 2. 直す対象の層ごとに builder を**新しく**起動し、「差し戻し」のブロックの位置と入力一式を渡す。
 3. `npm run manifest -- <ts>` → `npm run verify -- <ts>` を実行する。
-4. 変更したファイルだけを再レビューする。reviewer には変更した対象と前回の指摘を渡す。keep・merge の対象が変わったときだけ keep-reviewer も再判定させる（`npm run review-bundle -- <ts>` を作り直してから）。標準 Skill のレビューは、変更が大きいときだけやり直す。
+4. 変更したファイルだけを再レビューする。先に `npm run review-bundle -- <ts>` を作り直し、reviewer にはバンドルと、変更した対象と前回の指摘を渡す。keep・merge の対象が変わったときだけ keep-reviewer も再判定させる。標準 Skill のレビューは、変更が大きいときだけやり直す。
 5. 直す指摘が尽きるまで繰り返す。
 
 **keep に及ぶ修正**: 直す対象のパスが `work/<ts>/slices/disposition-other.md` の keep に含まれていたら、生成物や MANIFEST だけを直しても V7（keep の非回帰）が止める。keep の正は design-map である。先に P3 を差し戻す: 指摘を「差し戻し」に書き、designer を新しく起動して disposition を keep から modify に直させ、P3 の承認を取り直す（`npm run approvals -- <ts> record P3 "<要旨>"`）。そのあと「準備」の slice と copy-keep からやり直す。変更が設計の組み直しに及ぶなら、状態を handoff に書いて止め、opus のセッションで `/canon-b <ts>` をやり直すよう案内する。

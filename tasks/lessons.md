@@ -20,13 +20,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 
 ---
 
-
-## 2026-10-01 reviewer 用の review-bundle が未実装で、reviewer が入力を自分で集めている（保守作業）
-- 種別: 欠陥修正
-- 何が起きたか: artifacts.md §9.1 は reviewer 用のバンドル（生成物の実体と接地材料・design-map の rationale を除く）を定めるが、`.claude/skills/canon-c/scripts/review-bundle.js` は keep-reviewer 用しか作らない。reviewer は generated/・spec・slices・investigation を直接読んでおり、入力を探し損ねて「問題なし」と答える経路と、slices 経由で designer の rationale を読む経路が残っている。
-- 提案: review-bundle.js に reviewer 用の出力（`work/<ts>/review-bundle/reviewer/`）を足し、rationale を除くことをテストで固定する。reviewer 定義の「入力」と canon-c の工程8 をバンドルの読みに切り替える。
-
-
 ## 2026-10-01 セッション分析の「逐語保存」がメインの出力トークンを大量に使う（run 20261001_184754・Phase A）
 - 種別: 効率化
 - 何が起きたか: interview.md は、分析を Explore（読み取り専用）に任せ、その応答本文をメインが逐語で `work/<ts>/session-analysis-<名前>.md` に保存するよう定めている。2件で約3万字あり、メインがこれを Write で書き直すことになった。opus の出力トークンを、転記のためだけに使っている。

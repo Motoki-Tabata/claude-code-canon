@@ -284,7 +284,7 @@ design-map は大きくなり（実測で約96KB）、全文を各ワーカー�
 - **出力**: `common.md`（メタ・Used Features・レイヤー構成・Model Assignments・Interface Contracts・生成上の制約・要件→生成物の対応・Experimental Dependencies・依存フラグ）／`write-scopes.md`／`responsibilities.md`（レイヤー構成の `### Responsibility Map`。無ければ無い旨の1行）／層ごとの `l1.md`・`skills.md`・`agents.md`・`l4.md`・`l5.md`（その層の節と、その層の modify・merge レコード）／`disposition-other.md`（keep・retire・out_of_scope と、どの層にも属さない modify・merge。`plugin/**` は L5 に属し、`.claude/README.md` は層に属さず宣言一覧にも出ない）／`other-sections.md`（どこにも属さない節の受け皿）／`targets-l1.txt`〜`targets-l5.txt`・`targets-other.txt`・`targets-all.txt`（宣言された生成物。V8 と同じ宣言源）／`INDEX.md`。
 - **規約**: 切り出しは節見出しと disposition レコードの単位で行い、記述を1文字も変えない。未知の節は `other-sections.md` に集め、黙って落とさない（全スライスの和が design-map の全節を覆う）。`## Used Features` が無ければ失敗する。書き出す前に出力先を空にする（古いスライスを読ませない）。差し戻しで design-map を直したら、スライスを作り直す。
 - **層の節の照合**: 見出しは完全一致を優先し、無ければ前方一致で拾う（`## L1（builder）` のような書き方を取りこぼさない）。この照合は V8 と共有する。
-- **読み手**: 各 builder は自分の層のスライスと `common.md`・`write-scopes.md`、reviewer はスライス一式を読む。design-map の全文は読ませない。builder は書く前に自分の層の `targets-l<n>.txt` の件数と書くファイルの数を突き合わせる。
+- **読み手**: 各 builder は自分の層のスライスと `common.md`・`write-scopes.md`を読む。reviewer はスライスではなく review-bundle の `design.md`（rationale を除いた抜粋・§9.1）を読む。design-map の全文は読ませない。builder は書く前に自分の層の `targets-l<n>.txt` の件数と書くファイルの数を突き合わせる。
 
 ### 5.5 モデル割当の根拠
 
@@ -560,8 +560,8 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 
 `review-bundle.js` は、reviewer と keep-reviewer が「何を見るか」を決定論で確定し、`work/<ts>/review-bundle/` に書く。入力の収集を LLM に任せると、入力を探し損ねて何も見つけず、問題なしと答える経路ができるためである。
 
-- **keep-reviewer 用**: keep と merge のレコード1件につき1ファイル。入力は design-map の existing_disposition・spec の新要件と統合方針・requirements.md の conflicts・strength_needed・constraints・investigation・対象の原本。
-- **reviewer 用**: 生成物の実体と接地材料（spec §8 の A1・profile.md・focused.md）。security 観点には生成物の frontmatter の `tools:` と設計意図を含める。
+- **keep-reviewer 用**（`review-bundle/keep-review/`・refactor モードのときだけ作る）: keep と merge のレコード1件につき1ファイル。入力は design-map の existing_disposition・spec の新要件と統合方針・requirements.md の conflicts・strength_needed・constraints・investigation・対象の原本。
+- **reviewer 用**（`review-bundle/reviewer/`・mode によらず常に作る）: `INDEX.md`（generated/ の全ファイルを1行1件。処遇と、security 観点で見る frontmatter の `tools`・`allowed-tools`・`model` 等を併記。接地材料 spec・requirements・profile・focused（あれば official-check）と対象ルートの絶対パス）・`design.md`（design-map の共通の節と層の節。既存判定は path・disposition・統合先・interface_change だけ）・`acceptance.md`（spec §8 の逐語）。generated/ が0件なら失敗する。reviewer は design-map の全文と slices を読まない。
 - **宣言を除く規約（最重要）**: バンドルから、**designer が立てた `keep_conditions` の boolean と rationale を機械的に除く**。除かなければ、判定者は「K2: true」という判定対象自身の主張に引きずられ、常に問題なしと答える（検査が恒真になる）。merge も「統合元 → 統合先」の対応だけを渡し、妥当性の主張は落とす。reviewer 用のバンドルからも design-map の rationale（designer の自己弁護）を除く。除けていることはテストで固定する（バンドルに `keep_conditions`・`K2:` などが現れないこと）。
 - **生成物からの逆引き**: 宣言を除くと、判定者は「keep 対象の弱点を補う記述が他の生成物にあるか」を確かめる材料を失い、実在する記述を「無い」と断定しかねない。そこで、keep 対象を名指ししている生成物の箇所を `file:line` で機械的に逆引きして同梱する。designer の主張ではなく生成物の実体なので、恒真にはならない。言及が見つからなければ「Grep で確かめてから不在と言う」旨を添える。
 - **書き出す前に出力先を空にする**: 差し戻しで keep が減った後に前回のバンドルが残ると、判定の対象外のファイルを判定してしまう。

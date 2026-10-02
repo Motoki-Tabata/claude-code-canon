@@ -9,6 +9,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- **reviewer 用の review-bundle**: `npm run review-bundle -- <ts>` が `work/<ts>/review-bundle/reviewer/` に、判定の対象の全件
+  （`INDEX.md`）・rationale を除いた設計意図（`design.md`）・受入基準（`acceptance.md`）を書きます。reviewer は
+  design-map の全文と slices を読まなくなりました。keep-reviewer 用は従来どおり refactor モードのときだけ作ります。
+
 ### Changed
 
 - **生成物の README の「使用例」**: spec の受入基準 A1 の転記をやめ、利用者が起動する Skill の起動行
