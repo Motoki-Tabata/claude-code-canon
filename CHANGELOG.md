@@ -22,6 +22,8 @@
   （要件・変更内容・根拠・確認・撤回条件・撤回したら直す生成物）書きます。emit-manifest が欄の欠けと集合内のパスを止め、
   MANIFEST と RUN.md（「3a」）に写し、Phase D で1件ずつ適用と確認を handoff に記録します。requirements.md の要件に
   `outside_managed:` で変えてよい範囲を書けます。
+- **管理パス外の変更の事前試行（Phase B）**: 対象の振る舞いを変える変更は、designer が `根拠: 試行待ち` と書き、
+  オーケストレーターが P3 の前に対象の一時 worktree で適用・確認して結果に書き換えます。試行待ちが残ると emit-manifest が止まります。
 
 ### Changed
 

@@ -327,7 +327,7 @@ function sectionBody(designMapText, heading) {
 
 /**
  * `## 管理パス外の変更` の各項目を確かめ、問題の一覧を返す（artifacts.md §5.6）。
- * 対象パスが無い・管理パス集合の中にある（generated/ に置くべき）・必須の欄が欠けている、を問題にする。
+ * 対象パスが無い・管理パス集合の中にある（generated/ に置くべき）・必須の欄が欠けている・根拠が「試行待ち」のまま、を問題にする。
  */
 export function checkOutsideChanges(designMapText) {
   const problems = [];
@@ -336,6 +336,7 @@ export function checkOutsideChanges(designMapText) {
     if (!it.path) problems.push(`${where}: 見出しに対象パスがバッククォートで書かれていない`);
     else if (isManaged(it.path)) problems.push(`${where}: \`${it.path}\` は管理パス集合の中にある。generated/ に生成物として置く`);
     if (it.missing.length > 0) problems.push(`${where}: 欄が無い: ${it.missing.join('・')}（必須: ${OUTSIDE_CHANGE_FIELDS.join('・')}）`);
+    if (/^\s*-\s+根拠\s*[:：]\s*試行待ち/m.test(it.body)) problems.push(`${where}: 根拠が「試行待ち」のまま（canon-b 工程5 で対象に試して書き換える）`);
   }
   return problems;
 }

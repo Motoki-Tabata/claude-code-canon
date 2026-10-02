@@ -104,7 +104,7 @@ test('emit-manifest: 「管理パス外の変更」を MANIFEST へ逐語で写�
   assert.ok(read(path.join(c.out, 'MANIFEST.md')).includes(`## 管理パス外の変更\n\n${OUTSIDE_ITEM}\n`));
 });
 
-test('emit-manifest: 「管理パス外の変更」の欄の欠け・管理パス内の対象・パス無しの見出しは失敗する', () => {
+test('emit-manifest: 「管理パス外の変更」の欄の欠け・管理パス内の対象・パス無しの見出し・試行待ちの根拠は失敗する', () => {
   const dm = (body) => `# dm\n## Used Features\nL1\n## 管理パス外の変更\n\n${body}\n`;
   assert.deepEqual(checkOutsideChanges(dm(OUTSIDE_ITEM)), []);
   assert.deepEqual(checkOutsideChanges(dm('なし')), []);
@@ -113,6 +113,7 @@ test('emit-manifest: 「管理パス外の変更」の欄の欠け・管理パ�
   assert.match(missing[0], /欄が無い: 撤回したら直す生成物/);
   assert.match(checkOutsideChanges(dm(OUTSIDE_ITEM.replace('frontend/vitest.config.ts', '.claude/rules/x.md')))[0], /管理パス集合の中/);
   assert.match(checkOutsideChanges(dm(OUTSIDE_ITEM.replace('`frontend/vitest.config.ts`', 'vitest')))[0], /対象パスがバッククォート/);
+  assert.match(checkOutsideChanges(dm(OUTSIDE_ITEM.replace(/^- 根拠:.*$/m, '- 根拠: 試行待ち')))[0], /試行待ち/);
 });
 
 test('emit-manifest: 2回走らせても同じ出力になる（決定論）', (t) => {
