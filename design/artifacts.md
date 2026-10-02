@@ -23,7 +23,8 @@ work/<ts>/
 ├─ investigation/
 │   ├─ existing.md                 工程1: 既存カスタマイズの棚卸し（§2.1）
 │   ├─ profile.md                  工程1: プロジェクトの実態（浅く広く・§2.2）
-│   └─ focused.md                  工程3: 要件に関係する箇所の深掘り（§2.3）
+│   ├─ focused.md                  工程3: 要件に関係する箇所の深掘り（§2.3）
+│   └─ official-check.md           工程3: Claude Code の公式仕様の確認（仕様に依存する要件があるときだけ・§2.5）
 ├─ requirements.md                 工程2: 合意した要件（§3）
 ├─ session-analysis-<名前>.md      工程2: 過去のセッション履歴の分析（指定があるときだけ・session-analyst が書く）
 ├─ slices/                         Phase C: design-map のワーカー別スライス（§5.4）
@@ -126,6 +127,19 @@ ref_resolution:                 # existing.md の project_refs を実リポジ�
 2. **`deprecated_notation`** の「無し」は `[]`（または空・未定義）だけで表す。「なし」などの自然文は clean と見なされない。`tool_names_valid` は `tools:` を宣言していないレコードでも `true` と書く（検査対象が無いので適合）。
 3. **existing.md の `project_refs[].value` と focused.md の `ref_resolution[].ref` は文字列の完全一致で突き合わせる**。まとめ書き（`"design.md §8, §8.1"`）や圧縮表記（`"a.js, b.js"`）はせず、1参照につき1エントリを両方で同じ文字列で書く。
 4. **`kind: settings`（frontmatter を持たない JSON）** のレコードは `unknown_frontmatter_keys: []` に固定する。JSON のトップレベルキーを未知の frontmatter キーとして報告しない。
+
+### 2.5 official-check.md（公式仕様の確認）
+
+確定要件の成否が Claude Code 自体の仕様に依存するとき、工程3でオーケストレーターが `claude-code-guide` に確かめさせ、その結果を書く。investigator は対象の配下しか読まず WebFetch を持たないので、ここを受け持たない。機械は読まないので書式は散文でよいが、次を必ず含める。
+
+```markdown
+# 公式仕様の確認
+## <要件 ID> <論点>
+- 問い: <claude-code-guide に渡した問い>
+- 答え: <要旨。確かめられなかった点は「確かめられなかった」と書く>
+- 出典: <公式ドキュメントの URL>
+- 観測との照合: <対象の transcript や focused.md と食い違うときだけ。食い違えば観測を優先し、その旨を書く>
+```
 
 ---
 

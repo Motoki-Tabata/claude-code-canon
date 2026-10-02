@@ -12,6 +12,7 @@ skills: [requirements]
 ## 入力（プロンプトで渡される絶対パス。すべて Read する）
 
 - `work/<ts>/investigation/existing.md`・`profile.md`・`focused.md`
+- `work/<ts>/investigation/official-check.md`（Claude Code の仕様に依存する要件があるときだけ渡される。公式仕様の確認結果。focused.md と食い違えば、両方を §9 未決事項か §4 に書き、どちらかを黙って採らない）
 - `work/<ts>/requirements.md`（承認済み）
 - `gates/conformance_tables/index.json`（`canon_version` の出典。参照だけ）
 - 書込先 `output/<ts>/spec.md`

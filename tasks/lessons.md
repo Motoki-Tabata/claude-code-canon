@@ -20,11 +20,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 
 ---
 
-## 2026-10-01 investigator（focused）が公式ドキュメントを読めず、Claude Code の仕様に関わる要件を裏取りできない（run 20261001_184754・Phase A）
-- 種別: 欠陥修正
-- 何が起きたか: R3（組込み Skill をモデルから起動できるか）・R15（allow と分類器の関係）・R6（待ちの手段）について、investigator は「確かめられなかった」と返した。investigator の tools は Read・Grep・Glob・Write だけで、WebFetch を持たないためである。オーケストレーターが claude-code-guide に確かめさせ、その結果を `investigation/official-check.md` に手で残した。手順の外の工程になっている。
-- 提案: canon-a の工程3に「要件が Claude Code の仕様に依存するときは、claude-code-guide で公式の仕様を確かめ、`investigation/official-check.md` に残す」を足し、spec-writer の入力に加える。または investigator（focused）に WebFetch を足す。
-
 ## 2026-10-01 管理パスの外の改修を要件にしたとき、それを運ぶ正規の経路が無い（run 20261001_184754・Phase A）
 - 種別: 欠陥修正
 - 何が起きたか: ユーザーが「スコープ外（vitest.config.ts・ci.yml・scripts/）でも、要件の実現に要るなら今回は改修してよい」と指示した（R18）。しかし generated/ は管理パス集合の中に限られ（spec A4-1）、管理パスの外の変更は「配置時の追加手順（散文）」に書くしかない。差分の実体・検証・適用の記録が、どこにも機械的に残らない。

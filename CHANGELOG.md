@@ -16,6 +16,8 @@
   design-map の全文と slices を読まなくなりました。keep-reviewer 用は従来どおり refactor モードのときだけ作ります。
 - **Subagent `session-analyst`**: ヒアリングで過去のセッション履歴を要件の材料にするとき、分析と保存
   （`work/<ts>/session-analysis-<名前>.md`）を本人が行います。メインが分析の応答を逐語で書き写す手順をやめました。
+- **公式仕様の確認（Phase A 工程3）**: 要件の成否が Claude Code の仕様に依存するとき、`claude-code-guide` で確かめて
+  `work/<ts>/investigation/official-check.md` に残し、spec-writer の入力に加えます。
 
 ### Changed
 
