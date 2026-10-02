@@ -20,15 +20,14 @@
  *     `/名前` も書かない。散文の1文で「内部で参照される知識」として触れるだけにする。
  *   - Subagent は「〜のときメインが自動で使う」。Rule は「常に／<paths> を扱うとき読み込まれる」。
  *     どちらにも `/名前` を書かない。Hook は起動ではなく挙動の予告として書く。
- *   - 使用例は spec の受入基準 functional（A1）を逐語で転記する。検証の実施状況は書かない
- *     （受入基準は配置後に確かめるもので、生成の時点では未実施）。
+ *   - 使用例は、一覧に載る Skill の `/名前 <argument-hint>` の起動行を並べる（説明は「できること」の表に任せる）。
+ *     spec の受入基準は写さない（run の道具で、配置後の README に置くと旧パスや旧番号を指したまま腐る）。
  */
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseFrontmatter, splitListValue, skillPathRole } from '../../../../lib/artifact.js';
 import { parseExistingDisposition, DesignMapError, h2SectionText, GENERATED_README_REL } from '../../../../lib/design-map.js';
-import { computeFenceMask, sectionSlice } from '../../../../lib/markdown.js';
 import { MANIFEST_FILES_HEADING } from '../../../../lib/manifest.js';
 import { parseRequirementsDoc, RequirementsError } from '../../../../lib/requirements.js';
 import { isMainModule, outputDir, readTsArg, workDir } from '../../../../lib/run.js';
@@ -170,29 +169,6 @@ function cell(s) {
   return String(s).replace(/\r?\n/g, ' ').replace(/\|/g, '\\|').trim();
 }
 
-/** spec の受入基準から functional（A1）の記述を逐語で取り出す（無ければ null）。 */
-export function extractFunctionalCriteria(specText) {
-  if (!specText) return null;
-  const lines = specText.split(/\r?\n/);
-  const mask = computeFenceMask(lines);
-  const h = lines.findIndex((l, i) => !mask[i] && /^#{1,6}\s+.*受入基準/.test(l));
-  if (h === -1) return null;
-  const { start, end } = sectionSlice(lines, h, mask);
-  const body = lines.slice(start + 1, end);
-  const from = body.findIndex((l) => /functional/.test(l));
-  if (from === -1) return null;
-  const OTHER = /non_regression|canon_conformance|snapshot_integrity|\(A[234]\)|（A[234]）/;
-  let to = body.length;
-  for (let i = from + 1; i < body.length; i++) {
-    if (OTHER.test(body[i]) || /^#{1,6}\s/.test(body[i])) {
-      to = i;
-      break;
-    }
-  }
-  const text = body.slice(from, to).join('\n').replace(/\s+$/, '');
-  return text === '' ? null : text;
-}
-
 /** requirements.md で experimental が許可されているか（読めなければ false）。 */
 function experimentalAllowed(requirementsText) {
   if (!requirementsText) return false;
@@ -256,7 +232,7 @@ function cautionItems(comp) {
 }
 
 /** README の本文を規則の適用で組み立てる。 */
-export function renderReadme(comp, { specText, genRoot, files, requirementsText }) {
+export function renderReadme(comp, { genRoot, files, requirementsText }) {
   const out = [
     '# このプロジェクトの Claude Code カスタマイズ',
     '',
@@ -313,15 +289,13 @@ export function renderReadme(comp, { specText, genRoot, files, requirementsText 
   const setup = setupItems(comp, { genRoot, files, requirementsText });
   out.push('', `## ${SETUP_HEADING}`, '', ...(setup.length > 0 ? setup.map((s) => `- ${s}`) : ['なし']));
 
-  const functional = extractFunctionalCriteria(specText);
-  out.push(
-    '',
-    '## 使用例',
-    '',
-    '次は spec の受入基準 functional（A1）の転記です。配置後に、この手順で動作を確かめてください。',
-    '',
-    functional ?? 'spec.md の受入基準に functional（A1）が見つからない。'
-  );
+  out.push('', '## 使用例', '');
+  if (listed.length === 0) out.push('利用者が起動する Skill は無い。');
+  else {
+    out.push('次の形で起動する（それぞれが何をするかは「できること」の表）。', '', '```text');
+    for (const s of listed) out.push(`/${s.name}${s.argumentHint ? ` ${s.argumentHint}` : ''}`);
+    out.push('```');
+  }
 
   const cautions = cautionItems(comp);
   out.push('', '## 注意と制約', '', ...(cautions.length > 0 ? cautions.map((s) => `- ${s}`) : ['特になし']));
@@ -426,7 +400,6 @@ export function emitManifest(ts) {
   const before = listFiles(genRoot).filter((f) => f !== README_REL);
   const comp = collectComponents(genRoot, before);
   const readme = renderReadme(comp, {
-    specText: readIfExists(path.join(out, 'spec.md')),
     genRoot,
     files: before,
     requirementsText: readIfExists(path.join(workDir(ts), 'requirements.md')),

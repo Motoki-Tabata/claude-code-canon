@@ -16,7 +16,7 @@ import { runScript } from './helpers/run-cli.js';
 import { genDir, outputDir, workDir } from './helpers/paths.js';
 import { tsSeq } from './helpers/ts.js';
 import { collectListingEntries, analyzeReadmeMentions } from './helpers/readme-listing.js';
-import { emitManifest, extractFunctionalCriteria } from '../.claude/skills/canon-c/scripts/emit-manifest.js';
+import { emitManifest } from '../.claude/skills/canon-c/scripts/emit-manifest.js';
 import { parseManifestFiles } from '../lib/manifest.js';
 import { readList } from '../lib/managed-paths.js';
 
@@ -209,15 +209,14 @@ test('README: experimental を許可したときだけ実験機能の環境変�
   assert.match(setup, /`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` を設定する/);
 });
 
-test('README: 使用例は spec の functional（A1）を逐語で転記し、検証済みとは書かない', (t) => {
+test('README: 使用例は一覧に載る Skill の起動行で、spec の受入基準を写さない', (t) => {
   const ts = setupComponents(t);
   emitManifest(ts);
   const readme = read(path.join(genDir(ts), '.claude', 'README.md'));
-  assert.ok(readme.includes('- functional（A1）[mandatory]:\n  - `/release v1.2.0` でリリースノートが下書きされる'));
-  assert.doesNotMatch(readme, /non_regression/, '他の受入基準まで写している');
-  assert.doesNotMatch(readme, /確認済み|検証済み/);
-  assert.equal(extractFunctionalCriteria('# spec\n## 受入基準\n- canon_conformance（A3）\n'), null);
-  assert.equal(extractFunctionalCriteria(null), null);
+  const usage = readme.split('## 使用例\n')[1].split('\n## ')[0];
+  assert.match(usage, /```text\n\/forked\n\/release <version>\n\/style\n```/);
+  assert.doesNotMatch(usage, /impact-scope/, '内部知識の Skill を使用例に載せている');
+  assert.doesNotMatch(readme, /functional|A1|non_regression/, '受入基準を写している');
 });
 
 test('README と MANIFEST: README 自身も MANIFEST の全ファイルと managed-paths.list に載る', (t) => {

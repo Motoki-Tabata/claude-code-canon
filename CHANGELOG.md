@@ -9,6 +9,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **生成物の README の「使用例」**: spec の受入基準 A1 の転記をやめ、利用者が起動する Skill の起動行
+  （`/名前 <argument-hint>`）を並べます。受入基準は run の道具で、配置後の README に置くと古いパスや番号を指したまま残るためです。
+
 ### Fixed
 
 - **`npm run tokens -- <session-id>`**: canon 以外のプロジェクト（対象プロジェクト）のセッションも解決します。

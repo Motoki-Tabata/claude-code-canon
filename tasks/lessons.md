@@ -42,11 +42,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: ユーザーが「スコープ外（vitest.config.ts・ci.yml・scripts/）でも、要件の実現に要るなら今回は改修してよい」と指示した（R18）。しかし generated/ は管理パス集合の中に限られ（spec A4-1）、管理パスの外の変更は「配置時の追加手順（散文）」に書くしかない。差分の実体・検証・適用の記録が、どこにも機械的に残らない。
 - 提案: design-map と RUN.md に「管理パス外の変更」の節（対象のパス・変更内容・適用後の確かめ方）を設け、canon-d の配置の後で、適用と確認をチェックリストとして扱う。requirements-template.md にも、管理パスの外を改修対象にするときの書き方を足す。
 
-## 2026-10-02 emit-manifest が生成する README の「使用例」に、spec の受入基準 A1 を逐語で載せる（run 20261001_184754・Phase C）
-- 種別: 欠陥修正
-- 何が起きたか: `generated/.claude/README.md` の「使用例」節が spec §8 の A1（28件・約30行）の転記になっている。受入基準は run の道具で、配置後の人間向け README に置くと、廃止予定のパス（`tsod-implement` など）と旧番号の語を指したまま腐る。README の約3割を占める。reviewer・prompt-audit の両方が指摘したが、README は emit-manifest.js の出力なので builder でも直せない。
-- 提案: emit-manifest.js の「使用例」を、区間コマンドの起動手順（Skill の `argument-hint` と description から導く）に変える。受入基準の転記はやめる。
-
 ## 2026-10-02 refactor の keep 判定で、同梱データの件数を固定したテストを見落とす（run 20261001_184754・Phase B→C）
 - 種別: 欠陥修正
 - 何が起きたか: designer が `lessons-ledger.test.mjs` を keep（K3 健全）にしたが、このテストは reflection.json の件数を13と固定していた。今回17件になるため `node --test` が落ち、工程7 で P3 に差し戻すことになった（keep→modify・P3 再承認）。K3 の「参照先が interface_change: none」では、参照先のデータが変わる場合を見ていない。
