@@ -43,6 +43,8 @@
   glob の brace を入れ子にしないことを書きました。
 - **focused の調べ方**: 語の分布は Grep の `count`・`files_with_matches` で取り、該当行の抜き出しは対象を絞ってから行うと
   investigation Skill に書きました。
+- **designer の入力**: `official-check.md`（あれば）と、handoff の Phase B 向けの申し送り（逐語）を渡します。
+  オーケストレーターが手でプロンプトに足していたものを、canon-b 工程5 の「渡すもの」に入れました。
 
 ### Fixed
 

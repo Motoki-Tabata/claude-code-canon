@@ -36,6 +36,8 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
    - `output/<ts>/spec.md`（P2 承認済み）
    - `work/<ts>/requirements.md`
    - `work/<ts>/investigation/existing.md`・`profile.md`・`focused.md`
+   - `work/<ts>/investigation/official-check.md`（あれば）
+   - handoff の「申し送り」のうち Phase B 向けのもの（逐語でプロンプトに写す。要約しない）
    - `mode`（handoff の値）と、書込先 `output/<ts>/design-map.md`
 2. design-map.md を読み、次を確かめる。足りなければ差し戻しの手順で直させる。
    - `## Used Features` があり、使う層（L1〜L5）が決まっている。Phase C はこの節で builder を起動する層を決める。

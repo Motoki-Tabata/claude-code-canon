@@ -50,11 +50,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: packages のワーカー構成を「packages用を新設／solver と data を別々に新設／作らない」で尋ねた（6bd7bab8 L117）。ユーザーは Other を選び「packages用に2つとどちらがいい？…手戻りも少なくできるようにしたい」と尋ね返した（L123）。そこで4体案（solver/data × 実装/テスト）を出し直した（L133→L139 で合意）。【低】
 - 提案: `requirements/references/interview.md` に「層や役割の分け方を尋ねるときは、分割軸（領域ごと×実装とテストを分けるか）の組み合わせを選択肢に網羅する」を足す（原因の特定は推測）。
 
-## 2026-10-07 designer の入力に official-check.md と handoff の申し送りが無く、オーケストレーターが手で足した（run 20261003_033830・Phase B）
-- 種別: 欠陥修正
-- 何が起きたか: Phase B のオーケストレーターが、official-check.md（「補足として参照可」）と、handoff の Phase B 向け申し送り4点を手で designer のプロンプトに足した（3204de3a L67）。`canon-b/SKILL.md:35-39` の「渡すもの」と `designer.md:14-19`（「これだけを読む」）に official-check.md が無い。spec-writer（`spec-writer.md:15`）には渡しているので、扱いが揃っていない。canon-b:21 は申し送りを「先に実施する」と書くだけで、designer に渡す手順が無い。【中】
-- 提案: canon-b 工程5-1 と designer.md の入力に、official-check.md（あれば）と handoff の Phase B 向け申し送り（逐語）を足す。
-
 ## 2026-10-07 canon の版の確認で比べるパスに design/・guide/ が入っていない（run 20261003_033830・Phase B）
 - 種別: 欠陥修正
 - 何が起きたか: canon-a〜d の「canon の版の確認」（`canon-a/SKILL.md:21`・`canon-b/SKILL.md:19`・`canon-c/SKILL.md:19`・`canon-d/SKILL.md:21`）は、`git diff`・`git status` の対象を `.claude lib gates tools docs` に固定している。成果物の契約である `design/artifacts.md` が run の途中で変わっても検出されない（3204de3a L37。この run での実害は無い）。【低】
