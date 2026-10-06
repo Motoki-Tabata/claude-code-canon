@@ -39,6 +39,8 @@
   地の文で書くと定めました。パス単独のバッククォートは V6 が Skill 内の supporting file と見なして違反にします。
 - **investigator の tools**: Edit を足しました。調査結果を直すときは全文を書き直さず、指示の箇所だけを Edit します
   （Edit は自分の成果物ファイルだけ）。
+- **spec-writer の tools**: Grep・Glob を足しました。investigator と spec-writer の定義に、Bash が無いことと、
+  glob の brace を入れ子にしないことを書きました。
 
 ### Fixed
 

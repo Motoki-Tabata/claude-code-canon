@@ -55,11 +55,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: focused の investigator（6bd7bab8 の subagent agent-a7dfccea）が、参照元の `scripts/` を `backend|frontend|…` で content モード検索し、2件とも tool-results に退避された。`.claude/skills/investigation/references/focused.md` に検索の作法が無い（原因は推測）。【低】
 - 提案: investigation の references に「語の分布は `count`／`files_with_matches` で取り、該当行の抜き出しはファイルを絞ってから行う」を足す。
 
-## 2026-10-07 spec-writer・investigator が持っていない Bash を呼んで失敗した（run 20261003_033830・Phase A）
-- 種別: 効率化
-- 何が起きたか: spec-writer が canon 内の `scope_layer` を調べようとして Bash を呼び、失敗した（6bd7bab8 の subagent agent-a78a315f L41-42）。focused の investigator も Bash を呼んで失敗し（agent-a7dfccea L21-22）、入れ子の brace の glob で ripgrep のエラーも出した（L90）。profile の investigator は Glob に `head_limit` を渡して失敗した（agent-acc10197 L51）。`spec-writer.md:4` の tools は `Read, Write, Edit` で検索の手段が無く、どちらの定義にもシェルが無いことの明記が無い。【低】
-- 提案: spec-writer に Grep を足すか、調べる必要が出たら §9 に回すと定義に書く。investigator・spec-writer の定義に「Bash は無い。glob の brace は入れ子にしない」を1行足す。
-
 ## 2026-10-07 designer の入力に official-check.md と handoff の申し送りが無く、オーケストレーターが手で足した（run 20261003_033830・Phase B）
 - 種別: 欠陥修正
 - 何が起きたか: Phase B のオーケストレーターが、official-check.md（「補足として参照可」）と、handoff の Phase B 向け申し送り4点を手で designer のプロンプトに足した（3204de3a L67）。`canon-b/SKILL.md:35-39` の「渡すもの」と `designer.md:14-19`（「これだけを読む」）に official-check.md が無い。spec-writer（`spec-writer.md:15`）には渡しているので、扱いが揃っていない。canon-b:21 は申し送りを「先に実施する」と書くだけで、designer に渡す手順が無い。【中】
