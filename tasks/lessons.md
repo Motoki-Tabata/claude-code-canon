@@ -30,11 +30,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: builder（Read・Write・Edit・Glob だけ。シェルなし）が書いた `agent-write-guard.test.mjs` の新規テスト1件が、フィクスチャの欠陥（root を `os.tmpdir()` 直下に作り tmpdir も同値を渡すため、`../` が常に許可側に解決される）で環境に関わらず失敗した。verify（V1〜V9）は実行を伴わないので通り、工程8-6 の現物実行をオーケストレーターが手で行って初めて見つかった。参照元の同種のテストは通っていたので、移植元との差分が原因の切り分けになった。
 - 提案: `.claude/skills/canon-c/SKILL.md` の工程7 に、「生成物に `*.test.mjs` があれば、`generated/` を対象のコピーに重ねた一時ディレクトリで `node --test` を全件実行し、失敗を verify の違反と同じに扱う」を足す（オーケストレーターが手で行う手順を明文化する。実装は `npm run` の道具にしてもよい）。
 
-## 2026-10-07 handoff の進捗・frontmatter の更新が毎回 sed・python の手作業で、印の付け違いもあった（run 20261003_033830・Phase A・B）
-- 種別: 効率化
-- 何が起きたか: 進捗の印と frontmatter を `sed -i` や python で書き換えている（6bd7bab8 L63・L222・L243・L320・L377、3204de3a L42・L119）。L222 では印を付け済みの「工程1」にもう一度 sed をかけた（工程2 のつもりと推測。L243 で別に付けたので実害は無い）。new-run が作る進捗は工程1〜4だけで（`.claude/skills/canon-a/scripts/new-run.js`、`lib/handoff.js:43-46`）、後の行は各 Phase が手で挿入している。`lib/handoff.js` にはパーサがあるが CLI が無い。【低〜中】
-- 提案: `npm run handoff -- <ts> mark <工程N>｜set phase=… status=…｜note "<申し送り>"` を作る。new-run の時点で工程1〜9と P1〜P5 の行をすべて作っておく。
-
 ## 2026-10-07 skills 層の builder が参照元の大きなスクリプトを打ち直し、26分かかって Phase C の律速になった（run 20261003_033830・Phase C）
 - 種別: 効率化
 - 何が起きたか: L2 の builder（c52db209 の subagent agent-a7c7b4600c812efeb）は 05:44〜06:10 に稼働し、文脈は最大約53万トークンに達した。参照元の `bash-write.mjs`（40KB）・`agent-write-guard.test.mjs`（45KB）などを Read で全文読み、Write で書き直した。配置後に比べると `agent-write-guard.mjs` は参照元との差が8行しかない。1体で50件を書き、L4 は1件だった。対象全体を `**/*` で Glob して node_modules も拾った。バイト単位のコピーは keep にしか無く（`generation/SKILL.md:42`）、builder は1層1体に固定されている（`canon-c/SKILL.md:51`）。上の「参照元の入力欄が無い」と根が同じ。起票済みの「テストが必ず失敗した」件は、この打ち直しの中で入った可能性がある（推測）。【高】

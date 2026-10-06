@@ -33,6 +33,11 @@
   `outside_managed` の範囲を機械で判定します。canon-a・canon-b は、これらを全文を読んで確かめる手順から置き換えました。
   requirements-template に、散文の小節を足してよいことを書きました。
 
+- **`npm run handoff -- <ts> mark|set|note|session`**: handoff.md の進捗の印（`工程N`・`P<N>`。付け違いは exit 1）、frontmatter
+  （phase・status・mode）、節への追記、セッションの記録を CLI にしました。sed や python の手書き換えをやめます。
+  new-run は進捗を工程1〜9の全行で作り、`## セッション` 節を足します。`session <Phase>` は canon のプロジェクトで最後に
+  書かれたセッションの id を記録します（run の振り返りが transcript を引くために使います）。canon-a〜d の手順を置き換えました。
+
 ### Changed
 
 - **生成物の README の「使用例」**: spec の受入基準 A1 の転記をやめ、利用者が起動する Skill の起動行

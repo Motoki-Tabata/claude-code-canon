@@ -20,13 +20,15 @@ Phase A は「何を作るか」を確定する。工程1〜4 を進め、P1（�
 1. `work/<ts>/handoff.md` があることを確かめる。無ければ ts の誤りなので、`ls work/` の一覧を示して止まる。
 2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs design guide` を示す。`git status --short -- .claude lib gates tools docs design guide` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
 3. handoff の進捗・承認・差し戻しを確かめる。承認行があれば `npm run approvals -- <ts> check` で照合する。
-4. ヒアリングの途中で切れていたら、会話は失われている。調査サマリの提示からやり直す。
+4. このセッションを `npm run handoff -- <ts> session A` で記録する（canon のプロジェクトで最後に書かれたセッションの id が、handoff の「セッション」に入る）。
+5. ヒアリングの途中で切れていたら、会話は失われている。調査サマリの提示からやり直す。
 
 それ以外は、`$ARGUMENTS` は対象プロジェクトのパスである。
 
 1. `npm run new-run -- <target>` を実行する。stdout の `ts`・`mode`・`handoff`・`canon_commit` を控える。
    - exit 1（対象が無い・同じ ts の run が既にある）なら、stderr をそのまま示して止まる。
-2. handoff.md（`work/<ts>/handoff.md`）を開き、frontmatter の `mode` を確かめる。new-run は対象の管理パス集合に既存ファイルがあれば `refactor`、無ければ `new` を初期値にする。工程2で確かめて直す。
+2. handoff.md（`work/<ts>/handoff.md`）を開き、frontmatter の `mode` を確かめる。new-run は対象の管理パス集合に既存ファイルがあれば `refactor`、無ければ `new` を初期値にする。工程2で確かめて直す（直すのは `npm run handoff -- <ts> set mode=<new|refactor>`）。
+3. `npm run handoff -- <ts> session A` でこのセッションを記録する。
 
 claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その場で `tasks/lessons.md` の末尾に書く（書式は同ファイル冒頭）。見出しの出典欄は `run <ts>・Phase A` とする。
 
@@ -45,7 +47,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
    - `mode: profile`、書込先 `<root>/work/<ts>/investigation/profile.md`
    - どちらにも `target`（handoff の `target`）と ts を渡す。
 2. 両ファイルの実在を確かめる。existing.md の `## サマリ` の総数と層ごとの内訳を、`## レコード` の `- path:` の行数と**数え直して**照合する。合わなければ差し戻しの手順で investigator（existing）を新しく起動して直させる。
-3. handoff の進捗の「工程1」に印を付ける。
+3. `npm run handoff -- <ts> mark 工程1` で印を付ける。
 
 ## 工程2 要件ヒアリング → P1
 
@@ -80,7 +82,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 ## Phase A の終わり
 
 1. 設定済みの ScheduleWakeup・loop があれば止める（Phase の終了後に発火して次の Phase と並走するのを防ぐ）。
-2. handoff.md を更新する: 進捗の工程1〜4 に印、frontmatter を `phase: B`・`status: waiting_approval` に、「申し送り」に Phase B 以降でやることを書く。
+2. handoff.md を `npm run handoff` で更新する: 工程2〜4 に `mark` で印を付け（工程1 は付け済み）、`set phase=B status=waiting_approval` で frontmatter を直し、`note 申し送り "<文>"` で Phase B 以降でやることを1件ずつ書く。
 3. 承認の照合を確かめる: `npm run approvals -- <ts> check --expect P1,P2` が exit 0 であること。
 4. 次のように案内して止まる。モデルはエイリアスで書く。
    > Phase A が完了しました。次は新しいセッションで Phase B を実行してください。

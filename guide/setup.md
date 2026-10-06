@@ -148,6 +148,7 @@ rm -rf work/<ts> output/<ts>
 | `npm run new-run -- <target> [<ts>]` | ts の採番・骨格・handoff.md の作成 | A |
 | `npm run approvals -- <ts> hash\|record\|check …` | 承認行の記録と照合 | A〜D |
 | `npm run check -- <ts> requirements\|spec\|design-map` | requirements・spec・design-map の項目ごとの機械点検（OK / NG） | A・B |
+| `npm run handoff -- <ts> mark\|set\|note\|session …` | handoff.md の進捗の印・frontmatter・節への追記・セッションの記録 | A〜D |
 | `npm run slice -- <ts>` | design-map をワーカー別のスライスに切り出す | C |
 | `npm run copy-keep -- <ts>` | keep の原本を generated/ にバイト単位でコピーする | C |
 | `npm run manifest -- <ts>` | MANIFEST・README・配置リストを決定論で生成する | C |

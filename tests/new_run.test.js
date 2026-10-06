@@ -63,6 +63,11 @@ test('new-run: canon のルート直下に骨格と handoff.md を置き、canon
   for (const heading of ['## 進捗', '## 承認', '## 差し戻し', '## 申し送り']) {
     assert.ok(body.includes(heading), `handoff.md に ${heading} が無い`);
   }
+  assert.ok(body.includes('## セッション'), 'handoff.md に ## セッション が無い');
+  const rows = body.split('\n').filter((l) => /^- \[ \] /.test(l));
+  assert.equal(rows.length, 9, '進捗は工程1〜9の全9行を最初から持つ');
+  for (let n = 1; n <= 9; n++) assert.ok(rows.some((l) => l.startsWith(`- [ ] 工程${n} `)), `工程${n} の行が無い`);
+  for (let n = 1; n <= 5; n++) assert.ok(rows.some((l) => l.includes(`→ P${n}`)), `P${n} の行が無い`);
   assert.ok(!body.includes('canon 課題候補'), 'canon 課題は tasks/lessons.md に直接書くので、handoff に節を置かない');
 });
 

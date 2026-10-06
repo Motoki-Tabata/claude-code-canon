@@ -63,7 +63,7 @@ npm test               # 検査・スクリプト・自己適用のテスト
   保守用の Rule、`settings.json`（permissions だけ）。使い方は [.claude/README.md](.claude/README.md)
 - `lib/` — スクリプトが共有するパーサと管理パス集合
 - `gates/` — `docs/` から判定表を生成する `build-conformance-tables.js` と、生成された `conformance_tables/`（手で編集しない）
-- `tools/` — `approvals.js`（承認の記録と照合）・`check.js`（requirements・spec・design-map の機械点検）・`token-usage.js`（セッションのトークン消費の集計）
+- `tools/` — `approvals.js`（承認の記録と照合）・`check.js`（requirements・spec・design-map の機械点検）・`handoff.js`（handoff.md の更新）・`token-usage.js`（セッションのトークン消費の集計）
 - `tests/` — 検査・スクリプト・自己適用のテスト（`node --test`）
 - `design/` — 設計書2冊
 - `guide/` — セットアップと運用の手順

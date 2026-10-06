@@ -38,6 +38,7 @@
     "build:tables": "node gates/build-conformance-tables.js",
     "tokens": "node tools/token-usage.js",
     "check": "node tools/check.js",
+    "handoff": "node tools/handoff.js",
     "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\""
   },
   "comments": {

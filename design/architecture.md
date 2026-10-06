@@ -193,7 +193,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 ### 6.1 役割
 
-`work/<ts>/handoff.md` は run の状態を持つ唯一のファイルで、オーケストレーターだけが直接編集する。進捗・承認・差し戻し・申し送りを1か所に集め、Phase をまたいで引き継ぐ。
+`work/<ts>/handoff.md` は run の状態を持つ唯一のファイルで、オーケストレーターだけが編集する。進捗・承認・差し戻し・申し送り・セッションを1か所に集め、Phase をまたいで引き継ぐ。進捗の印・frontmatter・節への追記は `npm run handoff`、承認の表は `npm run approvals` が書く（sed や python での手書き換えは、印の付け違いと書式崩れのもとになる）。
 
 ### 6.2 書式
 
@@ -208,7 +208,7 @@ canon_commit: <run を始めたときの canon の HEAD（new-run が記録す�
 ---
 
 ## 進捗
-<Phase ごとの工程チェックリスト（- [x] 工程1 調査① …）>
+<工程1〜9 のチェックリスト（- [x] 工程1 調査① …）。人間ゲート P1〜P5 は承認を取る工程の行に `→ P<N>` で持つ。new-run が全行を作り、各 Phase は `npm run handoff` で印を付ける>
 
 ## 承認
 | ゲート | 日時 | 対象ファイル | sha256(先頭12) | 要旨 |
@@ -219,6 +219,9 @@ canon_commit: <run を始めたときの canon の HEAD（new-run が記録す�
 
 ## 申し送り
 <次の Phase が最初に実施すること>
+
+## セッション
+<Phase ごとのセッション id（`npm run handoff -- <ts> session <Phase>` が、canon のプロジェクトで最後に書かれた jsonl の id を記録する。run の振り返りが transcript を引くために使う）>
 ```
 
 承認の対象ファイルは次のとおり。

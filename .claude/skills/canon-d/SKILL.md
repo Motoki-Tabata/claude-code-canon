@@ -21,7 +21,7 @@ Phase C で済ませたレビュー（reviewer・keep-reviewer・prompt-audit）
 2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs design guide` を示す。`git status --short -- .claude lib gates tools docs design guide` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
 3. **承認の照合**: `npm run approvals -- <ts> check --expect P1,P2,P3,P4` を実行する。exit 1 なら、どのファイルが承認後に変わったか（または承認行が無いか）を示し、そのゲートで承認を取り直すまで先へ進まない。P4 が無効なら、generated/ が承認後に変わっている。配置してはならない。
 4. **申し送り**: handoff の「申し送り」のうち Phase D 向けのものを先に実施する。結果は P5 の提示に含める。実施しなかったものは理由を添えて示す。
-5. handoff の frontmatter を `phase: D`・`status: in_progress` にする。
+5. `npm run handoff -- <ts> set phase=D status=in_progress` で frontmatter を直し、`npm run handoff -- <ts> session D` でこのセッションを記録する。
 
 claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その場で `tasks/lessons.md` の末尾に書く（書式は同ファイル冒頭）。見出しの出典欄は `run <ts>・Phase D` とする。
 
@@ -55,7 +55,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 ## 配置後
 
-1. RUN.md の「3a. 管理パス外の変更」に項目があれば、1件ずつ扱う。適用は人間か対象リポジトリで起動したセッションが行い（配置のコミットとは別のコミット）、各項目の「確認」の実行結果を受け取る。結果を handoff の進捗に、項目ごとに「適用・確認済み（確認の出力の要旨）」か「撤回（撤回の理由と、直した『撤回したら直す生成物』）」として記録する。撤回したのに「撤回したら直す生成物」を直していなければ、完了として扱わない。
+1. RUN.md の「3a. 管理パス外の変更」に項目があれば、1件ずつ扱う。適用は人間か対象リポジトリで起動したセッションが行い（配置のコミットとは別のコミット）、各項目の「確認」の実行結果を受け取る。結果を `npm run handoff -- <ts> note 進捗 "<文>"` で handoff の進捗に、項目ごとに「適用・確認済み（確認の出力の要旨）」か「撤回（撤回の理由と、直した『撤回したら直す生成物』）」として記録する。撤回したのに「撤回したら直す生成物」を直していなければ、完了として扱わない。
 2. RUN.md の「4. 配置後の手作業」を**逐語で**示す。要旨に言い換えない（言い換えると手順が縮んで欠ける）。
 3. 生成物に Hooks（`.claude/settings.json` の hooks・`.claude/hooks/**`）があり、その発火を対象で確かめていなければ、「配置した。Hook の発火は未検証」と明記する。「全工程が完了した」とだけ言わない。
 4. 対象リポジトリへのコミットと push は、**対象リポジトリで起動したセッション**で行うよう案内する（このセッションからは対象側のサンドボックスの例外が効かない。SSH のリモートなら接続先の許可も要る）。
@@ -64,7 +64,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 ## Phase D の終わり
 
 1. 設定済みの ScheduleWakeup・loop があれば止める。
-2. handoff.md を更新する: 進捗に工程9・P5・配置の結果の行（工程N → ゲート）を追記して印を付け、frontmatter を `status: done` にする。
+2. handoff.md を `npm run handoff` で更新する: `mark 工程9` で印を付け、配置の結果と管理パス外の変更の記録は `note 進捗 "<文>"` で足し、`set status=done` にする。
 3. この run で `tasks/lessons.md` に書いた canon 課題の件数と見出しを報告する。0件なら「0件」と報告する。canon 側のコミットは、ユーザーの指示を待つ。
 4. `work/<ts>`・`output/<ts>` の片付けと、対象側の `.claude-canon.bak.<ts>/` の掃除は人間が判断する、と伝えて終える。自分では消さない。
 
