@@ -21,6 +21,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { CANON_ROOT } from '../lib/canon.js';
+import { projectSlug } from '../lib/claude-session.js';
 import { isMainModule } from '../lib/run.js';
 
 const DESIGN_MAP_RE = /(^|[\\/])design-map\.md$/;
@@ -143,14 +144,6 @@ export function formatMarkdown(groups) {
   }
   lines.push('', `総入力の合計: ${fmt(grand)}`);
   return lines.join('\n');
-}
-
-/**
- * Claude Code のプロジェクトディレクトリ名（`~/.claude/projects/<slug>/`）。
- * 英数字以外の文字をすべて `-` に置き換えたもの（`/` `\\` `:` `.` `_` など。Windows のパスでも同じ）。
- */
-export function projectSlug(projectPath) {
-  return projectPath.replace(/[^A-Za-z0-9]/g, '-');
 }
 
 /**

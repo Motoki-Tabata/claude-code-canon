@@ -19,7 +19,7 @@ Phase C は承認済みの design-map から生成物を作り、工程6〜8 と
 2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs design guide` を示す。`git status --short -- .claude lib gates tools docs design guide` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
 3. **承認の照合**: `npm run approvals -- <ts> check --expect P1,P2,P3` を実行する。exit 1 なら、どのファイルが承認後に変わったか（または承認行が無いか）を示し、そのゲートで承認を取り直すまで先へ進まない。
 4. **申し送り**: handoff の「申し送り」のうち Phase C 向けのものを先に実施する。結果は P4 の提示に含める。実施しなかったものは理由を添えて示す。
-5. handoff の frontmatter を `phase: C`・`status: in_progress` にする。
+5. `npm run handoff -- <ts> set phase=C status=in_progress` で frontmatter を直し、`npm run handoff -- <ts> session C` でこのセッションを記録する。
 
 claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その場で `tasks/lessons.md` の末尾に書く（書式は同ファイル冒頭）。見出しの出典欄は `run <ts>・Phase C` とする。
 
@@ -56,7 +56,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 1. `npm run verify -- <ts>` を実行する。`output/<ts>/verify-report.md` が書かれる。
 2. exit 1 なら、report の違反を層ごとに分け、handoff の「差し戻し」に逐語で書き、該当する層の builder を新しく起動して直させる。直したら `npm run manifest -- <ts>` → `npm run verify -- <ts>` をやり直す。違反がなくなるまで繰り返す。
-3. warning は exit code に影響しないが、P4 で全件を示す。
+3. warning は exit code に影響しないが、P4 で示す。種別ごとの件数と代表例を示す（全件は `verify-report.md` にある。パス様トークンの warning は1ファイルにつき1件にまとまっている）。
 4. 違反が keep のファイルにある（V7）なら、builder では直せない。keep は design-map が正なので、下の「keep に及ぶ修正」の手順で P3 に戻す。
 
 ## 工程8 品質検査
@@ -100,7 +100,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 ## Phase C の終わり
 
 1. 設定済みの ScheduleWakeup・loop があれば止める。
-2. handoff.md を更新する: 進捗に工程6〜8 と P4 の行（工程N → ゲート）を追記して印を付け、frontmatter を `phase: D`・`status: waiting_approval` に、「申し送り」に Phase D でやること（例: 配置前に人間が行う手作業）を書く。
+2. handoff.md を `npm run handoff` で更新する: `mark 工程6`・`mark 工程7`・`mark 工程8` で印を付け、`set phase=D status=waiting_approval` で frontmatter を直し、`note 申し送り "<文>"` で Phase D でやること（例: 配置前に人間が行う手作業）を書く。
 3. `npm run approvals -- <ts> check --expect P1,P2,P3,P4` が exit 0 であることを確かめる。
 4. 次のように案内して止まる。
    > Phase C が完了しました。次は新しいセッションで Phase D を実行してください。

@@ -14,7 +14,8 @@
  *        (a) error: frontmatter の description が公式テンプレートの未編集プレースホルダそのもの
  *            （docs/L3_AGENTS.md:155 "What this agent does and when Claude should delegate to it"）
  *            ＝実質的に書かれていないので機械的に確実な違反。
- *        (b) warning: "Delegate when"/"Delegate for" 相当の委譲条件節が description に無い。
+ *        (b) warning: "Delegate when"/"Delegate for" 相当（日本語の「委譲される」「委譲する」を含む）の
+ *            委譲条件節が description に無い。
  *            正典に MUST の明文が無いため error にはしない（捏造回避）。
  *   4. supporting files 実在
  *      出典: docs/L2_SKILLS.md:77,99-109（Progressive Disclosure Loading・スキルディレクトリ構造）。
@@ -51,7 +52,8 @@ import { splitBySeverity } from './format.js';
 
 const CHECK = 'V6';
 const PLACEHOLDER_DESCRIPTION = 'What this agent does and when Claude should delegate to it';
-const DELEGATE_TRIGGER_RE = /Delegate (when|for)/i;
+// 英語の "Delegate when/for" に加え、日本語の description の委譲条件（「…ときに委譲される」「…は委譲する」）も認める。
+const DELEGATE_TRIGGER_RE = /Delegate (when|for)|委譲(される|する)/i;
 // skill パッケージの必須エントリ（SKILL.md）の出典。正典 docs/L2_SKILLS.md §2.1 から
 // build-conformance-tables.js が抽出した値を使う（出典を手書きせず表から引く）。
 const SKILL_PACKAGE_SOURCE = `${pathsTable.kinds.skill.package_layout.required_entry.source}（ディレクトリ構造: SKILL.md は必須）`;
@@ -192,14 +194,24 @@ function isTierAToken(ctx, tok, skillDir) {
   return existsInTree(ctx, path.posix.join(skillDir, firstSegment));
 }
 
+/** Tier B の未解決トークンを1件の warning にまとめるときに挙げる代表例の数。 */
+const UNRESOLVED_SAMPLE_COUNT = 5;
+
+/** generated/ 全体のファイルの basename 索引。パスを含まないファイル名のトークンを解決するのに使う。 */
+function basenameIndex(ctx) {
+  return new Set(ctx.files.map((f) => path.posix.basename(f.rel)));
+}
+
 function checkSupportingFiles(ctx) {
   const violations = [];
   let checked = 0;
+  const basenames = basenameIndex(ctx);
   const targetRoot = ctx.targetRoot; // null でも Tier B は縮退して機能する
   for (const f of listSkillDefinitions(ctx)) {
     const artifact = f.artifact;
     const skillDir = path.posix.dirname(f.rel);
     const tokens = extractPathLikeTokens(artifact.body ?? artifact.rawText ?? '');
+    const unresolved = [];
     for (const tok of tokens) {
       checked++;
       if (isTierAToken(ctx, tok, skillDir)) {
@@ -216,24 +228,31 @@ function checkSupportingFiles(ctx) {
         continue;
       }
 
-      // Tier B: スキルディレクトリ → generated root → target root の順で解決を試みる。
+      // Tier B: スキルディレクトリ → generated root → target root の順で解決を試みる。パスを含まない
+      // ファイル名（`spec-check.mjs` など）は、generated/ 全体の basename 一致でも解決とみなす。
       // どこでも解決できなければ「参照先が解決できないパス様トークン」として報告に留める
       // （地の文のリポジトリ相対パスや一般名詞的なファイル名の言及を誤ブロックしない）。
       const resolvedSomewhere =
         existsInTree(ctx, path.posix.join(skillDir, tok)) ||
         existsInTree(ctx, tok) ||
+        (!tok.includes('/') && basenames.has(tok)) ||
         (targetRoot !== null && existsSync(path.resolve(targetRoot, tok)));
-      if (!resolvedSomewhere) {
-        violations.push(
-          violation(
-            CHECK,
-            artifact.path,
-            `body 中のパス様トークン "${tok}" の参照先が解決できない（supporting file か地の文かを構造だけでは断定できないため報告のみ）。`,
-            'docs/L2_SKILLS.md:77,99-109',
-            'warning'
-          )
-        );
-      }
+      if (!resolvedSomewhere) unresolved.push(tok);
+    }
+    // 1ファイルにつき1件にまとめる（トークンごとに出すと、P4 で読む warning が地の文の数だけ並ぶ）。
+    if (unresolved.length > 0) {
+      const sample = unresolved.slice(0, UNRESOLVED_SAMPLE_COUNT).map((t) => `"${t}"`).join('・');
+      const rest = unresolved.length > UNRESOLVED_SAMPLE_COUNT ? `ほか${unresolved.length - UNRESOLVED_SAMPLE_COUNT}件` : '';
+      violations.push(
+        violation(
+          CHECK,
+          artifact.path,
+          `body 中のパス様トークン ${unresolved.length}件の参照先が解決できない: ${sample}${rest}` +
+            '（supporting file か地の文かを構造だけでは断定できないため報告のみ）。',
+          'docs/L2_SKILLS.md:77,99-109',
+          'warning'
+        )
+      );
     }
   }
   return { violations, checked };

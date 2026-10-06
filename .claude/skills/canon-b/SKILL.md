@@ -19,7 +19,7 @@ Phase B は承認済みの spec だけを入力に、工程5 で design-map を�
 2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs design guide` を示す。`git status --short -- .claude lib gates tools docs design guide` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
 3. **承認の照合**: `npm run approvals -- <ts> check --expect P1,P2` を実行する。exit 1 なら、どのゲートのどのファイルが承認後に変わったか（または承認行が無いか）を示し、Phase A のそのゲートで承認を取り直すまで先へ進まない。
 4. **申し送り**: handoff の「申し送り」のうち Phase B 向けのものを先に実施する。実施した結果は P3 の提示に含める。実施しなかったものは理由を添えて示す（黙って落とさない）。
-5. handoff の frontmatter を `phase: B`・`status: in_progress` にする。
+5. `npm run handoff -- <ts> set phase=B status=in_progress` で frontmatter を直し、`npm run handoff -- <ts> session B` でこのセッションを記録する。
 
 claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その場で `tasks/lessons.md` の末尾に書く（書式は同ファイル冒頭）。見出しの出典欄は `run <ts>・Phase B` とする。
 
@@ -39,7 +39,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
    - `work/<ts>/investigation/official-check.md`（あれば）
    - handoff の「申し送り」のうち Phase B 向けのもの（逐語でプロンプトに写す。要約しない）
    - `mode`（handoff の値）と、書込先 `output/<ts>/design-map.md`
-2. design-map.md を読み、次を確かめる。足りなければ差し戻しの手順で直させる。
+2. `npm run check -- <ts> design-map` を実行する。次の項目を機械で判定し、NG が出た項目は差し戻しの手順で直させる。全文を読むのは、P3 の要旨を作るときだけにする。ただし `## Write Scopes` は、役割分担がある設計で共有する構成ファイルの扱いまで書かれているかを、その節を読んで確かめる（`check` は節が空でないことだけを見る）。
    - `## Used Features` があり、使う層（L1〜L5）が決まっている。Phase C はこの節で builder を起動する層を決める。
    - 使うと宣言した層に `## L1`〜`## L5` の節があり、生成物が1件ずつ宣言されている。
    - refactor モードでは、existing.md の全レコードが `## 既存判定` に現れる。件数を数え直して照合する（取りこぼした既存ファイルは配置時に消える）。
@@ -74,7 +74,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 ## Phase B の終わり
 
 1. 設定済みの ScheduleWakeup・loop があれば止める。
-2. handoff.md を更新する: 進捗に「工程5 → P3」の行を追記して印を付け、frontmatter を `phase: C`・`status: waiting_approval` に、「申し送り」に Phase C 以降でやること（例: P4 で特に見る生成物）を書く。
+2. handoff.md を `npm run handoff` で更新する: `mark 工程5` で印を付け、`set phase=C status=waiting_approval` で frontmatter を直し、`note 申し送り "<文>"` で Phase C 以降でやること（例: P4 で特に見る生成物）を書く。
 3. `npm run approvals -- <ts> check --expect P1,P2,P3` が exit 0 であることを確かめる。
 4. 次のように案内して止まる。
    > Phase B が完了しました。次は新しいセッションで Phase C を実行してください。

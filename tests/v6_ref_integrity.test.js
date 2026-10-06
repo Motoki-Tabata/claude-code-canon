@@ -282,3 +282,63 @@ test('V6 V6-7: 台帳の逐語コピー（ledger-snapshot.txt）の中身は検�
   assert.ok(r.violations.some((v) => v.includes('own.md')), JSON.stringify(r.violations));
   assert.ok(!r.violations.some((v) => v.includes('ledger-snapshot.txt')), 'コピーは違反に含めない');
 });
+
+// ---------------------------------------------------------------------------
+// 委譲条件の日本語表記・basename 解決・未解決の集約（P4 の warning のノイズを減らす）
+// ---------------------------------------------------------------------------
+
+function writeAgent(ts, name, description) {
+  const dir = path.join(out(ts), 'generated', '.claude', 'agents', name);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, `${name}.md`), `---\nname: ${name}\ndescription: ${description}\ntools: Read\n---\n本文\n`);
+}
+
+test('V6 委譲条件: 日本語の「委譲される」「委譲する」は warning にならない。条件の無い description は warning になる（故意の違反）', (t) => {
+  const ts = tsFor(import.meta.url, 31);
+  setup(t, ts);
+  writeAgent(ts, 'ja-passive', 'API の契約を書く。実装の前に契約が要るときに委譲される。');
+  writeAgent(ts, 'ja-active', '調査を行う。広い探索が要るときは委譲する。');
+  writeAgent(ts, 'en', 'Writes contracts. Delegate when a contract is needed.');
+  writeAgent(ts, 'none', 'API の契約を書く。');
+  const r = v6(ts);
+  assert.equal(r.ok, true);
+  const w = r.warnings.filter((v) => v.includes('委譲トリガー'));
+  assert.equal(w.length, 1, `warning は条件の無い1件だけ: ${w.join('\n')}`);
+  assert.ok(w[0].includes('none'));
+});
+
+test('V6 Tier B: パスを含まないファイル名は generated/ 全体の basename 一致で解決する。パス付きは解決しない', (t) => {
+  const ts = tsFor(import.meta.url, 32);
+  setup(t, ts);
+  const skills = path.join(out(ts), 'generated', '.claude', 'skills');
+  mkdirSync(path.join(skills, 'demo'), { recursive: true });
+  mkdirSync(path.join(skills, 'other', 'scripts'), { recursive: true });
+  writeFileSync(path.join(skills, 'other', 'SKILL.md'), '---\nname: other\ndescription: x\n---\n本文\n');
+  writeFileSync(path.join(skills, 'other', 'scripts', 'check.mjs'), 'export {};\n');
+  writeFileSync(
+    path.join(skills, 'demo', 'SKILL.md'),
+    '---\nname: demo\ndescription: x\n---\n`check.mjs` を実行する。`missing.mjs` は無い。`scripts/ghost.mjs` も無い。\n'
+  );
+  const r = v6(ts);
+  assert.equal(r.ok, true);
+  const w = r.warnings.filter((v) => v.includes('demo'));
+  assert.equal(w.length, 1);
+  assert.ok(!w[0].includes('"check.mjs"'), 'basename で解決できたトークンは載らない');
+  assert.ok(w[0].includes('"missing.mjs"') && w[0].includes('"scripts/ghost.mjs"'));
+  assert.match(w[0], /2件/);
+});
+
+test('V6 Tier B: 未解決のトークンは1ファイル1件にまとめ、件数と代表例（5件）を載せる', (t) => {
+  const ts = tsFor(import.meta.url, 33);
+  setup(t, ts);
+  const skillDir = path.join(out(ts), 'generated', '.claude', 'skills', 'many');
+  mkdirSync(skillDir, { recursive: true });
+  const toks = Array.from({ length: 8 }, (_, i) => `\`lib/m${i}.js\``).join('・');
+  writeFileSync(path.join(skillDir, 'SKILL.md'), `---\nname: many\ndescription: x\n---\n${toks}\n`);
+  const w = v6(ts).warnings.filter((v) => v.includes('many'));
+  assert.equal(w.length, 1, '8トークンでも warning は1件');
+  assert.match(w[0], /8件/);
+  assert.ok(w[0].includes('"lib/m0.js"') && w[0].includes('"lib/m4.js"'));
+  assert.ok(!w[0].includes('"lib/m5.js"'), '代表例は先頭の5件');
+  assert.match(w[0], /ほか3件/);
+});

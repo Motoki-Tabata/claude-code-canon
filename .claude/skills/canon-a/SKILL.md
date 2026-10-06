@@ -20,13 +20,15 @@ Phase A は「何を作るか」を確定する。工程1〜4 を進め、P1（�
 1. `work/<ts>/handoff.md` があることを確かめる。無ければ ts の誤りなので、`ls work/` の一覧を示して止まる。
 2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs design guide` を示す。`git status --short -- .claude lib gates tools docs design guide` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
 3. handoff の進捗・承認・差し戻しを確かめる。承認行があれば `npm run approvals -- <ts> check` で照合する。
-4. ヒアリングの途中で切れていたら、会話は失われている。調査サマリの提示からやり直す。
+4. このセッションを `npm run handoff -- <ts> session A` で記録する（canon のプロジェクトで最後に書かれたセッションの id が、handoff の「セッション」に入る）。
+5. ヒアリングの途中で切れていたら、会話は失われている。調査サマリの提示からやり直す。
 
 それ以外は、`$ARGUMENTS` は対象プロジェクトのパスである。
 
 1. `npm run new-run -- <target>` を実行する。stdout の `ts`・`mode`・`handoff`・`canon_commit` を控える。
    - exit 1（対象が無い・同じ ts の run が既にある）なら、stderr をそのまま示して止まる。
-2. handoff.md（`work/<ts>/handoff.md`）を開き、frontmatter の `mode` を確かめる。new-run は対象の管理パス集合に既存ファイルがあれば `refactor`、無ければ `new` を初期値にする。工程2で確かめて直す。
+2. handoff.md（`work/<ts>/handoff.md`）を開き、frontmatter の `mode` を確かめる。new-run は対象の管理パス集合に既存ファイルがあれば `refactor`、無ければ `new` を初期値にする。工程2で確かめて直す（直すのは `npm run handoff -- <ts> set mode=<new|refactor>`）。
+3. `npm run handoff -- <ts> session A` でこのセッションを記録する。
 
 claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その場で `tasks/lessons.md` の末尾に書く（書式は同ファイル冒頭）。見出しの出典欄は `run <ts>・Phase A` とする。
 
@@ -45,7 +47,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
    - `mode: profile`、書込先 `<root>/work/<ts>/investigation/profile.md`
    - どちらにも `target`（handoff の `target`）と ts を渡す。
 2. 両ファイルの実在を確かめる。existing.md の `## サマリ` の総数と層ごとの内訳を、`## レコード` の `- path:` の行数と**数え直して**照合する。合わなければ差し戻しの手順で investigator（existing）を新しく起動して直させる。
-3. handoff の進捗の「工程1」に印を付ける。
+3. `npm run handoff -- <ts> mark 工程1` で印を付ける。
 
 ## 工程2 要件ヒアリング → P1
 
@@ -53,8 +55,8 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 2. 冒頭で調査サマリ（既存の件数と層の内訳・profile の要点・`learning_history` の要点）を示し、**モード（new／refactor）をユーザーに確かめる**。handoff の `mode` と違えば handoff を直す。
 3. AskUserQuestion で往復する。質問文か直前の本文に判断材料を書く（preview が表示されない環境がある）。ユーザーの用語は `terminology.md` で正しい層・機能に写し、写し方をユーザーに確かめる。
 4. constraints（hooks・mcp・plugins・experimental・組織ポリシー）は「禁止」か「今は使っていないだけ」かを必ず確かめる。`allowed: false` は「生成物のどこにも現れてはならない」を意味し、既存の keep 対象がその機能を使っているだけで verify（V9）が止める。既存を維持して新規に足さないだけなら `allowed: true` にし、`reason` に「既存を維持・新規追加なし」と書く。
-5. 合意したら、`.claude/skills/requirements/references/requirements-template.md` の書式どおりに、**自分で** `<root>/work/<ts>/requirements.md` を書く。キー名・見出し・字下げを崩さない（verify がこの書式を機械で読む）。
-6. **P1**: requirements.md のパスと確定要件の要旨（要件の件数・強度の内訳・禁止した機能・未解消の衝突）を示し、承認を求めて**止まる**。件数は示す前に数え直す。
+5. 合意したら、`.claude/skills/requirements/references/requirements-template.md` の書式どおりに、**自分で** `<root>/work/<ts>/requirements.md` を書く。キー名・見出し・字下げを崩さない（verify がこの書式を機械で読む）。書いた直後に `npm run check -- <ts> requirements` を実行し、NG が無いことを確かめる（件数・強度と優先度の内訳・constraints・conflicts の有無も出る）。
+6. **P1**: requirements.md のパスと確定要件の要旨（要件の件数・強度の内訳・禁止した機能・未解消の衝突）を示し、承認を求めて**止まる**。件数は上の `check` の出力から写す。
 7. 承認されたら `npm run approvals -- <ts> record P1 "<要旨>"` を実行する。差し戻されたら、指摘を handoff の「差し戻し」に逐語で書き、requirements.md を直してから P1 を取り直す。
 
 ヒアリングの途中でセッションが切れたら、会話は失われている。調査サマリの提示からやり直す。
@@ -70,9 +72,9 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 ## 工程4 spec → P2
 
 1. spec-writer を起動する。渡すもの: `existing.md`・`profile.md`・`focused.md`・（あれば）`official-check.md`・`requirements.md`・`<root>/gates/conformance_tables/index.json` の絶対パスと、書込先 `<root>/output/<ts>/spec.md`。
-2. spec.md を読み、次を確かめる。
-   - §9 未決事項が空である。空でなければ、その論点をユーザーと詰め、requirements に関わるなら P1 からやり直す。spec の書き直しは spec-writer を新しく起動して行う。
-   - §8 受入基準に `[mandatory]` が付いた基準がある。
+2. `npm run check -- <ts> spec` を実行する（§9 が空か・受入基準の件数・`[mandatory]` の有無を機械で判定する）。NG が出たら、その節だけを読んで直す。全文を読むのは、P2 の要旨を作るときだけにする。確かめる中身は次のとおり。
+   - §9 未決事項が空である（`check` が判定する）。空でなければ、その論点をユーザーと詰め、requirements に関わるなら P1 からやり直す。spec の書き直しは spec-writer を新しく起動して行う。
+   - §8 受入基準に `[mandatory]` が付いた基準がある（`check` が判定する）。
    - §4 統合方針が、focused.md で `resolved: false` になった参照を全件挙げている。
 3. **P2**: spec.md のパスと要点（目的・新要件・受入基準・スコープ外）を示し、内容を精査してもらって承認を求め、**止まる**。
 4. 承認されたら `npm run approvals -- <ts> record P2 "<要旨>"`。差し戻されたら「差し戻し」に逐語で書き、spec-writer を新しく起動して直させ、P2 を取り直す。
@@ -80,7 +82,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 ## Phase A の終わり
 
 1. 設定済みの ScheduleWakeup・loop があれば止める（Phase の終了後に発火して次の Phase と並走するのを防ぐ）。
-2. handoff.md を更新する: 進捗の工程1〜4 に印、frontmatter を `phase: B`・`status: waiting_approval` に、「申し送り」に Phase B 以降でやることを書く。
+2. handoff.md を `npm run handoff` で更新する: 工程2〜4 に `mark` で印を付け（工程1 は付け済み）、`set phase=B status=waiting_approval` で frontmatter を直し、`note 申し送り "<文>"` で Phase B 以降でやることを1件ずつ書く。
 3. 承認の照合を確かめる: `npm run approvals -- <ts> check --expect P1,P2` が exit 0 であること。
 4. 次のように案内して止まる。モデルはエイリアスで書く。
    > Phase A が完了しました。次は新しいセッションで Phase B を実行してください。

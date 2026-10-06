@@ -30,21 +30,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: builder（Read・Write・Edit・Glob だけ。シェルなし）が書いた `agent-write-guard.test.mjs` の新規テスト1件が、フィクスチャの欠陥（root を `os.tmpdir()` 直下に作り tmpdir も同値を渡すため、`../` が常に許可側に解決される）で環境に関わらず失敗した。verify（V1〜V9）は実行を伴わないので通り、工程8-6 の現物実行をオーケストレーターが手で行って初めて見つかった。参照元の同種のテストは通っていたので、移植元との差分が原因の切り分けになった。
 - 提案: `.claude/skills/canon-c/SKILL.md` の工程7 に、「生成物に `*.test.mjs` があれば、`generated/` を対象のコピーに重ねた一時ディレクトリで `node --test` を全件実行し、失敗を verify の違反と同じに扱う」を足す（オーケストレーターが手で行う手順を明文化する。実装は `npm run` の道具にしてもよい）。
 
-## 2026-10-07 spec.md・design-map.md の点検に道具が無く、大きいファイルを何度も読んでいる（run 20261003_033830・Phase A・B）
-- 種別: 効率化
-- 何が起きたか: spec.md（33KB）を Phase A のオーケストレーターが3回（6bd7bab8 L339 は sed の出力 58KB で退避・L350・L359）、Phase B で2回（3204de3a L47・L59）、designer も2回読んだ。design-map（31KB）も2回読んだ（3204de3a L81・L88）。点検の中身（§9 が空か、mandatory の件数、mandatory が「要件→生成物の対応」に全部あるか等）は機械で判定できる。`canon-a/SKILL.md:73-76`・`canon-b/SKILL.md:40-48` には「読んで確かめる」としか書いていない。【中】
-- 提案: `lib/` のパーサを使う `npm run check -- <ts> spec|design-map` を作り、両 SKILL のチェックリストを機械判定に置き換える。オーケストレーターが全文を読むのは、P2・P3 の要旨を作るときだけにする。
-
-## 2026-10-07 requirements.md を書いた直後に書式を検証する手段が無く、node -e の手作業になった（run 20261003_033830・Phase A）
-- 種別: 効率化
-- 何が起きたか: オーケストレーターは `lib/requirements.js` を読み、過去 run の節構成を調べ、`node -e` で `parseRequirementsDoc` を呼んで確かめた（6bd7bab8 L179〜L212）。途中で `outside_managed` の値を sed で直している（L206）。`canon-a/SKILL.md:56` は「verify がこの書式を機械で読む」と書くだけで、崩れは Phase C の V9 まで見つからない。テンプレートは、散文の節を足してよいかにも触れていない。【中】
-- 提案: `npm run requirements-check -- <ts>` を作る。要件の件数、強度・優先度の内訳、constraints を出力させ、canon-a 工程2-5・2-6（件数の数え直し）に組み込む。requirements-template.md に「散文の小節を足してよい（parser は見出しに依存しない）」を1行足す。
-
-## 2026-10-07 handoff の進捗・frontmatter の更新が毎回 sed・python の手作業で、印の付け違いもあった（run 20261003_033830・Phase A・B）
-- 種別: 効率化
-- 何が起きたか: 進捗の印と frontmatter を `sed -i` や python で書き換えている（6bd7bab8 L63・L222・L243・L320・L377、3204de3a L42・L119）。L222 では印を付け済みの「工程1」にもう一度 sed をかけた（工程2 のつもりと推測。L243 で別に付けたので実害は無い）。new-run が作る進捗は工程1〜4だけで（`.claude/skills/canon-a/scripts/new-run.js`、`lib/handoff.js:43-46`）、後の行は各 Phase が手で挿入している。`lib/handoff.js` にはパーサがあるが CLI が無い。【低〜中】
-- 提案: `npm run handoff -- <ts> mark <工程N>｜set phase=… status=…｜note "<申し送り>"` を作る。new-run の時点で工程1〜9と P1〜P5 の行をすべて作っておく。
-
 ## 2026-10-07 skills 層の builder が参照元の大きなスクリプトを打ち直し、26分かかって Phase C の律速になった（run 20261003_033830・Phase C）
 - 種別: 効率化
 - 何が起きたか: L2 の builder（c52db209 の subagent agent-a7c7b4600c812efeb）は 05:44〜06:10 に稼働し、文脈は最大約53万トークンに達した。参照元の `bash-write.mjs`（40KB）・`agent-write-guard.test.mjs`（45KB）などを Read で全文読み、Write で書き直した。配置後に比べると `agent-write-guard.mjs` は参照元との差が8行しかない。1体で50件を書き、L4 は1件だった。対象全体を `**/*` で Glob して node_modules も拾った。バイト単位のコピーは keep にしか無く（`generation/SKILL.md:42`）、builder は1層1体に固定されている（`canon-c/SKILL.md:51`）。上の「参照元の入力欄が無い」と根が同じ。起票済みの「テストが必ず失敗した」件は、この打ち直しの中で入った可能性がある（推測）。【高】
@@ -64,11 +49,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 種別: 効率化
 - 何が起きたか: claude-api の Skill 本文（c52db209 L159）と prompt-audit の報告（L170）が文脈に入り、cache_read が 72k（L118）から 152k（L212）に増えたまま最後まで載り続けた。オーケストレーターの走査が「現状は存在」の語だけを見ていたため F2 を取りこぼし、builder の追加起動と再レビューに約3.5分かかった（L546）。書き出した prompt-audit.md を python で書き換えており（L288）、「要約せずにそのまま書き出す」（`canon-c/SKILL.md:68`）と食い違う。【中】
 - 提案: prompt-audit の実行と書き出しを専用のワーカー（Read・Grep・Write と Skill）に任せ、報告はファイルで受け取る。時点に依存する語の grep パターンは canon 側に固定して持つ。
-
-## 2026-10-07 V6 の warning 65件がほぼノイズで、P4 の「全件を示す」とも食い違った（run 20261003_033830・Phase C）
-- 種別: 欠陥修正
-- 何が起きたか: 14件は「委譲トリガー節が無い」という警告だった。`v6-ref-integrity.js:54` の `DELEGATE_TRIGGER_RE = /Delegate (when|for)/i` は英語だけを見るため、日本語の description（「…ときに委譲される」）は必ず警告になる。生成規約（`generation/references/agents.md:14`）は「いつ委譲するか」を書けとだけ言う。残り49件は、地の文の `spec.md` などのパス様トークンだった。`canon-c/SKILL.md:59` は「P4 で全件を示す」としているが、実際の P4 は種別ごとの要約だった。【中】
-- 提案: 正規表現に日本語の委譲条件（「委譲される」「委譲する」など）を足し、故意の違反を注入するテストで発火を確かめる。対象リポジトリに実在するパスで解決できるトークンは、警告から除く。canon-c:59 を「種別ごとの件数と、代表例を示す」に改める。
 
 ## 2026-10-07 管理パス外の変更が散文でしか渡されず、変更後のファイルは Phase D でその場で作られた（run 20261003_033830・Phase C・D）
 - 種別: 欠陥修正

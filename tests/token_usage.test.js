@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { parseJsonl, aggregateRecords, countDesignMapReads, totalInput, formatMarkdown, projectSlug, resolveSessionPath } from '../tools/token-usage.js';
+import { parseJsonl, aggregateRecords, countDesignMapReads, totalInput, formatMarkdown, resolveSessionPath } from '../tools/token-usage.js';
+import { projectSlug } from '../lib/claude-session.js';
 import { CANON_ROOT } from '../lib/canon.js';
 
 const asst = (id, model, usage, content = []) => ({ type: 'assistant', message: { id, model, usage, content } });

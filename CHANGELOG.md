@@ -27,6 +27,17 @@
 - **撤回時に直す生成物**: 管理パス外の変更の成果物を前提に書く生成物を、その項目の「撤回したら直す生成物」に挙げます。
   builder は自分のファイルが挙がっているかを確かめ、漏れていれば報告します。
 
+- **`npm run check -- <ts> requirements|spec|design-map`**: requirements・spec・design-map の点検を項目ごとの OK / NG にしました
+  （exit 0 全 OK・1 NG あり・2 引数不正）。要件の件数と強度・優先度の内訳、spec の §9 と `[mandatory]`、design-map の
+  Used Features・層の宣言・既存判定の件数照合・K1〜K5・Write Scopes・mandatory の対応・`allowed: false` の機能・
+  `outside_managed` の範囲を機械で判定します。canon-a・canon-b は、これらを全文を読んで確かめる手順から置き換えました。
+  requirements-template に、散文の小節を足してよいことを書きました。
+
+- **`npm run handoff -- <ts> mark|set|note|session`**: handoff.md の進捗の印（`工程N`・`P<N>`。付け違いは exit 1）、frontmatter
+  （phase・status・mode）、節への追記、セッションの記録を CLI にしました。sed や python の手書き換えをやめます。
+  new-run は進捗を工程1〜9の全行で作り、`## セッション` 節を足します。`session <Phase>` は canon のプロジェクトで最後に
+  書かれたセッションの id を記録します（run の振り返りが transcript を引くために使います）。canon-a〜d の手順を置き換えました。
+
 ### Changed
 
 - **生成物の README の「使用例」**: spec の受入基準 A1 の転記をやめ、利用者が起動する Skill の起動行
@@ -56,6 +67,10 @@
 
 ### Fixed
 
+- **V6 の warning のノイズ**: 日本語の description の委譲条件（「…ときに委譲される」「…は委譲する」）を委譲トリガーとして認めます。
+  パスを含まないファイル名は generated/ 全体の basename 一致でも解決とみなし、解決できないパス様トークンは
+  1ファイルにつき1件の warning にまとめて件数と代表例（先頭5件）を載せます。run 20261003_033830 の generated/ に当てると
+  V6 の warning は 63 件から 9 件になりました。P4 では種別ごとの件数と代表例を示します（全件は verify-report にあります）。
 - **`npm run tokens -- <session-id>`**: canon 以外のプロジェクト（対象プロジェクト）のセッションも解決します。
   canon のディレクトリに無ければ `~/.claude/projects/*` を横断し、複数見つかれば候補を挙げて止まります。
 - **生成物の README の冒頭**: canon のツール名（`emit-manifest.js`）を書かず、「配置のたびに作り直されます」とだけ書きます。
