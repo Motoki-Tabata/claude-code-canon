@@ -27,6 +27,12 @@
 - **撤回時に直す生成物**: 管理パス外の変更の成果物を前提に書く生成物を、その項目の「撤回したら直す生成物」に挙げます。
   builder は自分のファイルが挙がっているかを確かめ、漏れていれば報告します。
 
+- **`npm run check -- <ts> requirements|spec|design-map`**: requirements・spec・design-map の点検を項目ごとの OK / NG にしました
+  （exit 0 全 OK・1 NG あり・2 引数不正）。要件の件数と強度・優先度の内訳、spec の §9 と `[mandatory]`、design-map の
+  Used Features・層の宣言・既存判定の件数照合・K1〜K5・Write Scopes・mandatory の対応・`allowed: false` の機能・
+  `outside_managed` の範囲を機械で判定します。canon-a・canon-b は、これらを全文を読んで確かめる手順から置き換えました。
+  requirements-template に、散文の小節を足してよいことを書きました。
+
 ### Changed
 
 - **生成物の README の「使用例」**: spec の受入基準 A1 の転記をやめ、利用者が起動する Skill の起動行

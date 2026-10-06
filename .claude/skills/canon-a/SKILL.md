@@ -53,8 +53,8 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 2. 冒頭で調査サマリ（既存の件数と層の内訳・profile の要点・`learning_history` の要点）を示し、**モード（new／refactor）をユーザーに確かめる**。handoff の `mode` と違えば handoff を直す。
 3. AskUserQuestion で往復する。質問文か直前の本文に判断材料を書く（preview が表示されない環境がある）。ユーザーの用語は `terminology.md` で正しい層・機能に写し、写し方をユーザーに確かめる。
 4. constraints（hooks・mcp・plugins・experimental・組織ポリシー）は「禁止」か「今は使っていないだけ」かを必ず確かめる。`allowed: false` は「生成物のどこにも現れてはならない」を意味し、既存の keep 対象がその機能を使っているだけで verify（V9）が止める。既存を維持して新規に足さないだけなら `allowed: true` にし、`reason` に「既存を維持・新規追加なし」と書く。
-5. 合意したら、`.claude/skills/requirements/references/requirements-template.md` の書式どおりに、**自分で** `<root>/work/<ts>/requirements.md` を書く。キー名・見出し・字下げを崩さない（verify がこの書式を機械で読む）。
-6. **P1**: requirements.md のパスと確定要件の要旨（要件の件数・強度の内訳・禁止した機能・未解消の衝突）を示し、承認を求めて**止まる**。件数は示す前に数え直す。
+5. 合意したら、`.claude/skills/requirements/references/requirements-template.md` の書式どおりに、**自分で** `<root>/work/<ts>/requirements.md` を書く。キー名・見出し・字下げを崩さない（verify がこの書式を機械で読む）。書いた直後に `npm run check -- <ts> requirements` を実行し、NG が無いことを確かめる（件数・強度と優先度の内訳・constraints・conflicts の有無も出る）。
+6. **P1**: requirements.md のパスと確定要件の要旨（要件の件数・強度の内訳・禁止した機能・未解消の衝突）を示し、承認を求めて**止まる**。件数は上の `check` の出力から写す。
 7. 承認されたら `npm run approvals -- <ts> record P1 "<要旨>"` を実行する。差し戻されたら、指摘を handoff の「差し戻し」に逐語で書き、requirements.md を直してから P1 を取り直す。
 
 ヒアリングの途中でセッションが切れたら、会話は失われている。調査サマリの提示からやり直す。
@@ -70,9 +70,9 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 ## 工程4 spec → P2
 
 1. spec-writer を起動する。渡すもの: `existing.md`・`profile.md`・`focused.md`・（あれば）`official-check.md`・`requirements.md`・`<root>/gates/conformance_tables/index.json` の絶対パスと、書込先 `<root>/output/<ts>/spec.md`。
-2. spec.md を読み、次を確かめる。
-   - §9 未決事項が空である。空でなければ、その論点をユーザーと詰め、requirements に関わるなら P1 からやり直す。spec の書き直しは spec-writer を新しく起動して行う。
-   - §8 受入基準に `[mandatory]` が付いた基準がある。
+2. `npm run check -- <ts> spec` を実行する（§9 が空か・受入基準の件数・`[mandatory]` の有無を機械で判定する）。NG が出たら、その節だけを読んで直す。全文を読むのは、P2 の要旨を作るときだけにする。確かめる中身は次のとおり。
+   - §9 未決事項が空である（`check` が判定する）。空でなければ、その論点をユーザーと詰め、requirements に関わるなら P1 からやり直す。spec の書き直しは spec-writer を新しく起動して行う。
+   - §8 受入基準に `[mandatory]` が付いた基準がある（`check` が判定する）。
    - §4 統合方針が、focused.md で `resolved: false` になった参照を全件挙げている。
 3. **P2**: spec.md のパスと要点（目的・新要件・受入基準・スコープ外）を示し、内容を精査してもらって承認を求め、**止まる**。
 4. 承認されたら `npm run approvals -- <ts> record P2 "<要旨>"`。差し戻されたら「差し戻し」に逐語で書き、spec-writer を新しく起動して直させ、P2 を取り直す。

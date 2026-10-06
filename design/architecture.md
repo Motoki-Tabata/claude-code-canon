@@ -310,6 +310,7 @@ claude-canon 自身の運用にはフック（`.claude/settings.json` の hooks�
 
 | 旧方式が担っていたこと | v2 での担保 |
 |---|---|
+| 要件・spec・design-map の点検 | `npm run check -- <ts> requirements\|spec\|design-map`（既存のパーサで項目ごとに OK / NG を出す。オーケストレーターが全文を読むのは P1〜P3 の要旨を作るときだけ） |
 | 成果物の検査 | `npm run verify`（V1〜V9 を1本の CLI にまとめる・artifacts.md §8） |
 | 工程の順序と承認 | 対話と handoff.md。承認後の改変は sha256 で検出する（§6.3） |
 | 実行中の canon 本体の保護 | `canon_commit` の記録と、各 Phase の開始時の差分の警告（§7） |

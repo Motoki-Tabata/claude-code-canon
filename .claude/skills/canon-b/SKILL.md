@@ -39,7 +39,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
    - `work/<ts>/investigation/official-check.md`（あれば）
    - handoff の「申し送り」のうち Phase B 向けのもの（逐語でプロンプトに写す。要約しない）
    - `mode`（handoff の値）と、書込先 `output/<ts>/design-map.md`
-2. design-map.md を読み、次を確かめる。足りなければ差し戻しの手順で直させる。
+2. `npm run check -- <ts> design-map` を実行する。次の項目を機械で判定し、NG が出た項目は差し戻しの手順で直させる。全文を読むのは、P3 の要旨を作るときだけにする。ただし `## Write Scopes` は、役割分担がある設計で共有する構成ファイルの扱いまで書かれているかを、その節を読んで確かめる（`check` は節が空でないことだけを見る）。
    - `## Used Features` があり、使う層（L1〜L5）が決まっている。Phase C はこの節で builder を起動する層を決める。
    - 使うと宣言した層に `## L1`〜`## L5` の節があり、生成物が1件ずつ宣言されている。
    - refactor モードでは、existing.md の全レコードが `## 既存判定` に現れる。件数を数え直して照合する（取りこぼした既存ファイルは配置時に消える）。

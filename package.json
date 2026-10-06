@@ -37,6 +37,7 @@
     "deploy": "node .claude/skills/canon-d/scripts/deploy.js",
     "build:tables": "node gates/build-conformance-tables.js",
     "tokens": "node tools/token-usage.js",
+    "check": "node tools/check.js",
     "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\""
   },
   "comments": {

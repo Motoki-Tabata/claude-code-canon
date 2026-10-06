@@ -24,6 +24,7 @@ export const TS_NAMESPACES = {
   copy_keep: '29991402',
   approvals: '29990401',
   exit_codes: '29990501',
+  check_cli: '29990601',
 };
 
 function nameFromUrl(importMetaUrl) {
