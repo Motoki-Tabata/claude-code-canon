@@ -40,11 +40,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: オーケストレーターは `lib/requirements.js` を読み、過去 run の節構成を調べ、`node -e` で `parseRequirementsDoc` を呼んで確かめた（6bd7bab8 L179〜L212）。途中で `outside_managed` の値を sed で直している（L206）。`canon-a/SKILL.md:56` は「verify がこの書式を機械で読む」と書くだけで、崩れは Phase C の V9 まで見つからない。テンプレートは、散文の節を足してよいかにも触れていない。【中】
 - 提案: `npm run requirements-check -- <ts>` を作る。要件の件数、強度・優先度の内訳、constraints を出力させ、canon-a 工程2-5・2-6（件数の数え直し）に組み込む。requirements-template.md に「散文の小節を足してよい（parser は見出しに依存しない）」を1行足す。
 
-## 2026-10-07 ワーカーの分け方を尋ねる選択肢が分割軸を網羅しておらず、ヒアリングが1往復増えた（run 20261003_033830・Phase A）
-- 種別: 規律昇華
-- 何が起きたか: packages のワーカー構成を「packages用を新設／solver と data を別々に新設／作らない」で尋ねた（6bd7bab8 L117）。ユーザーは Other を選び「packages用に2つとどちらがいい？…手戻りも少なくできるようにしたい」と尋ね返した（L123）。そこで4体案（solver/data × 実装/テスト）を出し直した（L133→L139 で合意）。【低】
-- 提案: `requirements/references/interview.md` に「層や役割の分け方を尋ねるときは、分割軸（領域ごと×実装とテストを分けるか）の組み合わせを選択肢に網羅する」を足す（原因の特定は推測）。
-
 ## 2026-10-07 handoff の進捗・frontmatter の更新が毎回 sed・python の手作業で、印の付け違いもあった（run 20261003_033830・Phase A・B）
 - 種別: 効率化
 - 何が起きたか: 進捗の印と frontmatter を `sed -i` や python で書き換えている（6bd7bab8 L63・L222・L243・L320・L377、3204de3a L42・L119）。L222 では印を付け済みの「工程1」にもう一度 sed をかけた（工程2 のつもりと推測。L243 で別に付けたので実害は無い）。new-run が作る進捗は工程1〜4だけで（`.claude/skills/canon-a/scripts/new-run.js`、`lib/handoff.js:43-46`）、後の行は各 Phase が手で挿入している。`lib/handoff.js` にはパーサがあるが CLI が無い。【低〜中】
