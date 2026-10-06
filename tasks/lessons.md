@@ -25,11 +25,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: 対象（skillweave-mhwilds）とは別の参照元プロジェクト（vehicle-intake-management）の一式を移植の基準にする依頼だった。new-run・investigator（existing・focused）・requirements-template のいずれにも参照元の欄が無く、requirements.md の散文小節と handoff の申し送りに絶対パスを書いて後工程へ運ぶしかなかった（focused の `project_refs` は対象内の参照の解決用で、外部プロジェクトの一式は扱わない）。
 - 提案: `.claude/skills/requirements/references/requirements-template.md` に任意の `## 参照元` 節（パスと「移植の基準・生成物には書かない」の別）を足し、`canon-a` 工程3・4 と designer・builder への受け渡しでこの節を読む旨を書く。investigator に `mode: reference`（参照元の一式の棚卸し）を足すかは、要否を次の同種の run で判断する。
 
-## 2026-10-03 生成物の `.claude/README.md` が canon のツール名（emit-manifest.js）を書き、配置先の読み手に解決できない（run 20261003_033830・Phase C）
-- 種別: 欠陥修正
-- 何が起きたか: emit-manifest が書く `generated/.claude/README.md` の3行目が「claude-canon の emit-manifest.js が…導いたもの」と書く。対象リポジトリに `emit-manifest.js` は無く、読み手（対象側のメインやワーカー）は参照先を解決できない（`.claude/skills/canon-c/scripts/emit-manifest.js:241`）。prompt-audit で指摘（F4）。builder は書かない生成物なので run の `generated/` では直せない。
-- 提案: `emit-manifest.js:241` の文を、ツール名を出さずに「この README は配置のたびに作り直される。手で直しても次の配置で置き換わる」とする。
-
 ## 2026-10-03 SKILL.md が対象リポジトリ直下の `scripts/…` を書くと、skill 自身の `scripts/` と衝突して V6 が違反にする（run 20261003_033830・Phase C）
 - 種別: 規律昇華
 - 何が起きたか: `tsod-verify/SKILL.md` が対象直下の `` `scripts/sonar-local.sh` `` をバッククォートで参照したところ、同 skill に `scripts/` があるため V6 の Tier A（第1セグメントがスキル直下に実在する）が supporting file 参照と確定し、違反1件で工程7が止まった（`.claude/skills/canon-c/scripts/verify/v6-ref-integrity.js:189-193`）。builder の差し戻し1周で解消した（対象直下のスクリプトは `bash scripts/…` のように空白を含む形で書く）。
