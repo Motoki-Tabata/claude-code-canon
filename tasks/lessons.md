@@ -30,11 +30,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: builder（Read・Write・Edit・Glob だけ。シェルなし）が書いた `agent-write-guard.test.mjs` の新規テスト1件が、フィクスチャの欠陥（root を `os.tmpdir()` 直下に作り tmpdir も同値を渡すため、`../` が常に許可側に解決される）で環境に関わらず失敗した。verify（V1〜V9）は実行を伴わないので通り、工程8-6 の現物実行をオーケストレーターが手で行って初めて見つかった。参照元の同種のテストは通っていたので、移植元との差分が原因の切り分けになった。
 - 提案: `.claude/skills/canon-c/SKILL.md` の工程7 に、「生成物に `*.test.mjs` があれば、`generated/` を対象のコピーに重ねた一時ディレクトリで `node --test` を全件実行し、失敗を verify の違反と同じに扱う」を足す（オーケストレーターが手で行う手順を明文化する。実装は `npm run` の道具にしてもよい）。
 
-## 2026-10-07 investigator に Edit が無く、focused.md（31KB）を全文書き直した。差し戻しの「Edit させる」規則も実行できない（run 20261003_033830・Phase A）
-- 種別: 効率化
-- 何が起きたか: focused の investigator が件数の食い違いに自分で気づき、focused.md を全文 Write し直した（6bd7bab8 の subagent agent-a7dfccea L217→L232、約2分・約3万字の重複出力）。`.claude/agents/investigator/investigator.md:4` の tools は `Read, Grep, Glob, Write` で Edit が無い。一方 `.claude/skills/canon-a/SKILL.md:39` は差し戻しで「指示された箇所だけを Edit させる」と定める。【高】
-- 提案: investigator の tools に Edit を足し、定義に「差し戻しでは指示された箇所だけを Edit する」を書く。足さないなら canon-a:39 に investigator の例外（全文の書き直し）を明記する。
-
 ## 2026-10-07 spec.md・design-map.md の点検に道具が無く、大きいファイルを何度も読んでいる（run 20261003_033830・Phase A・B）
 - 種別: 効率化
 - 何が起きたか: spec.md（33KB）を Phase A のオーケストレーターが3回（6bd7bab8 L339 は sed の出力 58KB で退避・L350・L359）、Phase B で2回（3204de3a L47・L59）、designer も2回読んだ。design-map（31KB）も2回読んだ（3204de3a L81・L88）。点検の中身（§9 が空か、mandatory の件数、mandatory が「要件→生成物の対応」に全部あるか等）は機械で判定できる。`canon-a/SKILL.md:73-76`・`canon-b/SKILL.md:40-48` には「読んで確かめる」としか書いていない。【中】

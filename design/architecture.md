@@ -133,7 +133,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 - designer は機能選定と設計を一続きに行う。機能選定の結果はそのまま design-map に載るので、分けて spawn する利点が無い。
 - builder は層ごとにオーケストレーターが直接起動する。builder をまとめる中継役は置かない（§5.1）。
-- 読み取り専用の調査を担う investigator・session-analyst に Edit は与えず、Write も自分の成果物ファイルに限る（定義で書込先を明示する）。session-analyst が自分で書くのは、分析の応答をメインが逐語で書き写すと、転記だけにメインの出力トークンを使うためである。
+- 調査を担う investigator・session-analyst の書き込みは、自分の成果物ファイルに限る（定義で書込先を明示する）。investigator には Edit も与える。調査結果は数十KBになり、差し戻しや自己確認で直すたびに全文を Write し直すと、出力が重複するためである。session-analyst は差し戻しを受けないので Edit を与えない。session-analyst が自分で書くのは、分析の応答をメインが逐語で書き写すと、転記だけにメインの出力トークンを使うためである。
 
 ### 4.2 Skill（9件）
 

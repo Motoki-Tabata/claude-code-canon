@@ -397,13 +397,13 @@ test('全 agent が effort を明示している（未指定だとセッショ�
 
 test('読むだけの役割に Edit を与えない／書く役割は自分の成果物を書ける', () => {
   const toolsOf = (n) => splitListValue(loadArtifact(path.join(SELF, 'agents', n, `${n}.md`)).frontmatter.tools);
-  // investigator・reviewer・keep-reviewer は自分の成果物を1ファイル書くだけ（Write）。Edit は要らない。
-  for (const n of ['investigator', 'reviewer', 'keep-reviewer']) {
+  // reviewer・keep-reviewer は自分の成果物を1ファイル書くだけ（Write）。Edit は要らない。
+  for (const n of ['reviewer', 'keep-reviewer']) {
     assert.ok(toolsOf(n).includes('Write'), `${n} は自分の成果物を書くために Write が要る`);
     assert.ok(!toolsOf(n).includes('Edit'), `${n} に Edit は不要（差し戻しを受けない読み取り中心の役割）`);
   }
-  // 差し戻しで指示の箇所だけを直す役割は Edit を持つ。
-  for (const n of ['spec-writer', 'designer', 'builder']) {
+  // 差し戻しで指示の箇所だけを直す役割は Edit を持つ。investigator は大きい調査結果を全文書き直さずに直す。
+  for (const n of ['investigator', 'spec-writer', 'designer', 'builder']) {
     assert.ok(toolsOf(n).includes('Edit'), `${n} は差し戻しで該当箇所だけを直すために Edit が要る`);
   }
 });

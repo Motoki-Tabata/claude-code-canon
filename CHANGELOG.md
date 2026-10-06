@@ -37,6 +37,8 @@
   出力を P4 に含めます。
 - **生成規約（Skill）**: Skill に `scripts/` などがあるとき、対象リポジトリ直下の同名パスはコマンド形（`bash scripts/x.sh`）か
   地の文で書くと定めました。パス単独のバッククォートは V6 が Skill 内の supporting file と見なして違反にします。
+- **investigator の tools**: Edit を足しました。調査結果を直すときは全文を書き直さず、指示の箇所だけを Edit します
+  （Edit は自分の成果物ファイルだけ）。
 
 ### Fixed
 
