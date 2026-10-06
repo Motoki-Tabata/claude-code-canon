@@ -85,11 +85,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: 14件は「委譲トリガー節が無い」という警告だった。`v6-ref-integrity.js:54` の `DELEGATE_TRIGGER_RE = /Delegate (when|for)/i` は英語だけを見るため、日本語の description（「…ときに委譲される」）は必ず警告になる。生成規約（`generation/references/agents.md:14`）は「いつ委譲するか」を書けとだけ言う。残り49件は、地の文の `spec.md` などのパス様トークンだった。`canon-c/SKILL.md:59` は「P4 で全件を示す」としているが、実際の P4 は種別ごとの要約だった。【中】
 - 提案: 正規表現に日本語の委譲条件（「委譲される」「委譲する」など）を足し、故意の違反を注入するテストで発火を確かめる。対象リポジトリに実在するパスで解決できるトークンは、警告から除く。canon-c:59 を「種別ごとの件数と、代表例を示す」に改める。
 
-## 2026-10-07 mode: new なのに builder が存在しない generated/ を Glob して失敗した（run 20261003_033830・Phase C）
-- 種別: 効率化
-- 何が起きたか: L1・L2・L3 の builder が、keep のコピー済み確認のために Glob を呼び、「Directory does not exist」で失敗した（c52db209 の各 subagent。L1 は L35、L3 は L30・L32、L2 は L32）。`generation/SKILL.md:42` の「コピー済みであることを Glob で確かめ」に、mode の条件が無い。【低】
-- 提案: generation/SKILL.md:42 に「refactor モードで keep があるときだけ」と条件を付ける。対象リポジトリを Glob するときは `node_modules` などの依存ディレクトリを避けるよう指示する。
-
 ## 2026-10-07 管理パス外の変更が散文でしか渡されず、変更後のファイルは Phase D でその場で作られた（run 20261003_033830・Phase C・D）
 - 種別: 欠陥修正
 - 何が起きたか: RUN.md の 3a 節（`.claude/skills/canon-d/scripts/emit-run-manifest.js:160-165`）は、design-map の変更内容を散文で写すだけである。ユーザーが「管理パス外の変更をoutputフォルダ配下に作成して」と依頼し（774bc4a2 L275）、オーケストレーターがその場で `output/<ts>/outside-managed/` を作り、対象の README をコピーして編集した（L292〜L311）。変更後のファイルを作る工程は、canon-c にも canon-d（`canon-d/SKILL.md:58`）にも無い。そのファイルは P4 の承認の外にある。【中】

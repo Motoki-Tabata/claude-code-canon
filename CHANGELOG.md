@@ -45,6 +45,8 @@
   investigation Skill に書きました。
 - **designer の入力**: `official-check.md`（あれば）と、handoff の Phase B 向けの申し送り（逐語）を渡します。
   オーケストレーターが手でプロンプトに足していたものを、canon-b 工程5 の「渡すもの」に入れました。
+- **builder の Glob**: keep のコピー済みを確かめるのは、refactor モードで keep があるときだけにしました。対象リポジトリを
+  Glob するときは、依存ディレクトリを含めないよう範囲を絞ります。
 
 ### Fixed
 
