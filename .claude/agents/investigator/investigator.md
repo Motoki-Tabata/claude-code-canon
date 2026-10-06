@@ -1,7 +1,7 @@
 ---
 name: investigator
 description: Investigate the target project read-only and write one findings file for the requested mode — existing (inventory of existing Claude Code customizations), profile (languages, test setup, CI, conventions; shallow and broad), or focused (deep dive on confirmed requirements plus resolving project_refs). Delegate when the orchestrator runs investigation step 1 (existing and profile, spawned in parallel in one turn) or step 3 (focused, after requirements are approved).
-tools: Read, Grep, Glob, Write
+tools: Read, Grep, Glob, Write, Edit
 model: sonnet
 effort: medium
 skills: [investigation]
@@ -26,5 +26,7 @@ skills: [investigation]
 ## 制約
 
 - 書き込むのは、渡された書込先の1ファイルだけ。対象リポジトリや、他の mode のファイルには書かない（`focused` は `existing.md` を読むだけで、書き換えない）。
+- Edit は自分の成果物ファイルだけに使う。書いたあとの確認で直す箇所が見つかったら、全文を Write し直さずにその箇所だけを Edit する。差し戻しで起動されたときは、handoff.md の「差し戻し」が指す箇所だけを Edit する。
 - 他の Subagent を起動しない。
+- Bash は無い。調べるときは Read・Grep・Glob を使う。glob の brace は入れ子にしない（Grep の `glob` に `{a,{b,c}}` を渡すと、ripgrep が検索せずに拒否する）。
 - 応答は「書いた旨」と、`existing` のときの総数だけを短く返す。本文を会話に再掲しない。

@@ -133,7 +133,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 - designer は機能選定と設計を一続きに行う。機能選定の結果はそのまま design-map に載るので、分けて spawn する利点が無い。
 - builder は層ごとにオーケストレーターが直接起動する。builder をまとめる中継役は置かない（§5.1）。
-- 読み取り専用の調査を担う investigator・session-analyst に Edit は与えず、Write も自分の成果物ファイルに限る（定義で書込先を明示する）。session-analyst が自分で書くのは、分析の応答をメインが逐語で書き写すと、転記だけにメインの出力トークンを使うためである。
+- 調査を担う investigator・session-analyst の書き込みは、自分の成果物ファイルに限る（定義で書込先を明示する）。investigator には Edit も与える。調査結果は数十KBになり、差し戻しや自己確認で直すたびに全文を Write し直すと、出力が重複するためである。session-analyst は差し戻しを受けないので Edit を与えない。session-analyst が自分で書くのは、分析の応答をメインが逐語で書き写すと、転記だけにメインの出力トークンを使うためである。
 
 ### 4.2 Skill（9件）
 
@@ -255,7 +255,7 @@ run の途中で claude-canon 本体の問題を見つけたら、見つけた�
 
 - **置き場所**: run はすべて canon のルートで行う。どの Phase のセッションも canon のルートで起動し、成果物は `work/<ts>`・`output/<ts>` に置く。扱うフォルダは canon と対象プロジェクトの2つだけである。
 - **成果物は追跡しない**: `work/`・`output/` は `.gitignore` の対象で、run の成果物はコミットしない。Phase をまたぐ状態は handoff.md が持ち、承認の後で成果物が変わったことは sha256 の照合（§6.3）が検出する。
-- **canon の版**: run の間、canon 本体の版は固定されない（main を直せば、進行中の run にも効く）。そこで new-run が run を始めたときの HEAD を handoff の `canon_commit` に記録し、各 Phase の開始時にオーケストレーターが現在の HEAD と比べる。違っていれば、`git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs` を示す。`git status --short` で同じパスの未コミットの改修も示す。どちらかがあれば、続けてよいかをユーザーに尋ねる。続けるか、run を作り直すかは人間が決める。
+- **canon の版**: run の間、canon 本体の版は固定されない（main を直せば、進行中の run にも効く）。そこで new-run が run を始めたときの HEAD を handoff の `canon_commit` に記録し、各 Phase の開始時にオーケストレーターが現在の HEAD と比べる。違っていれば、`git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs design guide` を示す。`git status --short` で同じパスの未コミットの改修も示す。どちらかがあれば、続けてよいかをユーザーに尋ねる。続けるか、run を作り直すかは人間が決める。
 - **片付け**: run が終わった後の `work/<ts>`・`output/<ts>` の削除は、人間が判断する。追跡していないので、消すと戻せない。
 - **この方式にした理由**: run ごとに git worktree と専用のブランチを作る方式は、Phase ごとの `cd`、作業ツリーの絶対パスの使い分け、Phase ごとのコミットの権限確認、3つ目のフォルダの管理が運用の負担になった。版の固定とコミットのチェックポイントは、`canon_commit` の照合と承認の sha256 照合で実用上足りる。
 

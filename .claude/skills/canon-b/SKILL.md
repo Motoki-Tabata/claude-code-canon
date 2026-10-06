@@ -16,7 +16,7 @@ Phase B は承認済みの spec だけを入力に、工程5 で design-map を�
 `$ARGUMENTS` は run の ts である。
 
 1. `work/<ts>/handoff.md` を読む。frontmatter の `target`・`mode` を控える。
-2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs` を示す。`git status --short -- .claude lib gates tools docs` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
+2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs design guide` を示す。`git status --short -- .claude lib gates tools docs design guide` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
 3. **承認の照合**: `npm run approvals -- <ts> check --expect P1,P2` を実行する。exit 1 なら、どのゲートのどのファイルが承認後に変わったか（または承認行が無いか）を示し、Phase A のそのゲートで承認を取り直すまで先へ進まない。
 4. **申し送り**: handoff の「申し送り」のうち Phase B 向けのものを先に実施する。実施した結果は P3 の提示に含める。実施しなかったものは理由を添えて示す（黙って落とさない）。
 5. handoff の frontmatter を `phase: B`・`status: in_progress` にする。
@@ -36,6 +36,8 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
    - `output/<ts>/spec.md`（P2 承認済み）
    - `work/<ts>/requirements.md`
    - `work/<ts>/investigation/existing.md`・`profile.md`・`focused.md`
+   - `work/<ts>/investigation/official-check.md`（あれば）
+   - handoff の「申し送り」のうち Phase B 向けのもの（逐語でプロンプトに写す。要約しない）
    - `mode`（handoff の値）と、書込先 `output/<ts>/design-map.md`
 2. design-map.md を読み、次を確かめる。足りなければ差し戻しの手順で直させる。
    - `## Used Features` があり、使う層（L1〜L5）が決まっている。Phase C はこの節で builder を起動する層を決める。

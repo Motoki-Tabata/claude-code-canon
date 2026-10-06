@@ -16,7 +16,7 @@ Phase C は承認済みの design-map から生成物を作り、工程6〜8 と
 `$ARGUMENTS` は run の ts である。
 
 1. `work/<ts>/handoff.md` を読む。frontmatter の `target`・`mode` を控える。
-2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs` を示す。`git status --short -- .claude lib gates tools docs` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
+2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs design guide` を示す。`git status --short -- .claude lib gates tools docs design guide` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
 3. **承認の照合**: `npm run approvals -- <ts> check --expect P1,P2,P3` を実行する。exit 1 なら、どのファイルが承認後に変わったか（または承認行が無いか）を示し、そのゲートで承認を取り直すまで先へ進まない。
 4. **申し送り**: handoff の「申し送り」のうち Phase C 向けのものを先に実施する。結果は P4 の提示に含める。実施しなかったものは理由を添えて示す。
 5. handoff の frontmatter を `phase: C`・`status: in_progress` にする。
@@ -69,6 +69,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
    - Skill `claude-api` に `prompt-audit output/<ts>/generated/` を渡す。報告と diff 案だけを求め、編集は適用させない。報告を `output/<ts>/review/prompt-audit.md` に書く。
    - Skill が使えない環境なら、そのファイルに「実行できなかった」と理由を書き、P4 で明示する。実行していないレビューを「指摘なし」と書かない。
 4. **不在を根拠にした指摘を裏取りする**: 「〜が無い」「〜への言及が無い」を根拠にした指摘は、提示の前に Grep で `generated/` を横断して確かめる。見つかったら、その事実（`file:line`）を指摘に添えて示す。指摘そのものは書き換えない。
+   - コマンドの挙動や実行結果を根拠にした指摘（「このコマンドは〜になる」「この引数は禁止側に倒れる」など）も、提示の前にあなたが一時ディレクトリ（`mktemp -d` で作る。対象や canon の作業ツリーでは試さない）で実行して確かめる。reviewer は Bash を持たず、挙動を推測で書くことがある。コマンド行と実際の出力を指摘に添え、指摘と食い違えばその旨を示す。
 5. **実行を要する受入基準**: spec §8 の受入基準や design-map が、生成物に含まれるテストやスクリプトの実行を求めているなら、あなたが Bash で実行し、コマンド行と実際の出力を P4 に含める。実行できない環境なら「実行して確かめていない」と明記する。読んだだけで「動作を確認した」と言わない。
 6. **生成したスクリプトを現物で動かす**: 生成物に CLI・スクリプト（Hook のハンドラを含む）があるなら、受入基準が求めていなくても、`generated/` にあるそれを**対象の現物に向けて**1回実行し、コマンド行と実際の出力を P4 に含める（対象のファイルを書き換えるものは、書き換えない引数か dry-run で動かす）。`node --test` や `bash -n` は書式とロジックしか示さず、対象の実データでの偽陽性・偽陰性は現物に当てて初めて出る。出力が受入基準と食い違えば、修正ループで扱う。
 

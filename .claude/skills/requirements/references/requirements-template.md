@@ -31,7 +31,7 @@ conflicts: []
 ## 書き方
 
 - `strength_needed` と `priority` は、上の語彙の値だけを書く。推測で新しい値を作らない。`strength_needed` は正典 `docs/00_INDEX.md` の強度3段階（advisory＝CLAUDE.md、deterministic＝Hooks、enforced＝permissions）に対応する。
-- `constraints` は要件とは独立した環境条件で、機能選定の分岐を先に絞る。`experimental` は Agent Teams・Channels・Monitors・Themes・`context: fork` をまとめて許可するかを表す。
+- `constraints` は要件とは独立した環境条件で、機能選定の分岐を先に絞る。`experimental` は Agent Teams・Channels・Monitors・Themes・`context: fork` と、プレビュー段階の組込み Skill（`/design` など）への依存をまとめて許可するかを表す。組込み Skill への依存は、生成物には本文の起動の案内として現れるだけなので、verify の V9 は機械で検出しない（design-map の `## Experimental Dependencies` に書かれたときだけ止める）。
 - **`allowed: false` は「生成物のどこにも現れてはならない」を意味する**（verify の V9 が機械で強制する）。既存改修で「既存が使っていて維持したいが、新規には足さない」場合は `allowed: true` にし、`reason` に「既存を維持・新規追加なし」と書く。`allowed: false` にすると、既存の keep 対象がその機能を使っているだけで違反になる。
 - 禁止したときの波及を、合意の前にユーザーへ伝える。MCP を禁止すると外部連携を含められない（手動手順を L1・L2 に書く形で代える）。Hooks を禁止すると決定論のガードレールを含められない（permissions による承認に下げるか、断念する）。Plugins を禁止すると L5 の配布はできず、個別ファイルの配置だけになる。experimental を禁止すると `context: fork` などは使えない。
 - `conflicts` は、未解消で、かつ `constraints` の実在キーが `allowed: false` で当該要件を禁止しているものだけ。形は次のとおり。無ければ `conflicts: []` と明示する（ブロック自体が無いのと空とは区別される）。

@@ -252,6 +252,14 @@ test('README: 使用例は一覧に載る Skill の起動行で、spec の受入
   assert.doesNotMatch(readme, /functional|A1|non_regression/, '受入基準を写している');
 });
 
+test('README: 配置先で解決できない canon のツール名を書かない', (t) => {
+  const ts = setupComponents(t);
+  emitManifest(ts);
+  const readme = read(path.join(genDir(ts), '.claude', 'README.md'));
+  assert.doesNotMatch(readme, /emit-manifest|claude-canon/, 'canon のツール名を書いている');
+  assert.match(readme, /この README は配置のたびに作り直されます。手で直しても次の配置で置き換わります。/);
+});
+
 test('README と MANIFEST: README 自身も MANIFEST の全ファイルと managed-paths.list に載る', (t) => {
   const ts = setupComponents(t);
   emitManifest(ts);

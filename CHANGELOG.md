@@ -35,11 +35,33 @@
   designer が原本で確かめる項目を design Skill に足しました。
 - **Phase C の品質検査**: 生成物に CLI・スクリプトがあれば、受入基準が求めていなくても、対象の現物に向けて1回実行し、
   出力を P4 に含めます。
+- **生成規約（Skill）**: Skill に `scripts/` などがあるとき、対象リポジトリ直下の同名パスはコマンド形（`bash scripts/x.sh`）か
+  地の文で書くと定めました。パス単独のバッククォートは V6 が Skill 内の supporting file と見なして違反にします。
+- **investigator の tools**: Edit を足しました。調査結果を直すときは全文を書き直さず、指示の箇所だけを Edit します
+  （Edit は自分の成果物ファイルだけ）。
+- **spec-writer の tools**: Grep・Glob を足しました。investigator と spec-writer の定義に、Bash が無いことと、
+  glob の brace を入れ子にしないことを書きました。
+- **focused の調べ方**: 語の分布は Grep の `count`・`files_with_matches` で取り、該当行の抜き出しは対象を絞ってから行うと
+  investigation Skill に書きました。
+- **designer の入力**: `official-check.md`（あれば）と、handoff の Phase B 向けの申し送り（逐語）を渡します。
+  オーケストレーターが手でプロンプトに足していたものを、canon-b 工程5 の「渡すもの」に入れました。
+- **builder の Glob**: keep のコピー済みを確かめるのは、refactor モードで keep があるときだけにしました。対象リポジトリを
+  Glob するときは、依存ディレクトリを含めないよう範囲を絞ります。
+- **experimental の範囲**: プレビュー段階の組込み Skill（`/design` など）への依存を含めました。V9 は生成物の本文の案内を
+  検出せず、design-map の `## Experimental Dependencies` に書かれたときだけ止めます（テストで固定）。ヒアリングでは、
+  既存や参照元が使っている依存を grep で示してから constraints の選択肢を作ります。
+- **ヒアリングの選択肢**: ワーカーの分け方を尋ねるときは、分割軸（領域 × 実装とテストの分離）の組み合わせを網羅します。
+- **工程8 の裏取り**: コマンドの挙動を根拠にした reviewer の指摘は、オーケストレーターが一時ディレクトリで実行して確かめ、
+  コマンド行と出力を添えて示します。
 
 ### Fixed
 
 - **`npm run tokens -- <session-id>`**: canon 以外のプロジェクト（対象プロジェクト）のセッションも解決します。
   canon のディレクトリに無ければ `~/.claude/projects/*` を横断し、複数見つかれば候補を挙げて止まります。
+- **生成物の README の冒頭**: canon のツール名（`emit-manifest.js`）を書かず、「配置のたびに作り直されます」とだけ書きます。
+  配置先の読み手はツール名を解決できないためです。
+- **canon の版の確認**: 各 Phase の開始時に比べるパスに `design/`・`guide/` を足しました。成果物の契約
+  （`design/artifacts.md`）が run の途中で変わっても検出します。
 
 ## [2.1.0] - 2026-10-01
 

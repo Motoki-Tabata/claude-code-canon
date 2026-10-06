@@ -8,6 +8,7 @@
 - **ディレクトリ名と `name:` を一致させる**（一致しないと発動しない失敗になる。verify の V1 が検査する）。
 - supporting files（`references/`・`scripts/`・`examples/`・`template.md`）は、パッケージの直下に置いてよい。必要なときに Claude が読む（段階的開示）。**`SKILL.md` は必須**。supporting files だけのディレクトリは Skill として発動しない。
 - SKILL.md の本文から supporting files を参照するときは、Markdown のリンク（表示名と、`./` から始まる相対パス）にし、**いつ読むか**を添える（「手動で読んで」とだけ書くと Claude は忘れる）。参照先は実在しなければならない（V6）。
+- Skill に `scripts/` などのディレクトリがあるとき、対象リポジトリ直下の同名パスは、コマンド形（`` `bash scripts/x.sh` ``）か地の文で書き、パス単独のバッククォートにしない。第1セグメントが Skill 直下に実在するトークンを、V6 は Skill 内の supporting file への参照と見なし、無ければ違反にする。
 
 ## frontmatter
 

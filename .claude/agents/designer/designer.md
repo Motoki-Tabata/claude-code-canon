@@ -14,6 +14,8 @@ skills: [design]
 - `output/<ts>/spec.md`（承認済み）
 - `work/<ts>/requirements.md`（`strength_needed`・`constraints`・`conflicts`）
 - `work/<ts>/investigation/existing.md`・`profile.md`・`focused.md`
+- `work/<ts>/investigation/official-check.md`（Claude Code の仕様に依存する要件があるときだけ渡される。公式仕様の確認結果）
+- handoff の Phase B 向けの申し送り（プロンプトに逐語で写される。設計で決めるよう求められた事項は design-map で決める）
 - `mode`（`new` か `refactor`）と、書込先 `output/<ts>/design-map.md`
 
 他の run の design-map、検査スクリプトの実装、設計書は読みません。

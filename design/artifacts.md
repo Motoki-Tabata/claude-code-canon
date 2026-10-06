@@ -162,7 +162,7 @@ constraints:
   hooks:        { allowed: true|false, reason: "..." }
   mcp:          { allowed: true|false, reason: "..." }
   plugins:      { allowed: true|false, reason: "..." }
-  experimental: { allowed: true|false, reason: "..." }   # Agent Teams・Channels・Monitors・Themes・context: fork
+  experimental: { allowed: true|false, reason: "..." }   # Agent Teams・Channels・Monitors・Themes・context: fork・プレビュー段階の組込み Skill（/design など）
   organization_policy: <その他、組織ポリシー由来の制約（自由文）>
 
 ## 制約と要件の衝突
@@ -282,7 +282,7 @@ existing_disposition:
 <要件の実現に要る、管理パス集合の外のファイルの変更（任意・§5.6）>
 
 ## Experimental Dependencies
-<context: fork・Agent Teams・Channels・Monitors・Themes への依存箇所（constraints が許すときだけ。V9 が見る）>
+<context: fork・Agent Teams・Channels・Monitors・Themes・プレビュー段階の組込み Skill への依存箇所（constraints が許すときだけ。V9 が見る）>
 
 ## 依存フラグ
 <ネストの段数・isolation: worktree の要否>
@@ -553,7 +553,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
   | `hooks` | ① 生成した JSON（`.claude/settings.json`・`plugin.json`・`.claude-plugin/plugin.json` など）の `hooks` の宣言 ② その宣言のイベント名を正典の全イベント集合と照合 ③ hook スクリプトの実体（`.claude/hooks/**`・`plugin/hooks/**`） ④ frontmatter の `hooks:` |
   | `mcp` | ① `.mcp.json`（plugin 同梱を含む） ② frontmatter の `mcpServers:` ③ `tools`・`disallowedTools`・`allowed-tools`・`disallowed-tools` の中の `mcp__<server>__<tool>` ④ settings.json の `enabledMcpjsonServers` |
   | `plugins` | ① 管理パス集合の L5 パターン（`plugin/**`）に合う生成物 ② `plugin.json`・`marketplace.json` ③ settings.json の `enabledPlugins` |
-  | `experimental` | ① frontmatter の `context: fork` ② 環境変数の**接頭辞** `CLAUDE_CODE_EXPERIMENTAL_`（個別の変数名で書かない） ③ plugin 同梱の `themes/`・`monitors/` ④ design-map の `## Experimental Dependencies` 節が空でない |
+  | `experimental` | ① frontmatter の `context: fork` ② 環境変数の**接頭辞** `CLAUDE_CODE_EXPERIMENTAL_`（個別の変数名で書かない） ③ plugin 同梱の `themes/`・`monitors/` ④ design-map の `## Experimental Dependencies` 節が空でない。プレビュー段階の組込み Skill（`/design` など）への依存は、生成物には本文の起動の案内として現れるだけなので①〜③では検出しない（④に書かれたときだけ止まる） |
   | `organization_policy` | `allowed` を持たない自由文。**機械では判定できない**ことを report に明記する（違反にはしないが、無かったことにもしない）。準拠は reviewer の security 観点が見る |
   | 上記以外のキー | `allowed: false` なら、検出器が無い＝検査できないので**違反** |
 

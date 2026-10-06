@@ -238,8 +238,7 @@ export function renderReadme(comp, { genRoot, files, requirementsText }) {
   const out = [
     '# このプロジェクトの Claude Code カスタマイズ',
     '',
-    'この README は claude-canon の emit-manifest.js が、生成物の frontmatter と設定から規則で導いたものです。',
-    '手で直しても次の配置で置き換わります。',
+    'この README は配置のたびに作り直されます。手で直しても次の配置で置き換わります。',
     '',
     '## できること',
   ];

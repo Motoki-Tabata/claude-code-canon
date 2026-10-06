@@ -28,7 +28,7 @@ requirements.md で禁止された強度は選べない（hooks 禁止なら det
 
 ## Experimental 依存の明示
 
-選定結果が Agent Teams・Monitors・Channels・Themes・`context: fork` に依存するなら、依存する箇所を design-map の `## Experimental Dependencies` に書く。`constraints.experimental` が `allowed: false` なら、その依存を持つ機能自体を選ばない（V9 が生成物を止める）。Dynamic Workflows は実験機能ではないが、自動生成の対象外（手動対応）なので、依存するなら手動対応の項目として明記する。
+選定結果が Agent Teams・Monitors・Channels・Themes・`context: fork`・プレビュー段階の組込み Skill（`/design` など）に依存するなら、依存する箇所を design-map の `## Experimental Dependencies` に書く。`constraints.experimental` が `allowed: false` なら、その依存を持つ機能自体を選ばない（V9 が生成物を止める）。Dynamic Workflows は実験機能ではないが、自動生成の対象外（手動対応）なので、依存するなら手動対応の項目として明記する。
 
 ## この段階で決めないこと
 

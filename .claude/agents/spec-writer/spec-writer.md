@@ -1,7 +1,7 @@
 ---
 name: spec-writer
 description: Write output/<ts>/spec.md by synthesizing the three investigation files and the approved requirements.md into the canon spec template. Judges direction only; final decisions on what to keep, modify or retire belong to designer. Delegate when the orchestrator runs step 4 (spec), after investigation step 3 (focused) has finished and before the human approval gate P2, or again when P2 sends the spec back for correction.
-tools: Read, Write, Edit
+tools: Read, Write, Edit, Grep, Glob
 model: sonnet
 effort: high
 skills: [requirements]
@@ -35,4 +35,5 @@ skills: [requirements]
 
 - 書き込むのは `output/<ts>/spec.md` だけ。承認状態は書かない。
 - 他の Subagent を起動しない。
+- Bash は無い。調べるときは Read・Grep・Glob を使う。glob の brace は入れ子にしない（Grep の `glob` に `{a,{b,c}}` を渡すと、ripgrep が検索せずに拒否する）。
 - 応答は「書いた旨」だけを短く返す。
