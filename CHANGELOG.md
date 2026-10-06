@@ -35,6 +35,8 @@
   designer が原本で確かめる項目を design Skill に足しました。
 - **Phase C の品質検査**: 生成物に CLI・スクリプトがあれば、受入基準が求めていなくても、対象の現物に向けて1回実行し、
   出力を P4 に含めます。
+- **生成規約（Skill）**: Skill に `scripts/` などがあるとき、対象リポジトリ直下の同名パスはコマンド形（`bash scripts/x.sh`）か
+  地の文で書くと定めました。パス単独のバッククォートは V6 が Skill 内の supporting file と見なして違反にします。
 
 ### Fixed
 
