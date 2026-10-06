@@ -41,6 +41,8 @@
   （Edit は自分の成果物ファイルだけ）。
 - **spec-writer の tools**: Grep・Glob を足しました。investigator と spec-writer の定義に、Bash が無いことと、
   glob の brace を入れ子にしないことを書きました。
+- **focused の調べ方**: 語の分布は Grep の `count`・`files_with_matches` で取り、該当行の抜き出しは対象を絞ってから行うと
+  investigation Skill に書きました。
 
 ### Fixed
 

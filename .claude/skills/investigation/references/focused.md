@@ -23,6 +23,11 @@ ref_resolution:
   - ref: "./scripts/x.sh"  kind: supporting_file  resolved: false  reason: "not found"
 ```
 
+## 調べ方
+
+- 語がどこにどれだけあるかは、Grep の `output_mode` を `count` か `files_with_matches` にして取る。該当行の抜き出し（`content`）は、分布を見て対象のファイルを絞ってから行う。ディレクトリ全体を `content` で引くと出力が大きくなり、会話に入らずにファイルへ退避される。
+- 多数の語を `|` で並べた検索は、語ごとの分布を見てから必要な語に絞る。
+
 ## 書き方
 
 - `evidence_paths` は必須。根拠のパスを示せない findings は書かない（幻覚の防止）。`extractable_templates` は、生成物をこのプロジェクトに接地させる素材になる。

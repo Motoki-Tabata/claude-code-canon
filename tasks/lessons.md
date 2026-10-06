@@ -50,11 +50,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: packages のワーカー構成を「packages用を新設／solver と data を別々に新設／作らない」で尋ねた（6bd7bab8 L117）。ユーザーは Other を選び「packages用に2つとどちらがいい？…手戻りも少なくできるようにしたい」と尋ね返した（L123）。そこで4体案（solver/data × 実装/テスト）を出し直した（L133→L139 で合意）。【低】
 - 提案: `requirements/references/interview.md` に「層や役割の分け方を尋ねるときは、分割軸（領域ごと×実装とテストを分けるか）の組み合わせを選択肢に網羅する」を足す（原因の特定は推測）。
 
-## 2026-10-07 focused 調査の Grep を content モードで広く引き、46KB・58KB の出力が退避された（run 20261003_033830・Phase A）
-- 種別: 効率化
-- 何が起きたか: focused の investigator（6bd7bab8 の subagent agent-a7dfccea）が、参照元の `scripts/` を `backend|frontend|…` で content モード検索し、2件とも tool-results に退避された。`.claude/skills/investigation/references/focused.md` に検索の作法が無い（原因は推測）。【低】
-- 提案: investigation の references に「語の分布は `count`／`files_with_matches` で取り、該当行の抜き出しはファイルを絞ってから行う」を足す。
-
 ## 2026-10-07 designer の入力に official-check.md と handoff の申し送りが無く、オーケストレーターが手で足した（run 20261003_033830・Phase B）
 - 種別: 欠陥修正
 - 何が起きたか: Phase B のオーケストレーターが、official-check.md（「補足として参照可」）と、handoff の Phase B 向け申し送り4点を手で designer のプロンプトに足した（3204de3a L67）。`canon-b/SKILL.md:35-39` の「渡すもの」と `designer.md:14-19`（「これだけを読む」）に official-check.md が無い。spec-writer（`spec-writer.md:15`）には渡しているので、扱いが揃っていない。canon-b:21 は申し送りを「先に実施する」と書くだけで、designer に渡す手順が無い。【中】
