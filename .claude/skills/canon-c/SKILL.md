@@ -56,7 +56,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 1. `npm run verify -- <ts>` を実行する。`output/<ts>/verify-report.md` が書かれる。
 2. exit 1 なら、report の違反を層ごとに分け、handoff の「差し戻し」に逐語で書き、該当する層の builder を新しく起動して直させる。直したら `npm run manifest -- <ts>` → `npm run verify -- <ts>` をやり直す。違反がなくなるまで繰り返す。
-3. warning は exit code に影響しないが、P4 で全件を示す。
+3. warning は exit code に影響しないが、P4 で示す。種別ごとの件数と代表例を示す（全件は `verify-report.md` にある。パス様トークンの warning は1ファイルにつき1件にまとまっている）。
 4. 違反が keep のファイルにある（V7）なら、builder では直せない。keep は design-map が正なので、下の「keep に及ぶ修正」の手順で P3 に戻す。
 
 ## 工程8 品質検査
