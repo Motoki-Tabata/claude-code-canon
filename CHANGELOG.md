@@ -47,6 +47,9 @@
   オーケストレーターが手でプロンプトに足していたものを、canon-b 工程5 の「渡すもの」に入れました。
 - **builder の Glob**: keep のコピー済みを確かめるのは、refactor モードで keep があるときだけにしました。対象リポジトリを
   Glob するときは、依存ディレクトリを含めないよう範囲を絞ります。
+- **experimental の範囲**: プレビュー段階の組込み Skill（`/design` など）への依存を含めました。V9 は生成物の本文の案内を
+  検出せず、design-map の `## Experimental Dependencies` に書かれたときだけ止めます（テストで固定）。ヒアリングでは、
+  既存や参照元が使っている依存を grep で示してから constraints の選択肢を作ります。
 
 ### Fixed
 

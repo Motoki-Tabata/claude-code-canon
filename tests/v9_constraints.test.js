@@ -191,6 +191,21 @@ test('V9: experimental 禁止 × design-map の Experimental Dependencies 箇条
   assert.ok(r.violations.some((v) => v.includes('Experimental Dependencies')));
 });
 
+test('V9: プレビュー段階の組込み Skill（/design）への依存は、本文の案内では検出せず、Experimental Dependencies の宣言でだけ止める', (t) => {
+  // 検出の限界を固定する（requirements-template.md・artifacts.md §8.2 V9 の experimental ④）。
+  const c = setupSampleRepo(t, 'constrained', nextTs());
+  write(c, '.claude/skills/screen/SKILL.md', '---\nname: screen\ndescription: 画面を設計する\n---\nユーザーに `/design` を実行してもらう。\n');
+  assert.equal(v9(c.ts).ok, true, '本文の起動の案内は散文として扱い、検出しない');
+  const p = path.join(c.out, 'design-map.md');
+  writeFileSync(
+    p,
+    readFileSync(p, 'utf8').replace(/## Experimental Dependencies\n[^\n]*/, '## Experimental Dependencies\n- screen が組込みの /design（Claude Design）に依存')
+  );
+  const r = v9(c.ts);
+  assert.equal(r.ok, false);
+  assert.ok(r.violations.some((v) => v.includes('Experimental Dependencies')));
+});
+
 test('V9: 「なし」と書かれた Experimental Dependencies 節を違反にしない（偽陽性の封鎖）', (t) => {
   // 機能名を並べた否定の散文（「context:fork / Agent Teams とも不使用」）で落ちてはならない。
   const c = setupSampleRepo(t, 'constrained', nextTs());

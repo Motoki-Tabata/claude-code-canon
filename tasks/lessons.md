@@ -40,11 +40,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: オーケストレーターは `lib/requirements.js` を読み、過去 run の節構成を調べ、`node -e` で `parseRequirementsDoc` を呼んで確かめた（6bd7bab8 L179〜L212）。途中で `outside_managed` の値を sed で直している（L206）。`canon-a/SKILL.md:56` は「verify がこの書式を機械で読む」と書くだけで、崩れは Phase C の V9 まで見つからない。テンプレートは、散文の節を足してよいかにも触れていない。【中】
 - 提案: `npm run requirements-check -- <ts>` を作る。要件の件数、強度・優先度の内訳、constraints を出力させ、canon-a 工程2-5・2-6（件数の数え直し）に組み込む。requirements-template.md に「散文の小節を足してよい（parser は見出しに依存しない）」を1行足す。
 
-## 2026-10-07 experimental の定義に組込み Skill への依存が無く、推奨した「禁止」をユーザーに訂正された（run 20261003_033830・Phase A）
-- 種別: 規律昇華
-- 何が起きたか: constraints の推奨を「3つとも禁止」として示したところ、ユーザーが「vimではClaudeDesignは許可しているはず」と訂正した（6bd7bab8 L139）。定義の調査・追加の質問・claude-code-guide の起動で約5分かかった（L142〜L270）。experimental の定義（`requirements-template.md:34`・`design/artifacts.md:165`）と V9 の検出対象（`artifacts.md:556`）には、プレビュー段階の組込み Skill への依存が無い。参照元で使っていないことを理由に禁止を推奨したのは、`canon-a/SKILL.md:55`（使っていないだけなら allowed: true）とも食い違う（オーケストレーターの誤り。ただし選択肢の作り方に手順が無いことも原因、というのは推測）。【中】
-- 提案: experimental の定義に組込み Skill への依存を足し、V9 の検出対象にするか、対象外であることを明記する。`interview.md` の constraints の節に「既存（または参照元）の permissions・frontmatter を grep し、使っている依存を示してから選択肢を作る」を足す。
-
 ## 2026-10-07 ワーカーの分け方を尋ねる選択肢が分割軸を網羅しておらず、ヒアリングが1往復増えた（run 20261003_033830・Phase A）
 - 種別: 規律昇華
 - 何が起きたか: packages のワーカー構成を「packages用を新設／solver と data を別々に新設／作らない」で尋ねた（6bd7bab8 L117）。ユーザーは Other を選び「packages用に2つとどちらがいい？…手戻りも少なくできるようにしたい」と尋ね返した（L123）。そこで4体案（solver/data × 実装/テスト）を出し直した（L133→L139 で合意）。【低】
