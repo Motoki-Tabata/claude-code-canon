@@ -12,13 +12,14 @@
  * ディレクトリ名から取る。
  *
  *   usage: node .claude/skills/canon-d/scripts/pre-deploy-check.js <output-dir> <target-repo-dir>
- *   exit 0 : 消えるものが無い／retired のみ（配置してよい）
+ *   exit 0 : 消えるものが無い／retired のみ（配置してよい。配置先が既定ブランチ・未コミットの変更ありは report の warning で exit に影響しない）
  *   exit 1 : uncaptured または list の書式欠陥（glob・実在しない行・管理パス集合外の行）を検出（配置を止め、調査 or design-map へ差し戻す）／入力不在／自己指定の拒否
  *   exit 2 : 引数不正
  */
 
 import path from 'node:path';
 import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { hashGate } from '../../../../lib/tree-hash.js';
 import { walkManagedDetailed, readList, checkConcreteEntries, findUnmanagedEntries } from '../../../../lib/managed-paths.js';
@@ -64,6 +65,31 @@ export function checkDeployLists(outputDir) {
 }
 
 /**
+ * 配置先の git の状態を読む（配置は対象の作業ツリーへ直接行われ、未コミットのまま終わる）。
+ * 既定ブランチは `origin/HEAD`、無ければ main・master。git でない・読めないときは `unknown` に理由を入れる
+ * （警告なしに見えないよう、report に「確認できなかった」と書く）。
+ * @returns {{branch:string|null, defaultBranches:string[], onDefault:boolean, dirty:string[], unknown:string|null}}
+ */
+export function readGitState(targetDir) {
+  const git = (...args) => execFileSync('git', ['-C', targetDir, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  try {
+    if (git('rev-parse', '--is-inside-work-tree') !== 'true') return { branch: null, defaultBranches: [], onDefault: false, dirty: [], unknown: 'git の作業ツリーでない' };
+    const branch = git('rev-parse', '--abbrev-ref', 'HEAD');
+    let defaults = ['main', 'master'];
+    try {
+      defaults = [git('symbolic-ref', '--short', 'refs/remotes/origin/HEAD').replace(/^origin\//, ''), ...defaults];
+    } catch {
+      // origin/HEAD が無い（clone でない等）。main・master で判定する。
+    }
+    // 配置が対象に作る .claude-canon.bak.* は、過去の配置の残骸であって未コミットの変更ではない。
+    const dirty = git('status', '--porcelain').split('\n').filter((l) => l && !/\.claude-canon\.bak\./.test(l));
+    return { branch, defaultBranches: defaults, onDefault: defaults.includes(branch), dirty, unknown: null };
+  } catch (err) {
+    return { branch: null, defaultBranches: [], onDefault: false, dirty: [], unknown: `git を読めない（${err.code ?? err.message}）` };
+  }
+}
+
+/**
  * 消失予定（対象に在って output に無い管理ファイル）を retired/uncaptured に区分する。
  * @param {string} outputDir  output/<ts>/（generated/ ＋ deploy/ を含む）
  * @param {string} targetDir  対象リポジトリのルート
@@ -90,8 +116,9 @@ export function computeVanishing(outputDir, targetDir) {
       uncaptured.push(rel);
     }
   }
+  const git = readGitState(targetDir);
   const deployCount = (readList(path.join(outputDir, 'deploy', 'managed-paths.list')) ?? []).length;
-  return { vanishing, retired, uncaptured, targetManaged, unreadable, listDefects, deployCount };
+  return { vanishing, retired, uncaptured, targetManaged, unreadable, listDefects, deployCount, git };
 }
 
 /** report に書く generated/ のハッシュの行（generated/ が無い・空ならその旨）。 */
@@ -149,6 +176,21 @@ export function renderReport(outputDir, targetDir, r) {
     lines.push('');
     lines.push(`⚠ 走査不能: ${r.unreadable.length} 件（管理パス集合の一部を列挙できていない＝本照合の盲点）。`);
     for (const u of r.unreadable) lines.push(`  [unreadable:${u.code}] ${u.rel}`);
+  }
+  const g = r.git;
+  if (g) {
+    if (g.unknown) {
+      lines.push('', `⚠ 配置先のブランチと未コミットの変更を確認できなかった: ${g.unknown}。配置の前に人間が確かめること。`);
+    } else {
+      if (g.onDefault) {
+        lines.push('', `⚠ 配置先が既定ブランチ（${g.branch}）にいる。保護されたブランチへは直接 push できないことが多いので、配置の前に作業ブランチを切ること（git -C <target> switch -c <branch>）。`);
+      }
+      if (g.dirty.length > 0) {
+        lines.push('', `⚠ 配置先に未コミットの変更が ${g.dirty.length} 件ある。配置の差分と混ざるので、先にコミットか退避をすること。`);
+        for (const l of g.dirty.slice(0, 10)) lines.push(`  [dirty] ${l}`);
+        if (g.dirty.length > 10) lines.push(`  …ほか ${g.dirty.length - 10} 件`);
+      }
+    }
   }
   return lines.join('\n') + '\n';
 }
