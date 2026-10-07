@@ -158,7 +158,7 @@ rm -rf work/<ts> output/<ts>
 | `npm run pre-deploy -- <output-dir> <target-dir>` | 配置前照合。uncaptured があれば exit 1 | D |
 | `npm run deploy -- <output-dir> <target-dir> [--confirm]` | 配置。`--confirm` が無ければ予定の表示だけ | D（人間） |
 | `npm run build:tables` | `docs/` から判定表を生成する | 保守 |
-| `npm run tokens -- <session-id \| jsonl のパス>` | セッションのトークン消費を集計する | 保守 |
+| `npm run tokens -- <session-id \| jsonl のパス>` | セッションのトークン消費を集計する（Phase D の終わりの振り返りでも使う） | 保守 |
 | `npm test` | テスト | 保守 |
 
 ## 7. 正典 `docs/` の更新

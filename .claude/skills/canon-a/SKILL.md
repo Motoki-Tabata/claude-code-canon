@@ -84,7 +84,8 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 1. 設定済みの ScheduleWakeup・loop があれば止める（Phase の終了後に発火して次の Phase と並走するのを防ぐ）。
 2. handoff.md を `npm run handoff` で更新する: 工程2〜4 に `mark` で印を付け（工程1 は付け済み）、`set phase=B status=waiting_approval` で frontmatter を直し、`note 申し送り "<文>"` で Phase B 以降でやることを1件ずつ書く。
 3. 承認の照合を確かめる: `npm run approvals -- <ts> check --expect P1,P2` が exit 0 であること。
-4. 次のように案内して止まる。モデルはエイリアスで書く。
+4. SKILL.md の手順の外で行った操作（手順に無い Write・Edit・sed・コマンド、承認の前に進めたこと）を列挙し、あれば `tasks/lessons.md` に起票する。無ければ「無し」と報告する。
+5. 次のように案内して止まる。モデルはエイリアスで書く。
    > Phase A が完了しました。次は新しいセッションで Phase B を実行してください。
    > canon のルートで `claude --model opus` → `/canon-b <ts>`
 

@@ -27,6 +27,7 @@ work/<ts>/
 │   └─ official-check.md           工程3: Claude Code の公式仕様の確認（仕様に依存する要件があるときだけ・§2.5）
 ├─ requirements.md                 工程2: 合意した要件（§3）
 ├─ session-analysis-<名前>.md      工程2: 過去のセッション履歴の分析（指定があるときだけ・session-analyst が書く）
+├─ retro/session-analysis-<phase>.md  Phase D の終わり: run の各セッションの振り返り（session-analyst が書く。台帳への起票の材料）
 ├─ slices/                         Phase C: design-map のワーカー別スライス（§5.4）
 └─ review-bundle/                  Phase C: レビューの判定入力（§9）
 

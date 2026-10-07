@@ -118,7 +118,8 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 1. 設定済みの ScheduleWakeup・loop があれば止める。
 2. handoff.md を `npm run handoff` で更新する: `mark 工程6`・`mark 工程7`・`mark 工程8` で印を付け、`set phase=D status=waiting_approval` で frontmatter を直し、`note 申し送り "<文>"` で Phase D でやること（例: 配置前に人間が行う手作業）を書く。
 3. `npm run approvals -- <ts> check --expect P1,P2,P3,P4` が exit 0 であることを確かめる。
-4. 次のように案内して止まる。
+4. SKILL.md の手順の外で行った操作（手順に無い Write・Edit・sed・コマンド、承認の前に進めたこと）を列挙し、あれば `tasks/lessons.md` に起票する。無ければ「無し」と報告する。
+5. 次のように案内して止まる。
    > Phase C が完了しました。次は新しいセッションで Phase D を実行してください。
    > `claude --model sonnet`（canon のルートで起動）→ `/canon-d <ts>`
 
