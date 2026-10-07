@@ -153,7 +153,7 @@ rm -rf work/<ts> output/<ts>
 | `npm run copy-keep -- <ts>` | keep の原本を generated/ にバイト単位でコピーする | C |
 | `npm run manifest -- <ts>` | MANIFEST・README・配置リストを決定論で生成する | C |
 | `npm run verify -- <ts>` | V1〜V9 の検証。`verify-report.md` を書き、違反があれば exit 1 | C |
-| `npm run review-bundle -- <ts>` | keep-reviewer の判定入力を作る | C |
+| `npm run review-bundle -- <ts>` | reviewer（対象を20件ずつの `INDEX-<k>.md` に分ける）と keep-reviewer の判定入力を作る | C |
 | `npm run run-manifest -- <output-dir> <target-dir>` | 配置手順書 RUN.md を書く | D |
 | `npm run pre-deploy -- <output-dir> <target-dir>` | 配置前照合。uncaptured があれば exit 1 | D |
 | `npm run deploy -- <output-dir> <target-dir> [--confirm]` | 配置。`--confirm` が無ければ予定の表示だけ | D（人間） |

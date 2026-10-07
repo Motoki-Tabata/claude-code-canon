@@ -13,6 +13,7 @@ import { runNodeScript } from './helpers/run-cli.js';
 import { ROOT, outputDir, workDir } from './helpers/paths.js';
 import { tsFor } from './helpers/ts.js';
 import { checkDesignMap, checkRequirements, checkSpec, mentionedIds } from '../tools/check.js';
+import { parseReferenceSources } from '../lib/requirements.js';
 
 const REQ = `## 確定要件
 - id: R1
@@ -121,6 +122,18 @@ test('requirements: 語彙外の強度・conflicts の欠落・確定要件の�
   assert.equal(noReq[0].ok, false);
 });
 
+test('参照元: 節が無ければ [] で、あればパスと role を読む。check は実在と絶対パスを見る（故意の違反）', () => {
+  assert.deepEqual(parseReferenceSources(REQ), []);
+  const withRef = (p) => `${REQ}\n## 参照元\n- path: ${p}\n  role: 移植の基準\n`;
+  assert.deepEqual(parseReferenceSources(withRef('/a/b')).map((r) => [r.path, r.role]), [['/a/b', '移植の基準']]);
+  // 実在する絶対パス → 全項目 OK
+  assert.deepEqual(names(checkRequirements(withRef(ROOT))), []);
+  // 実在しない・相対パス・path 欠落 → それぞれ NG
+  assert.deepEqual(names(checkRequirements(withRef('/no/such/dir-xyz'))), ['参照元の実在']);
+  assert.deepEqual(names(checkRequirements(withRef('relative/dir'))), ['参照元のパス']);
+  assert.deepEqual(names(checkRequirements(`${REQ}\n## 参照元\n- role: 基準だけ\n`)), ['参照元のパス']);
+});
+
 test('spec: §9 が空・mandatory あり は OK。未決の論点・mandatory 無しは NG', () => {
   assert.deepEqual(names(checkSpec(SPEC)), []);
   assert.deepEqual(names(checkSpec(SPEC.replace('なし。', '- 論点: 決めてほしい'))), ['§9 未決事項が空']);
@@ -152,6 +165,18 @@ test('design-map: 故意の違反をそれぞれ NG にする', () => {
   // 管理パス外の変更が outside_managed の範囲外・根拠が試行待ち
   assert.deepEqual(run(DM.replace('`docs/x.md`', '`src/x.md`')), ['管理パス外の変更']);
   assert.deepEqual(run(DM.replace('根拠: 変えない', '根拠: 試行待ち')), ['管理パス外の変更']);
+});
+
+test('design-map: 参照元からのコピーの書式・宣言・配下を点検する（故意の違反）', () => {
+  const REF = '/abs/ref';
+  const req = `${REQ}\n## 参照元\n- path: ${REF}\n  role: 基準\n`;
+  const withCopy = (line) => `${DM}\n## 参照元からのコピー\n- ${line}\n`;
+  const run = (text) => names(checkDesignMap(text, { spec: SPEC, existing: EXISTING, requirements: req }));
+  assert.deepEqual(run(withCopy(`${REF}/a.sh → .claude/skills/s/SKILL.md`)), [], '正しい行は OK');
+  assert.deepEqual(run(withCopy('矢印の無い行')), ['## 参照元からのコピーの書式']);
+  assert.deepEqual(run(withCopy(`${REF}/a.sh → docs/a.sh`)), ['## 参照元からのコピーの書式']);
+  assert.deepEqual(run(withCopy(`${REF}/a.sh → .claude/skills/s/other.sh`)), ['参照元からのコピーの生成先が層の節に宣言されている']);
+  assert.deepEqual(run(withCopy('/elsewhere/a.sh → .claude/skills/s/SKILL.md')), ['コピー元が requirements.md の `## 参照元` の配下']);
 });
 
 test('design-map: 既存が0件（new）なら既存判定の節が無くてよい。既存があるのに無ければ NG', () => {

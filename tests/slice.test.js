@@ -17,8 +17,8 @@ import { runScript } from './helpers/run-cli.js';
 import { cleanupTs } from './helpers/fixtures.js';
 import { SAMPLE_REPOS } from './helpers/sample-repos.js';
 import { tsFor } from './helpers/ts.js';
-import { buildSlices } from '../lib/design-slices.js';
-import { listDeclaredArtifacts, DesignMapError } from '../lib/design-map.js';
+import { buildSlices, chunkSkills, SKILLS_SLICE_SIZE } from '../lib/design-slices.js';
+import { listDeclaredArtifacts, DesignMapError, parseReferenceCopies } from '../lib/design-map.js';
 
 const fixtureMap = (name) => SAMPLE_REPOS[name]['expected-output/design-map.md'];
 
@@ -216,4 +216,94 @@ test('slice.js は import しただけでは実行されない（main ガード�
     encoding: 'utf8',
   });
   assert.equal(out.trim(), 'imported');
+});
+
+// ---- skills 層の分割（SKILLS_SLICE_SIZE 件超）と参照元からのコピー ----
+
+/** skill を n 個、1つにつき files 件（SKILL.md ＋ scripts/f<i>.sh）宣言する design-map。偶数番目の skill は modify レコードを持つ。 */
+function bigSkillsMap(n, filesPer) {
+  const names = Array.from({ length: n }, (_, i) => `s${String(i + 1).padStart(2, '0')}`);
+  const decl = names.flatMap((nm) => [
+    `### \`.claude/skills/${nm}/SKILL.md\`（新規）`,
+    ...Array.from({ length: filesPer - 1 }, (_, j) => `### \`.claude/skills/${nm}/scripts/f${j}.sh\`（新規）`),
+  ]);
+  const recs = names.filter((_, i) => i % 2 === 1).map((nm) => `  - path: .claude/skills/${nm}/SKILL.md\n    disposition: modify\n    interface_change: none`);
+  return `# dm
+
+## Used Features
+- Skills
+
+## 既存判定
+
+\`\`\`yaml
+existing_disposition:
+${recs.join('\n')}
+\`\`\`
+
+## L2
+L2 の前置き（全 builder 共通）
+
+${decl.join('\n本文\n')}
+本文
+
+## 参照元からのコピー
+- /ref/a/run.mjs → .claude/skills/s01/scripts/f0.sh
+- \`/ref/a/b.md\` -> \`.claude/skills/s02/b.md\`
+- 矢印の無い行
+`;
+}
+
+test('chunkSkills: 件数がしきい値以下なら分割しない。超えたら skill を割らずに詰める', () => {
+  const mk = (n, per) => Array.from({ length: n }, (_, i) => Array.from({ length: per }, (_, j) => `.claude/skills/s${i}/f${j}.md`)).flat();
+  assert.deepEqual(chunkSkills(mk(SKILLS_SLICE_SIZE, 1)), [], 'ちょうど20件は分割しない');
+  assert.equal(chunkSkills(mk(SKILLS_SLICE_SIZE + 1, 1)).length, 2);
+  // 1つの skill が20件を超えるときは、その skill だけで1チャンク（割らない）
+  const big = [...mk(1, 25), '.claude/skills/z/SKILL.md'];
+  assert.deepEqual(chunkSkills(big).map((c) => c.length), [1, 1]);
+});
+
+test('buildSlices: L2 が21件以上なら skills-<k>.md・targets-l2-<k>.txt に分かれ、全宣言がちょうど1つに入る', () => {
+  const small = buildSlices(bigSkillsMap(10, 2)); // 20件
+  assert.equal(small.counts.skills_slices, 0);
+  assert.equal(Object.keys(small.files).some((f) => /^skills-\d+\.md$/.test(f)), false, '20件ちょうどでは分割ファイルを作らない');
+
+  const { files, counts } = buildSlices(bigSkillsMap(11, 2)); // 22件
+  assert.equal(counts.l2, 22);
+  assert.ok(counts.skills_slices >= 2);
+  // 全体のスライスは残る
+  assert.equal(files['targets-l2.txt'].trim().split('\n').length, 22);
+  assert.match(files['skills.md'], /s11\/SKILL\.md/);
+  // 分割後の和集合＝全体、かつ重複なし
+  const seen = [];
+  for (let k = 1; k <= counts.skills_slices; k++) {
+    const paths = files[`targets-l2-${k}.txt`].trim().split('\n');
+    assert.ok(paths.length <= SKILLS_SLICE_SIZE, `チャンク${k}が${paths.length}件`);
+    seen.push(...paths);
+    // 宣言の見出しは、そのチャンクの targets にあるものだけがスライスに入る
+    const decls = [...files[`skills-${k}.md`].matchAll(/^### `([^`]+)`/gm)].map((m) => m[1]).sort();
+    assert.deepEqual(decls, [...paths].sort(), `skills-${k}.md の宣言と targets-l2-${k}.txt が一致しない`);
+    assert.match(files[`skills-${k}.md`], /L2 の前置き/, '前置きが全チャンクに入る');
+    // disposition レコードは、そのチャンクの skill のものだけ
+    for (const m of files[`skills-${k}.md`].matchAll(/path: (\.claude\/skills\/[^\n]+)/g)) assert.ok(paths.includes(m[1]), `${m[1]} が別のチャンクのレコード`);
+  }
+  assert.deepEqual([...seen].sort(), files['targets-l2.txt'].trim().split('\n'));
+  // modify レコード（偶数番目の5件）は全体でちょうど1回ずつ現れる
+  const recs = Array.from({ length: counts.skills_slices }, (_, i) => files[`skills-${i + 1}.md`]).join('').match(/disposition: modify/g) ?? [];
+  assert.equal(recs.length, 5);
+});
+
+test('parseReferenceCopies: 矢印の両形・バッククォート・矢印なし行を読み、節が無ければ []', () => {
+  assert.deepEqual(parseReferenceCopies(SYNTH), []);
+  const r = parseReferenceCopies(bigSkillsMap(1, 1));
+  assert.deepEqual(r.map((x) => [x.from, x.to]), [
+    ['/ref/a/run.mjs', '.claude/skills/s01/scripts/f0.sh'],
+    ['/ref/a/b.md', '.claude/skills/s02/b.md'],
+    ['矢印の無い行', null],
+  ]);
+});
+
+test('参照元からのコピーの節は common.md に入り、builder に渡る（other-sections.md に落ちない）', () => {
+  const { files } = buildSlices(bigSkillsMap(1, 1));
+  assert.match(files['common.md'], /## 参照元からのコピー/);
+  assert.doesNotMatch(files['other-sections.md'], /参照元からのコピー/);
 });

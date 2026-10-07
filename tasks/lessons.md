@@ -20,31 +20,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 
 ---
 
-## 2026-10-03 「別プロジェクトのカスタマイズ一式を参考に作る」入力を受ける欄が無い（run 20261003_033830・Phase A）
-- 種別: 規律昇華
-- 何が起きたか: 対象（skillweave-mhwilds）とは別の参照元プロジェクト（vehicle-intake-management）の一式を移植の基準にする依頼だった。new-run・investigator（existing・focused）・requirements-template のいずれにも参照元の欄が無く、requirements.md の散文小節と handoff の申し送りに絶対パスを書いて後工程へ運ぶしかなかった（focused の `project_refs` は対象内の参照の解決用で、外部プロジェクトの一式は扱わない）。
-- 提案: `.claude/skills/requirements/references/requirements-template.md` に任意の `## 参照元` 節（パスと「移植の基準・生成物には書かない」の別）を足し、`canon-a` 工程3・4 と designer・builder への受け渡しでこの節を読む旨を書く。investigator に `mode: reference`（参照元の一式の棚卸し）を足すかは、要否を次の同種の run で判断する。
-
-## 2026-10-03 builder が書いたテストを実行する工程が canon-c に無く、必ず失敗するテストが工程8まで残った（run 20261003_033830・Phase C）
-- 種別: 効率化
-- 何が起きたか: builder（Read・Write・Edit・Glob だけ。シェルなし）が書いた `agent-write-guard.test.mjs` の新規テスト1件が、フィクスチャの欠陥（root を `os.tmpdir()` 直下に作り tmpdir も同値を渡すため、`../` が常に許可側に解決される）で環境に関わらず失敗した。verify（V1〜V9）は実行を伴わないので通り、工程8-6 の現物実行をオーケストレーターが手で行って初めて見つかった。参照元の同種のテストは通っていたので、移植元との差分が原因の切り分けになった。
-- 提案: `.claude/skills/canon-c/SKILL.md` の工程7 に、「生成物に `*.test.mjs` があれば、`generated/` を対象のコピーに重ねた一時ディレクトリで `node --test` を全件実行し、失敗を verify の違反と同じに扱う」を足す（オーケストレーターが手で行う手順を明文化する。実装は `npm run` の道具にしてもよい）。
-
-## 2026-10-07 skills 層の builder が参照元の大きなスクリプトを打ち直し、26分かかって Phase C の律速になった（run 20261003_033830・Phase C）
-- 種別: 効率化
-- 何が起きたか: L2 の builder（c52db209 の subagent agent-a7c7b4600c812efeb）は 05:44〜06:10 に稼働し、文脈は最大約53万トークンに達した。参照元の `bash-write.mjs`（40KB）・`agent-write-guard.test.mjs`（45KB）などを Read で全文読み、Write で書き直した。配置後に比べると `agent-write-guard.mjs` は参照元との差が8行しかない。1体で50件を書き、L4 は1件だった。対象全体を `**/*` で Glob して node_modules も拾った。バイト単位のコピーは keep にしか無く（`generation/SKILL.md:42`）、builder は1層1体に固定されている（`canon-c/SKILL.md:51`）。上の「参照元の入力欄が無い」と根が同じ。起票済みの「テストが必ず失敗した」件は、この打ち直しの中で入った可能性がある（推測）。【高】
-- 提案: design-map に「参照元からほぼ逐語で移すファイル（参照元のパス→生成先）」の欄を設け、copy-keep と同じ仕組みで `generated/` にバイト単位でコピーする。builder には差分だけを Edit させる。宣言件数の多い層は、skill 単位で builder を複数並列にできるようにする。
-
-## 2026-10-07 reviewer が判定対象の全件を見ていなくても、工程8が完了扱いになる（run 20261003_033830・Phase C）
-- 種別: 欠陥修正
-- 何が起きたか: `reviewer.md:27` は「INDEX.md の判定の対象を全件見る」と定める。ところが `output/20261003_033830/review/review.md` は、本文を読んでいない対象（他の rules・SKILL.md・references・`*.test.mjs` など）を自分で挙げている。対象79件に対して Read は34回だった（c52db209 の subagent agent-ad97675b4e3c1a1f7）。オーケストレーターは P4 で未読の範囲を開示しただけだった（L473）。reviewer は1体だけ起動され（`canon-c/SKILL.md:65`）、網羅していなかったときの扱いが決まっていない。【中】
-- 提案: review-bundle で対象を一定件数（例: 20件）ずつに分け、reviewer を並列に起動する。「未判定」が報告されたら工程8は未完了とし、その分の reviewer を追加で起動する、と規則にする。
-
-## 2026-10-07 prompt-audit をメインの文脈で実行し、約80k トークンが残りの全ターンに載り続けた（run 20261003_033830・Phase C）
-- 種別: 効率化
-- 何が起きたか: claude-api の Skill 本文（c52db209 L159）と prompt-audit の報告（L170）が文脈に入り、cache_read が 72k（L118）から 152k（L212）に増えたまま最後まで載り続けた。オーケストレーターの走査が「現状は存在」の語だけを見ていたため F2 を取りこぼし、builder の追加起動と再レビューに約3.5分かかった（L546）。書き出した prompt-audit.md を python で書き換えており（L288）、「要約せずにそのまま書き出す」（`canon-c/SKILL.md:68`）と食い違う。【中】
-- 提案: prompt-audit の実行と書き出しを専用のワーカー（Read・Grep・Write と Skill）に任せ、報告はファイルで受け取る。時点に依存する語の grep パターンは canon 側に固定して持つ。
-
 ## 2026-10-07 Phase D の逸脱が台帳に書かれず、run 全体の振り返りの工程も無い（run 20261003_033830・Phase D）
 - 種別: 規律昇華
 - 何が起きたか: Phase D の終わり（774bc4a2 L343）では、既存の4件を数えただけだった。上の「generated/ を直接編集」「P5 が中身を束縛しない」「コマンドの挙動の裏取り」は Phase D の中で起きていたのに、起票されていない（`canon-d/SKILL.md:26` は「気づいたらその場で書く」と定める）。本台帳の上の項目は、run の後に手作業で transcript を解析して見つけた。session-analyst は Phase A の要件ヒアリング専用である（`requirements/references/interview.md:31`）。自分が手順から外れたことを自分で申告するのには限界がある、というのは推測。【中】

@@ -170,7 +170,13 @@ conflicts:
   - requirement: R1
     constraint: hooks
     note: <deterministic が使えない。advisory へ下げるか、断念するか。選択肢を人間に示す>
+
+## 参照元                                   # 任意。無ければ節ごと書かない
+- path: <移植の基準にする別プロジェクトの一式の絶対パス>
+  role: <何の基準か>
 ```
+
+- **`## 参照元`**（任意）は、対象とは別のプロジェクトの一式を移植の基準にするときの入力欄である。`path` は絶対パス、`role` は基準の用途。focused 調査（investigator）・spec-writer・designer・builder が読む。生成物には参照元のパスや名前を書かない。`lib/requirements.js` の `parseReferenceSources` が読み、`npm run check -- <ts> requirements` が実在を確かめる。参照元から一式を機械的にコピーする手順は §5（design-map の `## 参照元からのコピー`）にある。
 
 - `strength_needed` は正典 `00_INDEX.md` の強度3段階（advisory＝CLAUDE.md、deterministic＝Hooks、enforced＝permissions）に対応し、制約との衝突の検出に使う。
 - `constraints` は要件とは独立した環境条件で、機能選定の分岐を先に刈り込む。制約は、調査での検出（Hook が無い・MCP の設定が無い・ポリシーの痕跡）とヒアリングでの確認（禁止なのか、使っていないだけなのか）を合わせて拾う。
@@ -278,6 +284,9 @@ existing_disposition:
 ## 配置時の追加手順
 <配置の前後に人間が行う、ファイルを変えない手作業（任意）。emit-manifest.js が MANIFEST へ写し、RUN.md が逐語で転記する>
 
+## 参照元からのコピー                                # 任意。requirements.md の `## 参照元` から逐語で移すファイル
+- <参照元の絶対パス> → <生成先の相対パス>
+
 ## 管理パス外の変更
 <要件の実現に要る、管理パス集合の外のファイルの変更（任意・§5.6）>
 
@@ -299,7 +308,8 @@ existing_disposition:
 
 design-map は大きくなり（実測で約96KB）、全文を各ワーカーが読むと読み込みが積み上がる。Phase C の冒頭で `slice.js` が `work/<ts>/slices/` にワーカー別のスライスを書く。
 
-- **出力**: `common.md`（メタ・Used Features・レイヤー構成・Model Assignments・Interface Contracts・生成上の制約・要件→生成物の対応・管理パス外の変更・Experimental Dependencies・依存フラグ）／`write-scopes.md`／`responsibilities.md`（レイヤー構成の `### Responsibility Map`。無ければ無い旨の1行）／層ごとの `l1.md`・`skills.md`・`agents.md`・`l4.md`・`l5.md`（その層の節と、その層の modify・merge レコード）／`disposition-other.md`（keep・retire・out_of_scope と、どの層にも属さない modify・merge。`plugin/**` は L5 に属し、`.claude/README.md` は層に属さず宣言一覧にも出ない）／`other-sections.md`（どこにも属さない節の受け皿）／`targets-l1.txt`〜`targets-l5.txt`・`targets-other.txt`・`targets-all.txt`（宣言された生成物。V8 と同じ宣言源）／`INDEX.md`。
+- **出力**: `common.md`（メタ・Used Features・レイヤー構成・Model Assignments・Interface Contracts・生成上の制約・要件→生成物の対応・参照元からのコピー・管理パス外の変更・Experimental Dependencies・依存フラグ）／`write-scopes.md`／`responsibilities.md`（レイヤー構成の `### Responsibility Map`。無ければ無い旨の1行）／層ごとの `l1.md`・`skills.md`・`agents.md`・`l4.md`・`l5.md`（その層の節と、その層の modify・merge レコード）／`disposition-other.md`（keep・retire・out_of_scope と、どの層にも属さない modify・merge。`plugin/**` は L5 に属し、`.claude/README.md` は層に属さず宣言一覧にも出ない）／`other-sections.md`（どこにも属さない節の受け皿）／`targets-l1.txt`〜`targets-l5.txt`・`targets-other.txt`・`targets-all.txt`（宣言された生成物。V8 と同じ宣言源）／`INDEX.md`。
+- **skills 層の分割**: L2 の宣言が 20 件（`SKILLS_SLICE_SIZE`）を超えるときだけ、skill 単位（1つの skill は割らない）に `skills-<k>.md`・`targets-l2-<k>.txt`（k は1始まり）を足す。`skills-<k>.md` は L2 の前置き・その skill の宣言・その skill の modify・merge レコードを持つ。`skills.md`・`targets-l2.txt` は全体として常に残す。Phase C は分割数だけ skills の builder を並列に起動する。
 - **規約**: 切り出しは節見出しと disposition レコードの単位で行い、記述を1文字も変えない。未知の節は `other-sections.md` に集め、黙って落とさない（全スライスの和が design-map の全節を覆う）。`## Used Features` が無ければ失敗する。書き出す前に出力先を空にする（古いスライスを読ませない）。差し戻しで design-map を直したら、スライスを作り直す。
 - **層の節の照合**: 見出しは完全一致を優先し、無ければ前方一致で拾う（`## L1（builder）` のような書き方を取りこぼさない）。この照合は V8 と共有する。
 - **読み手**: 各 builder は自分の層のスライスと `common.md`・`write-scopes.md`を読む。reviewer はスライスではなく review-bundle の `design.md`（rationale を除いた抜粋・§9.1）を読む。design-map の全文は読ませない。builder は書く前に自分の層の `targets-l<n>.txt` の件数と書くファイルの数を突き合わせる。
@@ -333,6 +343,7 @@ generated/ と配置は管理パス集合の中に限られる（§10.1）。要
 refactor モードでは、差分パッチを当てずに「既存＋新しい要件」から全体を設計し直し、output に**配置後の全量**を置く。配置は管理パス集合を退避スワップで置き換える（§10）。
 
 - **keep は再生成せず、既存の実体を output へバイト単位でコピーする**。Phase C の冒頭で `copy-keep.js` が行い、sha256 を照合する。LLM に Read → Write させると写し違いが起きるので使わない。
+- **参照元からのコピー**も同じ `copy-keep.js` が行う。design-map の `## 参照元からのコピー`（`<参照元の絶対パス> → <生成先の相対パス>`）の各行を、バイト単位で `generated/` にコピーして sha256 を照合する。コピー元は requirements.md の `## 参照元` の `path` の配下、生成先は管理パス集合の中でなければならず、外れる行・原本が無い行は何も写さず exit 1 にする。builder は、コピー済みのファイルの差分だけを Edit する（打ち直しは、時間と文脈を使ううえ写し違いが入る）。
 - 「keep＝再生成しない」を「output に置かない」と読んではならない。配置は管理パス集合の全置換なので、output に無いファイルは対象から消える。
 - 廃止は MANIFEST に明示する。全置換で黙って消える事故と区別するためである。
 
@@ -589,7 +600,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 `review-bundle.js` は、reviewer と keep-reviewer が「何を見るか」を決定論で確定し、`work/<ts>/review-bundle/` に書く。入力の収集を LLM に任せると、入力を探し損ねて何も見つけず、問題なしと答える経路ができるためである。
 
 - **keep-reviewer 用**（`review-bundle/keep-review/`・refactor モードのときだけ作る）: keep と merge のレコード1件につき1ファイル。入力は design-map の existing_disposition・spec の新要件と統合方針・requirements.md の conflicts・strength_needed・constraints・investigation・対象の原本。
-- **reviewer 用**（`review-bundle/reviewer/`・mode によらず常に作る）: `INDEX.md`（generated/ の全ファイルを1行1件。処遇と、security 観点で見る frontmatter の `tools`・`allowed-tools`・`model` 等を併記。接地材料 spec・requirements・profile・focused（あれば official-check）と対象ルートの絶対パス）・`design.md`（design-map の共通の節と層の節。既存判定は path・disposition・統合先・interface_change だけ）・`acceptance.md`（spec §8 の逐語）。generated/ が0件なら失敗する。reviewer は design-map の全文と slices を読まない。
+- **reviewer 用**（`review-bundle/reviewer/`・mode によらず常に作る）: `INDEX-<k>.md`（generated/ の全ファイルを20件（`REVIEW_CHUNK_SIZE`）ずつに分けたもの。k は1始まりで、20件以下でも `INDEX-1.md` を作る。各 INDEX は担当の対象を1行1件で、処遇と、security 観点で見る frontmatter の `tools`・`allowed-tools`・`model` 等を併記。接地材料 spec・requirements・profile・focused（あれば official-check）と対象ルートの絶対パス、書込先 `review/review-<k>.md` を持つ。全 INDEX の和が generated/ の全件と一致し、重複しない）・`design.md`（design-map の共通の節と層の節。既存判定は path・disposition・統合先・interface_change だけ）・`acceptance.md`（spec §8 の逐語。`design.md`・`acceptance.md` は全分割で共有する）。generated/ が0件なら失敗する。1体の reviewer に全件を渡すと読み切れず、実測で79件に対して Read が34回だった。分割して並列に起動し、読み切れなかった対象は `## 未判定の対象` として報告させ、あれば追加で起動する（工程8は未判定が尽きるまで完了しない）。reviewer は design-map の全文と slices を読まない。
 - **宣言を除く規約（最重要）**: バンドルから、**designer が立てた `keep_conditions` の boolean と rationale を機械的に除く**。除かなければ、判定者は「K2: true」という判定対象自身の主張に引きずられ、常に問題なしと答える（検査が恒真になる）。merge も「統合元 → 統合先」の対応だけを渡し、妥当性の主張は落とす。reviewer 用のバンドルからも design-map の rationale（designer の自己弁護）を除く。除けていることはテストで固定する（バンドルに `keep_conditions`・`K2:` などが現れないこと）。
 - **生成物からの逆引き**: 宣言を除くと、判定者は「keep 対象の弱点を補う記述が他の生成物にあるか」を確かめる材料を失い、実在する記述を「無い」と断定しかねない。そこで、keep 対象を名指ししている生成物の箇所を `file:line` で機械的に逆引きして同梱する。designer の主張ではなく生成物の実体なので、恒真にはならない。言及が見つからなければ「Grep で確かめてから不在と言う」旨を添える。
 - **書き出す前に出力先を空にする**: 差し戻しで keep が減った後に前回のバンドルが残ると、判定の対象外のファイルを判定してしまう。
@@ -609,9 +620,9 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 
 | ファイル | 書き手 |
 |---|---|
-| `review.md` | reviewer（4観点） |
+| `review-<k>.md` | reviewer（4観点。判定の対象を20件ずつに分けた k 番目。`## 未判定の対象` を持つ。未判定の追加起動は `review-<k>-<n>.md`） |
 | `keep-review.md` | keep-reviewer（refactor モードのみ） |
-| `prompt-audit.md` | `/claude-api prompt-audit` の結果をオーケストレーターが保存 |
+| `prompt-audit.md` | prompt-auditor（`/claude-api prompt-audit` の報告を逐語で保存し、末尾に時点に依存する語の走査結果を足す） |
 
 各指摘は「観点・対象（`file:line`）・根拠・重大度・提案」を持つ。修正ループで直した指摘と、直さないと決めた指摘（とその理由）は handoff.md の「差し戻し」に記録する。
 

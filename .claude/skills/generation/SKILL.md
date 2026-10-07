@@ -25,7 +25,7 @@ Agent・L1・L4・L5 は、この Skill の references だけで生成する。s
 | 層 | 書くもの | 読む | スライス | 宣言一覧 |
 |---|---|---|---|---|
 | `l1` | `CLAUDE.md`・`.claude/rules/*.md` | [references/l1.md](references/l1.md) | `l1.md` | `targets-l1.txt` |
-| `skills` | `.claude/skills/<name>/SKILL.md` と supporting files | [references/skills.md](references/skills.md)・[references/skill-writing.md](references/skill-writing.md) | `skills.md` | `targets-l2.txt` |
+| `skills` | `.claude/skills/<name>/SKILL.md` と supporting files | [references/skills.md](references/skills.md)・[references/skill-writing.md](references/skill-writing.md) | `skills.md`（分割されたときは渡された `skills-<k>.md`） | `targets-l2.txt`（分割されたときは渡された `targets-l2-<k>.txt`） |
 | `agents` | `.claude/agents/<name>/<name>.md` | [references/agents.md](references/agents.md) | `agents.md` | `targets-l3.txt` |
 | `l4` | `.claude/settings.json` の hooks 配線・`.claude/hooks/**`・`.mcp.json` | [references/l4.md](references/l4.md) | `l4.md` | `targets-l4.txt` |
 | `l5` | `plugin/**` | [references/l5.md](references/l5.md) | `l5.md` | `targets-l5.txt` |
@@ -40,6 +40,7 @@ Agent・L1・L4・L5 は、この Skill の references だけで生成する。s
 ## この層では書かないもの
 
 - **keep のファイル**: オーケストレーターが、原本をバイト単位で `generated/` にコピー済み。読んで書き写さない（写し違いが起きる）。refactor モードで、スライスに keep のレコードがあるときだけ、コピー済みであることを Glob で確かめ、欠けていれば自分で写さず、報告に書く（new モードには keep が無く、書く前の `generated/` は存在しないことがある）。
+- **参照元からのコピー済みのファイル**: `common.md` の `## 参照元からのコピー` に挙がった生成先は、オーケストレーターが参照元からバイト単位でコピー済み。Write で打ち直さない。コピー済みであることを Glob で確かめ、読んで、対象に合わせて変える箇所（design-map の層の節の指示）だけを Edit する。指示が無ければ変えない。欠けていれば自分で写さず、報告に書く。
 - **`.claude/README.md`・`MANIFEST.md`・`deploy/*.list`**: 生成の最後に `emit-manifest` が決定論で作る。作文すると、起動方式の誤案内や、検証していない実績の主張が紛れ込む。design-map が `.claude/README.md` を modify としていても、書かない。
 - **廃止（retire）・統合される側（merge の元）のファイル**: output に置かない。
 - design-map に宣言の無いファイル。

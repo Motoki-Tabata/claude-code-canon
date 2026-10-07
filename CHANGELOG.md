@@ -12,7 +12,7 @@
 ### Added
 
 - **reviewer 用の review-bundle**: `npm run review-bundle -- <ts>` が `work/<ts>/review-bundle/reviewer/` に、判定の対象の全件
-  （`INDEX.md`）・rationale を除いた設計意図（`design.md`）・受入基準（`acceptance.md`）を書きます。reviewer は
+  （20件ずつに分けた `INDEX-<k>.md`。reviewer は分割数だけ並列に起動し、読み切れなかった対象は未判定として報告させて追加で起動します）・rationale を除いた設計意図（`design.md`）・受入基準（`acceptance.md`）を書きます。reviewer は
   design-map の全文と slices を読まなくなりました。keep-reviewer 用は従来どおり refactor モードのときだけ作ります。
 - **Subagent `session-analyst`**: ヒアリングで過去のセッション履歴を要件の材料にするとき、分析と保存
   （`work/<ts>/session-analysis-<名前>.md`）を本人が行います。メインが分析の応答を逐語で書き写す手順をやめました。
@@ -37,6 +37,30 @@
   （phase・status・mode）、節への追記、セッションの記録を CLI にしました。sed や python の手書き換えをやめます。
   new-run は進捗を工程1〜9の全行で作り、`## セッション` 節を足します。`session <Phase>` は canon のプロジェクトで最後に
   書かれたセッションの id を記録します（run の振り返りが transcript を引くために使います）。canon-a〜d の手順を置き換えました。
+
+- **requirements.md の `## 参照元`（任意）**: 対象とは別のプロジェクトの一式を移植の基準にするとき、`path`（絶対パス）と
+  `role` を書く入力欄を足しました。focused 調査・spec-writer・designer・builder が読みます。`npm run check -- <ts> requirements`
+  が実在と絶対パスを確かめます。investigator に `mode: reference` は足していません（focused が参照元も読みます）。
+
+- **参照元からのコピー（`## 参照元からのコピー`）**: design-map に `<参照元の絶対パス> → <生成先の相対パス>` を書くと、
+  `npm run copy-keep` が keep と同じ仕組み（sha256 の照合・管理パス集合の検査）でバイト単位に `generated/` へコピーします。
+  コピー元は requirements.md の `## 参照元` の配下に限ります。builder は打ち直さず、コピー済みのファイルの差分だけを Edit します。
+  new モード（既存判定の無い design-map）でも動きます。`npm run check -- <ts> design-map` が書式・宣言・配下を点検します。
+- **skills 層の builder の分割**: L2 の宣言が20件を超えるとき、`slice.js` が skill 単位に `skills-<k>.md`・`targets-l2-<k>.txt` を足し、
+  Phase C は分割数だけ builder を並列に起動します（`skills.md`・`targets-l2.txt` は全体として残ります）。
+
+- **生成物のテストの実行（Phase C 工程7）**: 生成物に `*.test.*` があれば、対象の一時 worktree に generated/（と outside-managed/）を
+  重ねて対象のテストランナーで実行し、失敗を verify の違反と同じに扱います。builder にはシェルが無く、書いたテストの失敗が
+  工程8まで見つからなかったためです。
+
+- **reviewer の分割と未判定の扱い**: reviewer の判定の対象を20件ずつの `INDEX-<k>.md` に分け（`INDEX.md` は廃止）、分割数だけ並列に
+  起動します。書込先は `review/review-<k>.md`。`## 未判定の対象` に読み切れなかった対象を挙げさせ、1件でもあれば工程8は
+  未完了とし、その分の reviewer を追加で起動します。1体に全件を渡すと、79件に対して Read が34回しか行われませんでした。
+
+- **Subagent `prompt-auditor`**: 標準 Skill `/claude-api prompt-audit` の実行と、報告の逐語での保存（`review/prompt-audit.md`）を専用の
+  ワーカーに任せます（tools: Read・Grep・Glob・Write・Skill。Edit は持たず、編集を適用しないことを tools で担保）。
+  メインの会話で実行すると報告が約80k トークンとして以後の全ターンに載り続けました。時点に依存する語の grep パターンは
+  定義に固定し、報告の末尾に追加の節として足します。Agent は8体になります。
 
 ### Changed
 

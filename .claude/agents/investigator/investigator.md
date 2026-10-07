@@ -12,9 +12,9 @@ skills: [investigation]
 ## 入力（プロンプトで渡される）
 
 - `mode`: `existing`・`profile`・`focused` のどれか1つ
-- `target`: 対象プロジェクトのルート（調べてよいのはこの配下だけ。claude-canon 自身は調べない）
+- `target`: 対象プロジェクトのルート（調べてよいのはこの配下だけ。claude-canon 自身は調べない。`focused` のときの参照元は例外で、渡された `path` の配下を読み取り専用で読んでよい）
 - `<ts>` と書込先 `work/<ts>/investigation/<mode>.md` の絶対パス
-- `focused` のときだけ: `work/<ts>/requirements.md` と、`existing.md` の `project_refs` の一覧
+- `focused` のときだけ: `work/<ts>/requirements.md` と、`existing.md` の `project_refs` の一覧、`## 参照元` の `path` の一覧（あるときだけ）
 
 ## 手順
 

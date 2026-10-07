@@ -19,13 +19,14 @@ import {
   listDeclaredArtifacts,
   parseExistingDisposition,
   parseOutsideChanges,
+  parseReferenceCopies,
   h2Section,
   DesignMapError,
 } from '../lib/design-map.js';
 import { parseExisting } from '../lib/investigation.js';
 import { isManaged } from '../lib/managed-paths.js';
 import { computeFenceMask, findHeading, sectionSlice } from '../lib/markdown.js';
-import { parseRequirementsDoc, RequirementsError } from '../lib/requirements.js';
+import { parseReferenceSources, parseRequirementsDoc, RequirementsError } from '../lib/requirements.js';
 import { isMainModule, isValidTs } from '../lib/run.js';
 
 export const TARGETS = ['requirements', 'spec', 'design-map'];
@@ -81,6 +82,16 @@ export function checkRequirements(text) {
     doc.conflicts?.length ? `${doc.conflicts.length}件（未解消）` : '空（[]）', 'conflicts ブロックが無い（無ければ `conflicts: []` と書く）'));
   const withOutside = reqs.filter((r) => r.outside_managed.length > 0);
   items.push(ok('outside_managed を持つ要件', withOutside.length ? withOutside.map((r) => r.id).join('・') : 'なし'));
+  const refs = parseReferenceSources(text);
+  if (refs.length > 0) {
+    const noPath = refs.filter((r) => !r.path || !path.isAbsolute(r.path));
+    items.push(cond('参照元のパス', noPath.length === 0, `${refs.length}件（絶対パス）`,
+      `絶対パスの path が無い参照元: ${noPath.map((r) => `L${r.line}`).join('・')}`));
+    const gone = refs.filter((r) => r.path && path.isAbsolute(r.path) && !existsSync(r.path));
+    items.push(cond('参照元の実在', gone.length === 0, '全件が実在する', `実在しない: ${gone.map((r) => r.path).join('・')}`));
+  } else {
+    items.push(ok('参照元', 'なし（任意の節）'));
+  }
   return items;
 }
 
@@ -222,6 +233,27 @@ export function checkDesignMap(text, { spec = null, existing = null, requirement
     const noNote = needNote.filter((r) => !r.manifest_note);
     items.push(cond('retire・merge の manifest_note', noNote.length === 0, `${needNote.length}件に記載あり`,
       `無い: ${noNote.map((r) => r.path).join('・')}`));
+  }
+
+  // 参照元からのコピー（任意の節）
+  const copies = parseReferenceCopies(text);
+  if (copies.length > 0) {
+    const declaredSet = new Set(declared.map((d) => d.path));
+    const bad = copies.filter((c) => !c.to || !path.isAbsolute(c.from ?? '') || !isManaged(c.to));
+    items.push(cond('## 参照元からのコピーの書式', bad.length === 0, `${copies.length}件（<絶対パス> → <管理パス内の相対パス>）`,
+      `書式不正・生成先が管理パス外: ${bad.map((c) => `L${c.line}`).join('・')}`));
+    const undeclared = copies.filter((c) => c.to && isManaged(c.to) && !declaredSet.has(c.to));
+    items.push(cond('参照元からのコピーの生成先が層の節に宣言されている', undeclared.length === 0, '全件が宣言されている',
+      `未宣言（V8 が止める）: ${undeclared.map((c) => c.to).join('・')}`));
+    if (requirements !== null) {
+      const roots = parseReferenceSources(requirements).map((s) => s.path).filter(Boolean).map((p) => path.resolve(p));
+      const outside = copies.filter((c) => c.from && path.isAbsolute(c.from) && !roots.some((r) => {
+        const rel = path.relative(r, path.resolve(c.from));
+        return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
+      }));
+      items.push(cond('コピー元が requirements.md の `## 参照元` の配下', outside.length === 0, '全件が配下にある',
+        `配下でない（copy-keep が止める）: ${outside.map((c) => c.from).join('・')}`));
+    }
   }
 
   // Write Scopes

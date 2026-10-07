@@ -99,7 +99,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 4. **工程8 品質検査**: 次を行う。
    - `review-bundle.js` で判定入力を作る（artifacts.md §9）。
    - reviewer を spawn する（correctness・security・正典の意図・context の4観点）。refactor モードでは keep-reviewer も spawn する（K2・K4 と merge 先の妥当性）。両者は同一 turn で並列に動かす。
-   - オーケストレーターが標準 Skill のレビュー（`generated/` に対する `/claude-api prompt-audit`）を直接実行する（§8）。
+   - prompt-auditor を、reviewer と同じ turn で並列に spawn する。標準 Skill のレビュー（`generated/` に対する `/claude-api prompt-audit`）を実行し、報告を逐語で書く（§8）。メインの会話で実行すると、報告が以後の全ターンで読み込まれ続ける。
    - 結果は `output/<ts>/review/` に置く。
 5. **修正ループ**: 直すと決めた指摘は、handoff.md の「差し戻し」に逐語で記録し、該当層の builder を新規 spawn して直させる → verify → 変更した箇所だけを再レビュー、を指摘が尽きるまで繰り返す。
 6. **P4**: 生成物・verify-report・レビュー結果を1回で提示する。生成物を単独で見ても判断材料が揃わないので、レビュー結果と分けずに出す。P4 に出す前に、verify-report に記録された generated/ のハッシュが現在の generated/ と一致することを確かめる（修正後に verify を回し忘れていないことの確認・§9.3）。
@@ -117,7 +117,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 ## 4. 責務
 
-### 4.1 Agent（7体）
+### 4.1 Agent（8体）
 
 いずれも**コマンド実行系ツール（`Bash`・`PowerShell` など）を持たない**。スクリプトの実行はオーケストレーターが行う（§5.4）。model は frontmatter の1か所で決め、起動時に上書きしない。
 
@@ -128,8 +128,9 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 | `spec-writer` | 調査結果と承認済みの要件を統合し、spec を書く | requirements | `output/<ts>/spec.md` | sonnet |
 | `designer` | 承認済みの spec から機能を選び、層・責務・既存の処遇・モデル割当を design-map に確定する | design | `output/<ts>/design-map.md` | opus |
 | `builder` | 指定された層の生成物を design-map のスライスどおりに書く | generation | `output/<ts>/generated/` のうち担当する層の範囲 | sonnet |
-| `reviewer` | 生成物を correctness・security・正典の意図・context の4観点で判定する | review | `output/<ts>/review/review.md` | sonnet |
+| `reviewer` | 生成物を correctness・security・正典の意図・context の4観点で判定する（判定の対象20件ごとに1体を並列に起動し、未判定があれば追加で起動する） | review | `output/<ts>/review/review-<k>.md` | sonnet |
 | `keep-reviewer` | keep と merge の妥当性（K2・K4・統合先）を、designer の主張を除いた入力だけで判定する（refactor モードのみ） | review | `output/<ts>/review/keep-review.md` | opus |
+| `prompt-auditor` | 標準 Skill `claude-api` の prompt-audit を `generated/` に対して実行し、報告を逐語で書く。時点に依存する語を固定のパターンで走査して足す。編集は適用しない（Edit を持たない） | なし（`Skill` ツールで呼ぶ） | `output/<ts>/review/prompt-audit.md` | sonnet |
 
 - designer は機能選定と設計を一続きに行う。機能選定の結果はそのまま design-map に載るので、分けて spawn する利点が無い。
 - builder は層ごとにオーケストレーターが直接起動する。builder をまとめる中継役は置かない（§5.1）。
@@ -271,7 +272,7 @@ Anthropic が提供する Skill を、プラグインへの依存として取り
 | Skill | 使いどころ |
 |---|---|
 | `skill-creator` | Phase C で builder が対象向けの Skill を書くときの執筆指針。description の trigger eval と最適化は任意で、使う場合は Phase C でオーケストレーターが `/skill-creator` を直接呼ぶ（eval は並列 spawn を要し、Subagent である builder には回せない） |
-| `/claude-api prompt-audit` | Phase C で `generated/` に対して実行する |
+| `/claude-api prompt-audit` | Phase C で `generated/` に対して、prompt-auditor が実行する（`Skill` ツールで呼ぶ。報告は逐語でファイルに残す） |
 | `mcp-builder` | MCP サーバーの新規実装が必要なときだけ、handoff の申し送りで対象側に案内する（canon では実装しない） |
 | `/security-review`・`/code-review` | 採用しない。どちらもコードの差分を前提にするが、run の成果物は追跡しないので差分が無い。生成物の大半は Markdown と設定で、実行コード（Hook のスクリプト・MCP の command）の確認は reviewer の correctness・security の観点が担う |
 | `cost-optimize` | 採用しない |
@@ -341,7 +342,7 @@ claude-canon/
 │   ├─ skills/
 │   │   ├─ canon-a/ … canon-d/     Phase オーケストレーター（scripts/ を含む）
 │   │   └─ investigation/ requirements/ design/ generation/ review/   知識 Skill（references/ を含む）
-│   ├─ agents/            investigator・session-analyst・spec-writer・designer・builder・reviewer・keep-reviewer
+│   ├─ agents/            investigator・session-analyst・spec-writer・designer・builder・reviewer・keep-reviewer・prompt-auditor
 │   ├─ rules/             claude-canon 自身の開発規律（paths: で読み込む範囲を絞る）
 │   ├─ settings.json      permissions のみ（hooks は置かない）
 │   └─ README.md          起動方法の説明

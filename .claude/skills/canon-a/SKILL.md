@@ -65,13 +65,13 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 ## 工程3 調査②（focused）
 
-1. investigator を `mode: focused` で起動する。渡すもの: `target`・ts・書込先 `<root>/work/<ts>/investigation/focused.md`・`<root>/work/<ts>/requirements.md` の絶対パス・existing.md の `project_refs` の一覧（existing.md から抜き出して渡す。new モードで既存が無ければ「なし」と書く）。
+1. investigator を `mode: focused` で起動する。渡すもの: `target`・ts・書込先 `<root>/work/<ts>/investigation/focused.md`・`<root>/work/<ts>/requirements.md` の絶対パス・existing.md の `project_refs` の一覧（existing.md から抜き出して渡す。new モードで既存が無ければ「なし」と書く）・requirements.md に `## 参照元` があればその `path` の一覧（無ければ「なし」）。
 2. focused.md の実在を確かめ、`findings` に `evidence_paths` があること、渡した `project_refs` がすべて `ref_resolution` に現れることを確かめる。欠けていれば investigator（focused）を新しく起動して直させる。
 3. **公式仕様の確認**: 確定要件のうち、成否が Claude Code 自体の仕様に依存するもの（組込み Skill をモデルから起動できるか・permissions の効き方・待ちの手段など）は、investigator では確かめられない（WebFetch を持たない）。focused.md に「確かめられなかった」と残った論点も含め、`claude-code-guide` に要件ごとの問いを渡して公式ドキュメントで確かめさせる（独立した問いは1つのメッセージで並列に）。結果を、あなたが `work/<ts>/investigation/official-check.md` に書く（書式は artifacts.md §2.5）。仕様に依存する要件が無ければ、このファイルは作らない。
 
 ## 工程4 spec → P2
 
-1. spec-writer を起動する。渡すもの: `existing.md`・`profile.md`・`focused.md`・（あれば）`official-check.md`・`requirements.md`・`<root>/gates/conformance_tables/index.json` の絶対パスと、書込先 `<root>/output/<ts>/spec.md`。
+1. spec-writer を起動する。requirements.md に `## 参照元` があれば、その旨（requirements.md を読めば分かる）を添える。渡すもの: `existing.md`・`profile.md`・`focused.md`・（あれば）`official-check.md`・`requirements.md`・`<root>/gates/conformance_tables/index.json` の絶対パスと、書込先 `<root>/output/<ts>/spec.md`。
 2. `npm run check -- <ts> spec` を実行する（§9 が空か・受入基準の件数・`[mandatory]` の有無を機械で判定する）。NG が出たら、その節だけを読んで直す。全文を読むのは、P2 の要旨を作るときだけにする。確かめる中身は次のとおり。
    - §9 未決事項が空である（`check` が判定する）。空でなければ、その論点をユーザーと詰め、requirements に関わるなら P1 からやり直す。spec の書き直しは spec-writer を新しく起動して行う。
    - §8 受入基準に `[mandatory]` が付いた基準がある（`check` が判定する）。

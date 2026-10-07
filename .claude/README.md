@@ -1,6 +1,6 @@
 # claude-canon `.claude/` の使い方
 
-この `.claude/` は claude-canon 本体です。対象プロジェクトの Claude Code カスタマイズ一式を、Phase A〜D の4つのセッションに分けて、調査・要件確定・設計・生成・検証・配置します。構成は Phase Skill 4件・知識 Skill 5件・Subagent 7体・Rule 4件・`settings.json` です。
+この `.claude/` は claude-canon 本体です。対象プロジェクトの Claude Code カスタマイズ一式を、Phase A〜D の4つのセッションに分けて、調査・要件確定・設計・生成・検証・配置します。構成は Phase Skill 4件・知識 Skill 5件・Subagent 8体・Rule 4件・`settings.json` です。
 
 設計の全体像は [design/architecture.md](../design/architecture.md)、セットアップと運用の手順は [guide/setup.md](../guide/setup.md) を参照してください。
 
@@ -34,8 +34,9 @@ Phase Skill が工程ごとに起動します。ユーザーが直接起動す�
 | `spec-writer` | Phase A の工程4 | `output/<ts>/spec.md` |
 | `designer` | Phase B の工程5（P3 の差し戻し、Phase C で keep に及ぶ修正をするときも） | `output/<ts>/design-map.md` |
 | `builder` | Phase C の工程6（層ごとに並列）と修正ループ | `output/<ts>/generated/` の担当層 |
-| `reviewer` | Phase C の工程8 | `output/<ts>/review/review.md` |
+| `reviewer` | Phase C の工程8（判定の対象20件ごとに1体を並列に） | `output/<ts>/review/review-<k>.md` |
 | `keep-reviewer` | Phase C の工程8（既存を改修する run のときだけ） | `output/<ts>/review/keep-review.md` |
+| `prompt-auditor` | Phase C の工程8（標準 Skill `/claude-api prompt-audit` を実行し、報告を逐語で保存する） | `output/<ts>/review/prompt-audit.md` |
 
 このほか、調査・要件・設計・生成・レビューの判断基準とテンプレートをまとめた内部参照の知識が5件あり、それぞれの Subagent が起動時に読み込みます。直接呼び出すものではないので、ここには並べません。
 
@@ -54,7 +55,7 @@ claude-canon 本体を保守するときの規律です。run の生成物には
 
 - **Node.js 22 以上と git**。依存パッケージはありません（`npm install` は不要）。
 - **照合表**: `npm run build:tables` で `docs/` から verify の判定表を作ります（`docs/` を変えたら作り直す）。
-- **標準 Skill**: Phase C は `/claude-api prompt-audit` を使い、builder は skill-creator の執筆指針の要約に従います。claude-api などはプラグイン `example-skills@anthropic-agent-skills`（marketplace `anthropics/skills`）で入れます。手順は [guide/setup.md](../guide/setup.md) にあります。
+- **標準 Skill**: Phase C は `prompt-auditor` が `/claude-api prompt-audit` を実行し、builder は skill-creator の執筆指針の要約に従います。claude-api などはプラグイン `example-skills@anthropic-agent-skills`（marketplace `anthropics/skills`）で入れます。手順は [guide/setup.md](../guide/setup.md) にあります。
 - **フック・MCP・実験的機能**: この `.claude/` は使いません。
 
 ## 5. 注意と制約

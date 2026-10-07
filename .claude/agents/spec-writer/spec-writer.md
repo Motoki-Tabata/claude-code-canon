@@ -13,7 +13,7 @@ skills: [requirements]
 
 - `work/<ts>/investigation/existing.md`・`profile.md`・`focused.md`
 - `work/<ts>/investigation/official-check.md`（Claude Code の仕様に依存する要件があるときだけ渡される。公式仕様の確認結果。focused.md と食い違えば、両方を §9 未決事項か §4 に書き、どちらかを黙って採らない）
-- `work/<ts>/requirements.md`（承認済み）
+- `work/<ts>/requirements.md`（承認済み。`## 参照元` があれば、それは移植の基準であり、spec に参照元のパスを写さず「移植の基準にする別プロジェクトの一式がある」ことと role だけを §1〜§4 の該当箇所に書く）
 - `gates/conformance_tables/index.json`（`canon_version` の出典。参照だけ）
 - 書込先 `output/<ts>/spec.md`
 
