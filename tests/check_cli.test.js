@@ -167,6 +167,18 @@ test('design-map: 故意の違反をそれぞれ NG にする', () => {
   assert.deepEqual(run(DM.replace('根拠: 変えない', '根拠: 試行待ち')), ['管理パス外の変更']);
 });
 
+test('design-map: 参照元からのコピーの書式・宣言・配下を点検する（故意の違反）', () => {
+  const REF = '/abs/ref';
+  const req = `${REQ}\n## 参照元\n- path: ${REF}\n  role: 基準\n`;
+  const withCopy = (line) => `${DM}\n## 参照元からのコピー\n- ${line}\n`;
+  const run = (text) => names(checkDesignMap(text, { spec: SPEC, existing: EXISTING, requirements: req }));
+  assert.deepEqual(run(withCopy(`${REF}/a.sh → .claude/skills/s/SKILL.md`)), [], '正しい行は OK');
+  assert.deepEqual(run(withCopy('矢印の無い行')), ['## 参照元からのコピーの書式']);
+  assert.deepEqual(run(withCopy(`${REF}/a.sh → docs/a.sh`)), ['## 参照元からのコピーの書式']);
+  assert.deepEqual(run(withCopy(`${REF}/a.sh → .claude/skills/s/other.sh`)), ['参照元からのコピーの生成先が層の節に宣言されている']);
+  assert.deepEqual(run(withCopy('/elsewhere/a.sh → .claude/skills/s/SKILL.md')), ['コピー元が requirements.md の `## 参照元` の配下']);
+});
+
 test('design-map: 既存が0件（new）なら既存判定の節が無くてよい。既存があるのに無ければ NG', () => {
   const noDisp = DM.replace(/## 既存判定[\s\S]*?(?=## L1)/, '').replace('### `.claude/rules/a.md`（keep）', '### `.claude/rules/a.md`（新規）');
   assert.deepEqual(names(checkDesignMap(noDisp, { spec: SPEC, existing: '## サマリ\n総数 0\n', requirements: REQ })), []);

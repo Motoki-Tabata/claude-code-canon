@@ -42,6 +42,13 @@
   `role` を書く入力欄を足しました。focused 調査・spec-writer・designer・builder が読みます。`npm run check -- <ts> requirements`
   が実在と絶対パスを確かめます。investigator に `mode: reference` は足していません（focused が参照元も読みます）。
 
+- **参照元からのコピー（`## 参照元からのコピー`）**: design-map に `<参照元の絶対パス> → <生成先の相対パス>` を書くと、
+  `npm run copy-keep` が keep と同じ仕組み（sha256 の照合・管理パス集合の検査）でバイト単位に `generated/` へコピーします。
+  コピー元は requirements.md の `## 参照元` の配下に限ります。builder は打ち直さず、コピー済みのファイルの差分だけを Edit します。
+  new モード（既存判定の無い design-map）でも動きます。`npm run check -- <ts> design-map` が書式・宣言・配下を点検します。
+- **skills 層の builder の分割**: L2 の宣言が20件を超えるとき、`slice.js` が skill 単位に `skills-<k>.md`・`targets-l2-<k>.txt` を足し、
+  Phase C は分割数だけ builder を並列に起動します（`skills.md`・`targets-l2.txt` は全体として残ります）。
+
 ### Changed
 
 - **生成物の README の「使用例」**: spec の受入基準 A1 の転記をやめ、利用者が起動する Skill の起動行

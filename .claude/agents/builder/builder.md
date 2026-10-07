@@ -13,6 +13,7 @@ skills: [generation]
 
 - `layer`: `l1`・`skills`・`agents`・`l4`・`l5` のどれか1つ
 - `output/<ts>/` と `work/<ts>/slices/` の絶対パス
+- `skills` 層が分割されたときだけ: 担当するスライス `skills-<k>.md` と宣言一覧 `targets-l2-<k>.txt`（他の skill は別の builder が書く。担当外の skill には書かない）
 - 参照元があるときだけ: requirements.md の `## 参照元` の `path`（移植の基準。読み取り専用。生成物には参照元のパスや名前を書かない）
 - 管理パス外の変更を書くときだけ（`layer` が `l1`）: `output/<ts>/outside-managed/` のうち書くファイルのパス（オーケストレーターが対象の現物をコピー済み。無ければ新規作成）と、`common.md` の `## 管理パス外の変更` の該当項目
 - 差し戻しのときだけ: 直すファイルと指摘（handoff.md の「差し戻し」の逐語）
@@ -23,7 +24,7 @@ preload された generation Skill の指示に従う。担当層に対応する
 
 1. 自分の層のスライスと `common.md`（必要なら `write-scopes.md`）を読む。design-map.md の全文は読まない。
 2. 下の表の「宣言一覧」の件数と、書くファイルの数を突き合わせる。
-3. 書く。keep のファイルは、コピー済みなので書かない。
+3. 書く。keep のファイルと、`common.md` の `## 参照元からのコピー` の生成先は、コピー済みなので打ち直さない（後者は差分だけを Edit する）。
 4. 書いた自分の出力を Read し直し、宣言一覧の全件が書けていることを確かめる。
 
 ## 書込先
@@ -33,7 +34,7 @@ preload された generation Skill の指示に従う。担当層に対応する
 | layer | スライス | 宣言一覧 | 書くパス |
 |---|---|---|---|
 | `l1` | `l1.md` | `targets-l1.txt` | `CLAUDE.md`・`.claude/rules/**` |
-| `skills` | `skills.md` | `targets-l2.txt` | `.claude/skills/**` |
+| `skills` | `skills.md`（分割時は `skills-<k>.md`） | `targets-l2.txt`（分割時は `targets-l2-<k>.txt`） | `.claude/skills/**` |
 | `agents` | `agents.md` | `targets-l3.txt` | `.claude/agents/**` |
 | `l4` | `l4.md` | `targets-l4.txt` | `.claude/settings.json`・`.claude/hooks/**`・`.mcp.json` |
 | `l5` | `l5.md` | `targets-l5.txt` | `plugin/**` |

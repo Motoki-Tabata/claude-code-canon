@@ -25,11 +25,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: builder（Read・Write・Edit・Glob だけ。シェルなし）が書いた `agent-write-guard.test.mjs` の新規テスト1件が、フィクスチャの欠陥（root を `os.tmpdir()` 直下に作り tmpdir も同値を渡すため、`../` が常に許可側に解決される）で環境に関わらず失敗した。verify（V1〜V9）は実行を伴わないので通り、工程8-6 の現物実行をオーケストレーターが手で行って初めて見つかった。参照元の同種のテストは通っていたので、移植元との差分が原因の切り分けになった。
 - 提案: `.claude/skills/canon-c/SKILL.md` の工程7 に、「生成物に `*.test.mjs` があれば、`generated/` を対象のコピーに重ねた一時ディレクトリで `node --test` を全件実行し、失敗を verify の違反と同じに扱う」を足す（オーケストレーターが手で行う手順を明文化する。実装は `npm run` の道具にしてもよい）。
 
-## 2026-10-07 skills 層の builder が参照元の大きなスクリプトを打ち直し、26分かかって Phase C の律速になった（run 20261003_033830・Phase C）
-- 種別: 効率化
-- 何が起きたか: L2 の builder（c52db209 の subagent agent-a7c7b4600c812efeb）は 05:44〜06:10 に稼働し、文脈は最大約53万トークンに達した。参照元の `bash-write.mjs`（40KB）・`agent-write-guard.test.mjs`（45KB）などを Read で全文読み、Write で書き直した。配置後に比べると `agent-write-guard.mjs` は参照元との差が8行しかない。1体で50件を書き、L4 は1件だった。対象全体を `**/*` で Glob して node_modules も拾った。バイト単位のコピーは keep にしか無く（`generation/SKILL.md:42`）、builder は1層1体に固定されている（`canon-c/SKILL.md:51`）。上の「参照元の入力欄が無い」と根が同じ。起票済みの「テストが必ず失敗した」件は、この打ち直しの中で入った可能性がある（推測）。【高】
-- 提案: design-map に「参照元からほぼ逐語で移すファイル（参照元のパス→生成先）」の欄を設け、copy-keep と同じ仕組みで `generated/` にバイト単位でコピーする。builder には差分だけを Edit させる。宣言件数の多い層は、skill 単位で builder を複数並列にできるようにする。
-
 ## 2026-10-07 reviewer が判定対象の全件を見ていなくても、工程8が完了扱いになる（run 20261003_033830・Phase C）
 - 種別: 欠陥修正
 - 何が起きたか: `reviewer.md:27` は「INDEX.md の判定の対象を全件見る」と定める。ところが `output/20261003_033830/review/review.md` は、本文を読んでいない対象（他の rules・SKILL.md・references・`*.test.mjs` など）を自分で挙げている。対象79件に対して Read は34回だった（c52db209 の subagent agent-ad97675b4e3c1a1f7）。オーケストレーターは P4 で未読の範囲を開示しただけだった（L473）。reviewer は1体だけ起動され（`canon-c/SKILL.md:65`）、網羅していなかったときの扱いが決まっていない。【中】

@@ -284,6 +284,9 @@ existing_disposition:
 ## 配置時の追加手順
 <配置の前後に人間が行う、ファイルを変えない手作業（任意）。emit-manifest.js が MANIFEST へ写し、RUN.md が逐語で転記する>
 
+## 参照元からのコピー                                # 任意。requirements.md の `## 参照元` から逐語で移すファイル
+- <参照元の絶対パス> → <生成先の相対パス>
+
 ## 管理パス外の変更
 <要件の実現に要る、管理パス集合の外のファイルの変更（任意・§5.6）>
 
@@ -305,7 +308,8 @@ existing_disposition:
 
 design-map は大きくなり（実測で約96KB）、全文を各ワーカーが読むと読み込みが積み上がる。Phase C の冒頭で `slice.js` が `work/<ts>/slices/` にワーカー別のスライスを書く。
 
-- **出力**: `common.md`（メタ・Used Features・レイヤー構成・Model Assignments・Interface Contracts・生成上の制約・要件→生成物の対応・管理パス外の変更・Experimental Dependencies・依存フラグ）／`write-scopes.md`／`responsibilities.md`（レイヤー構成の `### Responsibility Map`。無ければ無い旨の1行）／層ごとの `l1.md`・`skills.md`・`agents.md`・`l4.md`・`l5.md`（その層の節と、その層の modify・merge レコード）／`disposition-other.md`（keep・retire・out_of_scope と、どの層にも属さない modify・merge。`plugin/**` は L5 に属し、`.claude/README.md` は層に属さず宣言一覧にも出ない）／`other-sections.md`（どこにも属さない節の受け皿）／`targets-l1.txt`〜`targets-l5.txt`・`targets-other.txt`・`targets-all.txt`（宣言された生成物。V8 と同じ宣言源）／`INDEX.md`。
+- **出力**: `common.md`（メタ・Used Features・レイヤー構成・Model Assignments・Interface Contracts・生成上の制約・要件→生成物の対応・参照元からのコピー・管理パス外の変更・Experimental Dependencies・依存フラグ）／`write-scopes.md`／`responsibilities.md`（レイヤー構成の `### Responsibility Map`。無ければ無い旨の1行）／層ごとの `l1.md`・`skills.md`・`agents.md`・`l4.md`・`l5.md`（その層の節と、その層の modify・merge レコード）／`disposition-other.md`（keep・retire・out_of_scope と、どの層にも属さない modify・merge。`plugin/**` は L5 に属し、`.claude/README.md` は層に属さず宣言一覧にも出ない）／`other-sections.md`（どこにも属さない節の受け皿）／`targets-l1.txt`〜`targets-l5.txt`・`targets-other.txt`・`targets-all.txt`（宣言された生成物。V8 と同じ宣言源）／`INDEX.md`。
+- **skills 層の分割**: L2 の宣言が 20 件（`SKILLS_SLICE_SIZE`）を超えるときだけ、skill 単位（1つの skill は割らない）に `skills-<k>.md`・`targets-l2-<k>.txt`（k は1始まり）を足す。`skills-<k>.md` は L2 の前置き・その skill の宣言・その skill の modify・merge レコードを持つ。`skills.md`・`targets-l2.txt` は全体として常に残す。Phase C は分割数だけ skills の builder を並列に起動する。
 - **規約**: 切り出しは節見出しと disposition レコードの単位で行い、記述を1文字も変えない。未知の節は `other-sections.md` に集め、黙って落とさない（全スライスの和が design-map の全節を覆う）。`## Used Features` が無ければ失敗する。書き出す前に出力先を空にする（古いスライスを読ませない）。差し戻しで design-map を直したら、スライスを作り直す。
 - **層の節の照合**: 見出しは完全一致を優先し、無ければ前方一致で拾う（`## L1（builder）` のような書き方を取りこぼさない）。この照合は V8 と共有する。
 - **読み手**: 各 builder は自分の層のスライスと `common.md`・`write-scopes.md`を読む。reviewer はスライスではなく review-bundle の `design.md`（rationale を除いた抜粋・§9.1）を読む。design-map の全文は読ませない。builder は書く前に自分の層の `targets-l<n>.txt` の件数と書くファイルの数を突き合わせる。
@@ -339,6 +343,7 @@ generated/ と配置は管理パス集合の中に限られる（§10.1）。要
 refactor モードでは、差分パッチを当てずに「既存＋新しい要件」から全体を設計し直し、output に**配置後の全量**を置く。配置は管理パス集合を退避スワップで置き換える（§10）。
 
 - **keep は再生成せず、既存の実体を output へバイト単位でコピーする**。Phase C の冒頭で `copy-keep.js` が行い、sha256 を照合する。LLM に Read → Write させると写し違いが起きるので使わない。
+- **参照元からのコピー**も同じ `copy-keep.js` が行う。design-map の `## 参照元からのコピー`（`<参照元の絶対パス> → <生成先の相対パス>`）の各行を、バイト単位で `generated/` にコピーして sha256 を照合する。コピー元は requirements.md の `## 参照元` の `path` の配下、生成先は管理パス集合の中でなければならず、外れる行・原本が無い行は何も写さず exit 1 にする。builder は、コピー済みのファイルの差分だけを Edit する（打ち直しは、時間と文脈を使ううえ写し違いが入る）。
 - 「keep＝再生成しない」を「output に置かない」と読んではならない。配置は管理パス集合の全置換なので、output に無いファイルは対象から消える。
 - 廃止は MANIFEST に明示する。全置換で黙って消える事故と区別するためである。
 

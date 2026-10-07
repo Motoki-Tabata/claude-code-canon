@@ -35,7 +35,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 ## 準備
 
 1. `npm run slice -- <ts>` で design-map を `work/<ts>/slices/` に切り出す。
-2. refactor モードなら `npm run copy-keep -- <ts>` で keep の原本を `output/<ts>/generated/` にバイト単位でコピーする。exit 1（原本が無い・管理パス集合の外・sha256 の不一致）なら止めて、出力を示す。design-map か調査の誤りなので、P3 へ戻すことをユーザーに提案する。keep を LLM に読ませて書き写させない（写し違いは V7 の違反になる）。
+2. refactor モードか、design-map に `## 参照元からのコピー` があるときは、`npm run copy-keep -- <ts>` で keep の原本と参照元のファイルを `output/<ts>/generated/` にバイト単位でコピーする。exit 1（原本が無い・管理パス集合の外・参照元の配下でない・sha256 の不一致）なら止めて、出力を示す。design-map か調査の誤りなので、P3 へ戻すことをユーザーに提案する。keep や参照元のファイルを LLM に読ませて書き写させない（keep の写し違いは V7 の違反になる）。
 
 ## 工程6 生成
 
@@ -44,13 +44,14 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
    | Used Features | builder の `layer` | 宣言一覧 |
    |---|---|---|
    | L1（CLAUDE.md・Rules） | `l1` | `targets-l1.txt` |
-   | L2（Skills） | `skills` | `targets-l2.txt` |
+   | L2（Skills） | `skills` | `targets-l2.txt`（分割時は下記） |
    | L3（Subagents） | `agents` | `targets-l3.txt` |
    | L4（Hooks・MCP） | `l4` | `targets-l4.txt` |
    | L5（Plugin） | `l5` | `targets-l5.txt` |
 
+   `work/<ts>/slices/` に `skills-<k>.md`・`targets-l2-<k>.txt` があるとき（L2 の宣言が20件を超えた）は、skills の builder を k ごとに1体、合計で分割数だけ起動し、それぞれに担当の `skills-<k>.md` と `targets-l2-<k>.txt` を渡す（`skills.md` は渡さない）。分割が無ければ1体。
 2. 使う層の builder を、**1つのメッセージで並列に**起動する。渡すもの: `layer`・ts・`output/<ts>/` と `work/<ts>/slices/` の絶対パス。`work/<ts>/requirements.md` に `## 参照元` があれば、その `path` の一覧も渡す（読み取り専用の移植の基準。`npm run check -- <ts> requirements` で確かめられる）。
-3. 全員が終わったら、層ごとに宣言一覧の各パスが `generated/` に実在するかを確かめる。欠けていれば、その層の builder を新しく起動し、欠けたパスを渡して書かせる。`targets-other.txt` が空でなければ、どの層にも属さない宣言があるので、内容を示して扱いを決める。 `.claude/README.md` は層に属さず工程6-4 の emit-manifest が書くので、`targets-*.txt` に出ず存在確認の対象にもしない（design-map が modify と宣言していても `disposition-other.md` にレコードが入るだけ）。層に属さない modify・merge のレコードも `disposition-other.md` に入る。
+3. 全員が終わったら、層ごとに宣言一覧（skills は `targets-l2.txt` の全体）の各パスが `generated/` に実在するかを確かめる。参照元からコピーしたファイルは `copy-keep` の出力の `ref_copied` と一致していること、builder に打ち直されていないこと（参照元との差分が、指示した箇所だけであること）も確かめる。欠けていれば、その層の builder を新しく起動し、欠けたパスを渡して書かせる。`targets-other.txt` が空でなければ、どの層にも属さない宣言があるので、内容を示して扱いを決める。 `.claude/README.md` は層に属さず工程6-4 の emit-manifest が書くので、`targets-*.txt` に出ず存在確認の対象にもしない（design-map が modify と宣言していても `disposition-other.md` にレコードが入るだけ）。層に属さない modify・merge のレコードも `disposition-other.md` に入る。
 4. **管理パス外の変更の変更後のファイルを作る**: `common.md` の `## 管理パス外の変更` に項目があれば、項目ごとに次を行う（項目が無い、または「なし」ならこの手順は飛ばす）。変更後のファイルは `output/<ts>/outside-managed/<対象パス>` に置き、P4 の承認が generated/ と一緒に束縛する（承認後に変わると P4 が無効になる）。
    1. 項目の見出しの対象パスが対象に実在するなら、現物を `output/<ts>/outside-managed/<対象パス>` にコピーする（`mkdir -p` してから `cp`。書き写させない）。実在しない新規ファイルはコピーしない。
    2. `l1` の builder の起動に、そのパスと項目を渡して、「変更内容」どおりに直させる（上の 2 の `l1` の builder と同じ起動に含めてよい）。
