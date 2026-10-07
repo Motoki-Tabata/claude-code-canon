@@ -21,7 +21,7 @@ import path from 'node:path';
 import { artifactFromText } from '../../../../lib/artifact.js';
 import { isNonSchemaRel } from '../../../../lib/non-schema.js';
 import { readList } from '../../../../lib/managed-paths.js';
-import { hashTree, TREE_HASH_COMMAND } from '../../../../lib/tree-hash.js';
+import { hashGate, TREE_HASH_COMMAND, TREE_HASH_COMMAND_WITH_OUTSIDE } from '../../../../lib/tree-hash.js';
 import { isMainModule, outputDir, readHandoff, readTsArg, resolveTargetRoot, workDir } from '../../../../lib/run.js';
 import { checkV1 } from './verify/v1-paths.js';
 import { checkV2 } from './verify/v2-frontmatter.js';
@@ -184,9 +184,9 @@ export function renderReport({ ts, results, tree, at }) {
     '',
     `- 実行時刻: ${at}`,
     tree
-      ? `- generated/ のハッシュ: \`${tree.hash}\`（${tree.files} ファイル）`
+      ? `- generated/ のハッシュ: \`${tree.hash}\`（${tree.files} ファイル${tree.outsideFiles ? `。outside-managed/ の ${tree.outsideFiles} ファイルを含む` : ''}）`
       : '- generated/ のハッシュ: なし（generated/ が無い）',
-    `- 再計算: \`${TREE_HASH_COMMAND.replace('<dir>', `output/${ts}/generated`)}\``,
+    `- 再計算: \`${tree?.outsideFiles ? TREE_HASH_COMMAND_WITH_OUTSIDE.replace('<out>', `output/${ts}`) : TREE_HASH_COMMAND.replace('<dir>', `output/${ts}/generated`)}\``,
     `- 結果: ${total === 0 ? '合格' : '不合格'}（違反 ${total} 件・warning ${warns} 件）`,
     '',
     '| 検査 | 結果 | 違反 | warning |',
@@ -211,7 +211,7 @@ export function renderReport({ ts, results, tree, at }) {
 export function verify(ts, { now = new Date() } = {}) {
   const ctx = buildContext(ts);
   const results = runChecks(ctx);
-  const tree = ctx.genExists ? hashTree(ctx.genRoot) : null;
+  const tree = ctx.genExists ? hashGate(outputDir(ts)) : null;
   const report = renderReport({ ts, results, tree, at: now.toISOString() });
   mkdirSync(outputDir(ts), { recursive: true });
   const reportPath = path.join(outputDir(ts), 'verify-report.md');

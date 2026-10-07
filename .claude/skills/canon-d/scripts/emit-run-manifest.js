@@ -21,9 +21,10 @@
  */
 
 import path from 'node:path';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { readList } from '../../../../lib/managed-paths.js';
+import { OUTSIDE_DIR } from '../../../../lib/tree-hash.js';
 import { CANON_ROOT } from '../../../../lib/canon.js';
 import { computeFenceMask, sectionSlice } from '../../../../lib/markdown.js';
 import { isCanonSelfTarget, SELF_TARGET_MESSAGE } from './self-target-guard.js';
@@ -68,6 +69,21 @@ export function readRunSpecificSteps(outputDir) {
   };
 }
 
+/** `output/<ts>/outside-managed/` の全ファイルの相対パス（posix・バイト順）。無ければ空。 */
+export function listOutsideManaged(outputDir) {
+  const root = path.join(outputDir, OUTSIDE_DIR);
+  const out = [];
+  const walk = (abs, rel) => {
+    for (const e of readdirSync(abs, { withFileTypes: true })) {
+      const r = rel ? `${rel}/${e.name}` : e.name;
+      if (e.isDirectory()) walk(path.join(abs, e.name), r);
+      else if (e.isFile()) out.push(r);
+    }
+  };
+  if (existsSync(root)) walk(root, '');
+  return out.sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b)));
+}
+
 /** 転記した節の見出しを1段下げ、RUN.md の章立て（### 手順）の下に収める。 */
 const demote = (section) => section.replace(/^(#{2,4})(\s)/gm, '##$1$2');
 
@@ -85,6 +101,7 @@ export function renderRunManifest(outputDir, targetDir) {
     items.length === 0 ? [`  （${empty}）`] : items.map((r) => `  - ${r}`);
 
   const { deploySteps, outsideChanges, postDeploy } = readRunSpecificSteps(outputDir);
+  const outsideFiles = listOutsideManaged(outputDir);
   const verbatim = (sections, empty) =>
     sections.length === 0 ? [`（${empty}）`] : ['以下は生成物からの逐語転記です（言い換えずにこのとおり実行・提示する）。', '', ...sections.map(demote).flatMap((s) => [s, ''])];
 
@@ -138,6 +155,13 @@ export function renderRunManifest(outputDir, targetDir) {
     '',
     '### 3. 配置（退避スワップ）',
     '',
+    '配置の前に、対象で作業ブランチを切ります（対象が既定ブランチにいると、保護されていて push できないことがあります。',
+    '配置は対象の作業ツリーを直接書き換え、コミットはしません）。pre-deploy-report の warning に未コミットの変更が出ていれば、先にコミットか退避をします。',
+    '',
+    '```bash',
+    `git -C "${tgtAbs}" switch -c <作業ブランチ名>`,
+    '```',
+    '',
     'まず `--confirm` 無しで配置予定だけを確認できます（対象は変更されません）:',
     '',
     '```bash',
@@ -163,6 +187,19 @@ export function renderRunManifest(outputDir, targetDir) {
     '確認が通らなければ「撤回条件」に従って戻し、「撤回したら直す生成物」に挙がった生成物も直す。',
     '',
     ...verbatim(outsideChanges, 'この run に管理パス外の変更は無い'),
+    ...(outsideFiles.length === 0
+      ? []
+      : [
+          `変更後のファイルは \`${outAbs}/${OUTSIDE_DIR}/\` にあります（P4 の承認が generated/ と一緒に束縛しています）。`,
+          '対象へ次のコマンドでコピーしてから、各項目の「確認」を実行します（対象の現物は上書きされるので、先に作業ブランチを切ってあること）。',
+          '',
+          '```bash',
+          ...outsideFiles.flatMap((rel) => [
+            `mkdir -p "$(dirname "${tgtAbs}/${rel}")" && cp "${outAbs}/${OUTSIDE_DIR}/${rel}" "${tgtAbs}/${rel}"`,
+          ]),
+          '```',
+          '',
+        ]),
     '',
     '### 4. 配置後の手作業（README の「前提セットアップと配置後の手作業」節）',
     '',

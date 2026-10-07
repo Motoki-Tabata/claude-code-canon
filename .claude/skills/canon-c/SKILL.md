@@ -18,8 +18,9 @@ Phase C は承認済みの design-map から生成物を作り、工程6〜8 と
 1. `work/<ts>/handoff.md` を読む。frontmatter の `target`・`mode` を控える。
 2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs design guide` を示す。`git status --short -- .claude lib gates tools docs design guide` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
 3. **承認の照合**: `npm run approvals -- <ts> check --expect P1,P2,P3` を実行する。exit 1 なら、どのファイルが承認後に変わったか（または承認行が無いか）を示し、そのゲートで承認を取り直すまで先へ進まない。
-4. **申し送り**: handoff の「申し送り」のうち Phase C 向けのものを先に実施する。結果は P4 の提示に含める。実施しなかったものは理由を添えて示す。
-5. `npm run handoff -- <ts> set phase=C status=in_progress` で frontmatter を直し、`npm run handoff -- <ts> session C` でこのセッションを記録する。
+4. **再入**: handoff の「差し戻し」に Phase D からの差し戻し（P4 の後で生成物を直す指示）があれば、これは再入である。「準備」は済んでいるので飛ばし、「修正ループ」の 2 から始める（builder を新しく起動 → manifest → verify → 変更分の再レビュー）。直し終えたら P4 を取り直す（`record P4` は、verify-report のハッシュが現在の generated/ と一致しないと拒否される）。P4 が変わると P5 も無効になるので、Phase D を `/canon-d <ts>` からやり直してもらう。
+5. **申し送り**: handoff の「申し送り」のうち Phase C 向けのものを先に実施する。結果は P4 の提示に含める。実施しなかったものは理由を添えて示す。
+6. `npm run handoff -- <ts> set phase=C status=in_progress` で frontmatter を直し、`npm run handoff -- <ts> session C` でこのセッションを記録する。
 
 claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その場で `tasks/lessons.md` の末尾に書く（書式は同ファイル冒頭）。見出しの出典欄は `run <ts>・Phase C` とする。
 
@@ -50,7 +51,11 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 2. 使う層の builder を、**1つのメッセージで並列に**起動する。渡すもの: `layer`・ts・`output/<ts>/` と `work/<ts>/slices/` の絶対パス。
 3. 全員が終わったら、層ごとに宣言一覧の各パスが `generated/` に実在するかを確かめる。欠けていれば、その層の builder を新しく起動し、欠けたパスを渡して書かせる。`targets-other.txt` が空でなければ、どの層にも属さない宣言があるので、内容を示して扱いを決める。 `.claude/README.md` は層に属さず工程6-4 の emit-manifest が書くので、`targets-*.txt` に出ず存在確認の対象にもしない（design-map が modify と宣言していても `disposition-other.md` にレコードが入るだけ）。層に属さない modify・merge のレコードも `disposition-other.md` に入る。
-4. `npm run manifest -- <ts>` で `generated/.claude/README.md`・`MANIFEST.md`・`deploy/managed-paths.list`・`deploy/retired.list` を決定論で生成する。これらは builder にも自分にも書かせない。
+4. **管理パス外の変更の変更後のファイルを作る**: `common.md` の `## 管理パス外の変更` に項目があれば、項目ごとに次を行う（項目が無い、または「なし」ならこの手順は飛ばす）。変更後のファイルは `output/<ts>/outside-managed/<対象パス>` に置き、P4 の承認が generated/ と一緒に束縛する（承認後に変わると P4 が無効になる）。
+   1. 項目の見出しの対象パスが対象に実在するなら、現物を `output/<ts>/outside-managed/<対象パス>` にコピーする（`mkdir -p` してから `cp`。書き写させない）。実在しない新規ファイルはコピーしない。
+   2. `l1` の builder の起動に、そのパスと項目を渡して、「変更内容」どおりに直させる（上の 2 の `l1` の builder と同じ起動に含めてよい）。
+   3. 実在を確かめる。
+5. `npm run manifest -- <ts>` で `generated/.claude/README.md`・`MANIFEST.md`・`deploy/managed-paths.list`・`deploy/retired.list` を決定論で生成する。これらは builder にも自分にも書かせない。
 
 ## 工程7 検証
 
@@ -75,7 +80,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 ## 修正ループ
 
-1. レビューの指摘ごとに、直すか直さないかを決める。迷うものはユーザーに尋ねる。直すものと、直さないもの（理由付き）を handoff の「差し戻し」に逐語で書く。
+1. 工程8の直後、P4 の前に、指摘の振り分けを**1問でユーザーから取る**（指摘ごとに直すかをあなたが先に決めて P4 にまとめない。「直さない」を既定にして P4 に持ち込むと、差し戻しで作り直しになる）。既定は**全件を直す**。「直さない」の候補があれば、その指摘だけを理由付きで示す。返答に従い、直すものと、直さないもの（理由付き）を handoff の「差し戻し」に逐語で書く。
 2. 直す対象の層ごとに builder を**新しく**起動し、「差し戻し」のブロックの位置と入力一式を渡す。
 3. `npm run manifest -- <ts>` → `npm run verify -- <ts>` を実行する。
 4. 変更したファイルだけを再レビューする。先に `npm run review-bundle -- <ts>` を作り直し、reviewer にはバンドルと、変更した対象と前回の指摘を渡す。keep・merge の対象が変わったときだけ keep-reviewer も再判定させる。標準 Skill のレビューは、変更が大きいときだけやり直す。
@@ -91,7 +96,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
    - verify-report の結果（違反0件であること・warning の全件）
    - review.md・keep-review.md の指摘の全件（重大度別）。K2・K4 に疑いありとされた keep は必ず示す
    - prompt-audit の要点、または実行できなかったこと
-   - 修正ループで直した指摘と、直さないと決めた指摘とその理由
+   - 修正ループで直した指摘と、直さないとユーザーが決めた指摘とその理由。**未決の指摘（「ご指示があれば直します」など）を残さない**。振り分けを取っていない指摘があれば、P4 の前に取る
    - 実行を要する受入基準の実行結果、または「未実行」
 3. 承認を求めて**止まる**。
    - 承認されたら `npm run approvals -- <ts> record P4 "<要旨>"`。

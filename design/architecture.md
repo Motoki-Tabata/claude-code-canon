@@ -231,7 +231,7 @@ canon_commit: <run を始めたときの canon の HEAD（new-run が記録す�
 | P1 | `work/<ts>/requirements.md` |
 | P2 | `output/<ts>/spec.md` |
 | P3 | `output/<ts>/design-map.md` |
-| P4 | `output/<ts>/generated/`（ディレクトリのハッシュ） |
+| P4 | `output/<ts>/generated/`（ディレクトリのハッシュ。`output/<ts>/outside-managed/` にファイルがあるときは、それも合わせた1つのハッシュ・artifacts.md §5.6） |
 | P5 | `output/<ts>/deploy/pre-deploy-report.txt` |
 
 ディレクトリのハッシュは、配下の全ファイルを `sha256sum` した一覧をパスの順に並べ、その一覧全体の sha256 を取った値とする（verify-report が記録する値と同じ計算・artifacts.md §8.1）。
@@ -316,6 +316,7 @@ claude-canon 自身の運用にはフック（`.claude/settings.json` の hooks�
 | 要件・spec・design-map の点検 | `npm run check -- <ts> requirements\|spec\|design-map`（既存のパーサで項目ごとに OK / NG を出す。オーケストレーターが全文を読むのは P1〜P3 の要旨を作るときだけ） |
 | 成果物の検査 | `npm run verify`（V1〜V9 を1本の CLI にまとめる・artifacts.md §8） |
 | 工程の順序と承認 | 対話と handoff.md。承認後の改変は sha256 で検出する（§6.3） |
+| 承認後の generated/ の直接編集 | `record P4` は verify-report のハッシュが現在の generated/ と一致しないと拒否し、`record P5` は P1〜P4 が有効でないと拒否する。`deploy --confirm` は P1〜P5 を照合して拒否する（artifacts.md §10.3）。メインが generated/ を直接直すと配置まで進めない。直すときは `/canon-c <ts>` に再入する |
 | 実行中の canon 本体の保護 | `canon_commit` の記録と、各 Phase の開始時の差分の警告（§7） |
 | ワーカーの権限の制限 | 自己適用テストが `.claude/agents/**` の tools を検査する（§5.4） |
 

@@ -310,3 +310,46 @@ test('deploy: 退避先が既にある状態で配置が失敗しても restore 
   assert.equal(r.reason, 'bak-exists');
   assert.equal(readFileSync(sentinel, 'utf8'), 'keep me\n');
 });
+
+// ---------------------------------------------------------------------------
+// 承認の照合（--confirm は P1〜P5 が有効なときだけ配置する）
+// ---------------------------------------------------------------------------
+
+test('deploy --confirm: 承認が無ければ拒否し、対象は無変更（dry-run は照合しない）', (t) => {
+  const c = setupTmpCase(t, 'existing', undefined, { approved: false });
+  const before = snapshot(c.target);
+  const dry = runScript('canon-d', 'deploy.js', [c.output, c.target]);
+  assert.equal(dry.code, 0, dry.stderr);
+  const r = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /承認/);
+  assert.deepEqual(snapshot(c.target), before);
+  assert.ok(!existsSync(path.join(c.target, BAK)));
+});
+
+test('deploy --confirm: 承認後に generated/ を書き換えると P4 不一致で拒否する（違反の注入）', (t) => {
+  const c = setupTmpCase(t, 'existing');
+  const before = snapshot(c.target);
+  appendFileSync(path.join(c.output, 'generated', 'CLAUDE.md'), '\n承認後の直接編集\n');
+  const r = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /P4: mismatch/);
+  assert.deepEqual(snapshot(c.target), before);
+});
+
+test('deploy --confirm: pre-deploy-report が承認後に変わると P5 不一致で拒否する', (t) => {
+  const c = setupTmpCase(t, 'existing');
+  appendFileSync(path.join(c.output, 'deploy', 'pre-deploy-report.txt'), 'x\n');
+  const r = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /P5: mismatch/);
+});
+
+test('pre-deploy-report は generated/ のハッシュを書き、中身が変わるとハッシュ（＝P5 の対象）が変わる', (t) => {
+  const c = setupTmpCase(t, 'new', undefined, { approved: false });
+  const run = () => runScript('canon-d', 'pre-deploy-check.js', [c.output, c.target]).stdout;
+  const a = run();
+  assert.match(a, /generated\/ のハッシュ: [0-9a-f]{64}/);
+  appendFileSync(path.join(c.output, 'generated', 'CLAUDE.md'), '\n変更\n');
+  assert.notEqual(run(), a);
+});

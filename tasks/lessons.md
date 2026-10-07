@@ -35,11 +35,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: L2 の builder（c52db209 の subagent agent-a7c7b4600c812efeb）は 05:44〜06:10 に稼働し、文脈は最大約53万トークンに達した。参照元の `bash-write.mjs`（40KB）・`agent-write-guard.test.mjs`（45KB）などを Read で全文読み、Write で書き直した。配置後に比べると `agent-write-guard.mjs` は参照元との差が8行しかない。1体で50件を書き、L4 は1件だった。対象全体を `**/*` で Glob して node_modules も拾った。バイト単位のコピーは keep にしか無く（`generation/SKILL.md:42`）、builder は1層1体に固定されている（`canon-c/SKILL.md:51`）。上の「参照元の入力欄が無い」と根が同じ。起票済みの「テストが必ず失敗した」件は、この打ち直しの中で入った可能性がある（推測）。【高】
 - 提案: design-map に「参照元からほぼ逐語で移すファイル（参照元のパス→生成先）」の欄を設け、copy-keep と同じ仕組みで `generated/` にバイト単位でコピーする。builder には差分だけを Edit させる。宣言件数の多い層は、skill 単位で builder を複数並列にできるようにする。
 
-## 2026-10-07 修正ループで「直さない」を既定にして P4 に持ち込み、差し戻しが2回起きた（run 20261003_033830・Phase C）
-- 種別: 規律昇華
-- 何が起きたか: 1回目の P4 の提示（c52db209 L473）では、review の指摘1〜3と prompt-audit の F1〜F5 を「直さない」としていた。ユーザーが「review指摘を基本全部是正したい」と差し戻し（L481）、builder の再起動と再レビューで約9分かかった。2回目の P4（L616）でも low 3件を「ご指示があれば直します」として残し、承認後（L619）に Phase D で直すことになった（下の「generated/ を直接編集」の項目につながる）。`canon-c/SKILL.md:77` は、直すかどうかをオーケストレーターが先に決め、結果を P4 にまとめて出す構成になっている。【高】
-- 提案: 工程8の直後、P4 の前に指摘の振り分けを1問で取る。既定は全件を直すとし、「直さない」の候補だけを理由付きで示す。P4 の提示には未決の指摘を残さない、と規則に書く。
-
 ## 2026-10-07 reviewer が判定対象の全件を見ていなくても、工程8が完了扱いになる（run 20261003_033830・Phase C）
 - 種別: 欠陥修正
 - 何が起きたか: `reviewer.md:27` は「INDEX.md の判定の対象を全件見る」と定める。ところが `output/20261003_033830/review/review.md` は、本文を読んでいない対象（他の rules・SKILL.md・references・`*.test.mjs` など）を自分で挙げている。対象79件に対して Read は34回だった（c52db209 の subagent agent-ad97675b4e3c1a1f7）。オーケストレーターは P4 で未読の範囲を開示しただけだった（L473）。reviewer は1体だけ起動され（`canon-c/SKILL.md:65`）、網羅していなかったときの扱いが決まっていない。【中】
@@ -49,26 +44,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 種別: 効率化
 - 何が起きたか: claude-api の Skill 本文（c52db209 L159）と prompt-audit の報告（L170）が文脈に入り、cache_read が 72k（L118）から 152k（L212）に増えたまま最後まで載り続けた。オーケストレーターの走査が「現状は存在」の語だけを見ていたため F2 を取りこぼし、builder の追加起動と再レビューに約3.5分かかった（L546）。書き出した prompt-audit.md を python で書き換えており（L288）、「要約せずにそのまま書き出す」（`canon-c/SKILL.md:68`）と食い違う。【中】
 - 提案: prompt-audit の実行と書き出しを専用のワーカー（Read・Grep・Write と Skill）に任せ、報告はファイルで受け取る。時点に依存する語の grep パターンは canon 側に固定して持つ。
-
-## 2026-10-07 管理パス外の変更が散文でしか渡されず、変更後のファイルは Phase D でその場で作られた（run 20261003_033830・Phase C・D）
-- 種別: 欠陥修正
-- 何が起きたか: RUN.md の 3a 節（`.claude/skills/canon-d/scripts/emit-run-manifest.js:160-165`）は、design-map の変更内容を散文で写すだけである。ユーザーが「管理パス外の変更をoutputフォルダ配下に作成して」と依頼し（774bc4a2 L275）、オーケストレーターがその場で `output/<ts>/outside-managed/` を作り、対象の README をコピーして編集した（L292〜L311）。変更後のファイルを作る工程は、canon-c にも canon-d（`canon-d/SKILL.md:58`）にも無い。そのファイルは P4 の承認の外にある。【中】
-- 提案: Phase C で、変更後のファイル（または patch）を `output/<ts>/outside-managed/` に作る工程を設け、P4 の対象（ハッシュ）に含める。RUN.md の 3a 節には、そのファイルを適用するコマンドを書く。
-
-## 2026-10-07 Phase D でオーケストレーターが generated/ を直接編集し、P4 も自分で取り直した（run 20261003_033830・Phase D）
-- 種別: 欠陥修正
-- 何が起きたか: ユーザーが「やはりlow 3件を直してから配置したい」と言い（774bc4a2 L80）、オーケストレーターは builder を起動せず、`generated/` の4ファイルを Edit で直した（L124〜L163）。manifest の再生成も再レビューもせず、P4 を Phase D の中で記録し直した（L196）。verify の呼び方も探していた（L164 `npm run | grep`、L171 は引数違いのエラー）。`canon-d/SKILL.md:12`（ワーカーを起動しない）と `:47`（生成物を直すなら `/canon-c` からやり直すよう案内して止まる）に反する。メインが `generated/` に書くのを止める機械の仕組みは無い。low 3件のために新しいセッションでやり直すのは重く、手順を迂回する動機になったと推測する。上の「直さないを既定に P4」の項目が発端。【高】
-- 提案: メインセッションから `output/*/generated/**` への Write・Edit を拒否する PreToolUse の hook を canon の `.claude/settings.json` に置く（builder は対象外にする）。canon-d に「軽微な修正」の手順を定める（builder を新しく起動 → manifest → verify → 変更分の再レビュー → P4 → P5）か、canon-c に再入して修正ループだけを回す引数を用意する。
-
-## 2026-10-07 P5 も deploy.js も generated/ の中身を束縛しておらず、P4 が無効でも配置できる（run 20261003_033830・Phase D）
-- 種別: 欠陥修正
-- 何が起きたか: 774bc4a2 L166 の照合で、P4 は「不一致（承認後に変わった）」なのに P5 は「一致」だった。P5 が持つのは `pre-deploy-report.txt` のハッシュだけで、レポートは件数とパスしか書かないので、ファイルの中身が変わってもハッシュは変わらない（P5 の承認行は2回とも `f85c8fd589f7`）。`deploy.js` は approvals を照合しない（冒頭の「P5 の機械的裏付け」`:25-27`・`:151` は `--confirm` と uncaptured だけ）。【高】
-- 提案: pre-deploy-report に `generated/` のツリーハッシュを書き、P5 が中身を束縛するようにする。`deploy.js --confirm` の冒頭で `approvals check --expect P1,P2,P3,P4,P5` 相当を実行し、不一致なら配置を拒否する。
-
-## 2026-10-07 配置先のブランチと未コミットの変更を事前に確かめていない（run 20261003_033830・Phase D）
-- 種別: 欠陥修正
-- 何が起きたか: 配置は対象の main の作業ツリーに直接行われ、未コミットのまま終わった（774bc4a2 L236・L342）。対象の README では、main は Ruleset で直接 push できない。pre-deploy-check と deploy.js はブランチも未コミットの変更も見ない。RUN.md は「同じ作業ブランチで」と、作業ブランチがある前提で書いている（`emit-run-manifest.js:162`）。【低】
-- 提案: 対象が既定ブランチにいるとき、または未コミットの変更があるとき、pre-deploy-check が warning を出す。RUN.md の配置手順の前に、作業ブランチを切る手順（`git switch -c`）を置く。
 
 ## 2026-10-07 Phase D の逸脱が台帳に書かれず、run 全体の振り返りの工程も無い（run 20261003_033830・Phase D）
 - 種別: 規律昇華

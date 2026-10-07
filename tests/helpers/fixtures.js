@@ -11,6 +11,9 @@ import path from 'node:path';
 import { outputDir, workDir } from './paths.js';
 import { SAMPLE_REPOS, SAMPLE_MODES } from './sample-repos.js';
 import { renderHandoff } from '../../lib/handoff.js';
+import { hashTree } from '../../lib/tree-hash.js';
+import { recordApproval } from '../../tools/approvals.js';
+import { computeVanishing, writeReport } from '../../.claude/skills/canon-d/scripts/pre-deploy-check.js';
 import { KEEP_REVIEW_CASES } from './keep-review-cases.js';
 
 // ---------------------------------------------------------------------------
@@ -142,7 +145,7 @@ export function writeHandoff(ts, { target, mode = 'new' }) {
  * canon-d 系向け: 対象リポ（expected-output を除く）と `output/<ts>/`（= expected-output）を
  * tmpdir へ複写する。複写元・実 work/output を一切汚さない。
  */
-export function setupTmpCase(t, name, ts = '20260722_000000') {
+export function setupTmpCase(t, name, ts = '20260722_000000', { approved = true } = {}) {
   const caseDir = sampleRepoDir(name);
   const tmp = mkdtempSync(path.join(os.tmpdir(), 'canon-deploy-'));
   const target = path.join(tmp, 'target');
@@ -153,7 +156,26 @@ export function setupTmpCase(t, name, ts = '20260722_000000') {
   });
   cpSync(path.join(caseDir, 'expected-output'), output, { recursive: true });
   t.after(() => rmSync(tmp, { recursive: true, force: true }));
-  return { tmp, target, output };
+  if (approved) approveAll(tmp, target, output, ts);
+  return { tmp, target, output, ts };
+}
+
+/**
+ * `<tmp>/work/<ts>/handoff.md` を作り、P1〜P5 の承認行を記録する（deploy.js --confirm が P1〜P5 を照合する）。
+ * P1〜P3 の対象は中身を問わないのでダミーを置く。P4 の前提の verify-report は現在の generated/ のハッシュを書き、
+ * P5 の対象の pre-deploy-report は本物の writeReport で書く。
+ */
+function approveAll(root, target, output, ts) {
+  const work = path.join(root, 'work', ts);
+  mkdirSync(work, { recursive: true });
+  writeFileSync(path.join(work, 'handoff.md'), renderHandoff({ ts, target, mode: 'new' }));
+  writeFileSync(path.join(work, 'requirements.md'), '# requirements\n');
+  writeFileSync(path.join(output, 'spec.md'), '# spec\n');
+  writeFileSync(path.join(output, 'design-map.md'), '# design-map\n');
+  writeFileSync(path.join(output, 'verify-report.md'), `- generated/ のハッシュ: \`${hashTree(path.join(output, 'generated')).hash}\`\n`);
+  for (const g of ['P1', 'P2', 'P3', 'P4']) recordApproval(root, ts, g, 'テスト用の承認');
+  writeReport(output, target, computeVanishing(output, target));
+  recordApproval(root, ts, 'P5', 'テスト用の承認');
 }
 
 /**

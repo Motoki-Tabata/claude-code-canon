@@ -67,6 +67,20 @@
 
 ### Fixed
 
+- **配置先のブランチと未コミットの変更を事前に確かめる**: pre-deploy-check が、対象が既定ブランチ（`origin/HEAD`、無ければ main・master）に
+  いるとき、未コミットの変更があるとき、git の状態を読めないときに、report に warning を書きます（exit には影響しません）。
+  RUN.md は配置の前に作業ブランチを切る手順（`git switch -c`）を置きます。
+- **管理パス外の変更の変更後のファイルを P4 が束縛**: Phase C の工程6で、変更後のファイルを `output/<ts>/outside-managed/<対象パス>` に
+  作ります（対象の現物をコピーし、l1 の builder が直す）。P4 のハッシュは、このディレクトリにファイルがあるとき generated/ と
+  合わせて取ります（無ければ従来と同じ値）。RUN.md の 3a に、対象へコピーするコマンドを載せます。
+- **修正ループの振り分けをユーザーから取る**: 工程8の直後に、指摘を直すかを1問で取ります。既定は全件を直すこと、
+  「直さない」は理由付きの候補だけを示します。P4 の提示に未決の指摘を残しません。
+- **承認後の generated/ の直接編集を機械検査で止める**: `approvals record P4` は verify-report の generated/ のハッシュが現在と
+  一致しないと、`record P5` は P1〜P4 が有効でないと拒否します。canon-c は Phase D の差し戻しから再入して修正ループだけを
+  回せるようになり、canon-d は generated/ に書かず `/canon-c <ts>` に再入するよう案内します。
+- **P5 と deploy が generated/ の中身を束縛**: pre-deploy-report に generated/ のツリーハッシュを書き、P5 の承認が中身を束縛します。
+  `deploy.js --confirm` は冒頭で P1〜P5 の承認を照合し、承認後に generated/ や report が変わっていれば（P4・P5 が無効）、
+  承認行や handoff.md が無ければ、対象を変えずに拒否します。
 - **V6 の warning のノイズ**: 日本語の description の委譲条件（「…ときに委譲される」「…は委譲する」）を委譲トリガーとして認めます。
   パスを含まないファイル名は generated/ 全体の basename 一致でも解決とみなし、解決できないパス様トークンは
   1ファイルにつき1件の warning にまとめて件数と代表例（先頭5件）を載せます。run 20261003_033830 の generated/ に当てると
