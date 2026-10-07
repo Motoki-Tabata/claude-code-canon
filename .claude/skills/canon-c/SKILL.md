@@ -51,7 +51,11 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 2. 使う層の builder を、**1つのメッセージで並列に**起動する。渡すもの: `layer`・ts・`output/<ts>/` と `work/<ts>/slices/` の絶対パス。
 3. 全員が終わったら、層ごとに宣言一覧の各パスが `generated/` に実在するかを確かめる。欠けていれば、その層の builder を新しく起動し、欠けたパスを渡して書かせる。`targets-other.txt` が空でなければ、どの層にも属さない宣言があるので、内容を示して扱いを決める。 `.claude/README.md` は層に属さず工程6-4 の emit-manifest が書くので、`targets-*.txt` に出ず存在確認の対象にもしない（design-map が modify と宣言していても `disposition-other.md` にレコードが入るだけ）。層に属さない modify・merge のレコードも `disposition-other.md` に入る。
-4. `npm run manifest -- <ts>` で `generated/.claude/README.md`・`MANIFEST.md`・`deploy/managed-paths.list`・`deploy/retired.list` を決定論で生成する。これらは builder にも自分にも書かせない。
+4. **管理パス外の変更の変更後のファイルを作る**: `common.md` の `## 管理パス外の変更` に項目があれば、項目ごとに次を行う（項目が無い、または「なし」ならこの手順は飛ばす）。変更後のファイルは `output/<ts>/outside-managed/<対象パス>` に置き、P4 の承認が generated/ と一緒に束縛する（承認後に変わると P4 が無効になる）。
+   1. 項目の見出しの対象パスが対象に実在するなら、現物を `output/<ts>/outside-managed/<対象パス>` にコピーする（`mkdir -p` してから `cp`。書き写させない）。実在しない新規ファイルはコピーしない。
+   2. `l1` の builder の起動に、そのパスと項目を渡して、「変更内容」どおりに直させる（上の 2 の `l1` の builder と同じ起動に含めてよい）。
+   3. 実在を確かめる。
+5. `npm run manifest -- <ts>` で `generated/.claude/README.md`・`MANIFEST.md`・`deploy/managed-paths.list`・`deploy/retired.list` を決定論で生成する。これらは builder にも自分にも書かせない。
 
 ## 工程7 検証
 

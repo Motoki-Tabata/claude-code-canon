@@ -30,7 +30,7 @@ import {
   effectiveApprovals,
   parseApprovals,
 } from '../lib/handoff.js';
-import { hashTree, parseVerifyReportHash } from '../lib/tree-hash.js';
+import { hashGate, hashTree, parseVerifyReportHash } from '../lib/tree-hash.js';
 import { isMainModule, isValidTs } from '../lib/run.js';
 
 export class ApprovalError extends Error {
@@ -57,8 +57,10 @@ export function gateHash(root, ts, gate) {
   let hex;
   if (spec.dir) {
     if (!statSync(abs).isDirectory()) throw new ApprovalError(`${gate} の承認対象がディレクトリでない: ${target}`);
-    const t = hashTree(abs);
-    if (t.files === 0) throw new ApprovalError(`${gate} の承認対象が空: ${target}`);
+    // P4 は generated/ に、あれば outside-managed/（管理パス外の変更の変更後のファイル）を足して束縛する。
+    const t = gate === 'P4' ? hashGate(path.join(root, 'output', ts)) : hashTree(abs);
+    const n = gate === 'P4' ? t.generatedFiles : t.files;
+    if (n === 0) throw new ApprovalError(`${gate} の承認対象が空: ${target}`);
     hex = t.hash;
   } else {
     hex = createHash('sha256').update(readFileSync(abs)).digest('hex');

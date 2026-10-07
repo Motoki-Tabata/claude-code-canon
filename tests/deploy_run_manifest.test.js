@@ -7,7 +7,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { setupTmpCase } from './helpers/fixtures.js';
 import { runScript } from './helpers/run-cli.js';
@@ -47,6 +47,23 @@ test('emit-run-manifest: RUN.md に両コマンド・配置集合・廃止集合
   assert.ok(body.includes(ts), 'RUN.md に実 <ts> が入る');
   assert.ok(!/<ts>=<ts>/.test(body), 'プレースホルダ <ts> がリテラルで残っていない');
   assert.ok(body.includes(`.claude-canon.bak.${ts}`), 'ロールバック手順が実 <ts> の .bak を指す');
+});
+
+test('emit-run-manifest: outside-managed/ のファイルを対象へコピーするコマンドが 3a に入る。無ければ入らない', (t) => {
+  const c = setupTmpCase(t, 'constrained');
+  runScript('canon-d', 'emit-run-manifest.js', [c.output, c.target]);
+  assert.ok(!/outside-managed/.test(readFileSync(path.join(c.output, 'deploy', 'RUN.md'), 'utf8')));
+
+  mkdirSync(path.join(c.output, 'outside-managed', 'docs'), { recursive: true });
+  writeFileSync(path.join(c.output, 'outside-managed', 'README.md'), '# r\n');
+  writeFileSync(path.join(c.output, 'outside-managed', 'docs', 'a b.md'), '# a\n');
+  const r = runScript('canon-d', 'emit-run-manifest.js', [c.output, c.target]);
+  assert.equal(r.code, 0, r.stderr);
+  const body = readFileSync(path.join(c.output, 'deploy', 'RUN.md'), 'utf8');
+  const out = path.resolve(c.output).split(path.sep).join('/');
+  const tgt = path.resolve(c.target).split(path.sep).join('/');
+  assert.ok(body.includes(`cp "${out}/outside-managed/README.md" "${tgt}/README.md"`), body);
+  assert.ok(body.includes(`cp "${out}/outside-managed/docs/a b.md" "${tgt}/docs/a b.md"`), '空白を含むパスも引用する');
 });
 
 test('emit-run-manifest: managed-paths.list が無ければ exit 1（黙って空手順書を出さない）', (t) => {

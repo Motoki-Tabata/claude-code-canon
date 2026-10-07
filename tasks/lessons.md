@@ -45,11 +45,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: claude-api の Skill 本文（c52db209 L159）と prompt-audit の報告（L170）が文脈に入り、cache_read が 72k（L118）から 152k（L212）に増えたまま最後まで載り続けた。オーケストレーターの走査が「現状は存在」の語だけを見ていたため F2 を取りこぼし、builder の追加起動と再レビューに約3.5分かかった（L546）。書き出した prompt-audit.md を python で書き換えており（L288）、「要約せずにそのまま書き出す」（`canon-c/SKILL.md:68`）と食い違う。【中】
 - 提案: prompt-audit の実行と書き出しを専用のワーカー（Read・Grep・Write と Skill）に任せ、報告はファイルで受け取る。時点に依存する語の grep パターンは canon 側に固定して持つ。
 
-## 2026-10-07 管理パス外の変更が散文でしか渡されず、変更後のファイルは Phase D でその場で作られた（run 20261003_033830・Phase C・D）
-- 種別: 欠陥修正
-- 何が起きたか: RUN.md の 3a 節（`.claude/skills/canon-d/scripts/emit-run-manifest.js:160-165`）は、design-map の変更内容を散文で写すだけである。ユーザーが「管理パス外の変更をoutputフォルダ配下に作成して」と依頼し（774bc4a2 L275）、オーケストレーターがその場で `output/<ts>/outside-managed/` を作り、対象の README をコピーして編集した（L292〜L311）。変更後のファイルを作る工程は、canon-c にも canon-d（`canon-d/SKILL.md:58`）にも無い。そのファイルは P4 の承認の外にある。【中】
-- 提案: Phase C で、変更後のファイル（または patch）を `output/<ts>/outside-managed/` に作る工程を設け、P4 の対象（ハッシュ）に含める。RUN.md の 3a 節には、そのファイルを適用するコマンドを書く。
-
 ## 2026-10-07 配置先のブランチと未コミットの変更を事前に確かめていない（run 20261003_033830・Phase D）
 - 種別: 欠陥修正
 - 何が起きたか: 配置は対象の main の作業ツリーに直接行われ、未コミットのまま終わった（774bc4a2 L236・L342）。対象の README では、main は Ruleset で直接 push できない。pre-deploy-check と deploy.js はブランチも未コミットの変更も見ない。RUN.md は「同じ作業ブランチで」と、作業ブランチがある前提で書いている（`emit-run-manifest.js:162`）。【低】

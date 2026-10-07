@@ -14,7 +14,7 @@ import { runNodeScript } from './helpers/run-cli.js';
 import { ROOT, outputDir, workDir } from './helpers/paths.js';
 import { tsFor } from './helpers/ts.js';
 import { renderHandoff, parseApprovals, effectiveApprovals, appendApproval } from '../lib/handoff.js';
-import { hashTree } from '../lib/tree-hash.js';
+import { hashGate, hashTree } from '../lib/tree-hash.js';
 import { gateHash, recordApproval, checkApprovals, ApprovalError } from '../tools/approvals.js';
 
 const TS = '21000101_000101';
@@ -105,6 +105,29 @@ test('record P5: P1〜P4 のどれかが無効（承認後に変わった）な�
   // generated/ を直接直すと P4 が無効になり、P5 を取り直せない
   writeFileSync(path.join(root, 'output', TS, 'generated', 'CLAUDE.md'), '# 直接編集\n');
   assert.throws(() => recordApproval(root, TS, 'P5', 'again'), /P5 の前提: P4/);
+});
+
+test('P4 は outside-managed/ も束縛する: 追加・承認後の改変で不一致になり、無ければ generated/ だけのハッシュ', (t) => {
+  const root = setup(t);
+  const gen = path.join(root, 'output', TS, 'generated');
+  assert.equal(gateHash(root, TS, 'P4').hash, hashTree(gen).hash.slice(0, 12), 'outside-managed/ が無ければ従来のハッシュ');
+  writeVerifyReport(root);
+  recordApproval(root, TS, 'P4', 'a');
+  assert.equal(checkApprovals(root, TS, ['P4']).ok, true);
+
+  // 承認の後で管理パス外の変更の変更後のファイルが現れる（承認の外で作られた）→ 無効
+  mkdirSync(path.join(root, 'output', TS, 'outside-managed'), { recursive: true });
+  const f = path.join(root, 'output', TS, 'outside-managed', 'README.md');
+  writeFileSync(f, '# 変更後\n');
+  assert.equal(checkApprovals(root, TS, ['P4']).results[0].status, 'mismatch');
+  assert.throws(() => recordApproval(root, TS, 'P4', 'a'), /現在.*と違う/, 'verify を回すまで取り直せない');
+
+  // verify-report のハッシュを合成値に更新すれば取り直せ、その後の改変は検出される
+  writeFileSync(path.join(root, 'output', TS, 'verify-report.md'), `- generated/ のハッシュ: \`${hashGate(path.join(root, 'output', TS)).hash}\`\n`);
+  recordApproval(root, TS, 'P4', 'outside 込み');
+  assert.equal(checkApprovals(root, TS, ['P4']).ok, true);
+  writeFileSync(f, '# 承認後に改変\n');
+  assert.equal(checkApprovals(root, TS, ['P4']).results[0].status, 'mismatch');
 });
 
 test('check: 期待したゲートの承認行が無ければ無効（承認0件の照合を素通りさせない）。対象が消えても無効', (t) => {

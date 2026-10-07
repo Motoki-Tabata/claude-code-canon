@@ -20,7 +20,7 @@
 import path from 'node:path';
 import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { hashTree } from '../../../../lib/tree-hash.js';
+import { hashGate } from '../../../../lib/tree-hash.js';
 import { walkManagedDetailed, readList, checkConcreteEntries, findUnmanagedEntries } from '../../../../lib/managed-paths.js';
 import { isCanonSelfTarget, SELF_TARGET_MESSAGE } from './self-target-guard.js';
 
@@ -98,7 +98,7 @@ export function computeVanishing(outputDir, targetDir) {
 function generatedHashLine(outputDir) {
   const gen = path.join(outputDir, 'generated');
   if (!existsSync(gen)) return 'generated/ のハッシュ: なし（generated/ が無い）';
-  const t = hashTree(gen);
+  const t = hashGate(outputDir);
   return `generated/ のハッシュ: ${t.hash}（${t.files} ファイル）`;
 }
 

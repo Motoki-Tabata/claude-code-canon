@@ -99,6 +99,26 @@ test('verify: report のハッシュは report に書いたシェルコマンド
   assert.equal(shell.split(/\s+/)[0], hash);
 });
 
+test('verify CLI: outside-managed/ があると report のハッシュは両方を含み、書いたシェルコマンドと同じ値になる。改変で変わる', { skip: process.platform === 'win32' }, (t) => {
+  const c = setupSampleRepo(t, 'constrained', nextTs());
+  const hashLine = () => {
+    assert.equal(verifyCli(c.ts).code, 0);
+    const body = reportOf(c.ts);
+    return { body, hash: body.match(/generated\/ のハッシュ: `([0-9a-f]{64})`/)[1], cmd: body.match(/再計算: `(.*)`/)[1] };
+  };
+  const base = hashLine().hash;
+  assert.equal(base, hashTree(c.gen).hash, 'outside-managed/ が無ければ従来どおり generated/ だけのハッシュ');
+  write(c.out, 'outside-managed/README.md', '# 変更後\n');
+  const a = hashLine();
+  assert.notEqual(a.hash, base);
+  assert.match(a.body, /outside-managed\/ の 1 ファイルを含む/);
+  // 再計算コマンドは canon のルートからの相対パスで書かれている
+  const shell = execSync(a.cmd, { encoding: 'utf8', shell: '/bin/sh', cwd: path.dirname(path.dirname(c.out)) });
+  assert.equal(shell.split(/\s+/)[0], a.hash);
+  write(c.out, 'outside-managed/README.md', '# 承認後に改変\n');
+  assert.notEqual(hashLine().hash, a.hash);
+});
+
 // ---- ファイルごとの振り分け（V1〜V4 の対象の決め方）----
 
 test('verify: 生成物の旧称ツール（Task）を V3 で捕まえる', (t) => {

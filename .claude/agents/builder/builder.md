@@ -13,6 +13,7 @@ skills: [generation]
 
 - `layer`: `l1`・`skills`・`agents`・`l4`・`l5` のどれか1つ
 - `output/<ts>/` と `work/<ts>/slices/` の絶対パス
+- 管理パス外の変更を書くときだけ（`layer` が `l1`）: `output/<ts>/outside-managed/` のうち書くファイルのパス（オーケストレーターが対象の現物をコピー済み。無ければ新規作成）と、`common.md` の `## 管理パス外の変更` の該当項目
 - 差し戻しのときだけ: 直すファイルと指摘（handoff.md の「差し戻し」の逐語）
 
 ## 手順
@@ -35,6 +36,8 @@ preload された generation Skill の指示に従う。担当層に対応する
 | `agents` | `agents.md` | `targets-l3.txt` | `.claude/agents/**` |
 | `l4` | `l4.md` | `targets-l4.txt` | `.claude/settings.json`・`.claude/hooks/**`・`.mcp.json` |
 | `l5` | `l5.md` | `targets-l5.txt` | `plugin/**` |
+
+管理パス外の変更を渡されたときは、渡されたパスの `output/<ts>/outside-managed/<対象パス>` だけを、項目の「変更内容」どおりに Edit（新規なら Write）する。コピー済みの現物から、変更内容に要る箇所だけを直し、他は変えない。generated/ には置かない（置くと管理パス集合の生成物になる）。
 
 `.claude/README.md`・`MANIFEST.md`・`deploy/*.list` は書かない（オーケストレーターが、生成の最後に決定論で作る）。他の層のファイルも書かない。
 

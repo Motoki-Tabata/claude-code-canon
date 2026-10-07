@@ -231,7 +231,7 @@ canon_commit: <run を始めたときの canon の HEAD（new-run が記録す�
 | P1 | `work/<ts>/requirements.md` |
 | P2 | `output/<ts>/spec.md` |
 | P3 | `output/<ts>/design-map.md` |
-| P4 | `output/<ts>/generated/`（ディレクトリのハッシュ） |
+| P4 | `output/<ts>/generated/`（ディレクトリのハッシュ。`output/<ts>/outside-managed/` にファイルがあるときは、それも合わせた1つのハッシュ・artifacts.md §5.6） |
 | P5 | `output/<ts>/deploy/pre-deploy-report.txt` |
 
 ディレクトリのハッシュは、配下の全ファイルを `sha256sum` した一覧をパスの順に並べ、その一覧全体の sha256 を取った値とする（verify-report が記録する値と同じ計算・artifacts.md §8.1）。
