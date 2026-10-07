@@ -49,6 +49,10 @@
 - **skills 層の builder の分割**: L2 の宣言が20件を超えるとき、`slice.js` が skill 単位に `skills-<k>.md`・`targets-l2-<k>.txt` を足し、
   Phase C は分割数だけ builder を並列に起動します（`skills.md`・`targets-l2.txt` は全体として残ります）。
 
+- **生成物のテストの実行（Phase C 工程7）**: 生成物に `*.test.*` があれば、対象の一時 worktree に generated/（と outside-managed/）を
+  重ねて対象のテストランナーで実行し、失敗を verify の違反と同じに扱います。builder にはシェルが無く、書いたテストの失敗が
+  工程8まで見つからなかったためです。
+
 ### Changed
 
 - **生成物の README の「使用例」**: spec の受入基準 A1 の転記をやめ、利用者が起動する Skill の起動行

@@ -64,6 +64,13 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 2. exit 1 なら、report の違反を層ごとに分け、handoff の「差し戻し」に逐語で書き、該当する層の builder を新しく起動して直させる。直したら `npm run manifest -- <ts>` → `npm run verify -- <ts>` をやり直す。違反がなくなるまで繰り返す。
 3. warning は exit code に影響しないが、P4 で示す。種別ごとの件数と代表例を示す（全件は `verify-report.md` にある。パス様トークンの warning は1ファイルにつき1件にまとまっている）。
 4. 違反が keep のファイルにある（V7）なら、builder では直せない。keep は design-map が正なので、下の「keep に及ぶ修正」の手順で P3 に戻す。
+5. **生成物のテストを実行する**: builder は実行できない（シェルが無い）ので、書いたテストが通るかは verify（V1〜V9）では分からない。`generated/` に `*.test.*`・`*.spec.*` があれば、あなたが対象の一時 worktree で実行する（`<target>` は handoff の `target`、`<root>` は canon のルートの絶対パス）。
+   1. `git -C <target> worktree add --detach <root>/work/<ts>/trial HEAD` で作る（手順の根拠は canon-b の工程5-3。対象のブランチと作業ツリーには触れない。worktree が使えない対象は、対象を `cp -a` した一時ディレクトリで代える）。
+   2. `cp -a <root>/output/<ts>/generated/. <root>/work/<ts>/trial/` で生成物を重ねる。`output/<ts>/outside-managed/` があれば、同じく `cp -a` で重ねる（テストが管理パス外の変更に依存しうる）。
+   3. 対象のテストランナー（`work/<ts>/investigation/profile.md` の test 欄。無ければ対象の package.json などから特定する）で、**生成物のテストだけ**でなく、生成物が触れる範囲の既存テストも含めて実行する。依存の取得が要るなら worktree の中で行う。コマンド行と実際の出力を控える。
+   4. 失敗は verify の違反と同じに扱う: 失敗したテストを層ごとに分け、上の 2 と同じく「差し戻し」に逐語で書いて builder に直させる。テスト側の欠陥か、生成物の欠陥かの切り分けは、参照元（`## 参照元`）に同じテストがあるなら、その差分から始める。
+   5. `git -C <target> worktree remove --force <root>/work/<ts>/trial` で片付ける（残すと次回の `worktree add` が失敗する）。
+   6. 結果（コマンド行・通った件数・失敗）は P4 の「実行を要する受入基準の実行結果」に含める。実行できなかったなら、理由を添えて「実行して確かめていない」と書く。
 
 ## 工程8 品質検査
 

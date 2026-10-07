@@ -20,11 +20,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 
 ---
 
-## 2026-10-03 builder が書いたテストを実行する工程が canon-c に無く、必ず失敗するテストが工程8まで残った（run 20261003_033830・Phase C）
-- 種別: 効率化
-- 何が起きたか: builder（Read・Write・Edit・Glob だけ。シェルなし）が書いた `agent-write-guard.test.mjs` の新規テスト1件が、フィクスチャの欠陥（root を `os.tmpdir()` 直下に作り tmpdir も同値を渡すため、`../` が常に許可側に解決される）で環境に関わらず失敗した。verify（V1〜V9）は実行を伴わないので通り、工程8-6 の現物実行をオーケストレーターが手で行って初めて見つかった。参照元の同種のテストは通っていたので、移植元との差分が原因の切り分けになった。
-- 提案: `.claude/skills/canon-c/SKILL.md` の工程7 に、「生成物に `*.test.mjs` があれば、`generated/` を対象のコピーに重ねた一時ディレクトリで `node --test` を全件実行し、失敗を verify の違反と同じに扱う」を足す（オーケストレーターが手で行う手順を明文化する。実装は `npm run` の道具にしてもよい）。
-
 ## 2026-10-07 reviewer が判定対象の全件を見ていなくても、工程8が完了扱いになる（run 20261003_033830・Phase C）
 - 種別: 欠陥修正
 - 何が起きたか: `reviewer.md:27` は「INDEX.md の判定の対象を全件見る」と定める。ところが `output/20261003_033830/review/review.md` は、本文を読んでいない対象（他の rules・SKILL.md・references・`*.test.mjs` など）を自分で挙げている。対象79件に対して Read は34回だった（c52db209 の subagent agent-ad97675b4e3c1a1f7）。オーケストレーターは P4 で未読の範囲を開示しただけだった（L473）。reviewer は1体だけ起動され（`canon-c/SKILL.md:65`）、網羅していなかったときの扱いが決まっていない。【中】
