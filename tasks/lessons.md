@@ -20,11 +20,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 
 ---
 
-## 2026-10-03 「別プロジェクトのカスタマイズ一式を参考に作る」入力を受ける欄が無い（run 20261003_033830・Phase A）
-- 種別: 規律昇華
-- 何が起きたか: 対象（skillweave-mhwilds）とは別の参照元プロジェクト（vehicle-intake-management）の一式を移植の基準にする依頼だった。new-run・investigator（existing・focused）・requirements-template のいずれにも参照元の欄が無く、requirements.md の散文小節と handoff の申し送りに絶対パスを書いて後工程へ運ぶしかなかった（focused の `project_refs` は対象内の参照の解決用で、外部プロジェクトの一式は扱わない）。
-- 提案: `.claude/skills/requirements/references/requirements-template.md` に任意の `## 参照元` 節（パスと「移植の基準・生成物には書かない」の別）を足し、`canon-a` 工程3・4 と designer・builder への受け渡しでこの節を読む旨を書く。investigator に `mode: reference`（参照元の一式の棚卸し）を足すかは、要否を次の同種の run で判断する。
-
 ## 2026-10-03 builder が書いたテストを実行する工程が canon-c に無く、必ず失敗するテストが工程8まで残った（run 20261003_033830・Phase C）
 - 種別: 効率化
 - 何が起きたか: builder（Read・Write・Edit・Glob だけ。シェルなし）が書いた `agent-write-guard.test.mjs` の新規テスト1件が、フィクスチャの欠陥（root を `os.tmpdir()` 直下に作り tmpdir も同値を渡すため、`../` が常に許可側に解決される）で環境に関わらず失敗した。verify（V1〜V9）は実行を伴わないので通り、工程8-6 の現物実行をオーケストレーターが手で行って初めて見つかった。参照元の同種のテストは通っていたので、移植元との差分が原因の切り分けになった。

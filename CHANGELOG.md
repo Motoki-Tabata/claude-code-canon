@@ -38,6 +38,10 @@
   new-run は進捗を工程1〜9の全行で作り、`## セッション` 節を足します。`session <Phase>` は canon のプロジェクトで最後に
   書かれたセッションの id を記録します（run の振り返りが transcript を引くために使います）。canon-a〜d の手順を置き換えました。
 
+- **requirements.md の `## 参照元`（任意）**: 対象とは別のプロジェクトの一式を移植の基準にするとき、`path`（絶対パス）と
+  `role` を書く入力欄を足しました。focused 調査・spec-writer・designer・builder が読みます。`npm run check -- <ts> requirements`
+  が実在と絶対パスを確かめます。investigator に `mode: reference` は足していません（focused が参照元も読みます）。
+
 ### Changed
 
 - **生成物の README の「使用例」**: spec の受入基準 A1 の転記をやめ、利用者が起動する Skill の起動行

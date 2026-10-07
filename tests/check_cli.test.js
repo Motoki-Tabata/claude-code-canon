@@ -13,6 +13,7 @@ import { runNodeScript } from './helpers/run-cli.js';
 import { ROOT, outputDir, workDir } from './helpers/paths.js';
 import { tsFor } from './helpers/ts.js';
 import { checkDesignMap, checkRequirements, checkSpec, mentionedIds } from '../tools/check.js';
+import { parseReferenceSources } from '../lib/requirements.js';
 
 const REQ = `## 確定要件
 - id: R1
@@ -119,6 +120,18 @@ test('requirements: 語彙外の強度・conflicts の欠落・確定要件の�
   const noReq = checkRequirements('## メタ\nx: y\n');
   assert.equal(noReq.length, 1);
   assert.equal(noReq[0].ok, false);
+});
+
+test('参照元: 節が無ければ [] で、あればパスと role を読む。check は実在と絶対パスを見る（故意の違反）', () => {
+  assert.deepEqual(parseReferenceSources(REQ), []);
+  const withRef = (p) => `${REQ}\n## 参照元\n- path: ${p}\n  role: 移植の基準\n`;
+  assert.deepEqual(parseReferenceSources(withRef('/a/b')).map((r) => [r.path, r.role]), [['/a/b', '移植の基準']]);
+  // 実在する絶対パス → 全項目 OK
+  assert.deepEqual(names(checkRequirements(withRef(ROOT))), []);
+  // 実在しない・相対パス・path 欠落 → それぞれ NG
+  assert.deepEqual(names(checkRequirements(withRef('/no/such/dir-xyz'))), ['参照元の実在']);
+  assert.deepEqual(names(checkRequirements(withRef('relative/dir'))), ['参照元のパス']);
+  assert.deepEqual(names(checkRequirements(`${REQ}\n## 参照元\n- role: 基準だけ\n`)), ['参照元のパス']);
 });
 
 test('spec: §9 が空・mandatory あり は OK。未決の論点・mandatory 無しは NG', () => {

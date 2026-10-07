@@ -34,7 +34,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 1. designer を起動する。渡すもの（すべて絶対パス）:
    - `output/<ts>/spec.md`（P2 承認済み）
-   - `work/<ts>/requirements.md`
+   - `work/<ts>/requirements.md`（`## 参照元` があれば、designer は `path` の配下も読む）
    - `work/<ts>/investigation/existing.md`・`profile.md`・`focused.md`
    - `work/<ts>/investigation/official-check.md`（あれば）
    - handoff の「申し送り」のうち Phase B 向けのもの（逐語でプロンプトに写す。要約しない）

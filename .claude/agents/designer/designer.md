@@ -12,7 +12,7 @@ skills: [design]
 ## 入力（プロンプトで渡される絶対パス。これだけを読む）
 
 - `output/<ts>/spec.md`（承認済み）
-- `work/<ts>/requirements.md`（`strength_needed`・`constraints`・`conflicts`）
+- `work/<ts>/requirements.md`（`strength_needed`・`constraints`・`conflicts`。`## 参照元` があれば、その `path` の配下を読み取り専用で読み、移植の基準にしてよい。design-map に参照元のパスを書くのは `## 参照元からのコピー` の節だけ）
 - `work/<ts>/investigation/existing.md`・`profile.md`・`focused.md`
 - `work/<ts>/investigation/official-check.md`（Claude Code の仕様に依存する要件があるときだけ渡される。公式仕様の確認結果）
 - handoff の Phase B 向けの申し送り（プロンプトに逐語で写される。設計で決めるよう求められた事項は design-map で決める）

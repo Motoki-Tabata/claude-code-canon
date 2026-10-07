@@ -170,7 +170,13 @@ conflicts:
   - requirement: R1
     constraint: hooks
     note: <deterministic が使えない。advisory へ下げるか、断念するか。選択肢を人間に示す>
+
+## 参照元                                   # 任意。無ければ節ごと書かない
+- path: <移植の基準にする別プロジェクトの一式の絶対パス>
+  role: <何の基準か>
 ```
+
+- **`## 参照元`**（任意）は、対象とは別のプロジェクトの一式を移植の基準にするときの入力欄である。`path` は絶対パス、`role` は基準の用途。focused 調査（investigator）・spec-writer・designer・builder が読む。生成物には参照元のパスや名前を書かない。`lib/requirements.js` の `parseReferenceSources` が読み、`npm run check -- <ts> requirements` が実在を確かめる。参照元から一式を機械的にコピーする手順は §5（design-map の `## 参照元からのコピー`）にある。
 
 - `strength_needed` は正典 `00_INDEX.md` の強度3段階（advisory＝CLAUDE.md、deterministic＝Hooks、enforced＝permissions）に対応し、制約との衝突の検出に使う。
 - `constraints` は要件とは独立した環境条件で、機能選定の分岐を先に刈り込む。制約は、調査での検出（Hook が無い・MCP の設定が無い・ポリシーの痕跡）とヒアリングでの確認（禁止なのか、使っていないだけなのか）を合わせて拾う。

@@ -13,6 +13,7 @@ skills: [generation]
 
 - `layer`: `l1`・`skills`・`agents`・`l4`・`l5` のどれか1つ
 - `output/<ts>/` と `work/<ts>/slices/` の絶対パス
+- 参照元があるときだけ: requirements.md の `## 参照元` の `path`（移植の基準。読み取り専用。生成物には参照元のパスや名前を書かない）
 - 管理パス外の変更を書くときだけ（`layer` が `l1`）: `output/<ts>/outside-managed/` のうち書くファイルのパス（オーケストレーターが対象の現物をコピー済み。無ければ新規作成）と、`common.md` の `## 管理パス外の変更` の該当項目
 - 差し戻しのときだけ: 直すファイルと指摘（handoff.md の「差し戻し」の逐語）
 

@@ -23,6 +23,10 @@ ref_resolution:
   - ref: "./scripts/x.sh"  kind: supporting_file  resolved: false  reason: "not found"
 ```
 
+## 参照元
+
+requirements.md に `## 参照元` があるときは、渡された `path` の配下も、要件に関係する範囲だけ読む（`mode: reference` のような別の調査は無い）。参照元は移植の基準であり、`evidence_paths` には参照元のパスをそのまま書いてよい（focused.md は work/ の中間成果物で、生成物ではない）。参照元の中身を対象の事実として書かない。`findings` の `topic` に「参照元」と明記して区別する。
+
 ## 調べ方
 
 - 語がどこにどれだけあるかは、Grep の `output_mode` を `count` か `files_with_matches` にして取る。該当行の抜き出し（`content`）は、分布を見て対象のファイルを絞ってから行う。ディレクトリ全体を `content` で引くと出力が大きくなり、会話に入らずにファイルへ退避される。

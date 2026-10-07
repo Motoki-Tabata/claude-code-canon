@@ -25,7 +25,7 @@ import {
 import { parseExisting } from '../lib/investigation.js';
 import { isManaged } from '../lib/managed-paths.js';
 import { computeFenceMask, findHeading, sectionSlice } from '../lib/markdown.js';
-import { parseRequirementsDoc, RequirementsError } from '../lib/requirements.js';
+import { parseReferenceSources, parseRequirementsDoc, RequirementsError } from '../lib/requirements.js';
 import { isMainModule, isValidTs } from '../lib/run.js';
 
 export const TARGETS = ['requirements', 'spec', 'design-map'];
@@ -81,6 +81,16 @@ export function checkRequirements(text) {
     doc.conflicts?.length ? `${doc.conflicts.length}件（未解消）` : '空（[]）', 'conflicts ブロックが無い（無ければ `conflicts: []` と書く）'));
   const withOutside = reqs.filter((r) => r.outside_managed.length > 0);
   items.push(ok('outside_managed を持つ要件', withOutside.length ? withOutside.map((r) => r.id).join('・') : 'なし'));
+  const refs = parseReferenceSources(text);
+  if (refs.length > 0) {
+    const noPath = refs.filter((r) => !r.path || !path.isAbsolute(r.path));
+    items.push(cond('参照元のパス', noPath.length === 0, `${refs.length}件（絶対パス）`,
+      `絶対パスの path が無い参照元: ${noPath.map((r) => `L${r.line}`).join('・')}`));
+    const gone = refs.filter((r) => r.path && path.isAbsolute(r.path) && !existsSync(r.path));
+    items.push(cond('参照元の実在', gone.length === 0, '全件が実在する', `実在しない: ${gone.map((r) => r.path).join('・')}`));
+  } else {
+    items.push(ok('参照元', 'なし（任意の節）'));
+  }
   return items;
 }
 
