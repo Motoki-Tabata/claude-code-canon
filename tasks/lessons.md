@@ -20,11 +20,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 
 ---
 
-## 2026-10-07 prompt-audit をメインの文脈で実行し、約80k トークンが残りの全ターンに載り続けた（run 20261003_033830・Phase C）
-- 種別: 効率化
-- 何が起きたか: claude-api の Skill 本文（c52db209 L159）と prompt-audit の報告（L170）が文脈に入り、cache_read が 72k（L118）から 152k（L212）に増えたまま最後まで載り続けた。オーケストレーターの走査が「現状は存在」の語だけを見ていたため F2 を取りこぼし、builder の追加起動と再レビューに約3.5分かかった（L546）。書き出した prompt-audit.md を python で書き換えており（L288）、「要約せずにそのまま書き出す」（`canon-c/SKILL.md:68`）と食い違う。【中】
-- 提案: prompt-audit の実行と書き出しを専用のワーカー（Read・Grep・Write と Skill）に任せ、報告はファイルで受け取る。時点に依存する語の grep パターンは canon 側に固定して持つ。
-
 ## 2026-10-07 Phase D の逸脱が台帳に書かれず、run 全体の振り返りの工程も無い（run 20261003_033830・Phase D）
 - 種別: 規律昇華
 - 何が起きたか: Phase D の終わり（774bc4a2 L343）では、既存の4件を数えただけだった。上の「generated/ を直接編集」「P5 が中身を束縛しない」「コマンドの挙動の裏取り」は Phase D の中で起きていたのに、起票されていない（`canon-d/SKILL.md:26` は「気づいたらその場で書く」と定める）。本台帳の上の項目は、run の後に手作業で transcript を解析して見つけた。session-analyst は Phase A の要件ヒアリング専用である（`requirements/references/interview.md:31`）。自分が手順から外れたことを自分で申告するのには限界がある、というのは推測。【中】

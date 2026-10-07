@@ -132,7 +132,7 @@ test('agent の skills: preload が実在し、disable-model-invocation な Skil
   assert.ok(preloads > 0, 'preload が1件も無い（検査が発火していない＝vacuous）');
 });
 
-// ---- Agent 7体と知識 Skill 5件（architecture.md §4）----
+// ---- Agent 8体と知識 Skill 5件（architecture.md §4）----
 
 /** Agent と、preload する知識 Skill の対応（architecture.md §4.1）。null は preload しない。 */
 const EXPECTED_AGENTS = {
@@ -143,13 +143,14 @@ const EXPECTED_AGENTS = {
   reviewer: 'review',
   'keep-reviewer': 'review',
   'session-analyst': null,
+  'prompt-auditor': null,
 };
 const KNOWLEDGE_SKILLS = ['investigation', 'requirements', 'design', 'generation', 'review'];
 
 /** parseFrontmatter の値（文字列、または { value } を持つオブジェクト）を文字列で返す。 */
 const fmValue = (v) => (v && typeof v === 'object' ? String(v.value ?? '') : String(v ?? ''));
 
-test('Agent は7体ちょうどで、それぞれ期待する知識 Skill を preload する', () => {
+test('Agent は8体ちょうどで、それぞれ期待する知識 Skill を preload する', () => {
   // `.claude` などサンドボックスのマウント点は定義ではないので、<名前>/<名前>.md を持つものだけを数える。
   const actual = readdirSync(path.join(SELF, 'agents'))
     .filter((n) => existsSync(path.join(SELF, 'agents', n, `${n}.md`)))
@@ -402,6 +403,10 @@ test('読むだけの役割に Edit を与えない／書く役割は自分の�
     assert.ok(toolsOf(n).includes('Write'), `${n} は自分の成果物を書くために Write が要る`);
     assert.ok(!toolsOf(n).includes('Edit'), `${n} に Edit は不要（差し戻しを受けない読み取り中心の役割）`);
   }
+  // prompt-auditor は Skill で prompt-audit を実行し、報告を Write で残す。編集を適用しないことを Edit の不在で担保する。
+  assert.ok(toolsOf('prompt-auditor').includes('Skill'), 'prompt-auditor は prompt-audit を呼ぶために Skill が要る');
+  assert.ok(toolsOf('prompt-auditor').includes('Write'), 'prompt-auditor は報告を書くために Write が要る');
+  assert.ok(!toolsOf('prompt-auditor').includes('Edit'), 'prompt-auditor に Edit は与えない（編集を適用しないことを tools で担保する）');
   // 差し戻しで指示の箇所だけを直す役割は Edit を持つ。investigator は大きい調査結果を全文書き直さずに直す。
   for (const n of ['investigator', 'spec-writer', 'designer', 'builder']) {
     assert.ok(toolsOf(n).includes('Edit'), `${n} は差し戻しで該当箇所だけを直すために Edit が要る`);

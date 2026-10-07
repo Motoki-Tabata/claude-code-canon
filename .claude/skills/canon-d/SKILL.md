@@ -11,7 +11,7 @@ Phase D は承認済みの生成物を対象プロジェクトへ届ける。工
 
 あなたは inline のメイン Claude としてオーケストレーターを務める。この Phase ではワーカーを起動しない。**配置（`--confirm`）はあなたが実行しない**。sandbox がファイルをバインドマウントしていると退避の rename が失敗するので、人間が sandbox の外で実行する。
 
-Phase C で済ませたレビュー（reviewer・keep-reviewer・prompt-audit）は再実行しない。生成物は P4 で承認済みで、承認後に変わっていないことは開始時の照合で確かめる。
+Phase C で済ませたレビュー（reviewer・keep-reviewer・prompt-auditor）は再実行しない。生成物は P4 で承認済みで、承認後に変わっていないことは開始時の照合で確かめる。
 
 ## 0. 開始手順
 

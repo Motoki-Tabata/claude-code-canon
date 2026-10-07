@@ -1,6 +1,6 @@
 ---
 name: canon-c
-description: Drive Phase C of a claude-canon run — copy keep files and slice the design-map, spawn one builder per layer in parallel to generate the customizations, run verify (V1-V9), run the quality review (reviewer, keep-reviewer, /claude-api prompt-audit), loop fixes until done, and take the P4 approval. Use only when the user invokes /canon-c with the run timestamp, in a session started at the claude-canon root.
+description: Drive Phase C of a claude-canon run — copy keep files and slice the design-map, spawn one builder per layer in parallel to generate the customizations, run verify (V1-V9), run the quality review (reviewer, keep-reviewer, prompt-auditor running /claude-api prompt-audit), loop fixes until done, and take the P4 approval. Use only when the user invokes /canon-c with the run timestamp, in a session started at the claude-canon root.
 disable-model-invocation: true
 argument-hint: "<ts>"
 ---
@@ -26,8 +26,8 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 ## ワーカーの起動規則
 
-- ワーカーは登録済みの `subagent_type`（`builder`・`reviewer`・`keep-reviewer`）で起動する。`model` 引数は渡さない（frontmatter の指定より優先されてしまう）。`general-purpose` に定義を読ませて代行させない（コマンド実行系ツールを持つので、書込先の制限が崩れる）。
-- 独立したワーカー（各層の builder、reviewer と keep-reviewer）は**1つのメッセージで並列に**起動し、`run_in_background: false` にして全員の結果がそろうまで待つ。待つために ScheduleWakeup や loop を使わない。同じワーカーから重複した通知が来ても応答しない。
+- ワーカーは登録済みの `subagent_type`（`builder`・`reviewer`・`keep-reviewer`・`prompt-auditor`）で起動する。`model` 引数は渡さない（frontmatter の指定より優先されてしまう）。`general-purpose` に定義を読ませて代行させない（コマンド実行系ツールを持つので、書込先の制限が崩れる）。
+- 独立したワーカー（各層の builder、reviewer・keep-reviewer・prompt-auditor）は**1つのメッセージで並列に**起動し、`run_in_background: false` にして全員の結果がそろうまで待つ。待つために ScheduleWakeup や loop を使わない。同じワーカーから重複した通知が来ても応答しない。
 - プロンプトには ts と、入力・書込先の**絶対パス**を書く。定義に書いてあることを繰り返さない。
 - ワーカーの応答は「書いた旨」の短い報告である。報告を受けても完了とみなさず、成果物の実在を自分で確かめる。
 - 直させるときは SendMessage で再開しない。指摘を handoff の「差し戻し」に逐語で書き（直す箇所・直さない箇所）、同じ種類のワーカーを**新しく**起動して、そのブロックと入力一式を渡し、指示された箇所だけを Edit させる。再開は蓄積した文脈の読み直しになり、新規起動より重い。
@@ -75,13 +75,15 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 ## 工程8 品質検査
 
 1. `npm run review-bundle -- <ts>` で判定入力を作る。reviewer 用は常に `work/<ts>/review-bundle/reviewer/` に（判定の対象を20件ずつに分けた `INDEX-<k>.md` と、全分割で共有する `design.md`・`acceptance.md`）、keep-reviewer 用は refactor モードのときだけ `work/<ts>/review-bundle/keep-review/` に書かれる（どちらも designer の `keep_conditions` と rationale は機械的に除かれている）。
-2. **reviewer（INDEX の分割数だけ）と keep-reviewer を1つのメッセージで並列に**起動する。keep-reviewer は、review-bundle が keep または merge のケースを1件以上作ったときだけ起動する（new モード、またはケースが0件なら reviewer だけ）。
+2. **reviewer（INDEX の分割数だけ）・keep-reviewer・prompt-auditor（下の 3）を1つのメッセージで並列に**起動する。keep-reviewer は、review-bundle が keep または merge のケースを1件以上作ったときだけ起動する（new モード、またはケースが0件なら reviewer だけ）。
    - reviewer（`INDEX-<k>.md` ごとに1体）: `work/<ts>/review-bundle/reviewer/` と担当の `INDEX-<k>.md`・`output/<ts>/generated/`・対象のルートの絶対パス。書込先は `output/<ts>/review/review-<k>.md`。
    - **未判定があれば工程8は未完了**: 全員が終わったら、`review-<k>.md` の実在と、各 `## 未判定の対象` を確かめる。「なし」でない、または INDEX-<k>.md の対象のうち `## 検査した対象`・`## 問題なしと判定した対象` のどちらにも無いものがあれば、その対象だけを渡して reviewer を新しく起動する（書込先は `review-<k>-<n>.md`、n は2から）。未判定が尽きるまで繰り返し、尽きてから先へ進む。
    - keep-reviewer: `work/<ts>/review-bundle/keep-review/` のケースファイル一式と `output/<ts>/` の絶対パス。書込先は `output/<ts>/review/keep-review.md`。
-3. **標準 Skill のレビュー**を自分で実行し、報告を**要約せずにそのまま**書き出す。
-   - Skill `claude-api` に `prompt-audit output/<ts>/generated/` を渡す。報告と diff 案だけを求め、編集は適用させない。報告を `output/<ts>/review/prompt-audit.md` に書く。
-   - Skill が使えない環境なら、そのファイルに「実行できなかった」と理由を書き、P4 で明示する。実行していないレビューを「指摘なし」と書かない。
+3. **標準 Skill のレビュー（prompt-audit）は `prompt-auditor` に任せる**。監査の報告は長く、メインの会話で実行すると以後の全ターンで読み込みが積み上がる（実測: 約80k トークン）。上の 2 の reviewer・keep-reviewer と**同じメッセージで並列に**起動する。
+   - 渡すもの: ts・`output/<ts>/generated/` の絶対パス・書込先 `output/<ts>/review/prompt-audit.md`。
+   - prompt-auditor は Skill `claude-api` に `prompt-audit` を渡し、報告を**要約せずにそのまま**書込先へ書く（あなたが報告を読んで書き直さない・python などで書き換えない）。編集は適用させない（prompt-auditor は Edit を持たない）。続けて、時点に依存する語を canon が固定したパターンで Grep し、該当を同じファイルの末尾に列挙する。パターンは `prompt-auditor.md` に定義があり、あなたが代わりに絞らない。
+   - Skill が使えない環境なら、prompt-auditor がそのファイルに「実行できなかった」と理由を書く。P4 で明示する。実行していないレビューを「指摘なし」と書かない。
+   - 応答は短い。報告の全文は、P4 の提示の前に `prompt-audit.md` を Read して、要点（高・中信頼の指摘と追加走査の該当）を拾う。
 4. **不在を根拠にした指摘を裏取りする**: 「〜が無い」「〜への言及が無い」を根拠にした指摘は、提示の前に Grep で `generated/` を横断して確かめる。見つかったら、その事実（`file:line`）を指摘に添えて示す。指摘そのものは書き換えない。
    - コマンドの挙動や実行結果を根拠にした指摘（「このコマンドは〜になる」「この引数は禁止側に倒れる」など）も、提示の前にあなたが一時ディレクトリ（`mktemp -d` で作る。対象や canon の作業ツリーでは試さない）で実行して確かめる。reviewer は Bash を持たず、挙動を推測で書くことがある。コマンド行と実際の出力を指摘に添え、指摘と食い違えばその旨を示す。
 5. **実行を要する受入基準**: spec §8 の受入基準や design-map が、生成物に含まれるテストやスクリプトの実行を求めているなら、あなたが Bash で実行し、コマンド行と実際の出力を P4 に含める。実行できない環境なら「実行して確かめていない」と明記する。読んだだけで「動作を確認した」と言わない。
@@ -92,7 +94,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 1. 工程8の直後、P4 の前に、指摘の振り分けを**1問でユーザーから取る**（指摘ごとに直すかをあなたが先に決めて P4 にまとめない。「直さない」を既定にして P4 に持ち込むと、差し戻しで作り直しになる）。既定は**全件を直す**。「直さない」の候補があれば、その指摘だけを理由付きで示す。返答に従い、直すものと、直さないもの（理由付き）を handoff の「差し戻し」に逐語で書く。
 2. 直す対象の層ごとに builder を**新しく**起動し、「差し戻し」のブロックの位置と入力一式を渡す。
 3. `npm run manifest -- <ts>` → `npm run verify -- <ts>` を実行する。
-4. 変更したファイルだけを再レビューする。先に `npm run review-bundle -- <ts>` を作り直し（分割が変わりうるので、`review/review-*.md` は作り直し後の INDEX の番号で書き直す）、変更した対象を含む `INDEX-<k>.md` の reviewer にだけ、バンドルと、変更した対象と前回の指摘を渡す。keep・merge の対象が変わったときだけ keep-reviewer も再判定させる。標準 Skill のレビューは、変更が大きいときだけやり直す。
+4. 変更したファイルだけを再レビューする。先に `npm run review-bundle -- <ts>` を作り直し（分割が変わりうるので、`review/review-*.md` は作り直し後の INDEX の番号で書き直す）、変更した対象を含む `INDEX-<k>.md` の reviewer にだけ、バンドルと、変更した対象と前回の指摘を渡す。keep・merge の対象が変わったときだけ keep-reviewer も再判定させる。標準 Skill のレビュー（prompt-auditor）は、変更が大きいときだけやり直す。
 5. 直す指摘が尽きるまで繰り返す。
 
 **keep に及ぶ修正**: 直す対象のパスが `work/<ts>/slices/disposition-other.md` の keep に含まれていたら、生成物や MANIFEST だけを直しても V7（keep の非回帰）が止める。keep の正は design-map である。先に P3 を差し戻す: 指摘を「差し戻し」に書き、designer を新しく起動して disposition を keep から modify に直させ、P3 の承認を取り直す（`npm run approvals -- <ts> record P3 "<要旨>"`）。そのあと「準備」の slice と copy-keep からやり直す。変更が設計の組み直しに及ぶなら、状態を handoff に書いて止め、opus のセッションで `/canon-b <ts>` をやり直すよう案内する。
@@ -104,7 +106,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
    - 生成物の一覧（新規・改修・維持・廃止。`MANIFEST.md` から）と `generated/.claude/README.md` のパス
    - verify-report の結果（違反0件であること・warning の全件）
    - `review-*.md`（全分割・追加起動の分を含む）・keep-review.md の指摘の全件（重大度別）。未判定の対象が残っていないこと。K2・K4 に疑いありとされた keep は必ず示す
-   - prompt-audit の要点、または実行できなかったこと
+   - prompt-audit の要点（`prompt-audit.md` から）、または実行できなかったこと
    - 修正ループで直した指摘と、直さないとユーザーが決めた指摘とその理由。**未決の指摘（「ご指示があれば直します」など）を残さない**。振り分けを取っていない指摘があれば、P4 の前に取る
    - 実行を要する受入基準の実行結果、または「未実行」
 3. 承認を求めて**止まる**。

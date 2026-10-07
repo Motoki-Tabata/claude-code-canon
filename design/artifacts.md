@@ -622,7 +622,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 |---|---|
 | `review-<k>.md` | reviewer（4観点。判定の対象を20件ずつに分けた k 番目。`## 未判定の対象` を持つ。未判定の追加起動は `review-<k>-<n>.md`） |
 | `keep-review.md` | keep-reviewer（refactor モードのみ） |
-| `prompt-audit.md` | `/claude-api prompt-audit` の結果をオーケストレーターが保存 |
+| `prompt-audit.md` | prompt-auditor（`/claude-api prompt-audit` の報告を逐語で保存し、末尾に時点に依存する語の走査結果を足す） |
 
 各指摘は「観点・対象（`file:line`）・根拠・重大度・提案」を持つ。修正ループで直した指摘と、直さないと決めた指摘（とその理由）は handoff.md の「差し戻し」に記録する。
 
