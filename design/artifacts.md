@@ -651,7 +651,7 @@ keep の verbatim コピーは「調査で把握済みの keep が消える」�
 
 - **入力**: 対象の管理パス集合の実ファイル全部（パターンを対象に当てて列挙する）と、output の全ファイル。`managed-paths.list` は「output が配置する集合」を、パターンは「取りこぼしを探す走査範囲」を与え、両者は独立に効く（list だけを読むと取りこぼしを検出できない）。
 - **判定**: 集合の中で「対象にあって output に無い」ファイルを列挙し、`retired.list` と一致するものを **retired**（意図した廃止）、それ以外を **uncaptured**（調査の取りこぼし・要注意）に分ける。
-- **出力**: `output/<ts>/deploy/pre-deploy-report.txt`（と stdout）。消えるファイルの一覧と区分、件数、配置予定と退避予定（上書き・消失）の件数を載せる。管理パス集合の走査で種別を判定できなかったエントリ（unreadable）は「列挙できなかった範囲」として別に載せる（照合の盲点を黙って落とさない）。
+- **出力**: `output/<ts>/deploy/pre-deploy-report.txt`（と stdout）。消えるファイルの一覧と区分、件数、配置予定と退避予定（上書き・消失）の件数、**generated/ のツリーハッシュ**を載せる（P5 の承認は report のハッシュを束縛するので、generated/ の中身が変わると P5 も無効になる）。管理パス集合の走査で種別を判定できなかったエントリ（unreadable）は「列挙できなかった範囲」として別に載せる（照合の盲点を黙って落とさない）。
 - **終了コード**: uncaptured が1件以上、または `deploy/*.list` に書式欠陥（glob の混入・実在しないエントリ）が1件以上、または `managed-paths.list` に集合外・`..`・絶対パス・未正規化の行が1件以上なら exit 1（配置を止め、調査か design-map へ差し戻す）。retired だけ、または0件なら exit 0。引数不正は exit 2。
 
 ### 10.3 deploy（退避スワップ）
@@ -659,6 +659,7 @@ keep の verbatim コピーは「調査で把握済みの keep が消える」�
 `deploy.js <output-dir> <target-dir> [--confirm]`
 
 - **`--confirm` が無ければ配置予定を表示するだけ**で、何も変えない（P5 の人間の承認を機械で裏付ける）。
+- **`--confirm` では、実行の冒頭で P1〜P5 の承認を照合する**（`tools/approvals.js` の `checkApprovals`。canon のルートは `<output-dir>` の2つ上）。承認後に generated/ が変わった（P4 が無効）・report が変わった（P5 が無効）・承認行や handoff.md が無いときは、対象を変えずに拒否する。
 - 実行時に pre-deploy-check と同じ照合と `managed-paths.list` の再検証（集合外・`..`・絶対パス・未正規化の行は拒否）をやり直し、退避先 `.claude-canon.bak.<ts>` が既にあれば拒否し、**uncaptured が1件でもあれば配置を拒否**する（P5 を飛ばした配置を防ぐ最後の防波堤）。
 
 ```text

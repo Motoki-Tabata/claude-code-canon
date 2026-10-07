@@ -60,11 +60,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: ユーザーが「やはりlow 3件を直してから配置したい」と言い（774bc4a2 L80）、オーケストレーターは builder を起動せず、`generated/` の4ファイルを Edit で直した（L124〜L163）。manifest の再生成も再レビューもせず、P4 を Phase D の中で記録し直した（L196）。verify の呼び方も探していた（L164 `npm run | grep`、L171 は引数違いのエラー）。`canon-d/SKILL.md:12`（ワーカーを起動しない）と `:47`（生成物を直すなら `/canon-c` からやり直すよう案内して止まる）に反する。メインが `generated/` に書くのを止める機械の仕組みは無い。low 3件のために新しいセッションでやり直すのは重く、手順を迂回する動機になったと推測する。上の「直さないを既定に P4」の項目が発端。【高】
 - 提案: メインセッションから `output/*/generated/**` への Write・Edit を拒否する PreToolUse の hook を canon の `.claude/settings.json` に置く（builder は対象外にする）。canon-d に「軽微な修正」の手順を定める（builder を新しく起動 → manifest → verify → 変更分の再レビュー → P4 → P5）か、canon-c に再入して修正ループだけを回す引数を用意する。
 
-## 2026-10-07 P5 も deploy.js も generated/ の中身を束縛しておらず、P4 が無効でも配置できる（run 20261003_033830・Phase D）
-- 種別: 欠陥修正
-- 何が起きたか: 774bc4a2 L166 の照合で、P4 は「不一致（承認後に変わった）」なのに P5 は「一致」だった。P5 が持つのは `pre-deploy-report.txt` のハッシュだけで、レポートは件数とパスしか書かないので、ファイルの中身が変わってもハッシュは変わらない（P5 の承認行は2回とも `f85c8fd589f7`）。`deploy.js` は approvals を照合しない（冒頭の「P5 の機械的裏付け」`:25-27`・`:151` は `--confirm` と uncaptured だけ）。【高】
-- 提案: pre-deploy-report に `generated/` のツリーハッシュを書き、P5 が中身を束縛するようにする。`deploy.js --confirm` の冒頭で `approvals check --expect P1,P2,P3,P4,P5` 相当を実行し、不一致なら配置を拒否する。
-
 ## 2026-10-07 配置先のブランチと未コミットの変更を事前に確かめていない（run 20261003_033830・Phase D）
 - 種別: 欠陥修正
 - 何が起きたか: 配置は対象の main の作業ツリーに直接行われ、未コミットのまま終わった（774bc4a2 L236・L342）。対象の README では、main は Ruleset で直接 push できない。pre-deploy-check と deploy.js はブランチも未コミットの変更も見ない。RUN.md は「同じ作業ブランチで」と、作業ブランチがある前提で書いている（`emit-run-manifest.js:162`）。【低】

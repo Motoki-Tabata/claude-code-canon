@@ -20,6 +20,7 @@
 import path from 'node:path';
 import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { hashTree } from '../../../../lib/tree-hash.js';
 import { walkManagedDetailed, readList, checkConcreteEntries, findUnmanagedEntries } from '../../../../lib/managed-paths.js';
 import { isCanonSelfTarget, SELF_TARGET_MESSAGE } from './self-target-guard.js';
 
@@ -93,12 +94,23 @@ export function computeVanishing(outputDir, targetDir) {
   return { vanishing, retired, uncaptured, targetManaged, unreadable, listDefects, deployCount };
 }
 
+/** report に書く generated/ のハッシュの行（generated/ が無い・空ならその旨）。 */
+function generatedHashLine(outputDir) {
+  const gen = path.join(outputDir, 'generated');
+  if (!existsSync(gen)) return 'generated/ のハッシュ: なし（generated/ が無い）';
+  const t = hashTree(gen);
+  return `generated/ のハッシュ: ${t.hash}（${t.files} ファイル）`;
+}
+
 /** pre-deploy-report の本文を組み立てる（artifacts.md §10.2: retired/uncaptured の区分と件数）。 */
 export function renderReport(outputDir, targetDir, r) {
   const ts = path.basename(outputDir);
   const lines = [
     `# pre-deploy-report (<ts>=${ts})`,
     `target: ${targetDir}`,
+    // P5 の承認はこの report のハッシュを束縛する。件数とパスだけでは generated/ の中身が変わっても
+    // report が変わらないので、generated/ のツリーハッシュを書いて中身を束縛する。
+    generatedHashLine(outputDir),
     `消失予定: ${r.vanishing.length} 件（retired ${r.retired.length} / uncaptured ${r.uncaptured.length}）`,
     // 退避は対象の管理パス集合の全件（deploy.js step1 の walkManaged）。P5 で .bak の有無を推測で案内しない
     // ための実数。

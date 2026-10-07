@@ -67,6 +67,9 @@
 
 ### Fixed
 
+- **P5 と deploy が generated/ の中身を束縛**: pre-deploy-report に generated/ のツリーハッシュを書き、P5 の承認が中身を束縛します。
+  `deploy.js --confirm` は冒頭で P1〜P5 の承認を照合し、承認後に generated/ や report が変わっていれば（P4・P5 が無効）、
+  承認行や handoff.md が無ければ、対象を変えずに拒否します。
 - **V6 の warning のノイズ**: 日本語の description の委譲条件（「…ときに委譲される」「…は委譲する」）を委譲トリガーとして認めます。
   パスを含まないファイル名は generated/ 全体の basename 一致でも解決とみなし、解決できないパス様トークンは
   1ファイルにつき1件の warning にまとめて件数と代表例（先頭5件）を載せます。run 20261003_033830 の generated/ に当てると

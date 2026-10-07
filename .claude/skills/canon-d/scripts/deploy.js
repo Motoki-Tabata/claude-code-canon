@@ -25,6 +25,8 @@
  * P5 の機械的裏付け:
  *   - `--confirm` 無しでは配置予定を表示するのみで配置しない（人間承認 P5）。
  *   - 実行時に pre-deploy-check 相当を再実行し uncaptured があれば配置を拒否する。
+ *   - `--confirm` では P1〜P5 の承認を照合する（canon のルートは output-dir の 2 つ上）。承認後に generated/ が
+ *     変わった（P4 が無効）・pre-deploy-report が変わった（P5 が無効）・承認行や handoff.md が無いときは拒否する。
  *
  *   usage: node .claude/skills/canon-d/scripts/deploy.js <output-dir> <target-repo-dir> [--confirm]
  *   exit 0 : dry-run（配置予定表示）／deployed（配置成功）
@@ -37,8 +39,10 @@ import { existsSync, mkdirSync, renameSync, copyFileSync, rmSync, writeFileSync 
 import { fileURLToPath } from 'node:url';
 import { walkManaged, readList, sha256File, findUnmanagedEntries } from '../../../../lib/managed-paths.js';
 import { computeVanishing } from './pre-deploy-check.js';
+import { checkApprovals, ApprovalError } from '../../../../tools/approvals.js';
 import { isCanonSelfTarget, SELF_TARGET_MESSAGE } from './self-target-guard.js';
 
+const APPROVAL_GATES = ['P1', 'P2', 'P3', 'P4', 'P5'];
 const PROBE_SUFFIX = '.canon-probe';
 
 function ensureParent(abs) {
@@ -146,6 +150,26 @@ export function deploy(outputDir, targetDir, { confirm, moveFile: mv = moveFile 
   const unmanaged = findUnmanagedEntries(manifest);
   if (unmanaged.length > 0) {
     return { status: 'refused', reason: 'unmanaged-entries', unmanaged };
+  }
+
+  // 承認の照合（--confirm のときだけ。dry-run は何も変えないので照合しない）。承認後に generated/ が変わっていれば
+  // P4 が不一致になり、P5 は generated/ のハッシュを書いた pre-deploy-report を束縛する。
+  if (confirm) {
+    const root = path.resolve(outputDir, '..', '..');
+    let c;
+    try {
+      c = checkApprovals(root, ts, APPROVAL_GATES);
+    } catch (err) {
+      if (!(err instanceof ApprovalError)) throw err;
+      return { status: 'refused', reason: 'approvals', detail: [err.message] };
+    }
+    if (!c.ok) {
+      return {
+        status: 'refused',
+        reason: 'approvals',
+        detail: [...c.results.filter((r) => r.status !== 'ok').map((r) => `${r.gate}: ${r.status}`), ...c.missing.map((g) => `${g}: 承認行が無い`)],
+      };
+    }
   }
 
   // P5 の機械的裏付け: uncaptured があれば配置しない（pre-deploy-check の判定を再実行）。
@@ -268,6 +292,12 @@ if (isMain) {
           `配置を拒否（対象は一切変更していない）: 退避先 ${r.bakDir} が既にある。\n` +
             `同じ <ts> で配置済み、または前回の失敗の残骸。中身を確認し、不要なら人間が退避先を移すか消してから再実行すること\n` +
             `（上書きすると退避済みの元ファイルを失う）。\n`
+        );
+      } else if (r.reason === 'approvals') {
+        process.stderr.write(
+          `配置を拒否（対象は一切変更していない）: 承認が無効、または承認行が無い。\n` +
+            r.detail.map((d) => `  - ${d}`).join('\n') +
+            `\n該当するゲートで承認を取り直すこと（generated/ を直したなら /canon-c <ts> から。npm run approvals -- <ts> check --expect P1,P2,P3,P4,P5 で確かめられる）。\n`
         );
       } else if (r.reason === 'unmanaged-entries') {
         process.stderr.write(
