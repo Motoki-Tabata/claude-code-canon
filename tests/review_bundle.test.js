@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
 import os from 'node:os';
-import { buildKeepReviewBundles, buildReviewerBundle, collectKeepReviewCases, caseIdFor } from '../.claude/skills/canon-c/scripts/review-bundle.js';
+import { REVIEW_CHUNK_SIZE, chunkBy, buildKeepReviewBundles, buildReviewerBundle, collectKeepReviewCases, caseIdFor } from '../.claude/skills/canon-c/scripts/review-bundle.js';
 import { keepReviewCaseDir, scratchDir } from './helpers/fixtures.js';
 import { tsFor } from './helpers/ts.js';
 
@@ -268,8 +268,10 @@ test('reviewer: 宣言を除く規約: rationale・keep_conditions・manifest_no
 test('reviewer: INDEX は generated/ の全ファイルを処遇と security の frontmatter 付きで列挙する', (t) => {
   const { texts, files } = buildR(reviewerRun(t));
   assert.deepEqual(files, ['.claude/agents/a/a.md', '.claude/rules/keep.md', 'CLAUDE.md']);
-  const index = texts['INDEX.md'];
-  assert.match(index, /全ファイル・3 件/);
+  assert.deepEqual(Object.keys(texts).filter((n) => n.startsWith('INDEX')), ['INDEX-1.md'], '20件以下でも INDEX-1.md を作り、INDEX.md は作らない');
+  const index = texts['INDEX-1.md'];
+  assert.match(index, /全ファイル（3 件）を 1 分割した、この 1 番目の 3 件/);
+  assert.match(index, /output\/<ts>\/review\/review-1\.md/);
   assert.match(index, /- `\.claude\/agents\/a\/a\.md` — 処遇: modify・tools: Read, Bash・model: sonnet/);
   assert.match(index, /- `\.claude\/rules\/keep\.md` — 処遇: keep（統合先: `\.claude\/rules\/old\.md` を吸収）/);
   assert.match(index, /- `CLAUDE\.md` — 処遇: 新規/);
@@ -295,5 +297,45 @@ test('reviewer: 決定論で、書き出し前に前回のバンドルを消す'
   const a = buildR(tmp, true);
   const b = buildR(tmp, true);
   assert.deepEqual(a.texts, b.texts);
-  assert.deepEqual(readdirSync(path.join(tmp, 'review-bundle', 'reviewer')).sort(), ['INDEX.md', 'acceptance.md', 'design.md']);
+  assert.deepEqual(readdirSync(path.join(tmp, 'review-bundle', 'reviewer')).sort(), ['INDEX-1.md', 'acceptance.md', 'design.md']);
+});
+
+test('reviewer: 対象を20件ずつの INDEX-<k>.md に分け、全 INDEX の和が generated/ の全件と一致して重複しない（20/21/40/41件の境界）', (t) => {
+  assert.equal(REVIEW_CHUNK_SIZE, 20);
+  for (const [n, parts] of [[1, 1], [20, 1], [21, 2], [40, 2], [41, 3]]) {
+    const generated = Object.fromEntries(Array.from({ length: n }, (_, i) => [`.claude/rules/r${String(i).padStart(2, '0')}.md`, `# r${i}\n`]));
+    const { texts, files, chunks } = buildR(reviewerRun(t, { generated }));
+    assert.equal(chunks.length, parts, `${n}件 → ${parts}分割のはず`);
+    const indexNames = Object.keys(texts).filter((x) => x.startsWith('INDEX')).sort();
+    assert.deepEqual(indexNames, Array.from({ length: parts }, (_, i) => `INDEX-${i + 1}.md`));
+    const listed = indexNames.flatMap((name) => [...texts[name].matchAll(/^- `([^`]+)` — 処遇:/gm)].map((m) => m[1]));
+    assert.equal(listed.length, n, `${n}件: 列挙の総数`);
+    assert.deepEqual([...listed].sort(), [...files].sort(), `${n}件: 和が全件と一致しない（落ちた・重複した対象がある）`);
+    assert.equal(new Set(listed).size, n, `${n}件: 重複`);
+    for (const [i, name] of indexNames.entries()) {
+      assert.ok(chunks[i].length <= REVIEW_CHUNK_SIZE);
+      assert.match(texts[name], new RegExp(`review-${i + 1}\\.md`), `${name}: 書込先 review-${i + 1}.md が書かれていない`);
+      assert.match(texts[name], new RegExp(`part: ${i + 1}/${parts}`));
+    }
+    // 設計意図と受入基準は共有（分割ごとに複製しない）
+    assert.equal(Object.keys(texts).filter((x) => x === 'design.md' || x === 'acceptance.md').length, 2);
+  }
+});
+
+test('chunkBy: 空は []、端数は最後の分割に入る', () => {
+  assert.deepEqual(chunkBy([]), []);
+  assert.deepEqual(chunkBy([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);
+});
+
+test('reviewer: 書き出し前に前回の INDEX を消す（分割数が減っても古い INDEX-<k>.md が残らない）', (t) => {
+  const big = Object.fromEntries(Array.from({ length: 25 }, (_, i) => [`.claude/rules/r${i}.md`, `# r${i}\n`]));
+  const tmp = reviewerRun(t, { generated: big });
+  buildR(tmp, true);
+  const dir = path.join(tmp, 'review-bundle', 'reviewer');
+  assert.deepEqual(readdirSync(dir).sort(), ['INDEX-1.md', 'INDEX-2.md', 'acceptance.md', 'design.md']);
+  rmSync(path.join(tmp, 'generated', '.claude', 'rules'), { recursive: true });
+  mkdirSync(path.join(tmp, 'generated', '.claude', 'rules'), { recursive: true });
+  writeFileSync(path.join(tmp, 'generated', '.claude', 'rules', 'only.md'), '# o\n');
+  buildR(tmp, true);
+  assert.deepEqual(readdirSync(dir).sort(), ['INDEX-1.md', 'acceptance.md', 'design.md']);
 });

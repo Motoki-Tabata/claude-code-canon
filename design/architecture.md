@@ -128,7 +128,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 | `spec-writer` | 調査結果と承認済みの要件を統合し、spec を書く | requirements | `output/<ts>/spec.md` | sonnet |
 | `designer` | 承認済みの spec から機能を選び、層・責務・既存の処遇・モデル割当を design-map に確定する | design | `output/<ts>/design-map.md` | opus |
 | `builder` | 指定された層の生成物を design-map のスライスどおりに書く | generation | `output/<ts>/generated/` のうち担当する層の範囲 | sonnet |
-| `reviewer` | 生成物を correctness・security・正典の意図・context の4観点で判定する | review | `output/<ts>/review/review.md` | sonnet |
+| `reviewer` | 生成物を correctness・security・正典の意図・context の4観点で判定する（判定の対象20件ごとに1体を並列に起動し、未判定があれば追加で起動する） | review | `output/<ts>/review/review-<k>.md` | sonnet |
 | `keep-reviewer` | keep と merge の妥当性（K2・K4・統合先）を、designer の主張を除いた入力だけで判定する（refactor モードのみ） | review | `output/<ts>/review/keep-review.md` | opus |
 
 - designer は機能選定と設計を一続きに行う。機能選定の結果はそのまま design-map に載るので、分けて spawn する利点が無い。

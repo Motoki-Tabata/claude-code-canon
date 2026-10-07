@@ -600,7 +600,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 `review-bundle.js` は、reviewer と keep-reviewer が「何を見るか」を決定論で確定し、`work/<ts>/review-bundle/` に書く。入力の収集を LLM に任せると、入力を探し損ねて何も見つけず、問題なしと答える経路ができるためである。
 
 - **keep-reviewer 用**（`review-bundle/keep-review/`・refactor モードのときだけ作る）: keep と merge のレコード1件につき1ファイル。入力は design-map の existing_disposition・spec の新要件と統合方針・requirements.md の conflicts・strength_needed・constraints・investigation・対象の原本。
-- **reviewer 用**（`review-bundle/reviewer/`・mode によらず常に作る）: `INDEX.md`（generated/ の全ファイルを1行1件。処遇と、security 観点で見る frontmatter の `tools`・`allowed-tools`・`model` 等を併記。接地材料 spec・requirements・profile・focused（あれば official-check）と対象ルートの絶対パス）・`design.md`（design-map の共通の節と層の節。既存判定は path・disposition・統合先・interface_change だけ）・`acceptance.md`（spec §8 の逐語）。generated/ が0件なら失敗する。reviewer は design-map の全文と slices を読まない。
+- **reviewer 用**（`review-bundle/reviewer/`・mode によらず常に作る）: `INDEX-<k>.md`（generated/ の全ファイルを20件（`REVIEW_CHUNK_SIZE`）ずつに分けたもの。k は1始まりで、20件以下でも `INDEX-1.md` を作る。各 INDEX は担当の対象を1行1件で、処遇と、security 観点で見る frontmatter の `tools`・`allowed-tools`・`model` 等を併記。接地材料 spec・requirements・profile・focused（あれば official-check）と対象ルートの絶対パス、書込先 `review/review-<k>.md` を持つ。全 INDEX の和が generated/ の全件と一致し、重複しない）・`design.md`（design-map の共通の節と層の節。既存判定は path・disposition・統合先・interface_change だけ）・`acceptance.md`（spec §8 の逐語。`design.md`・`acceptance.md` は全分割で共有する）。generated/ が0件なら失敗する。1体の reviewer に全件を渡すと読み切れず、実測で79件に対して Read が34回だった。分割して並列に起動し、読み切れなかった対象は `## 未判定の対象` として報告させ、あれば追加で起動する（工程8は未判定が尽きるまで完了しない）。reviewer は design-map の全文と slices を読まない。
 - **宣言を除く規約（最重要）**: バンドルから、**designer が立てた `keep_conditions` の boolean と rationale を機械的に除く**。除かなければ、判定者は「K2: true」という判定対象自身の主張に引きずられ、常に問題なしと答える（検査が恒真になる）。merge も「統合元 → 統合先」の対応だけを渡し、妥当性の主張は落とす。reviewer 用のバンドルからも design-map の rationale（designer の自己弁護）を除く。除けていることはテストで固定する（バンドルに `keep_conditions`・`K2:` などが現れないこと）。
 - **生成物からの逆引き**: 宣言を除くと、判定者は「keep 対象の弱点を補う記述が他の生成物にあるか」を確かめる材料を失い、実在する記述を「無い」と断定しかねない。そこで、keep 対象を名指ししている生成物の箇所を `file:line` で機械的に逆引きして同梱する。designer の主張ではなく生成物の実体なので、恒真にはならない。言及が見つからなければ「Grep で確かめてから不在と言う」旨を添える。
 - **書き出す前に出力先を空にする**: 差し戻しで keep が減った後に前回のバンドルが残ると、判定の対象外のファイルを判定してしまう。
@@ -620,7 +620,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 
 | ファイル | 書き手 |
 |---|---|
-| `review.md` | reviewer（4観点） |
+| `review-<k>.md` | reviewer（4観点。判定の対象を20件ずつに分けた k 番目。`## 未判定の対象` を持つ。未判定の追加起動は `review-<k>-<n>.md`） |
 | `keep-review.md` | keep-reviewer（refactor モードのみ） |
 | `prompt-audit.md` | `/claude-api prompt-audit` の結果をオーケストレーターが保存 |
 

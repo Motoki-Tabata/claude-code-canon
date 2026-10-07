@@ -12,7 +12,7 @@
 ### Added
 
 - **reviewer 用の review-bundle**: `npm run review-bundle -- <ts>` が `work/<ts>/review-bundle/reviewer/` に、判定の対象の全件
-  （`INDEX.md`）・rationale を除いた設計意図（`design.md`）・受入基準（`acceptance.md`）を書きます。reviewer は
+  （20件ずつに分けた `INDEX-<k>.md`。reviewer は分割数だけ並列に起動し、読み切れなかった対象は未判定として報告させて追加で起動します）・rationale を除いた設計意図（`design.md`）・受入基準（`acceptance.md`）を書きます。reviewer は
   design-map の全文と slices を読まなくなりました。keep-reviewer 用は従来どおり refactor モードのときだけ作ります。
 - **Subagent `session-analyst`**: ヒアリングで過去のセッション履歴を要件の材料にするとき、分析と保存
   （`work/<ts>/session-analysis-<名前>.md`）を本人が行います。メインが分析の応答を逐語で書き写す手順をやめました。
@@ -52,6 +52,10 @@
 - **生成物のテストの実行（Phase C 工程7）**: 生成物に `*.test.*` があれば、対象の一時 worktree に generated/（と outside-managed/）を
   重ねて対象のテストランナーで実行し、失敗を verify の違反と同じに扱います。builder にはシェルが無く、書いたテストの失敗が
   工程8まで見つからなかったためです。
+
+- **reviewer の分割と未判定の扱い**: reviewer の判定の対象を20件ずつの `INDEX-<k>.md` に分け（`INDEX.md` は廃止）、分割数だけ並列に
+  起動します。書込先は `review/review-<k>.md`。`## 未判定の対象` に読み切れなかった対象を挙げさせ、1件でもあれば工程8は
+  未完了とし、その分の reviewer を追加で起動します。1体に全件を渡すと、79件に対して Read が34回しか行われませんでした。
 
 ### Changed
 

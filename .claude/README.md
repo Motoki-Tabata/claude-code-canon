@@ -34,7 +34,7 @@ Phase Skill が工程ごとに起動します。ユーザーが直接起動す�
 | `spec-writer` | Phase A の工程4 | `output/<ts>/spec.md` |
 | `designer` | Phase B の工程5（P3 の差し戻し、Phase C で keep に及ぶ修正をするときも） | `output/<ts>/design-map.md` |
 | `builder` | Phase C の工程6（層ごとに並列）と修正ループ | `output/<ts>/generated/` の担当層 |
-| `reviewer` | Phase C の工程8 | `output/<ts>/review/review.md` |
+| `reviewer` | Phase C の工程8（判定の対象20件ごとに1体を並列に） | `output/<ts>/review/review-<k>.md` |
 | `keep-reviewer` | Phase C の工程8（既存を改修する run のときだけ） | `output/<ts>/review/keep-review.md` |
 
 このほか、調査・要件・設計・生成・レビューの判断基準とテンプレートをまとめた内部参照の知識が5件あり、それぞれの Subagent が起動時に読み込みます。直接呼び出すものではないので、ここには並べません。

@@ -74,9 +74,10 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 ## 工程8 品質検査
 
-1. `npm run review-bundle -- <ts>` で判定入力を作る。reviewer 用は常に `work/<ts>/review-bundle/reviewer/` に、keep-reviewer 用は refactor モードのときだけ `work/<ts>/review-bundle/keep-review/` に書かれる（どちらも designer の `keep_conditions` と rationale は機械的に除かれている）。
-2. **reviewer と keep-reviewer を1つのメッセージで並列に**起動する。keep-reviewer は、review-bundle が keep または merge のケースを1件以上作ったときだけ起動する（new モード、またはケースが0件なら reviewer だけ）。
-   - reviewer: `work/<ts>/review-bundle/reviewer/`・`output/<ts>/generated/`・対象のルートの絶対パス。書込先は `output/<ts>/review/review.md`。
+1. `npm run review-bundle -- <ts>` で判定入力を作る。reviewer 用は常に `work/<ts>/review-bundle/reviewer/` に（判定の対象を20件ずつに分けた `INDEX-<k>.md` と、全分割で共有する `design.md`・`acceptance.md`）、keep-reviewer 用は refactor モードのときだけ `work/<ts>/review-bundle/keep-review/` に書かれる（どちらも designer の `keep_conditions` と rationale は機械的に除かれている）。
+2. **reviewer（INDEX の分割数だけ）と keep-reviewer を1つのメッセージで並列に**起動する。keep-reviewer は、review-bundle が keep または merge のケースを1件以上作ったときだけ起動する（new モード、またはケースが0件なら reviewer だけ）。
+   - reviewer（`INDEX-<k>.md` ごとに1体）: `work/<ts>/review-bundle/reviewer/` と担当の `INDEX-<k>.md`・`output/<ts>/generated/`・対象のルートの絶対パス。書込先は `output/<ts>/review/review-<k>.md`。
+   - **未判定があれば工程8は未完了**: 全員が終わったら、`review-<k>.md` の実在と、各 `## 未判定の対象` を確かめる。「なし」でない、または INDEX-<k>.md の対象のうち `## 検査した対象`・`## 問題なしと判定した対象` のどちらにも無いものがあれば、その対象だけを渡して reviewer を新しく起動する（書込先は `review-<k>-<n>.md`、n は2から）。未判定が尽きるまで繰り返し、尽きてから先へ進む。
    - keep-reviewer: `work/<ts>/review-bundle/keep-review/` のケースファイル一式と `output/<ts>/` の絶対パス。書込先は `output/<ts>/review/keep-review.md`。
 3. **標準 Skill のレビュー**を自分で実行し、報告を**要約せずにそのまま**書き出す。
    - Skill `claude-api` に `prompt-audit output/<ts>/generated/` を渡す。報告と diff 案だけを求め、編集は適用させない。報告を `output/<ts>/review/prompt-audit.md` に書く。
@@ -91,7 +92,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 1. 工程8の直後、P4 の前に、指摘の振り分けを**1問でユーザーから取る**（指摘ごとに直すかをあなたが先に決めて P4 にまとめない。「直さない」を既定にして P4 に持ち込むと、差し戻しで作り直しになる）。既定は**全件を直す**。「直さない」の候補があれば、その指摘だけを理由付きで示す。返答に従い、直すものと、直さないもの（理由付き）を handoff の「差し戻し」に逐語で書く。
 2. 直す対象の層ごとに builder を**新しく**起動し、「差し戻し」のブロックの位置と入力一式を渡す。
 3. `npm run manifest -- <ts>` → `npm run verify -- <ts>` を実行する。
-4. 変更したファイルだけを再レビューする。先に `npm run review-bundle -- <ts>` を作り直し、reviewer にはバンドルと、変更した対象と前回の指摘を渡す。keep・merge の対象が変わったときだけ keep-reviewer も再判定させる。標準 Skill のレビューは、変更が大きいときだけやり直す。
+4. 変更したファイルだけを再レビューする。先に `npm run review-bundle -- <ts>` を作り直し（分割が変わりうるので、`review/review-*.md` は作り直し後の INDEX の番号で書き直す）、変更した対象を含む `INDEX-<k>.md` の reviewer にだけ、バンドルと、変更した対象と前回の指摘を渡す。keep・merge の対象が変わったときだけ keep-reviewer も再判定させる。標準 Skill のレビューは、変更が大きいときだけやり直す。
 5. 直す指摘が尽きるまで繰り返す。
 
 **keep に及ぶ修正**: 直す対象のパスが `work/<ts>/slices/disposition-other.md` の keep に含まれていたら、生成物や MANIFEST だけを直しても V7（keep の非回帰）が止める。keep の正は design-map である。先に P3 を差し戻す: 指摘を「差し戻し」に書き、designer を新しく起動して disposition を keep から modify に直させ、P3 の承認を取り直す（`npm run approvals -- <ts> record P3 "<要旨>"`）。そのあと「準備」の slice と copy-keep からやり直す。変更が設計の組み直しに及ぶなら、状態を handoff に書いて止め、opus のセッションで `/canon-b <ts>` をやり直すよう案内する。
@@ -102,7 +103,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 2. 次を**1回の提示にまとめる**（生成物だけでは判断材料がそろわないので、レビューと分けない）。件数は示す前に数え直す。
    - 生成物の一覧（新規・改修・維持・廃止。`MANIFEST.md` から）と `generated/.claude/README.md` のパス
    - verify-report の結果（違反0件であること・warning の全件）
-   - review.md・keep-review.md の指摘の全件（重大度別）。K2・K4 に疑いありとされた keep は必ず示す
+   - `review-*.md`（全分割・追加起動の分を含む）・keep-review.md の指摘の全件（重大度別）。未判定の対象が残っていないこと。K2・K4 に疑いありとされた keep は必ず示す
    - prompt-audit の要点、または実行できなかったこと
    - 修正ループで直した指摘と、直さないとユーザーが決めた指摘とその理由。**未決の指摘（「ご指示があれば直します」など）を残さない**。振り分けを取っていない指摘があれば、P4 の前に取る
    - 実行を要する受入基準の実行結果、または「未実行」

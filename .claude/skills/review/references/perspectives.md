@@ -1,6 +1,6 @@
 # reviewer の4観点
 
-入力（プロンプトで渡される）: `work/<ts>/review-bundle/reviewer/`（`INDEX.md`＝判定の対象の全件と接地材料のパス・`design.md`＝設計意図・`acceptance.md`＝spec §8 受入基準）・`output/<ts>/generated/`・対象プロジェクトのルート（実態への接地の確認に使う）。接地材料（spec・requirements・profile・focused）は INDEX.md が挙げるパスから読む。**design-map.md の全文と `work/<ts>/slices/` は読まない**: designer の rationale が入っており、判定対象自身の主張に引きずられる。設計意図は `design.md` で確かめる。
+入力（プロンプトで渡される）: `work/<ts>/review-bundle/reviewer/`（`INDEX-<k>.md`＝判定の対象（全体を20件ずつに分けた k 番目）と接地材料のパス・`design.md`＝設計意図・`acceptance.md`＝spec §8 受入基準）・`output/<ts>/generated/`・対象プロジェクトのルート（実態への接地の確認に使う）。接地材料（spec・requirements・profile・focused）は INDEX-<k>.md が挙げるパスから読む。**design-map.md の全文と `work/<ts>/slices/` は読まない**: designer の rationale が入っており、判定対象自身の主張に引きずられる。設計意図は `design.md` で確かめる。
 
 ## 1. correctness（要件を満たすか・実態に接地しているか）
 

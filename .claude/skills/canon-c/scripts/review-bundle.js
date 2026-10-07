@@ -2,7 +2,8 @@
 /**
  * review-bundle.js（npm run review-bundle -- <ts>）— reviewer と keep-reviewer の判定入力バンドル（artifacts.md §9.1）。決定論。
  *
- *   work/<ts>/review-bundle/reviewer/      INDEX.md（判定の対象の全件と接地材料）・design.md・acceptance.md（常に作る）
+ *   work/<ts>/review-bundle/reviewer/      INDEX-<k>.md（判定の対象を REVIEW_CHUNK_SIZE 件ずつに分けたもの。k は1始まり。
+ *                                          全部で generated/ の全件を覆う）・design.md・acceptance.md（共有。常に作る）
  *   work/<ts>/review-bundle/keep-review/   keep・merge 1件につき1ファイル（refactor モードのときだけ作る）
  *
  * ## なぜ入力収集を LLM に任せないか
@@ -341,6 +342,19 @@ export const REVIEWER_DESIGN_SECTIONS = [
   '依存フラグ',
 ];
 
+/**
+ * reviewer 1体が判定する対象の件数。1体に全件を渡すと、文脈の都合で読み切れずに「全件見た」ことにならない
+ * （実測: 対象79件に対して Read 34回）。INDEX を分け、reviewer を分割数だけ並列に起動する。
+ */
+export const REVIEW_CHUNK_SIZE = 20;
+
+/** 配列を size 件ずつに分ける（空なら []）。 */
+export function chunkBy(items, size = REVIEW_CHUNK_SIZE) {
+  const out = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
 /** frontmatter のうち、security 観点で見るキー。 */
 const SECURITY_KEYS = ['tools', 'allowed-tools', 'disallowedTools', 'model', 'permissionMode'];
 
@@ -387,7 +401,7 @@ function indexLine(rel, genRoot, dispositionOf) {
 /**
  * <ts> の run から reviewer 用バンドルを生成して work/<ts>/review-bundle/reviewer/ へ書く。
  * @param {{ts: string, write?: boolean, roots?: object}} opts
- * @returns {{files: string[], texts: Record<string,string>, written: string[], outDir: string}}
+ * @returns {{files: string[], chunks: string[][], texts: Record<string,string>, written: string[], outDir: string}}
  */
 export function buildReviewerBundle({ ts, write = true, roots = {} }) {
   const oDir = roots.outputDir ?? outputDir(ts);
@@ -434,43 +448,47 @@ export function buildReviewerBundle({ ts, write = true, roots = {} }) {
     ['official-check', path.join(wDir, 'investigation', 'official-check.md')],
   ].filter(([, p]) => existsSync(p));
 
-  const index = [
-    '# reviewer 判定入力バンドル',
+  const chunks = chunkBy(files);
+  const renderIndex = (chunk, k) => [
+    `# reviewer 判定入力バンドル（${k}/${chunks.length}）`,
     '',
     '```yaml',
     'axis: review',
     `ts: ${ts}`,
+    `part: ${k}/${chunks.length}`,
     `generated_root: ${genRoot}`,
     `target_root: ${targetRoot ?? '(handoff.md から解決できなかった)'}`,
-    `file_count: ${files.length}`,
+    `file_count: ${chunk.length}`,
+    `total_file_count: ${files.length}`,
     '```',
     '',
     '> design-map の全文と `work/<ts>/slices/` は読まない。設計意図は同梱の design.md だけを使う（designer の rationale を伏せてある）。',
+    `> 判定の対象は generated/ の全ファイル（${files.length} 件）を ${chunks.length} 分割した、この ${k} 番目の ${chunk.length} 件。他の分割は別の reviewer が判定する。`,
     '',
-    `## 判定の対象（generated/ の全ファイル・${files.length} 件）`,
+    `## 判定の対象（${k}/${chunks.length}・${chunk.length} 件）`,
     '',
     '再レビューでは、プロンプトで渡された変更の対象だけを見る。',
     '',
-    ...files.map((rel) => indexLine(rel, genRoot, dispositionOf)),
+    ...chunk.map((rel) => indexLine(rel, genRoot, dispositionOf)),
     '',
     '## 同梱したもの',
     '',
-    '- `design.md`: 設計意図（design-map の抜粋・既存判定は処遇だけ）',
-    '- `acceptance.md`: spec §8 受入基準の逐語',
+    '- `design.md`: 設計意図（design-map の抜粋・既存判定は処遇だけ。全分割で共有）',
+    '- `acceptance.md`: spec §8 受入基準の逐語（全分割で共有）',
     '',
     '## 接地材料（読む）',
     '',
-    ...grounding.map(([k, p]) => `- ${k}: ${p}`),
+    ...grounding.map(([g, p]) => `- ${g}: ${p}`),
     `- 対象プロジェクトのルート: ${targetRoot ?? '(不明)'}`,
     '',
     '## 出力',
     '',
-    '判定は `output/<ts>/review/review.md` に書く（output-contract.md の書式）。判定した対象を必ず列挙する（空の判定を「問題なし」と読ませないため）。',
+    `判定は \`output/<ts>/review/review-${k}.md\` に書く（output-contract.md の書式）。上の ${chunk.length} 件を必ず全件、「検査した対象」か「未判定の対象」に列挙する（空の判定を「問題なし」と読ませないため）。`,
   ].join('\n') + '\n';
 
   const acceptanceBody = specText ? section(specText, '§8 受入基準') ?? section(specText, '受入基準') : null;
   const texts = {
-    'INDEX.md': index,
+    ...Object.fromEntries(chunks.map((chunk, i) => [`INDEX-${i + 1}.md`, renderIndex(chunk, i + 1)])),
     'design.md': renderReviewerDesign(designMapText, records),
     'acceptance.md': `# reviewer 判定入力: spec §8 受入基準（逐語）\n\n${acceptanceBody ?? '(spec.md に受入基準の節が無い)'}\n`,
   };
@@ -486,7 +504,7 @@ export function buildReviewerBundle({ ts, write = true, roots = {} }) {
       written.push(p);
     }
   }
-  return { files, texts, written, outDir };
+  return { files, chunks, texts, written, outDir };
 }
 
 // ---------------------------------------------------------------------------
@@ -502,7 +520,7 @@ export function main(argv = process.argv.slice(2)) {
   }
 
   const reviewer = buildReviewerBundle({ ts });
-  process.stdout.write(`[review-bundle] ts=${ts} reviewer 対象 ${reviewer.files.length} 件 → ${reviewer.outDir}\n`);
+  process.stdout.write(`[review-bundle] ts=${ts} reviewer 対象 ${reviewer.files.length} 件を ${reviewer.chunks.length} 分割（INDEX-1.md〜INDEX-${reviewer.chunks.length}.md。reviewer を ${reviewer.chunks.length} 体起動する）→ ${reviewer.outDir}\n`);
 
   const mode = readHandoff(ts)?.mode;
   if (mode !== 'refactor') {

@@ -4,7 +4,7 @@
 
 | 役割 | 書込先 |
 |---|---|
-| reviewer | `output/<ts>/review/review.md` |
+| reviewer | `output/<ts>/review/review-<k>.md`（`<k>` は渡された INDEX-<k>.md の番号。未判定の追加起動は `review-<k>-<n>.md`） |
 | keep-reviewer | `output/<ts>/review/keep-review.md` |
 
 ## 構造
@@ -25,9 +25,13 @@
 
 ## 問題なしと判定した対象
 - <対象>: <1行の根拠>
+
+## 未判定の対象
+- <読み切れずに判定していない対象。無ければ「なし」>
 ```
 
 - **`## 検査した対象`は、判定した対象の全列挙（必須）**。これが無いと、「見なかった」と「見て問題なし」を区別できない。指摘を書いた対象は、必ずここにも載せる。対象が0件のときは、0件であることをそのまま書き、「問題なし」としない。
+- **`## 未判定の対象`は reviewer の必須の節**（keep-reviewer には無い）。渡された INDEX の対象のうち、`## 検査した対象` に載せなかったものは、ここに全件挙げる。読んだ対象と読んでいない対象の和が、INDEX の全件と一致すること。無ければ「なし」と書く。ここに1件でもあると、オーケストレーターは工程8を未完了とし、その分の reviewer を追加で起動する。
 - 判定の対象がファイルとは限らない観点（security の `constraints.organization_policy` など）は、`constraint:<キー名>` という表記で挙げる。
 - **観点**: reviewer は `correctness`・`security`・`canon`・`context`。keep-reviewer は `K2`・`K4`・`merge_target`。
 - **重大度**: `high`（このまま配置すると誤動作・権限の過剰・内容の欠落を起こす）・`medium`（直したほうがよい）・`low`（任意）。確信度とは別の軸。
