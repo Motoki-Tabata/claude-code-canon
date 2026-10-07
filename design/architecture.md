@@ -110,7 +110,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 1. **工程9 配置前照合**: `canon-d/scripts/emit-run-manifest.js` が配置手順書 `output/<ts>/deploy/RUN.md` を作り、`pre-deploy-check.js` が対象の現物と output を突き合わせて `pre-deploy-report.txt` を書く（artifacts.md §10）。
 2. **P5**: 消える予定のファイル（retired / uncaptured）を人間が確認する。uncaptured が1件でもあれば配置しない（Phase A の調査または Phase B の設計へ差し戻す）。
 3. **配置**: 人間が sandbox の外で `deploy.js --confirm` を実行する。オーケストレーターは実行しない。sandbox がファイルをバインドマウントしていると退避の rename が失敗するためである。
-4. **配置後**: RUN.md の配置後の手順を案内する。この run で `tasks/lessons.md` に書いた canon 課題の件数と見出しを報告する（§6.4）。コミットするかはユーザーの指示を待つ。
+4. **配置後**: RUN.md の配置後の手順を案内する。run の振り返り（handoff の `## セッション` の Phase A〜D の transcript を session-analyst が1セッション1体で並列に分析し、`work/<ts>/retro/` に書く。オーケストレーターが canon への改修要求だけを台帳に起票する）をして、この run で `tasks/lessons.md` に書いた canon 課題の件数と見出しを報告する（§6.4）。コミットするかはユーザーの指示を待つ。
 5. Phase C で済ませたレビューは再実行しない。
 
 ---
@@ -124,7 +124,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 | Agent | 1文責任 | preload する Skill | 書込先 | model |
 |---|---|---|---|---|
 | `investigator` | 対象プロジェクトを読み取り専用で調べ、モード（`existing`・`profile`・`focused`）に応じた調査結果を書く | investigation | `work/<ts>/investigation/<mode>.md` | sonnet |
-| `session-analyst` | ユーザーが要件の材料に指定した過去のセッション履歴を読み、分析を書く（工程2・指定があるときだけ） | なし | `work/<ts>/session-analysis-<名前>.md` | sonnet |
+| `session-analyst` | セッション履歴を読み、分析を書く（工程2でユーザーが要件の材料に指定したとき・Phase D の終わりの run の振り返り） | なし | `work/<ts>/session-analysis-<名前>.md`・`work/<ts>/retro/session-analysis-<phase>.md` | sonnet |
 | `spec-writer` | 調査結果と承認済みの要件を統合し、spec を書く | requirements | `output/<ts>/spec.md` | sonnet |
 | `designer` | 承認済みの spec から機能を選び、層・責務・既存の処遇・モデル割当を design-map に確定する | design | `output/<ts>/design-map.md` | opus |
 | `builder` | 指定された層の生成物を design-map のスライスどおりに書く | generation | `output/<ts>/generated/` のうち担当する層の範囲 | sonnet |
@@ -251,7 +251,7 @@ canon_commit: <run を始めたときの canon の HEAD（new-run が記録す�
 
 ### 6.4 canon 課題の記録
 
-run の途中で claude-canon 本体の問題を見つけたら、見つけたその場で `tasks/lessons.md` に書く（書式は同ファイル冒頭・出典欄は `run <ts>・Phase <A〜D>`）。run は canon のルートで動くので、handoff に溜めて後で転記する必要は無い。Phase D の最後に、その run で書いた件数と見出しを報告する。
+run の途中で claude-canon 本体の問題を見つけたら、見つけたその場で `tasks/lessons.md` に書く（書式は同ファイル冒頭・出典欄は `run <ts>・Phase <A〜D>`）。run は canon のルートで動くので、handoff に溜めて後で転記する必要は無い。自分が手順から外れたことの申告には限界があるので、Phase D の最後に transcript の分析（session-analyst）で台帳の候補を補い、その run で書いた件数と見出しを報告する。各 Phase の終わりでは、SKILL.md の手順の外で行った操作の自己点検も行う。
 
 ---
 

@@ -65,7 +65,15 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 1. 設定済みの ScheduleWakeup・loop があれば止める。
 2. handoff.md を `npm run handoff` で更新する: `mark 工程9` で印を付け、配置の結果と管理パス外の変更の記録は `note 進捗 "<文>"` で足し、`set status=done` にする。
-3. この run で `tasks/lessons.md` に書いた canon 課題の件数と見出しを報告する。0件なら「0件」と報告する。canon 側のコミットは、ユーザーの指示を待つ。
-4. `work/<ts>`・`output/<ts>` の片付けと、対象側の `.claude-canon.bak.<ts>/` の掃除は人間が判断する、と伝えて終える。自分では消さない。
+3. **run の振り返り**（工程番号は増やさない。Phase D の終わりの手順である）。
+   1. handoff の `## セッション` から Phase A〜D の session-id を取る。記録の無い Phase は、無いと報告する（分析できない）。
+   2. 各 session-id に `npm run tokens -- <session-id>` を実行する。
+   3. session-analyst を1セッションにつき1体、1つのメッセージで並列に起動する。渡すもの: transcript の jsonl の絶対パス（`~/.claude/projects/<slug>/<session-id>.jsonl`）・tokens の集計・書込先 `work/<ts>/retro/session-analysis-<phase>.md` の絶対パス・次の観点。Phase D は実行中のセッション自身なので、「読めた範囲はここまで」と添える。
+      - SKILL.md の手順の外で行った操作（手順に無い Write・Edit・sed・コマンド、承認の前に進めたこと）
+      - 繰り返した手戻りと差し戻し
+      - canon 本体の欠陥・浪費・規律の穴の疑い
+   4. 各分析の要旨を読み、canon 本体への改修要求だけを `tasks/lessons.md` に起票する（書式は同ファイル冒頭、出典欄は `run <ts>・Phase D`）。分析が引く根拠の行を確かめ、推測には「推測」と添える。
+4. この run で `tasks/lessons.md` に書いた canon 課題の件数と見出しを報告する（振り返りでの起票を含む）。0件なら「0件」と報告する。canon 側のコミットは、ユーザーの指示を待つ。
+5. `work/<ts>`・`output/<ts>` の片付けと、対象側の `.claude-canon.bak.<ts>/` の掃除は人間が判断する、と伝えて終える。自分では消さない。
 
 canon の Phase（A〜D）と、対象プロジェクト側のワークフローの段階は別物である。対象側の段階に触れるときは「対象側の〜」と書き分ける。

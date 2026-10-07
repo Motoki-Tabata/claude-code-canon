@@ -19,8 +19,3 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 ```
 
 ---
-
-## 2026-10-07 Phase D の逸脱が台帳に書かれず、run 全体の振り返りの工程も無い（run 20261003_033830・Phase D）
-- 種別: 規律昇華
-- 何が起きたか: Phase D の終わり（774bc4a2 L343）では、既存の4件を数えただけだった。上の「generated/ を直接編集」「P5 が中身を束縛しない」「コマンドの挙動の裏取り」は Phase D の中で起きていたのに、起票されていない（`canon-d/SKILL.md:26` は「気づいたらその場で書く」と定める）。本台帳の上の項目は、run の後に手作業で transcript を解析して見つけた。session-analyst は Phase A の要件ヒアリング専用である（`requirements/references/interview.md:31`）。自分が手順から外れたことを自分で申告するのには限界がある、というのは推測。【中】
-- 提案: Phase D の終わりに、この run の4セッションの transcript を session-analyst（1セッション1体、並列）に分析させ、台帳に書く候補を作らせる工程を足す。あわせて「SKILL.md の手順の外で行った操作」を列挙する自己点検を、Phase の終わりの必須項目にする。

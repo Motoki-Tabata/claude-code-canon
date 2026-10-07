@@ -30,7 +30,7 @@ Phase Skill が工程ごとに起動します。ユーザーが直接起動す�
 | Subagent | 使われる場面 | 書くもの |
 |---|---|---|
 | `investigator` | Phase A の工程1（existing・profile）と工程3（focused） | `work/<ts>/investigation/<mode>.md` |
-| `session-analyst` | Phase A の工程2（過去のセッション履歴の分析を要件の材料にするときだけ） | `work/<ts>/session-analysis-<名前>.md` |
+| `session-analyst` | Phase A の工程2（過去のセッション履歴の分析を要件の材料にするときだけ）・Phase D の終わりの振り返り | `work/<ts>/session-analysis-<名前>.md`・`work/<ts>/retro/session-analysis-<phase>.md` |
 | `spec-writer` | Phase A の工程4 | `output/<ts>/spec.md` |
 | `designer` | Phase B の工程5（P3 の差し戻し、Phase C で keep に及ぶ修正をするときも） | `output/<ts>/design-map.md` |
 | `builder` | Phase C の工程6（層ごとに並列）と修正ループ | `output/<ts>/generated/` の担当層 |
