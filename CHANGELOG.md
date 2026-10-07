@@ -67,6 +67,9 @@
 
 ### Fixed
 
+- **承認後の generated/ の直接編集を機械検査で止める**: `approvals record P4` は verify-report の generated/ のハッシュが現在と
+  一致しないと、`record P5` は P1〜P4 が有効でないと拒否します。canon-c は Phase D の差し戻しから再入して修正ループだけを
+  回せるようになり、canon-d は generated/ に書かず `/canon-c <ts>` に再入するよう案内します。
 - **P5 と deploy が generated/ の中身を束縛**: pre-deploy-report に generated/ のツリーハッシュを書き、P5 の承認が中身を束縛します。
   `deploy.js --confirm` は冒頭で P1〜P5 の承認を照合し、承認後に generated/ や report が変わっていれば（P4・P5 が無効）、
   承認行や handoff.md が無ければ、対象を変えずに拒否します。

@@ -31,6 +31,12 @@ function setup(t) {
   return root;
 }
 
+/** verify を回した状態を作る（verify-report.md に現在の generated/ のハッシュを書く）。 */
+function writeVerifyReport(root) {
+  const { hash, files } = hashTree(path.join(root, 'output', TS, 'generated'));
+  writeFileSync(path.join(root, 'output', TS, 'verify-report.md'), `- generated/ のハッシュ: \`${hash}\`（${files} ファイル）\n`);
+}
+
 test('parseApprovals: 見出し行と区切り行を除き、要旨のエスケープした縦棒を戻す。同じゲートは最後の行が有効', () => {
   let text = renderHandoff({ ts: TS, target: '/t', mode: 'new' });
   text = appendApproval(text, { gate: 'P1', at: '2100-01-01 00:00', target: 'a', hash: '111111111111', summary: '初回 | 補足' });
@@ -57,6 +63,7 @@ test('gateHash: ファイルは sha256 の先頭12桁、P4 はディレクトリ
 test('record → check: 一致なら有効。承認後に対象を変えると不一致になる（故意の改変で検出を確かめる）', (t) => {
   const root = setup(t);
   recordApproval(root, TS, 'P1', '要件を承認');
+  writeVerifyReport(root);
   recordApproval(root, TS, 'P4', '生成物を承認');
   assert.equal(checkApprovals(root, TS, ['P1', 'P4']).ok, true);
 
@@ -65,9 +72,39 @@ test('record → check: 一致なら有効。承認後に対象を変えると�
   assert.equal(c.ok, false);
   assert.deepEqual(c.results.map((r) => [r.gate, r.status]), [['P1', 'ok'], ['P4', 'mismatch']]);
 
-  // 取り直すと最後の行が有効になり、照合が通る
+  // 取り直すと最後の行が有効になり、照合が通る（verify を回し直してから）
+  writeVerifyReport(root);
   recordApproval(root, TS, 'P4', '修正後に取り直し');
   assert.equal(checkApprovals(root, TS, ['P1', 'P4']).ok, true);
+});
+
+test('record P4: verify-report が無い・ハッシュが現在の generated/ と違う（直接編集）なら拒否する', (t) => {
+  const root = setup(t);
+  assert.throws(() => recordApproval(root, TS, 'P4', 'x'), /verify-report\.md が無い/);
+  writeVerifyReport(root);
+  // verify の後に generated/ を直接直した
+  writeFileSync(path.join(root, 'output', TS, 'generated', 'CLAUDE.md'), '# 直接編集\n');
+  assert.throws(() => recordApproval(root, TS, 'P4', 'x'), /現在.*と違う/);
+  assert.equal(checkApprovals(root, TS, []).results.length, 0, '拒否したら承認行を書かない');
+  writeVerifyReport(root);
+  assert.equal(recordApproval(root, TS, 'P4', 'verify 後').gate, 'P4');
+});
+
+test('record P5: P1〜P4 のどれかが無効（承認後に変わった）なら拒否する', (t) => {
+  const root = setup(t);
+  mkdirSync(path.join(root, 'output', TS, 'deploy'), { recursive: true });
+  writeFileSync(path.join(root, 'output', TS, 'deploy', 'pre-deploy-report.txt'), 'r\n');
+  for (const f of ['spec.md', 'design-map.md']) writeFileSync(path.join(root, 'output', TS, f), 'x\n');
+  assert.throws(() => recordApproval(root, TS, 'P5', 'x'), /P5 の前提: P1・P2・P3・P4/);
+  recordApproval(root, TS, 'P1', 'a');
+  recordApproval(root, TS, 'P2', 'a');
+  recordApproval(root, TS, 'P3', 'a');
+  writeVerifyReport(root);
+  recordApproval(root, TS, 'P4', 'a');
+  assert.equal(recordApproval(root, TS, 'P5', 'a').gate, 'P5');
+  // generated/ を直接直すと P4 が無効になり、P5 を取り直せない
+  writeFileSync(path.join(root, 'output', TS, 'generated', 'CLAUDE.md'), '# 直接編集\n');
+  assert.throws(() => recordApproval(root, TS, 'P5', 'again'), /P5 の前提: P4/);
 });
 
 test('check: 期待したゲートの承認行が無ければ無効（承認0件の照合を素通りさせない）。対象が消えても無効', (t) => {

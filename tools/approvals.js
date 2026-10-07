@@ -5,6 +5,7 @@
  *
  *   hash <gate>                 承認対象の現在のハッシュ（先頭12桁）と対象パスを出す
  *   record <gate> "<要旨>"      実時刻・対象・ハッシュで承認行を handoff.md の「## 承認」表に追記する
+ *                               （P4 は verify-report のハッシュが現在の generated/ と一致、P5 は P1〜P4 が有効であること）
  *   check [--expect P1,P2,…]    全ゲートの有効な承認行（同じゲートは最後の行）を再計算して照合する
  *
  * 承認の後で対象を作り直すと、古い承認は無効になる。照合をオーケストレーターの手計算に任せると、
@@ -29,7 +30,7 @@ import {
   effectiveApprovals,
   parseApprovals,
 } from '../lib/handoff.js';
-import { hashTree } from '../lib/tree-hash.js';
+import { hashTree, parseVerifyReportHash } from '../lib/tree-hash.js';
 import { isMainModule, isValidTs } from '../lib/run.js';
 
 export class ApprovalError extends Error {
@@ -71,11 +72,40 @@ function nowStamp(now = new Date()) {
   return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}`;
 }
 
+/**
+ * 承認を記録してよいかの前提を確かめる（満たさなければ ApprovalError）。
+ *   P4: verify-report.md に記録された generated/ のハッシュが、いまの generated/ と一致する
+ *       （最後の修正の後に verify を回したこと。メインが generated/ を直接直すと不一致になる）。
+ *   P5: P1〜P4 の承認が有効（上流が無効なまま配置の承認を取らせない）。
+ */
+function assertRecordable(root, ts, gate) {
+  if (gate === 'P4') {
+    const vr = path.join(root, 'output', ts, 'verify-report.md');
+    if (!existsSync(vr)) throw new ApprovalError(`P4 の前提: verify-report.md が無い（npm run verify -- ${ts} を回す）`);
+    const recorded = parseVerifyReportHash(readFileSync(vr, 'utf8'));
+    if (!recorded) throw new ApprovalError('P4 の前提: verify-report.md に generated/ のハッシュが無い（generated/ を検査できていない）');
+    const current = gateHash(root, ts, 'P4').hash;
+    if (!recorded.startsWith(current)) {
+      throw new ApprovalError(
+        `P4 の前提: verify-report の generated/ のハッシュ（${recorded.slice(0, APPROVAL_HASH_LEN)}）が現在（${current}）と違う。` +
+          `最後の修正の後に npm run manifest -- ${ts} → npm run verify -- ${ts} を回す`
+      );
+    }
+  } else if (gate === 'P5') {
+    const c = checkApprovals(root, ts, ['P1', 'P2', 'P3', 'P4']);
+    if (!c.ok) {
+      const bad = [...c.results.filter((r) => r.status !== 'ok').map((r) => r.gate), ...c.missing];
+      throw new ApprovalError(`P5 の前提: ${bad.join('・')} の承認が無効か無い（先に取り直す）`);
+    }
+  }
+}
+
 /** 承認行を handoff.md に追記し、追記した行の値を返す。 */
 export function recordApproval(root, ts, gate, summary, now = new Date()) {
   if (!summary || !summary.trim()) throw new ApprovalError('要旨が空');
   const hp = handoffPath(root, ts);
   if (!existsSync(hp)) throw new ApprovalError(`handoff.md が無い: ${path.relative(root, hp)}`);
+  assertRecordable(root, ts, gate);
   const h = gateHash(root, ts, gate);
   const row = { ...h, at: nowStamp(now), summary: summary.trim() };
   writeFileSync(hp, appendApproval(readFileSync(hp, 'utf8'), row));

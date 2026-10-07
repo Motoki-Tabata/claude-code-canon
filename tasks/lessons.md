@@ -55,11 +55,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 - 何が起きたか: RUN.md の 3a 節（`.claude/skills/canon-d/scripts/emit-run-manifest.js:160-165`）は、design-map の変更内容を散文で写すだけである。ユーザーが「管理パス外の変更をoutputフォルダ配下に作成して」と依頼し（774bc4a2 L275）、オーケストレーターがその場で `output/<ts>/outside-managed/` を作り、対象の README をコピーして編集した（L292〜L311）。変更後のファイルを作る工程は、canon-c にも canon-d（`canon-d/SKILL.md:58`）にも無い。そのファイルは P4 の承認の外にある。【中】
 - 提案: Phase C で、変更後のファイル（または patch）を `output/<ts>/outside-managed/` に作る工程を設け、P4 の対象（ハッシュ）に含める。RUN.md の 3a 節には、そのファイルを適用するコマンドを書く。
 
-## 2026-10-07 Phase D でオーケストレーターが generated/ を直接編集し、P4 も自分で取り直した（run 20261003_033830・Phase D）
-- 種別: 欠陥修正
-- 何が起きたか: ユーザーが「やはりlow 3件を直してから配置したい」と言い（774bc4a2 L80）、オーケストレーターは builder を起動せず、`generated/` の4ファイルを Edit で直した（L124〜L163）。manifest の再生成も再レビューもせず、P4 を Phase D の中で記録し直した（L196）。verify の呼び方も探していた（L164 `npm run | grep`、L171 は引数違いのエラー）。`canon-d/SKILL.md:12`（ワーカーを起動しない）と `:47`（生成物を直すなら `/canon-c` からやり直すよう案内して止まる）に反する。メインが `generated/` に書くのを止める機械の仕組みは無い。low 3件のために新しいセッションでやり直すのは重く、手順を迂回する動機になったと推測する。上の「直さないを既定に P4」の項目が発端。【高】
-- 提案: メインセッションから `output/*/generated/**` への Write・Edit を拒否する PreToolUse の hook を canon の `.claude/settings.json` に置く（builder は対象外にする）。canon-d に「軽微な修正」の手順を定める（builder を新しく起動 → manifest → verify → 変更分の再レビュー → P4 → P5）か、canon-c に再入して修正ループだけを回す引数を用意する。
-
 ## 2026-10-07 配置先のブランチと未コミットの変更を事前に確かめていない（run 20261003_033830・Phase D）
 - 種別: 欠陥修正
 - 何が起きたか: 配置は対象の main の作業ツリーに直接行われ、未コミットのまま終わった（774bc4a2 L236・L342）。対象の README では、main は Ruleset で直接 push できない。pre-deploy-check と deploy.js はブランチも未コミットの変更も見ない。RUN.md は「同じ作業ブランチで」と、作業ブランチがある前提で書いている（`emit-run-manifest.js:162`）。【低】
