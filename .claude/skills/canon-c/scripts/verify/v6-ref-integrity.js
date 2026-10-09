@@ -45,7 +45,7 @@
 
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { pathsTable } from '../../../../../lib/tables.js';
+import { cite } from '../../../../../lib/tables.js';
 import { skillPathRole, violation, splitListValue } from '../../../../../lib/artifact.js';
 import { isManaged } from '../../../../../lib/managed-paths.js';
 import { splitBySeverity } from './format.js';
@@ -54,9 +54,8 @@ const CHECK = 'V6';
 const PLACEHOLDER_DESCRIPTION = 'What this agent does and when Claude should delegate to it';
 // 英語の "Delegate when/for" に加え、日本語の description の委譲条件（「…ときに委譲される」「…は委譲する」）も認める。
 const DELEGATE_TRIGGER_RE = /Delegate (when|for)|委譲(される|する)/i;
-// skill パッケージの必須エントリ（SKILL.md）の出典。正典 docs/L2_SKILLS.md §2.1 から
-// build-conformance-tables.js が抽出した値を使う（出典を手書きせず表から引く）。
-const SKILL_PACKAGE_SOURCE = `${pathsTable.kinds.skill.package_layout.required_entry.source}（ディレクトリ構造: SKILL.md は必須）`;
+// skill パッケージの必須エントリ（SKILL.md）の出典。
+const SKILL_PACKAGE_SOURCE = `${cite('V-skills-01', 'paths:files/project:.claude/skills/<name>/SKILL.md')}（SKILL.md は必須）`;
 
 /** generated/ 相対パス（posix）を正規化する（`..` を解き、先頭 `./` を落とす）。 */
 function normRel(p) {
@@ -430,7 +429,7 @@ export function checkV6(ctx) {
   const pluginResult = checkPluginReferences(ctx);
   const lineRefResult = checkUnmanagedLineRefs(ctx);
 
-  const { violations, warnings } = splitBySeverity([
+  const { violations, warnings, undetermined } = splitBySeverity([
     ...agentResult.violations,
     ...supportingResult.violations,
     ...packageResult.violations,
@@ -440,6 +439,7 @@ export function checkV6(ctx) {
   return {
     violations,
     warnings,
+    undetermined,
     checked:
       agentResult.scanned + supportingResult.checked + packageResult.checked + pluginResult.checked + lineRefResult.checked,
   };

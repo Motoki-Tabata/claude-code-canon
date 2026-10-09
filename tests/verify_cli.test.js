@@ -18,7 +18,7 @@ import { setupSampleRepo, cleanupTs, writeSkill } from './helpers/fixtures.js';
 import { runScript } from './helpers/run-cli.js';
 import { genDir, outputDir } from './helpers/paths.js';
 import { tsSeq } from './helpers/ts.js';
-import { buildContext, runChecks, CHECKS } from '../.claude/skills/canon-c/scripts/verify.js';
+import { buildContext, runChecks, renderReport, CHECKS } from '../.claude/skills/canon-c/scripts/verify.js';
 import { hashTree } from '../lib/tree-hash.js';
 
 const nextTs = tsSeq(import.meta.url);
@@ -40,6 +40,7 @@ test('verify CLI: 制約強めのサンプルは V1〜V9 を全通過し exit 0�
   const report = reportOf(c.ts);
   for (const [id] of CHECKS) assert.match(report, new RegExp(`^## ${id} `, 'm'), `${id} の節が report に無い`);
   assert.match(report, /結果: 合格（違反 0 件/);
+  assert.match(r.stdout, /未判定 \d+ 件/, '要約の行に未判定の件数が出る');
   assert.match(report, /generated\/ のハッシュ: `[0-9a-f]{64}`（4 ファイル）/);
   assert.match(report, /V9: .*organization_policy/, 'V9 の warning（自由文は機械判定しない）も report に残す');
 });
@@ -51,6 +52,17 @@ test('verify CLI（違反注入）: hooks 禁止の環境に hook 設定を生�
   assert.equal(r.code, 1, r.stdout);
   assert.match(r.stdout, /V9:違反/);
   assert.match(reportOf(c.ts), /- 違反: V9: constraints で "hooks" は禁止/);
+});
+
+test('verify report: 未判定だけなら合格のまま、未判定を件数・表・本文に載せる（V-common-01）', () => {
+  const results = Object.fromEntries(CHECKS.map(([id]) => [id, { violations: [], warnings: [], undetermined: [], checked: 1, na: null }]));
+  results.V1.undetermined.push('V1 x/y.md: 未判定の例 [出典: canon-reference V-common-01]');
+  const { body, total, undetermined } = renderReport({ ts: 'x', results, tree: null, at: 'now' });
+  assert.equal(total, 0, '未判定は違反に数えない（exit 0 の条件は違反0件）');
+  assert.equal(undetermined, 1);
+  assert.match(body, /結果: 合格（違反 0 件・warning 0 件・未判定 1 件）/);
+  assert.match(body, /\| V1 配置パス \| pass（未判定あり） \| 0 \| 0 \| 1 \|/);
+  assert.match(body, /- 未判定: V1 x\/y\.md/);
 });
 
 test('verify CLI: 引数が無い・形式違いなら exit 2（report を書かない）', () => {

@@ -1,49 +1,43 @@
 /**
  * V3 ツール名（per-file・artifacts.md §8.2）。
  *
- * 出典: gates/conformance_tables/tools.json（正典 docs/TOOLS.md から生成）。
- * 実装前に必ず tools.json の `v3_capability` を見ること（判定表の能力宣言・artifacts.md §8.1）。
+ * 出典: 正典リファレンス canon-reference の `tools:tools`（lib/tables.js）と、検証ルール
+ * V-subagents-08（サブエージェントの `tools`・`disallowedTools`）・V-skills-14（Skill の
+ * `allowed-tools`・`disallowed-tools`）。
  *
  * 検査内容:
- *   - 正規ツール名照合（canonical_name_allowlist_check: true）
- *   - 旧称・非実在ツール検出（deprecated_name_detection / nonexistent_tool_detection: true）
- *   - MCP `mcp__server__tool` 構文（mcp_syntax_check: true）
+ *   - 各要素が `tools:tools` のいずれかの `id`（`Agent(...)` のように括弧付きなら括弧の前）か、
+ *     `mcp__` で始まる MCP のパターンであること
+ *   - 旧称（`tools:tools` の要素の `aliases`。例: `Agent` の旧称 `Task`）は、正規名を案内する違反にする
+ *   - `mcp__` で始まる名前は、MCP のツール名の形（`mcp__<server>__<tool>`・`mcp__<server>`・
+ *     `mcp__<server>__*`・`mcp__*`）に合うこと。形の正規表現は canon が持つ（data に正規表現は無い。
+ *     書式の根拠は `permissions:rule-syntax`）
  *
- * 実装しない検査（tools.json.v3_capability が false／限定と申告している範囲）:
- *   - 大文字小文字の厳密性（case_sensitivity_check: false・TOOLS.md §3 [要確認]）。
- *     完全一致しない名前は「非実在」側に落ちるだけで、"大文字小文字違い" という
- *     専用の違反種別は作らない。
- *   - 「この環境で利用可能か」の判定（nonexistent_tool_detection.caveat）。
- *     判定できるのは「正規の名前set に含まれるか」のみ。
- *   - subagent_unavailable_tools（AskUserQuestion 等5種）は正規名なので違反にしない
- *     （tools: に書いても無視されるだけ、というのが正典の立場）。
- *   - 旧称のうち「非推奨」「既定無効」（TaskOutput / TodoWrite）は実在する正規名として
- *     通す。violation にしてよいのは deprecated_tools.renamed_only（= Task）のみ。
+ * `tools:tools` は `complete: true` なので、無い名前は非実在として違反にする。「この環境で使えるか」
+ * は判定しない（名前が正規の集合に含まれるかだけを見る）。大文字小文字の違いは専用の違反種別を
+ * 作らず、非実在の側に落ちる（V-subagents-04 は大文字小文字まで一致を求める）。
  *
  * 純関数。副作用なし。
  */
 
-import { toolsTable } from '../../../../../lib/tables.js';
+import { collection, cite, plain } from '../../../../../lib/tables.js';
 import { violation, splitListValue } from '../../../../../lib/artifact.js';
 
 const CHECK = 'V3';
 
-const CANONICAL_NAMES = new Set(toolsTable.canonical_tool_set.tools.map((t) => t.name));
-const RENAMED_ONLY = new Set(toolsTable.deprecated_tools.renamed_only);
-const RENAMED_DETAIL = new Map(
-  toolsTable.deprecated_tools.all.filter((d) => toolsTable.deprecated_tools.renamed_only.includes(d.name)).map((d) => [d.name, d])
-);
-const MCP_FULL_RE = new RegExp(toolsTable.mcp_tool_syntax.regex);
+const TOOLS = collection('tools:tools');
+/** 旧称 → 正規名。 */
+const ALIASES = new Map();
+for (const t of TOOLS.items) {
+  for (const a of plain(t.aliases) ?? []) ALIASES.set(a, t.id);
+}
+const MCP_FULL_RE = /^mcp__[A-Za-z0-9_-]+__[A-Za-z0-9_-]+$/;
+const MCP_FORMS = 'mcp__<server>__<tool> / mcp__<server> / mcp__<server>__* / mcp__*';
 
-// tools.json は agent/skill 双方の tools 系フィールド名までは列挙していないため、
-// frontmatter.json（V2 の出典）から「tools っぽい」フィールドを拾う代わりに、
-// L3/L2 の frontmatter 完全リファレンスで実際に使われているキー名をここで固定する
-// （agent: tools/disallowedTools・skill: allowed-tools/disallowed-tools）。
-// agent の `disallowed-tools`（ハイフン形）は対象にしない——公式に互換受理の裏付けが無く、
-// V2 が未知キーとして検出する側へ倒しているため（L3_AGENTS.md:198）。
+/** サブエージェント・Skill のツールのリストを持つ frontmatter のキーと、当てる検証ルール。 */
 const TOOL_LIST_FIELDS = {
-  agent: ['tools', 'disallowedTools'],
-  skill: ['allowed-tools', 'disallowed-tools'],
+  agent: { fields: ['tools', 'disallowedTools'], rule: 'V-subagents-08' },
+  skill: { fields: ['allowed-tools', 'disallowed-tools'], rule: 'V-skills-14' },
 };
 
 function isWildcardMcpForm(tok) {
@@ -54,55 +48,56 @@ function isWildcardMcpForm(tok) {
   return false;
 }
 
-function checkToken(tok, artifact, field) {
-  const violations = [];
+/** `ToolName(specifier)` の括弧の前の名前。括弧が無ければそのまま。 */
+function toolNameOf(tok) {
+  const m = /^([^(]+)\(.*\)$/.exec(tok);
+  return m ? m[1] : tok;
+}
+
+function checkToken(tok, artifact, field, rule) {
   if (tok.startsWith('mcp__')) {
-    if (!MCP_FULL_RE.test(tok) && !isWildcardMcpForm(tok)) {
-      violations.push(
-        violation(
-          CHECK,
-          artifact.path,
-          `frontmatter "${field}" のツール名 "${tok}" が MCP 命名規約（${toolsTable.mcp_tool_syntax.forms.map((f) => f.form).join(' / ')}）に合致しない。`,
-          `${toolsTable.mcp_tool_syntax.forms[0].source}（regex_confidence: ${toolsTable.mcp_tool_syntax.regex_confidence}）`
-        )
-      );
-    }
-    return violations;
-  }
-
-  if (CANONICAL_NAMES.has(tok)) return violations; // 正規名（非推奨・既定無効を含む）は pass
-
-  if (RENAMED_ONLY.has(tok)) {
-    const d = RENAMED_DETAIL.get(tok);
-    violations.push(
+    if (MCP_FULL_RE.test(tok) || isWildcardMcpForm(tok)) return [];
+    return [
       violation(
         CHECK,
         artifact.path,
-        `frontmatter "${field}" のツール名 "${tok}" は旧称（改名済み）。正規名 "Agent" を使うこと。${d?.note ?? ''}`,
-        d?.source ?? toolsTable.canonical_tool_set.source
-      )
-    );
-    return violations;
+        `frontmatter "${field}" のツール名 "${tok}" が MCP のツール名の形（${MCP_FORMS}）に合わない。`,
+        cite(rule, 'permissions:rule-syntax')
+      ),
+    ];
   }
 
-  violations.push(
+  const name = toolNameOf(tok);
+  if (TOOLS.byId.has(name)) return [];
+
+  if (ALIASES.has(name)) {
+    const canonical = ALIASES.get(name);
+    return [
+      violation(
+        CHECK,
+        artifact.path,
+        `frontmatter "${field}" のツール名 "${tok}" は旧称。正規名 "${canonical}" を使うこと。`,
+        cite(rule, `tools:tools/${canonical}`)
+      ),
+    ];
+  }
+
+  return [
     violation(
       CHECK,
       artifact.path,
-      `frontmatter "${field}" のツール名 "${tok}" は正典 docs/TOOLS.md の正規ツール名に無い（非実在の疑い）。` +
-        `${toolsTable.v3_capability.nonexistent_tool_detection.caveat}`,
-      toolsTable.canonical_tool_set.source
-    )
-  );
-  return violations;
+      `frontmatter "${field}" のツール名 "${tok}" は tools:tools の正規名に無い（非実在の疑い）。この環境で使えるかは判定していない。`,
+      cite(rule, 'tools:tools')
+    ),
+  ];
 }
 
 export function checkV3(artifact) {
   const violations = [];
-  const fields = TOOL_LIST_FIELDS[artifact.kind];
-  if (!fields) return violations; // rule/unknown には tools 系フィールドが無い（正典に規定なし）
+  const spec = TOOL_LIST_FIELDS[artifact.kind];
+  if (!spec) return violations; // rule/unknown には tools 系フィールドが無い
 
-  for (const field of fields) {
+  for (const field of spec.fields) {
     const entry = artifact.frontmatter[field];
     if (!entry) continue;
     if (entry.nested) {
@@ -117,11 +112,9 @@ export function checkV3(artifact) {
       );
       continue;
     }
-    const tokens = splitListValue(entry);
-    for (const tok of tokens) {
-      violations.push(...checkToken(tok, artifact, field));
+    for (const tok of splitListValue(entry)) {
+      violations.push(...checkToken(tok, artifact, field, spec.rule));
     }
   }
   return violations;
 }
-

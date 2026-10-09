@@ -18,15 +18,21 @@ describe('V1 パス規約', () => {
     assert.deepEqual(v, []);
   });
 
-  test('agent はディレクトリ名と name が不一致でも違反にしない（正典 L3_AGENTS.md:154）', () => {
+  test('agent はディレクトリ名と name が不一致でも違反にしない', () => {
     const v = checkV1(art('.claude/agents/dirname/dirname.md', 'name: totally-different\ndescription: d'));
     assert.deepEqual(v, []);
   });
 
-  test('agent の配置が深すぎるパスは違反', () => {
+  test('agent は .claude/agents/ の下を再帰的に置ける（深いサブディレクトリも違反にしない）', () => {
     const v = checkV1(art('.claude/agents/too/deep/extra.md', 'name: x\ndescription: d'));
+    assert.deepEqual(v, []);
+  });
+
+  test('agent が .claude/agents/ の外にあるときは違反でなく未判定（paths:files は complete: false）', () => {
+    const v = checkV1(art('.claude/team/agents/x.md', 'name: x\ndescription: d'));
     assert.equal(v.length, 1);
-    assert.match(v[0].message, /許可パターン/);
+    assert.equal(v[0].severity, 'undetermined');
+    assert.match(v[0].source, /V-common-01/);
   });
 
   test('skill はディレクトリ名と name の一致を要求する（設計由来・第3の例外）', () => {
@@ -41,7 +47,7 @@ describe('V1 パス規約', () => {
   });
 
   // -------------------------------------------------------------------------
-  // supporting files（正典 docs/L2_SKILLS.md §2.1「ディレクトリ構造」の明示的許可）。
+  // supporting files（canon-reference の skills.md §3・V-skills-18 が前提にする補助ファイル）。
   // 「skill ディレクトリ配下のファイル名は固定 SKILL.md」として template.md・examples/*.md を
   // 一律違反にすると、正典に反する誤検出になる（V6 は逆に supporting file の実在を要求する）。
   // 狭めた側（supporting は通す）と、狭めていない側（真の配置逸脱は依然として弾く）の
@@ -67,20 +73,28 @@ describe('V1 パス規約', () => {
     assert.match(v[0].message, /SKILL\.md/);
   });
 
-  test('.claude/commands/ は廃止予定の警告（error ではなく warning）', () => {
+  test('.claude/commands/ は Skill に統合された古い形式の警告（error ではなく warning）', () => {
     const v = checkV1(art('.claude/commands/legacy.md', 'name: legacy'));
     assert.equal(v.length, 1);
     assert.equal(v[0].severity, 'warning');
   });
 
-  test('rule の正しい配置は違反0件', () => {
-    const v = checkV1(art('.claude/rules/foo.md', 'paths: ["**/*.ts"]'));
-    assert.deepEqual(v, []);
+  test('rule の正しい配置は違反0件（サブディレクトリも可・V-rules-01）', () => {
+    assert.deepEqual(checkV1(art('.claude/rules/foo.md', 'paths: ["**/*.ts"]')), []);
+    assert.deepEqual(checkV1(art('.claude/rules/frontend/foo.md', 'paths: ["**/*.ts"]')), []);
   });
 
-  test('既知ファミリーに属さないパスは違反', () => {
+  test('rule が .claude/rules/ の外にあるときは違反（V-rules-01 は確定の規則）', () => {
+    const v = checkV1(art('lib/rules/foo.md', 'paths: ["**/*.ts"]'));
+    assert.equal(v.length, 1);
+    assert.equal(v[0].severity, 'error');
+    assert.match(v[0].source, /V-rules-01/);
+  });
+
+  test('既知の配置に属さないパスは違反でなく未判定（paths:files は complete: false）', () => {
     const v = checkV1(art('random/place/orphan.md', 'name: orphan'));
     assert.equal(v.length, 1);
-    assert.match(v[0].message, /既知の配置ファミリー/);
+    assert.equal(v[0].severity, 'undetermined');
+    assert.match(v[0].message, /未判定/);
   });
 });

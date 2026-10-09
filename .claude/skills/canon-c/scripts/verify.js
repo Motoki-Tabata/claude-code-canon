@@ -11,7 +11,8 @@
  * - **検査対象ゼロは違反**: generated/ が無い・空なら全検査を違反にする。design-map・requirements.md・
  *   handoff.md の欠落は、それを入力にする検査が違反にする。「対象なし」と書くのは、定義上対象が無いと
  *   確定する場合（new モードの V7、スキーマを持つファイルが無いときの V1〜V3 など）だけで、理由を書く。
- * - **error と warning**: warning は exit code に影響しないが、report に必ず載せる。
+ * - **error・warning・未判定**: warning と未判定は exit code に影響しないが、report に必ず載せる。未判定は、
+ *   `complete: false` のコレクションと照合して一致しなかった名前（canon-reference の V-common-01）。
  * - report には検査した generated/ のハッシュを載せる（architecture.md §6.2・§9.3）。P4 の前に
  *   オーケストレーターが現在の generated/ と照合する。
  */
@@ -105,15 +106,16 @@ export function buildContext(ts) {
 }
 
 function emptyResult() {
-  return { violations: [], warnings: [], checked: 0, na: null };
+  return { violations: [], warnings: [], undetermined: [], checked: 0, na: null };
 }
 
 /** V1〜V5: ファイルごとに振り分けて当てる。 */
 function runPerFile(ctx, results) {
   const add = (id, objs) => {
-    const { violations, warnings } = splitBySeverity(objs);
+    const { violations, warnings, undetermined } = splitBySeverity(objs);
     results[id].violations.push(...violations);
     results[id].warnings.push(...warnings);
+    results[id].undetermined.push(...undetermined);
     results[id].checked++;
   };
   let mcpJson = 0;
@@ -172,6 +174,7 @@ export function runChecks(ctx) {
 function statusOf(r) {
   if (r.violations.length > 0) return '違反';
   if (r.na) return '対象なし';
+  if (r.undetermined.length > 0) return 'pass（未判定あり）';
   return 'pass';
 }
 
@@ -179,6 +182,7 @@ function statusOf(r) {
 export function renderReport({ ts, results, tree, at }) {
   const total = CHECKS.reduce((n, [id]) => n + results[id].violations.length, 0);
   const warns = CHECKS.reduce((n, [id]) => n + results[id].warnings.length, 0);
+  const undetermined = CHECKS.reduce((n, [id]) => n + results[id].undetermined.length, 0);
   const lines = [
     `# verify-report（${ts}）`,
     '',
@@ -187,13 +191,13 @@ export function renderReport({ ts, results, tree, at }) {
       ? `- generated/ のハッシュ: \`${tree.hash}\`（${tree.files} ファイル${tree.outsideFiles ? `。outside-managed/ の ${tree.outsideFiles} ファイルを含む` : ''}）`
       : '- generated/ のハッシュ: なし（generated/ が無い）',
     `- 再計算: \`${tree?.outsideFiles ? TREE_HASH_COMMAND_WITH_OUTSIDE.replace('<out>', `output/${ts}`) : TREE_HASH_COMMAND.replace('<dir>', `output/${ts}/generated`)}\``,
-    `- 結果: ${total === 0 ? '合格' : '不合格'}（違反 ${total} 件・warning ${warns} 件）`,
+    `- 結果: ${total === 0 ? '合格' : '不合格'}（違反 ${total} 件・warning ${warns} 件・未判定 ${undetermined} 件）`,
     '',
-    '| 検査 | 結果 | 違反 | warning |',
-    '|---|---|---|---|',
+    '| 検査 | 結果 | 違反 | warning | 未判定 |',
+    '|---|---|---|---|---|',
     ...CHECKS.map(([id, name]) => {
       const r = results[id];
-      return `| ${id} ${name} | ${statusOf(r)} | ${r.violations.length} | ${r.warnings.length} |`;
+      return `| ${id} ${name} | ${statusOf(r)} | ${r.violations.length} | ${r.warnings.length} | ${r.undetermined.length} |`;
     }),
   ];
   for (const [id, name] of CHECKS) {
@@ -203,8 +207,9 @@ export function renderReport({ ts, results, tree, at }) {
     else if (r.violations.length === 0) lines.push(`pass（検査した対象 ${r.checked} 件）`);
     for (const v of r.violations) lines.push(`- 違反: ${v}`);
     for (const w of r.warnings) lines.push(`- warning: ${w}`);
+    for (const u of r.undetermined) lines.push(`- 未判定: ${u}`);
   }
-  return { body: lines.join('\n') + '\n', total, warns };
+  return { body: lines.join('\n') + '\n', total, warns, undetermined };
 }
 
 /** <ts> の run を検証し、report を書いて結果を返す。 */
@@ -229,7 +234,7 @@ if (isMainModule(import.meta.url)) {
   const r = verify(ts);
   const summary = CHECKS.map(([id]) => `${id}:${statusOf(r.results[id])}`).join(' ');
   process.stdout.write(
-    `[verify] ${r.ok ? '合格' : '不合格'}（違反 ${r.total} 件・warning ${r.warns} 件）${summary}\n` +
+    `[verify] ${r.ok ? '合格' : '不合格'}（違反 ${r.total} 件・warning ${r.warns} 件・未判定 ${r.undetermined} 件）${summary}\n` +
       `[verify] report: ${path.relative(process.cwd(), r.reportPath)}\n`
   );
   process.exit(r.ok ? 0 : 1);

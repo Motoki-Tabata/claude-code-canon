@@ -44,10 +44,18 @@ describe('V3 tools/ツール名', () => {
     assert.deepEqual(v, []);
   });
 
+  test('括弧付きの指定（Bash(git:*)・Agent(worker)）は括弧の前の名前で照合する（V-subagents-08）', () => {
+    assert.deepEqual(checkV3(agent('Bash(git:*) Agent(worker)')), []);
+    assert.deepEqual(checkV3(agent('Read, Bash(git log *), Bash(npm run test)')), [], '括弧の中の空白で区切らない');
+    const v = checkV3(agent('Bogus(x)'));
+    assert.equal(v.length, 1);
+    assert.match(v[0].message, /非実在/);
+  });
+
   test('MCP の不正構文（mcp__ 単体）は違反', () => {
     const v = checkV3(agent('mcp__'));
     assert.equal(v.length, 1);
-    assert.match(v[0].message, /MCP 命名規約/);
+    assert.match(v[0].message, /MCP のツール名の形/);
   });
 
   test('skill の allowed-tools でも同じ規約が適用される', () => {
