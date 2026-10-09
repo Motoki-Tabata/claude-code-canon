@@ -7,11 +7,11 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { setupTmpCase } from './helpers/fixtures.js';
 import { runScript } from './helpers/run-cli.js';
+import { gitInit } from './helpers/git.js';
 import { renderReport } from '../.claude/skills/canon-d/scripts/pre-deploy-check.js';
 
 test('pre-deploy-check: greenfield は消失0件で exit 0', (t) => {
@@ -79,17 +79,6 @@ test('pre-deploy-check: managed-paths.list の `..`・集合外・絶対パス�
 // 配置先のブランチと未コミットの変更（warning のみ。exit には影響しない）
 // ---------------------------------------------------------------------------
 
-/** 対象を git リポジトリにし、最初のコミットを作る。 */
-function gitInit(dir, branch = 'main') {
-  const g = (...a) => execFileSync('git', ['-C', dir, ...a], { stdio: 'ignore' });
-  g('init', '-q', '-b', branch);
-  g('config', 'user.email', 't@example.com');
-  g('config', 'user.name', 't');
-  g('add', '-A');
-  g('commit', '-q', '-m', 'init');
-  return g;
-}
-
 test('pre-deploy-check: 既定ブランチにいると warning を書くが exit 0', (t) => {
   const c = setupTmpCase(t, 'new');
   gitInit(c.target, 'main');
@@ -124,14 +113,4 @@ test('pre-deploy-check: git でない対象は「確認できなかった」と�
   const r = runScript('canon-d', 'pre-deploy-check.js', [c.output, c.target]);
   assert.equal(r.code, 0, r.stderr);
   assert.match(r.stdout, /確認できなかった/);
-});
-
-test('emit-run-manifest: 配置の前に作業ブランチを切る手順を置く', (t) => {
-  const c = setupTmpCase(t, 'new');
-  const r = runScript('canon-d', 'emit-run-manifest.js', [c.output, c.target]);
-  assert.equal(r.code, 0, r.stderr);
-  const body = readFileSync(path.join(c.output, 'deploy', 'RUN.md'), 'utf8');
-  const sw = body.indexOf('switch -c');
-  assert.ok(sw > 0, 'switch -c の手順がある');
-  assert.ok(sw < body.indexOf('--confirm', body.indexOf('### 3.')), '--confirm のコマンドより前');
 });

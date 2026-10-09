@@ -97,7 +97,7 @@ test('V7: new モードで既存判定が無ければ「対象なし」、レコ
   writeHandoff(c.ts, { target: c.work, mode: 'new' });
   assert.ok(has(v7(c.ts), 'new モードなのに'), 'new モードでレコードがあるのに通した');
 
-  editDesignMap(c, () => '# design-map\n\n## Used Features\nL1\n');
+  editDesignMap(c, () => '# design-map\n\n## Used Features\nskills\n');
   const r = v7(c.ts);
   assert.equal(r.ok, true, JSON.stringify(r.violations));
   assert.match(r.na, /new モード/);
@@ -105,7 +105,7 @@ test('V7: new モードで既存判定が無ければ「対象なし」、レコ
 
 test('V7: refactor モードで既存判定が読めなければ違反', (t) => {
   const c = setupSampleRepo(t, 'existing', tsFor(import.meta.url, 10));
-  editDesignMap(c, () => '# design-map\n\n## Used Features\nL1\n');
+  editDesignMap(c, () => '# design-map\n\n## Used Features\nskills\n');
   assert.ok(has(v7(c.ts), 'refactor モードなのに'));
 });
 

@@ -45,7 +45,7 @@ const DECORATION_RE = /^[\s`*_[\]"'“”「『（(]+/;
  * テキストの**先頭**に立つ識別子トークンを返す（無ければ null）。
  * `- **\`impact-scope\`** — …` → `impact-scope` ／ `- この deny は impact-scope による` → null。
  */
-export function leadingIdentifier(text) {
+function leadingIdentifier(text) {
   if (typeof text !== 'string') return null;
   const m = text.replace(DECORATION_RE, '').match(LEADING_IDENTIFIER_RE);
   return m ? m[0] : null;
@@ -100,13 +100,6 @@ export function collectListingEntries(readme) {
 
   return entries;
 }
-
-/** 一覧項目の種別 → 違反メッセージ用の日本語ラベル。 */
-export const LISTING_KIND_LABEL = {
-  heading: '見出し',
-  table: '表の第1セル',
-  list: '箇条書きの先頭',
-};
 
 /**
  * README 中の `name` の現れ方を、判定に使う2軸だけへ還元する。

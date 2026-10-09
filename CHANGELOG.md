@@ -101,6 +101,10 @@
   2=引数不正）に合わせるためで、slice・copy-keep・review-bundle と同じです。`<ts>` の形式違いは従来どおり exit 2 です。
 - **V6-7 の行番号引用の検査から除くファイル**: 特定の run 由来の固定パス（`.claude/skills/lessons-ledger/ledger-snapshot.txt`）をやめ、
   design-map がバイト単位のコピーと宣言したファイル（keep の対象と `## 参照元からのコピー` の生成先）を除きます。宣言の無いコピーは除きません。
+- **テストの統廃合**: 他のテストに包含される重複と常に真のアサートを削除し、同じ入力の配置・CLI 実行・セットアップを統合しました
+  （deploy_swap・verify_cli・v8・v9・emit_manifest の README など）。旧語の検出と素振りは同じ定数・関数を使います。git の初期化・
+  単一ファイルの書き出し・ファイルの列挙・固定 ts は `tests/helpers/` に寄せ、使われていない export を消しました。
+  `deploy_managed_paths.test.js` は `managed_paths.test.js` に改名し、requirements.md のパーサ単体は `requirements.test.js` に分けました。
 - **ルール `gates-and-tests` を `checks-and-tests` に改名**: 廃止した `gates/` の名前を引き継いでいたためです。
 
 ### Removed

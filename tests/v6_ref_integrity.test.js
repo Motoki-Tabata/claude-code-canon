@@ -10,12 +10,9 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { checkV6 } from '../.claude/skills/canon-c/scripts/verify/v6-ref-integrity.js';
 import { buildContext } from '../.claude/skills/canon-c/scripts/verify.js';
-import { ROOT } from './helpers/paths.js';
-import { cleanupTs } from './helpers/fixtures.js';
+import { workDir as work, outputDir as out, genDir } from './helpers/paths.js';
+import { cleanupTs, writeAgent as writeAgentFile } from './helpers/fixtures.js';
 import { tsFor } from './helpers/ts.js';
-
-const work = (ts) => path.join(ROOT, 'work', ts);
-const out = (ts) => path.join(ROOT, 'output', ts);
 
 /** V6 を実行し、合否（ok）と違反・warning の文字列を返す。 */
 function v6(ts) {
@@ -52,14 +49,6 @@ test('V6: preload skill 参照が実在すれば通過、不在なら違反', (t
     '---\nname: worker\ndescription: x\ntools: Read\nskills: [does-not-exist]\n---\n本文\n'
   );
   assert.equal(v6(ts).ok, false, '不在の preload 参照は違反');
-});
-
-test('V6: 検査した件数を返す（0件しか見ていないことが分かる衛生設計）', (t) => {
-  const ts = tsFor(import.meta.url, 7);
-  setup(t, ts);
-  writeFileSync(path.join(out(ts), 'generated', '.claude', 'agents', 'a.md'), '---\nname: a\ndescription: x\n---\n');
-  assert.equal(typeof v6(ts).checked, 'number');
-  assert.ok(v6(ts).checked >= 1);
 });
 
 // ---------------------------------------------------------------------------
@@ -284,11 +273,7 @@ test('V6 V6-7: design-map がバイト単位のコピーと宣言したファイ
 // 委譲条件の日本語表記・basename 解決・未解決の集約（P4 の warning のノイズを減らす）
 // ---------------------------------------------------------------------------
 
-function writeAgent(ts, name, description) {
-  const dir = path.join(out(ts), 'generated', '.claude', 'agents', name);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(path.join(dir, `${name}.md`), `---\nname: ${name}\ndescription: ${description}\ntools: Read\n---\n本文\n`);
-}
+const writeAgent = (ts, name, description) => writeAgentFile(genDir(ts), name, { description, tools: 'Read' });
 
 test('V6 委譲条件: 日本語の「委譲される」「委譲する」は warning にならない。条件の無い description は warning になる（故意の違反）', (t) => {
   const ts = tsFor(import.meta.url, 31);

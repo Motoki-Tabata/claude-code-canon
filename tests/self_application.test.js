@@ -11,20 +11,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { loadArtifact, parseFrontmatter, splitListValue, skillPathRole } from '../lib/artifact.js';
 import { checkV1 } from '../.claude/skills/canon-c/scripts/verify/v1-paths.js';
 import { checkV2 } from '../.claude/skills/canon-c/scripts/verify/v2-frontmatter.js';
 import { checkV3 } from '../.claude/skills/canon-c/scripts/verify/v3-tool-names.js';
 import { checkV4 } from '../.claude/skills/canon-c/scripts/verify/v4-security.js';
-import { readdirSync } from 'node:fs';
 import { isNonSchemaRel } from '../lib/non-schema.js';
 import { ROOT } from './helpers/paths.js';
 import { REFERENCE_DIR } from '../lib/reference-data.js';
 import { buildReferenceIndex, extractReferenceRefs, resolveReferenceRef } from './helpers/reference-refs.js';
 
 const SELF = path.join(ROOT, '.claude');
+
+/** `git ls-files` で追跡対象のファイルを canon のルートからの相対パスで返す（追跡外の物理実在物を拾わない）。 */
+function trackedFiles(...pathspecs) {
+  return execFileSync('git', ['ls-files', '-z', '--', ...pathspecs], { cwd: ROOT, encoding: 'utf8' }).split('\0').filter(Boolean);
+}
 
 /**
  * `git ls-files` で追跡対象の .md だけを歩く。素朴な readdirSync 再帰だと
@@ -37,12 +41,7 @@ const SELF = path.join(ROOT, '.claude');
 function walkMd(dir) {
   if (!existsSync(dir)) return [];
   const rel = path.relative(ROOT, dir).replace(/\\/g, '/');
-  const out = execFileSync('git', ['ls-files', '-z', '--', rel], {
-    cwd: ROOT,
-    encoding: 'utf8',
-  });
-  return out
-    .split('\0')
+  return trackedFiles(rel)
     .filter((f) => f.endsWith('.md') && !isNonSchemaRel(path.relative(SELF, path.join(ROOT, f)), 'claude'))
     .map((f) => path.join(ROOT, f));
 }
@@ -62,8 +61,7 @@ test('claude-canon 自身の .claude/**.md が V1〜V4 で違反0件', () => {
 });
 
 test('Phase Skill の scripts/ は skill パッケージの supporting files として扱われる（V1・V2 の対象外）', () => {
-  const out = execFileSync('git', ['ls-files', '-z', '--', '.claude/skills'], { cwd: ROOT, encoding: 'utf8' });
-  const scripts = out.split('\0').filter((f) => /^\.claude\/skills\/[^/]+\/scripts\//.test(f));
+  const scripts = trackedFiles('.claude/skills').filter((f) => /^\.claude\/skills\/[^/]+\/scripts\//.test(f));
   assert.ok(scripts.length >= 10, `scripts が少なすぎる（実際: ${scripts.length}）。0件を成功と誤認しない。`);
   const misfiled = scripts.filter((f) => skillPathRole(f) !== 'supporting' || !isNonSchemaRel(f, 'generated'));
   assert.deepEqual(misfiled, []);
@@ -190,13 +188,21 @@ test('知識 Skill は5件ちょうどで、user-invocable: false・本文500行
   }
 });
 
-/** ディレクトリ配下の .md を再帰で集める（追跡外を含まない前提のコーパス：知識 Skill と Agent）。 */
+/** ディレクトリ配下の追跡済みの .md を絶対パスで集める。 */
 function mdUnder(dir) {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
-    const p = path.join(dir, e.name);
-    return e.isDirectory() ? mdUnder(p) : e.name.endsWith('.md') ? [p] : [];
-  });
+  return trackedFiles(path.relative(ROOT, dir).replace(/\\/g, '/'))
+    .filter((f) => f.endsWith('.md'))
+    .map((f) => path.join(ROOT, f));
 }
+
+/**
+ * 旧体系の用語・番号: 旧ゲート番号・旧 keep 条件・旧ゲート・run 番号・旧機構の語。新番号は V1〜V9・K1〜K5・P1〜P5・工程1〜9。
+ * Agent・知識 Skill は SendMessage（再開）も禁じる。Phase Skill は SendMessage を「再開しない」の規則として書くので許し、
+ * 代わりに旧セッション名（S1〜S4）・旧 CLI の語・廃止した標準レビュー（/security-review・/code-review）を禁じる。
+ */
+const OLD_SYSTEM_TERMS = ['\\bG\\d{1,2}\\b', '\\bC[1-5]_', '\\bP[6-8]\\b', '工程10', 'run 20\\d{6}', 'fixtures\\/', 'marker', '\\.requests', '\\.gate', '基本設計書', '詳細設計書', 'systemA', '系統[AB]', 'eval-', 'quality-checklist'];
+const OLD_WORKER_TERMS = new RegExp([...OLD_SYSTEM_TERMS, 'SendMessage'].join('|'));
+const OLD_PHASE_TERMS = new RegExp([...OLD_SYSTEM_TERMS, '\\bS[1-4]\\b', 'state:record', 'recheck', 'resume', 'security-review', 'code-review'].join('|'));
 
 test('知識 Skill の Markdown リンクがすべて実在する（references への道しるべが切れていない）', () => {
   const files = KNOWLEDGE_SKILLS.flatMap((n) => mdUnder(path.join(SELF, 'skills', n)));
@@ -216,8 +222,7 @@ test('知識 Skill の Markdown リンクがすべて実在する（references �
 });
 
 test('新しい Agent・知識 Skill に、旧体系の用語・番号が残っていない', () => {
-  // 旧ゲート番号・旧 keep 条件・旧ゲート・run 番号・旧機構の語。新番号は V1〜V9・K1〜K5・P1〜P5・工程1〜9。
-  const OLD = /\bG\d{1,2}\b|\bC[1-5]_|\bP[6-8]\b|工程10|run 20\d{6}|fixtures\/|marker|\.requests|\.gate|基本設計書|詳細設計書|SendMessage|systemA|系統[AB]|eval-|quality-checklist/;
+  const OLD = OLD_WORKER_TERMS;
   const files = [
     ...mdUnder(path.join(SELF, 'agents')),
     ...KNOWLEDGE_SKILLS.flatMap((n) => mdUnder(path.join(SELF, 'skills', n))),
@@ -230,14 +235,20 @@ test('新しい Agent・知識 Skill に、旧体系の用語・番号が残っ�
   assert.deepEqual(hits, []);
 });
 
-test('検出器の素振り: 旧体系の語を含む行を上の検査が拾う', () => {
-  const OLD = /\bG\d{1,2}\b|\bC[1-5]_|\bP[6-8]\b|工程10|run 20\d{6}|fixtures\/|marker|\.requests|\.gate|基本設計書|詳細設計書|SendMessage|systemA|系統[AB]|eval-|quality-checklist/;
+test('検出器の素振り: 旧体系の語を含む行を上の検査（Agent・知識 Skill と Phase Skill の両方）が拾う', () => {
   for (const bad of ['G9 が止める', 'C2_no_requirement_conflict', 'P8 で確認', '工程10', 'run 20260927_003229', 'fixtures/sample-repos', '.requests/spec', '基本設計書 §8', '系統A']) {
-    assert.ok(OLD.test(bad), `${bad} を見逃した`);
+    assert.ok(OLD_WORKER_TERMS.test(bad), `${bad} を見逃した`);
+    assert.ok(OLD_PHASE_TERMS.test(bad), `${bad} を見逃した（Phase Skill）`);
+  }
+  assert.ok(OLD_WORKER_TERMS.test('SendMessage で再開する'));
+  for (const bad of ['S2 の終わり', 'state:record を呼ぶ', '/security-review を実行', '/code-review を実行']) {
+    assert.ok(OLD_PHASE_TERMS.test(bad), `${bad} を見逃した（Phase Skill）`);
   }
   for (const ok of ['V7 が止める', 'K2_no_requirement_conflict', 'P3 で確認', 'run の骨格']) {
-    assert.ok(!OLD.test(ok), `${ok} を過検出した`);
+    assert.ok(!OLD_WORKER_TERMS.test(ok), `${ok} を過検出した`);
+    assert.ok(!OLD_PHASE_TERMS.test(ok), `${ok} を過検出した（Phase Skill）`);
   }
+  assert.ok(!OLD_PHASE_TERMS.test('SendMessage で再開しない'), 'Phase Skill では「再開しない」の規則を許す');
 });
 
 // ---- Phase Skill（オーケストレーター） ----
@@ -283,8 +294,8 @@ test('Phase Skill は開始時に承認を照合し、ゲートで承認を記�
   }
 });
 
-test('Phase Skill に旧体系の用語・番号が残っていない（SendMessage は「再開しない」の規則として許す）', () => {
-  const OLD = /\bG\d{1,2}\b|\bC[1-5]_|\bP[6-8]\b|工程10|run 20\d{6}|fixtures\/|marker|\.requests|\.gate|基本設計書|詳細設計書|systemA|系統[AB]|eval-|quality-checklist|\bS[1-4]\b|state:record|recheck|resume/;
+test('Phase Skill に旧体系の用語・番号と廃止した標準レビューの呼び出しが残っていない（SendMessage は「再開しない」の規則として許す）', () => {
+  const OLD = OLD_PHASE_TERMS;
   const hits = PHASE_SKILLS.flatMap((n) =>
     phaseSkillText(n)
       .split('\n')
@@ -301,11 +312,7 @@ test('Phase Skill に旧体系の用語・番号が残っていない（SendMess
 const RUN_WORKTREE_TERMS = /canon-runs|run ブランチ|run\/<ts>|git add -f|canon 課題候補/;
 
 test('canon 本体に run の worktree 方式の語が残っていない', () => {
-  const out = execFileSync('git', ['ls-files', '-z', '--', '.claude', 'lib', 'tools', 'design', 'guide', 'tasks', 'README.md', '.gitignore', 'package.json'], {
-    cwd: ROOT,
-    encoding: 'utf8',
-  });
-  const files = out.split('\0').filter(Boolean);
+  const files = trackedFiles('.claude', 'lib', 'tools', 'design', 'guide', 'tasks', 'README.md', '.gitignore', 'package.json');
   assert.ok(files.length >= 50, `検査対象が少なすぎる（実際: ${files.length}）`);
   const hits = files.flatMap((rel) =>
     readFileSync(path.join(ROOT, rel), 'utf8')
@@ -340,13 +347,7 @@ const LAYER_ERA_EXEMPT = new Set([
 ]);
 
 test('工程側に層の語彙と旧 docs/・判定表の語が残っていない', () => {
-  const out = execFileSync('git', ['ls-files', '-z', '--', '.claude', 'lib', 'tools', 'design', 'guide', 'README.md', 'package.json', '.github', '.gitignore'], {
-    cwd: ROOT,
-    encoding: 'utf8',
-  });
-  const files = out
-    .split('\0')
-    .filter(Boolean)
+  const files = trackedFiles('.claude', 'lib', 'tools', 'design', 'guide', 'README.md', 'package.json', '.github', '.gitignore')
     .filter((rel) => !rel.startsWith('.claude/skills/canon-reference/') && !LAYER_ERA_EXEMPT.has(rel));
   assert.ok(files.length >= 50, `検査対象が少なすぎる（実際: ${files.length}）`);
   const hits = files.flatMap((rel) =>
@@ -373,10 +374,7 @@ test('検出器の素振り: 層の語彙と旧 docs/ の語を拾い、普通�
  */
 test('工程側から canon-reference への参照（ファイル・節・ID・data）がすべて解決する', () => {
   const index = buildReferenceIndex(REFERENCE_DIR);
-  const out = execFileSync('git', ['ls-files', '-z', '--', '.claude', 'lib', 'tools', 'design', 'guide', 'README.md'], { cwd: ROOT, encoding: 'utf8' });
-  const files = out
-    .split('\0')
-    .filter(Boolean)
+  const files = trackedFiles('.claude', 'lib', 'tools', 'design', 'guide', 'README.md')
     .filter((rel) => /\.(md|js)$/.test(rel) && !rel.startsWith('.claude/skills/canon-reference/'));
   const counts = { file: 0, section: 0, id: 0, data: 0 };
   const broken = [];
@@ -414,11 +412,6 @@ test('検出器の素振り: 存在しない節・ID・data の要素・ファ�
   assert.deepEqual(extractReferenceRefs('`generation/references/skills.md` §4', index), [], '工程側の同名ファイルを正典と取り違えない');
 });
 
-test('Phase Skill が、廃止した標準レビュー（/security-review・/code-review）を呼ばない', () => {
-  const hits = PHASE_SKILLS.filter((n) => /security-review|code-review/.test(phaseSkillText(n)));
-  assert.deepEqual(hits, []);
-});
-
 /**
  * 決定論の検査（verify）の判定基準を変更したとき、それを人間可読な形で説明するワーカー定義
  * （.claude/agents/<name>/<name>.md・.claude/skills/<name>/SKILL.md）が追従しているかを npm test で検出する。
@@ -453,25 +446,22 @@ const ORCHESTRATOR_DOCS = [
   ...PHASE_SKILLS.map((n) => path.join(SELF, 'skills', n, 'SKILL.md')),
 ].filter((p) => existsSync(p));
 
+/** 本文中の Agent(...) の例示のうち、model 引数を渡しているもの（general-purpose のフォールバックだけは model が要る）。 */
+function agentCallsWithModel(text) {
+  return [...text.matchAll(/Agent\(([^)]*)\)/g)]
+    .filter((m) => !/subagent_type="general-purpose"/.test(m[1]) && /\bmodel\s*=/.test(m[1]))
+    .map((m) => m[0]);
+}
+
 test('ネイティブ起動の Agent 例示が model 引数を渡していない（frontmatter を唯一の正にする）', () => {
-  const offenders = [];
-  for (const p of ORCHESTRATOR_DOCS) {
-    const text = readFileSync(p, 'utf8');
-    for (const m of text.matchAll(/Agent\(([^)]*)\)/g)) {
-      const args = m[1];
-      if (/subagent_type="general-purpose"/.test(args)) continue; // フォールバックだけは model が要る
-      if (/\bmodel\s*=/.test(args)) offenders.push(`${path.relative(ROOT, p)}: ${m[0]}`);
-    }
-  }
+  const offenders = ORCHESTRATOR_DOCS.flatMap((p) => agentCallsWithModel(readFileSync(p, 'utf8')).map((c) => `${path.relative(ROOT, p)}: ${c}`));
   assert.deepEqual(offenders, []);
 });
 
 test('検出器の素振り: ネイティブ起動の例示に model 引数があれば上の検査が拾う', () => {
-  const bad = 'Agent(subagent_type="spec-writer", model="opus")';
-  const hit = [...bad.matchAll(/Agent\(([^)]*)\)/g)].some(
-    (m) => !/subagent_type="general-purpose"/.test(m[1]) && /\bmodel\s*=/.test(m[1])
-  );
-  assert.equal(hit, true);
+  assert.deepEqual(agentCallsWithModel('Agent(subagent_type="spec-writer", model="opus")'), ['Agent(subagent_type="spec-writer", model="opus")']);
+  assert.deepEqual(agentCallsWithModel('Agent(subagent_type="general-purpose", model="opus")'), [], 'フォールバックは許す');
+  assert.deepEqual(agentCallsWithModel('Agent(subagent_type="spec-writer")'), []);
 });
 
 const EFFORT_EXEMPT = new Set();

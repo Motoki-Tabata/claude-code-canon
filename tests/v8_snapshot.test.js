@@ -31,13 +31,21 @@ function writeDesignMap(ts, names = ['s']) {
   );
 }
 
-test('V8: managed-paths.list の集合外パス混入は違反（集合外の破壊を防ぐ）', (t) => {
-  const ts = tsFor(import.meta.url, 6);
+/** V8 が他の項目で落ちないよう、最小の正常な出力（skill 1件・design-map・list）を用意する。 */
+function baseline(t, n) {
+  const ts = tsFor(import.meta.url, n);
   cleanupTs(t, ts);
   skill(ts, 's');
   writeDesignMap(ts);
+  mkdirSync(path.join(out(ts), 'deploy'), { recursive: true });
+  writeFileSync(path.join(out(ts), 'deploy', 'managed-paths.list'), '.claude/skills/s/SKILL.md\n');
+  return ts;
+}
+const violationsOf = (ts) => v8(ts).violations.join('\n');
+
+test('V8: managed-paths.list の集合外パス混入は違反（集合外の破壊を防ぐ）', (t) => {
+  const ts = baseline(t, 6);
   const dep = path.join(out(ts), 'deploy');
-  mkdirSync(dep, { recursive: true });
   writeManifest(ts);
   writeFileSync(
     path.join(dep, 'managed-paths.list'),
@@ -49,42 +57,21 @@ test('V8: managed-paths.list の集合外パス混入は違反（集合外の破
 });
 
 test('V8: generated/ の集合外ファイル型（.yml）を検出する', (t) => {
-  const ts = tsFor(import.meta.url, 7);
-  cleanupTs(t, ts);
-  skill(ts, 's');
-  writeDesignMap(ts);
+  const ts = baseline(t, 7);
   const dep = path.join(out(ts), 'deploy');
-  mkdirSync(dep, { recursive: true });
   mkdirSync(path.join(gen(ts), '.github', 'workflows'), { recursive: true });
   writeFileSync(path.join(gen(ts), '.github', 'workflows', 'ci.yml'), 'x\n');
   writeManifest(ts);
-  writeFileSync(path.join(dep, 'managed-paths.list'), '.claude/skills/s/SKILL.md\n');
   const r = v8(ts);
   assert.equal(r.ok, false, '型で絞ると .yml が逃げる。全型を見ること');
   assert.ok(r.violations.some((v) => v.includes('ci.yml')));
 });
 
-test('V8: 集合内のみ・MANIFEST 有・managed-paths 有 → 通過', (t) => {
-  const ts = tsFor(import.meta.url, 8);
-  cleanupTs(t, ts);
-  skill(ts, 's');
-  writeDesignMap(ts);
-  const dep = path.join(out(ts), 'deploy');
-  mkdirSync(dep, { recursive: true });
-  writeManifest(ts);
-  writeFileSync(path.join(dep, 'managed-paths.list'), '.claude/skills/s/SKILL.md\n');
-  assert.equal(v8(ts).ok, true);
-});
-
 test('V8: managed-paths.list の glob 行は違反（deploy が展開せず rolled-back になる）', (t) => {
   // glob 行は isManaged のパターンに `**` が `.+` としてマッチするため集合内包検査を素通りし、
   // 配置の --confirm で初めて「output に配置対象が無い」で rolled-back になる。
-  const ts = tsFor(import.meta.url, 18);
-  cleanupTs(t, ts);
-  skill(ts, 's');
-  writeDesignMap(ts);
+  const ts = baseline(t, 18);
   const dep = path.join(out(ts), 'deploy');
-  mkdirSync(dep, { recursive: true });
   writeManifest(ts);
   writeFileSync(path.join(dep, 'managed-paths.list'), '.claude/skills/**\n');
   const r = v8(ts);
@@ -93,12 +80,8 @@ test('V8: managed-paths.list の glob 行は違反（deploy が展開せず roll
 });
 
 test('V8: managed-paths.list に列挙したのに generated/ に無いパスは違反', (t) => {
-  const ts = tsFor(import.meta.url, 19);
-  cleanupTs(t, ts);
-  skill(ts, 's');
-  writeDesignMap(ts);
+  const ts = baseline(t, 19);
   const dep = path.join(out(ts), 'deploy');
-  mkdirSync(dep, { recursive: true });
   writeManifest(ts);
   writeFileSync(
     path.join(dep, 'managed-paths.list'),
@@ -110,29 +93,19 @@ test('V8: managed-paths.list に列挙したのに generated/ に無いパスは
 });
 
 test('V8: retired.list の glob 行は違反（V7・pre-deploy が完全一致で参照するため）', (t) => {
-  const ts = tsFor(import.meta.url, 20);
-  cleanupTs(t, ts);
-  skill(ts, 's');
-  writeDesignMap(ts);
+  const ts = baseline(t, 20);
   const dep = path.join(out(ts), 'deploy');
-  mkdirSync(dep, { recursive: true });
   writeManifest(ts);
-  writeFileSync(path.join(dep, 'managed-paths.list'), '.claude/skills/s/SKILL.md\n');
   writeFileSync(path.join(dep, 'retired.list'), '.claude/skills/old/**\n');
   const r = v8(ts);
   assert.equal(r.ok, false, 'glob の廃止宣言は完全一致に当たらず黙って無効になる');
   assert.ok(r.violations.some((v) => v.includes('retired.list')));
 });
 
-test('V8: 実ファイル1行1件の list は通過する（緩めすぎていないことの対）', (t) => {
-  const ts = tsFor(import.meta.url, 21);
-  cleanupTs(t, ts);
-  skill(ts, 's');
-  writeDesignMap(ts);
+test('V8: 集合内のみ・宣言がすべて実在・実ファイル1行1件の list は通過する（上下の違反注入の対照）', (t) => {
+  const ts = baseline(t, 21);
   const dep = path.join(out(ts), 'deploy');
-  mkdirSync(dep, { recursive: true });
   writeManifest(ts);
-  writeFileSync(path.join(dep, 'managed-paths.list'), '.claude/skills/s/SKILL.md\n');
   writeFileSync(path.join(dep, 'retired.list'), '.claude/skills/old/SKILL.md\n');
   assert.equal(v8(ts).ok, true, '正しい形式まで落とすと生成が回らない');
 });
@@ -243,17 +216,6 @@ test('V8: AGENTS.md・commands・output-styles は管理パス集合内、サブ
 
 // ---- MANIFEST ⇔ generated/ と design-map ⇒ generated/ ----
 
-/** V8 が他の項目で落ちないよう、最小の正常な出力（skill 1件・design-map・list）を用意する。 */
-function baseline(t, n) {
-  const ts = tsFor(import.meta.url, n);
-  cleanupTs(t, ts);
-  skill(ts, 's');
-  writeDesignMap(ts);
-  mkdirSync(path.join(out(ts), 'deploy'), { recursive: true });
-  writeFileSync(path.join(out(ts), 'deploy', 'managed-paths.list'), '.claude/skills/s/SKILL.md\n');
-  return ts;
-}
-const violationsOf = (ts) => v8(ts).violations.join('\n');
 
 test('V8 MANIFEST: 全ファイル節が無ければ違反（存在だけを見ると1行欠落が通過する）', (t) => {
   const ts = baseline(t, 40);
@@ -298,13 +260,6 @@ test('V8 design-map（違反注入）: 宣言した成果物が generated/ に�
   assert.match(v, /agents\/lost-agent\/lost-agent\.md/);
   assert.doesNotMatch(v, /skills\/old\/SKILL\.md/, 'retire 注記の成果物は generated/ に無くてよい');
   assert.doesNotMatch(v, /skills\/s\/SKILL\.md が/, '実在するものを違反にしない');
-});
-
-test('V8 design-map: 宣言がすべて実在すれば通過（対照。上の違反が vacuous でない証拠）', (t) => {
-  const ts = baseline(t, 44);
-  writeManifest(ts);
-  writeFileSync(path.join(out(ts), 'design-map.md'), '# dm\n## skills\n### `.claude/skills/s/SKILL.md`（新規）\n');
-  assert.equal(v8(ts).ok, true, violationsOf(ts));
 });
 
 test('V8 design-map: 括弧書き付きの機能見出し（## skills（builder））からも宣言を拾い、脱落を検出する', (t) => {

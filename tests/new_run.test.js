@@ -8,22 +8,15 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { scratchDir } from './helpers/fixtures.js';
 import { runScript } from './helpers/run-cli.js';
+import { git } from './helpers/git.js';
 import { createRun, skeletonDirs } from '../.claude/skills/canon-a/scripts/new-run.js';
 import { parseHandoff } from '../lib/handoff.js';
 
 const TS = '21000101_000001';
-
-function git(cwd, ...args) {
-  return execFileSync('git', ['-C', cwd, '-c', 'user.name=t', '-c', 'user.email=t@example.invalid', ...args], {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-}
 
 /** 一時ディレクトリに canon 役の git リポジトリ（コミット1件）と対象プロジェクトを作る。 */
 function setup(t, { existing = true } = {}) {

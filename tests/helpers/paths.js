@@ -8,7 +8,7 @@ import path from 'node:path';
 import { CANON_ROOT } from '../../lib/canon.js';
 import { outputDir } from '../../lib/run.js';
 
-export { CANON_ROOT as ROOT, posix, DESIGN_DOCS } from '../../lib/canon.js';
+export { CANON_ROOT as ROOT, DESIGN_DOCS } from '../../lib/canon.js';
 
 export { outputDir, workDir } from '../../lib/run.js';
 

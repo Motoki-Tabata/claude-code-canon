@@ -9,9 +9,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { scratchDir } from './helpers/fixtures.js';
+import { scratchDir, cleanupTs } from './helpers/fixtures.js';
 import { runNodeScript } from './helpers/run-cli.js';
-import { ROOT, outputDir, workDir } from './helpers/paths.js';
+import { ROOT, workDir } from './helpers/paths.js';
 import { tsFor } from './helpers/ts.js';
 import { renderHandoff, parseApprovals, effectiveApprovals, appendApproval } from '../lib/handoff.js';
 import { hashGate, hashTree } from '../lib/tree-hash.js';
@@ -151,10 +151,7 @@ test('record: 要旨が空・handoff.md が無いなら拒否する', (t) => {
 test('approvals CLI: 実際の起動経路で record・check の exit code を確かめる', (t) => {
   const ts = tsFor(import.meta.url, 1);
   const script = path.join(ROOT, 'tools', 'approvals.js');
-  t.after(() => {
-    rmSync(workDir(ts), { recursive: true, force: true });
-    rmSync(outputDir(ts), { recursive: true, force: true });
-  });
+  cleanupTs(t, ts);
   mkdirSync(workDir(ts), { recursive: true });
   writeFileSync(path.join(workDir(ts), 'handoff.md'), renderHandoff({ ts, target: '/t', mode: 'new' }));
   writeFileSync(path.join(workDir(ts), 'requirements.md'), '## 確定要件\n');

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import os from 'node:os';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { scratchDir } from './helpers/fixtures.js';
 import path from 'node:path';
 import { parseJsonl, aggregateRecords, countDesignMapReads, totalInput, formatMarkdown, resolveSessionPath } from '../tools/token-usage.js';
 import { projectSlug } from '../lib/claude-session.js';
@@ -64,8 +64,7 @@ test('projectSlug: Claude Code のプロジェクトディレクトリ名は英�
 });
 
 test('resolveSessionPath: session-id を canon 以外のプロジェクトディレクトリからも解決する', (t) => {
-  const root = mkdtempSync(path.join(os.tmpdir(), 'tokens-'));
-  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const root = scratchDir(t, 'tokens-');
   const put = (dir, id) => {
     mkdirSync(path.join(root, dir), { recursive: true });
     writeFileSync(path.join(root, dir, `${id}.jsonl`), '');

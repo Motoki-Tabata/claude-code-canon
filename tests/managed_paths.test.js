@@ -151,7 +151,7 @@ test('managedRoots: MANAGED_PATTERNS から機械導出する（走査根を二�
 test('walkManaged: stat 不能なエントリ（EACCES socket）が在っても走査全体が落ちない', (t) => {
   const dir = targetLike(t);
 
-  // 対照実験（vacuous pass 対策）——注入した EACCES が「旧実装なら本当に致死」で
+  // 対照実験（vacuous pass 対策）——注入した EACCES が「全エントリを stat する走査なら本当に致死」で
   // あることを先に示す。これが throw しないなら以降のアサーションは何も証明していない。
   const walkWholeTree = (root) => {
     for (const name of readdirSync(root)) {
@@ -232,17 +232,9 @@ test('walkManaged: 壊れたシンボリックリンクは当該エントリだ�
 
   const r = walkManagedDetailed(dir, { readdir: fakeReaddir, stat: fakeStat });
 
-  // 生きたリンクは辿る（旧 statSync 実装の挙動を維持）。
+  // 生きたリンクは辿る。
   assert.deepEqual(r.files, ['.claude/rules/a.md', 'CLAUDE.md']);
   assert.deepEqual(r.unreadable, [{ rel: '.claude/broken', code: 'ENOENT' }]);
-});
-
-test('sha256File: keep 対象は target と expected-output でバイト同一（非退行の前提）', () => {
-  const a = sha256File(path.join(fixtureCase('existing'), '.claude/skills/kept-skill/SKILL.md'));
-  const b = sha256File(
-    path.join(fixtureCase('existing'), 'expected-output/generated/.claude/skills/kept-skill/SKILL.md')
-  );
-  assert.equal(a, b, 'keep は verbatim コピーゆえ sha256 が一致していなければならない');
 });
 
 test('isManaged: `..`・`.`・空セグメント・絶対パス・バックスラッシュを含む表記は、パターンに合っても集合外', () => {

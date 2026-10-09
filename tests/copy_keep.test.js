@@ -8,8 +8,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { existsSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
-import { setupSampleRepo, sampleRepoDir } from './helpers/fixtures.js';
+import { existsSync, rmSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { setupSampleRepo, sampleRepoDir, scratchDir } from './helpers/fixtures.js';
 import { runScript } from './helpers/run-cli.js';
 import { tsFor } from './helpers/ts.js';
 import { sha256File } from '../lib/managed-paths.js';
@@ -50,14 +50,10 @@ test('copy-keep（違反注入）: 原本が無い keep は写さず exit 1。de
 
 // ---- 参照元からのコピー ----
 
-import { mkdtempSync, mkdirSync } from 'node:fs';
-import os from 'node:os';
-
 /** 参照元の一式（tmpdir）と、それを指す requirements.md の `## 参照元`・design-map の `## 参照元からのコピー` を作る。 */
 function setupRefCopy(t, n, { lines, withSource = true }) {
   const c = setupSampleRepo(t, 'existing', tsFor(import.meta.url, n));
-  const ref = mkdtempSync(path.join(os.tmpdir(), 'canon-ref-'));
-  t.after(() => rmSync(ref, { recursive: true, force: true }));
+  const ref = scratchDir(t, 'canon-ref-');
   mkdirSync(path.join(ref, 'skills/x'), { recursive: true });
   writeFileSync(path.join(ref, 'skills/x/run.mjs'), 'export const big = "参照元の大きなファイル";\n');
   writeFileSync(path.join(ref, 'skills/x/data.json'), '{"a":1}\n');
@@ -79,8 +75,7 @@ test('copy-keep: 参照元からのコピーを generated/ にバイト同一で
 });
 
 test('copy-keep（違反注入）: 参照元の配下でない・参照元が未宣言・管理パス外・原本なしは写さず exit 1', (t) => {
-  const outside = mkdtempSync(path.join(os.tmpdir(), 'canon-outside-'));
-  t.after(() => rmSync(outside, { recursive: true, force: true }));
+  const outside = scratchDir(t, 'canon-outside-');
   writeFileSync(path.join(outside, 'secret.txt'), 'x');
   const { c, ref } = setupRefCopy(t, 5, {
     lines: (ref) => [

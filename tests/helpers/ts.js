@@ -33,7 +33,7 @@ function nameFromUrl(importMetaUrl) {
 }
 
 /** 呼び出し元テストファイルに割り当てられた8桁日付プレフィックスを返す（未登録は throw）。 */
-export function tsNamespace(importMetaUrl) {
+function tsNamespace(importMetaUrl) {
   const name = nameFromUrl(importMetaUrl);
   const ns = TS_NAMESPACES[name];
   if (!ns) {

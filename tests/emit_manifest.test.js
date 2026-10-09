@@ -11,7 +11,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { setupSampleRepo, cleanupTs, writeHandoff } from './helpers/fixtures.js';
+import { setupSampleRepo, cleanupTs, writeHandoff, writeFile as write } from './helpers/fixtures.js';
 import { runScript } from './helpers/run-cli.js';
 import { genDir, outputDir, workDir } from './helpers/paths.js';
 import { tsSeq } from './helpers/ts.js';
@@ -23,12 +23,6 @@ import { readList } from '../lib/managed-paths.js';
 const nextTs = tsSeq(import.meta.url);
 const manifestCli = (args) => runScript('canon-c', 'emit-manifest.js', args);
 const read = (p) => readFileSync(p, 'utf8');
-
-function write(root, rel, text) {
-  const abs = path.join(root, rel);
-  mkdirSync(path.dirname(abs), { recursive: true });
-  writeFileSync(abs, text);
-}
 
 /** サンプルの MANIFEST・README・配置リストを消して、emit-manifest に作らせる。 */
 function stripEmitted(c) {
@@ -105,7 +99,7 @@ test('emit-manifest: 「管理パス外の変更」を MANIFEST へ逐語で写�
 });
 
 test('emit-manifest: 「管理パス外の変更」の欄の欠け・管理パス内の対象・パス無しの見出し・試行待ちの根拠は失敗する', () => {
-  const dm = (body) => `# dm\n## Used Features\nL1\n## 管理パス外の変更\n\n${body}\n`;
+  const dm = (body) => `# dm\n## Used Features\nskills\n## 管理パス外の変更\n\n${body}\n`;
   assert.deepEqual(checkOutsideChanges(dm(OUTSIDE_ITEM)), []);
   assert.deepEqual(checkOutsideChanges(dm('なし')), []);
   const missing = checkOutsideChanges(dm(OUTSIDE_ITEM.replace(/^- 撤回したら直す生成物:.*$/m, '')));
@@ -135,7 +129,7 @@ test('emit-manifest CLI: 入力が無ければ exit 1、引数が無ければ ex
   assert.equal(noDm.code, 1);
   assert.match(noDm.stderr, /design-map\.md が無い/);
 
-  writeFileSync(path.join(outputDir(ts), 'design-map.md'), '# dm\n## Used Features\nL1\n');
+  writeFileSync(path.join(outputDir(ts), 'design-map.md'), '# dm\n## Used Features\nskills\n');
   const noGen = manifestCli([ts]);
   assert.equal(noGen.code, 1);
   assert.match(noGen.stderr, /generated\/ が無いか空/);
@@ -155,7 +149,7 @@ function setupComponents(t, { experimental = false } = {}) {
   const ts = nextTs();
   cleanupTs(t, ts);
   const g = genDir(ts);
-  writeFileSync(path.join(mkdirp(outputDir(ts)), 'design-map.md'), '# dm\n## Used Features\nclaude-md skills subagents settings\n');
+  write(outputDir(ts), 'design-map.md', '# dm\n## Used Features\nclaude-md skills subagents settings\n');
   writeHandoff(ts, { target: workDir(ts), mode: 'new' });
   write(
     workDir(ts),
@@ -186,53 +180,64 @@ function setupComponents(t, { experimental = false } = {}) {
   return ts;
 }
 
-function mkdirp(dir) {
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-test('README: 一覧に載せる Skill は `/名前` を書き、Subagent・Rule には書かない（起動方式の導出）', (t) => {
+test('README: 起動方式の違う全種別を含む生成物から導く（生成は1回で、各規則を部分テストで確かめる）', async (t) => {
   const ts = setupComponents(t);
   emitManifest(ts);
   const readme = read(path.join(genDir(ts), '.claude', 'README.md'));
-  const entries = collectListingEntries(readme);
-  for (const name of ['release', 'style', 'forked']) {
-    assert.ok(analyzeReadmeMentions(readme, name, entries).slash.length > 0, `${name} の \`/名前\` が無い`);
-    assert.ok(analyzeReadmeMentions(readme, name, entries).listing.length > 0, `${name} が一覧に無い`);
-  }
-  assert.match(readme, /`\/release <version>` で起動する（自動では動かない）/);
-  assert.match(readme, /頼むと自動で使われる。`\/style` でも起動できる/);
-  for (const name of ['reviewer', 'backend', 'always']) {
-    assert.equal(analyzeReadmeMentions(readme, name, entries).slash.length, 0, `${name} に \`/名前\` を書いている`);
-    assert.ok(analyzeReadmeMentions(readme, name, entries).listing.length > 0, `${name} が一覧に無い（網羅性）`);
-  }
-  assert.match(readme, /`backend` \| `src\/\*\*` を扱うときに読み込まれる/);
-  assert.match(readme, /`always` \| 常に読み込まれる/);
-  assert.match(readme, /次のときメインが自動で使う: 変更をレビューする/);
-});
 
-test('README: user-invocable: false の Skill は一覧にも `/名前` にも出さず、散文で触れるだけにする', (t) => {
-  const ts = setupComponents(t);
-  emitManifest(ts);
-  const readme = read(path.join(genDir(ts), '.claude', 'README.md'));
-  const m = analyzeReadmeMentions(readme, 'impact-scope');
-  assert.deepEqual(m.slash, [], '内部専用の起動方法を案内している');
-  assert.deepEqual(m.listing, [], '内部専用を一覧に載せている');
-  assert.match(readme, /内部で参照される知識として `impact-scope`/);
-});
+  await t.test('一覧に載せる Skill は `/名前` を書き、Subagent・Rule には書かない（起動方式の導出）', () => {
+    const entries = collectListingEntries(readme);
+    for (const name of ['release', 'style', 'forked']) {
+      assert.ok(analyzeReadmeMentions(readme, name, entries).slash.length > 0, `${name} の \`/名前\` が無い`);
+      assert.ok(analyzeReadmeMentions(readme, name, entries).listing.length > 0, `${name} が一覧に無い`);
+    }
+    assert.match(readme, /`\/release <version>` で起動する（自動では動かない）/);
+    assert.match(readme, /頼むと自動で使われる。`\/style` でも起動できる/);
+    for (const name of ['reviewer', 'backend', 'always']) {
+      assert.equal(analyzeReadmeMentions(readme, name, entries).slash.length, 0, `${name} に \`/名前\` を書いている`);
+      assert.ok(analyzeReadmeMentions(readme, name, entries).listing.length > 0, `${name} が一覧に無い（網羅性）`);
+    }
+    assert.match(readme, /`backend` \| `src\/\*\*` を扱うときに読み込まれる/);
+    assert.match(readme, /`always` \| 常に読み込まれる/);
+    assert.match(readme, /次のときメインが自動で使う: 変更をレビューする/);
+  });
 
-test('README: セットアップ欄を frontmatter と設定から導く（fork・入れ子の委譲・MCP の変数と OAuth・Hook の配線と実行権限）', (t) => {
-  const ts = setupComponents(t);
-  emitManifest(ts);
-  const readme = read(path.join(genDir(ts), '.claude', 'README.md'));
-  const setup = readme.split('## 前提セットアップと配置後の手作業\n')[1].split('\n## ')[0];
-  assert.match(setup, /Skill `forked` は context: fork で動く。frontmatter の agent: に指定した `Explore`/);
-  assert.match(setup, /Subagent `reviewer` は別の Subagent を起動する/);
-  assert.match(setup, /環境変数 `TRACKER_TOKEN` を設定する/);
-  assert.match(setup, /`tracker` は OAuth を使う/);
-  assert.match(setup, /chmod \+x \.claude\/hooks\/scope-guard\.sh/);
-  assert.doesNotMatch(setup, /CLAUDE_CODE_EXPERIMENTAL_/, 'experimental を許可していないのにセットアップに並べた');
-  assert.match(readme, /PreToolUse（matcher: `Write`） のとき Hook が自動で走る/);
+  await t.test('user-invocable: false の Skill は一覧にも `/名前` にも出さず、散文で触れるだけにする', () => {
+    const m = analyzeReadmeMentions(readme, 'impact-scope');
+    assert.deepEqual(m.slash, [], '内部専用の起動方法を案内している');
+    assert.deepEqual(m.listing, [], '内部専用を一覧に載せている');
+    assert.match(readme, /内部で参照される知識として `impact-scope`/);
+  });
+
+  await t.test('セットアップ欄を frontmatter と設定から導く（fork・入れ子の委譲・MCP の変数と OAuth・Hook の配線と実行権限）', () => {
+    const setup = readme.split('## 前提セットアップと配置後の手作業\n')[1].split('\n## ')[0];
+    assert.match(setup, /Skill `forked` は context: fork で動く。frontmatter の agent: に指定した `Explore`/);
+    assert.match(setup, /Subagent `reviewer` は別の Subagent を起動する/);
+    assert.match(setup, /環境変数 `TRACKER_TOKEN` を設定する/);
+    assert.match(setup, /`tracker` は OAuth を使う/);
+    assert.match(setup, /chmod \+x \.claude\/hooks\/scope-guard\.sh/);
+    assert.doesNotMatch(setup, /CLAUDE_CODE_EXPERIMENTAL_/, 'experimental を許可していないのにセットアップに並べた');
+    assert.match(readme, /PreToolUse（matcher: `Write`） のとき Hook が自動で走る/);
+  });
+
+  await t.test('使用例は一覧に載る Skill の起動行で、spec の受入基準を写さない', () => {
+    const usage = readme.split('## 使用例\n')[1].split('\n## ')[0];
+    assert.match(usage, /```text\n\/forked\n\/release <version>\n\/style\n```/);
+    assert.doesNotMatch(usage, /impact-scope/, '内部知識の Skill を使用例に載せている');
+    assert.doesNotMatch(readme, /functional|A1|non_regression/, '受入基準を写している');
+  });
+
+  await t.test('配置先で解決できない canon のツール名を書かない', () => {
+    assert.doesNotMatch(readme, /emit-manifest|claude-canon/, 'canon のツール名を書いている');
+    assert.match(readme, /この README は配置のたびに作り直されます。手で直しても次の配置で置き換わります。/);
+  });
+
+  await t.test('README 自身も MANIFEST の全ファイルと managed-paths.list に載る', () => {
+    const listed = parseManifestFiles(read(path.join(outputDir(ts), 'MANIFEST.md'))).files;
+    assert.ok(listed.includes('.claude/README.md'));
+    assert.ok(readList(path.join(outputDir(ts), 'deploy', 'managed-paths.list')).includes('.claude/README.md'));
+    assert.ok(existsSync(path.join(outputDir(ts), 'deploy', 'retired.list')), '廃止が無くても retired.list は空で書く');
+  });
 });
 
 test('README: experimental を許可したときだけ実験機能の環境変数をセットアップに並べる', (t) => {
@@ -240,33 +245,6 @@ test('README: experimental を許可したときだけ実験機能の環境変�
   emitManifest(ts);
   const setup = read(path.join(genDir(ts), '.claude', 'README.md')).split('## 前提セットアップと配置後の手作業\n')[1].split('\n## ')[0];
   assert.match(setup, /`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` を設定する/);
-});
-
-test('README: 使用例は一覧に載る Skill の起動行で、spec の受入基準を写さない', (t) => {
-  const ts = setupComponents(t);
-  emitManifest(ts);
-  const readme = read(path.join(genDir(ts), '.claude', 'README.md'));
-  const usage = readme.split('## 使用例\n')[1].split('\n## ')[0];
-  assert.match(usage, /```text\n\/forked\n\/release <version>\n\/style\n```/);
-  assert.doesNotMatch(usage, /impact-scope/, '内部知識の Skill を使用例に載せている');
-  assert.doesNotMatch(readme, /functional|A1|non_regression/, '受入基準を写している');
-});
-
-test('README: 配置先で解決できない canon のツール名を書かない', (t) => {
-  const ts = setupComponents(t);
-  emitManifest(ts);
-  const readme = read(path.join(genDir(ts), '.claude', 'README.md'));
-  assert.doesNotMatch(readme, /emit-manifest|claude-canon/, 'canon のツール名を書いている');
-  assert.match(readme, /この README は配置のたびに作り直されます。手で直しても次の配置で置き換わります。/);
-});
-
-test('README と MANIFEST: README 自身も MANIFEST の全ファイルと managed-paths.list に載る', (t) => {
-  const ts = setupComponents(t);
-  emitManifest(ts);
-  const listed = parseManifestFiles(read(path.join(outputDir(ts), 'MANIFEST.md'))).files;
-  assert.ok(listed.includes('.claude/README.md'));
-  assert.ok(readList(path.join(outputDir(ts), 'deploy', 'managed-paths.list')).includes('.claude/README.md'));
-  assert.ok(existsSync(path.join(outputDir(ts), 'deploy', 'retired.list')), '廃止が無くても retired.list は空で書く');
 });
 
 test('emit-manifest CLI: settings.json・.mcp.json・plugin.json のトップレベルが object でなければ、例外でなく exit 1 で拒否する', (t) => {
