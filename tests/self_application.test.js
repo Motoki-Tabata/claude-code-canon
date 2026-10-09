@@ -72,7 +72,7 @@ test('Phase Skill の scripts/ は skill パッケージの supporting files と
 // claude-canon 自身のワーカー（.claude/agents/**）はコマンド実行系ツールを持たない。実行を要する処理は
 // オーケストレーターが scripts の CLI で行う。禁止集合は代表例でなく能力で定義する: Bash と同じ
 // permission rule で駆動される Monitor、Windows の PowerShell も同じ能力である。tools: の省略は
-// 全ツール継承（docs/TOOLS.md「Inherits all tools if omitted.」）なので違反とする。frontmatter が
+// 全ツール継承（canon-reference `frontmatter:subagent/tools`: 省略すると全ツールを継承する）なので違反とする。frontmatter が
 // 読めない定義は tools を安全に判定できないため違反とする（黙って通すと vacuous pass になる）。
 
 /** コマンド実行系ツール（能力で定義した禁止集合）。 */
@@ -293,13 +293,13 @@ test('Phase Skill に旧体系の用語・番号が残っていない（SendMess
 
 /**
  * run の worktree 方式（run ごとの worktree・run ブランチ・成果物の強制追加・handoff の課題候補の転記）の
- * 語が canon 本体に残っていないか。run は canon のルートで行う（architecture.md §7）。正典 docs/ と
+ * 語が canon 本体に残っていないか。run は canon のルートで行う（architecture.md §7）。旧 docs/（PR3 で廃止）と
  * 過去の版を記録する CHANGELOG.md、検出器自身を含む tests/ は対象外。
  */
 const RUN_WORKTREE_TERMS = /canon-runs|run ブランチ|run\/<ts>|git add -f|canon 課題候補/;
 
 test('canon 本体に run の worktree 方式の語が残っていない', () => {
-  const out = execFileSync('git', ['ls-files', '-z', '--', '.claude', 'lib', 'tools', 'gates/*.js', 'design', 'guide', 'tasks', 'README.md', '.gitignore', 'package.json'], {
+  const out = execFileSync('git', ['ls-files', '-z', '--', '.claude', 'lib', 'tools', 'design', 'guide', 'tasks', 'README.md', '.gitignore', 'package.json'], {
     cwd: ROOT,
     encoding: 'utf8',
   });

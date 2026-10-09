@@ -4,14 +4,14 @@ spec-writer が `output/<ts>/spec.md` に書く。次の2つを満たす: (1) de
 
 ## 入力（プロンプトで渡されるパス。すべて Read する）
 
-`work/<ts>/investigation/existing.md`・`profile.md`・`focused.md`、`work/<ts>/requirements.md`、`gates/conformance_tables/index.json`（`canon_version` の出典。参照だけで、inputs には数えない）。
+`work/<ts>/investigation/existing.md`・`profile.md`・`focused.md`、`work/<ts>/requirements.md`、`.claude/skills/canon-reference/sources.json`（`canon_version` の出典。参照だけで、inputs には数えない）。
 
 ## テンプレート
 
 ```markdown
 ## §0 メタ
 spec_id: <ts>
-canon_version: <index.json の canon_version をそのまま写す>
+canon_version: <sources.json の claude_code_version をそのまま写す（`v` なし）>
 inputs: [work/<ts>/investigation/existing.md, work/<ts>/investigation/profile.md, work/<ts>/investigation/focused.md, work/<ts>/requirements.md]
 
 ## §1 目的とあるべき全体像
@@ -50,7 +50,7 @@ security / cost / experimental（依存フラグの可否）
 
 ## 書き方
 
-- **canon_version** は `gates/conformance_tables/index.json` の `canon_version` を Read して写す。推測で書かない。設計書の frontmatter から写さない（設計書は人が保守するので、正典より遅れうる）。
+- **canon_version** は `.claude/skills/canon-reference/sources.json` の `claude_code_version` を Read して写す（`v` を付けない）。推測で書かない。設計書の frontmatter から写さない（設計書は人が保守するので、正典より遅れうる）。
 - **§3 と §4 は方向づけまで**。既存を維持する・改修する・廃止する、といった判定は書かない。
 - **§4 の「未解決の参照」**は全件を挙げる。黙って落とすと、陳腐化した参照が未完了のまま残る。
 - **§8 の受入基準**は4カテゴリで、担い手が決まっている: A1 functional＝reviewer（correctness）、A2 non_regression＝verify V7、A3 canon_conformance＝verify V1〜V6、A4 snapshot_integrity＝verify V8。1行1基準で `- A1-1: …` の形に書く。

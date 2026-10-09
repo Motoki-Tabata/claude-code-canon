@@ -1,48 +1,46 @@
 /**
  * V4 secret と展開（per-file・artifacts.md §8.2）。
  *
- * V1〜V3 と異なり、V4 には gates/conformance_tables/*.json の専用判定表が無い
- * （index.json の not_yet_built が明示。secret ハードコードのパターン定義・experimental 機能の
- * 構造化一覧は正典に無い）。そのため本モジュールは正典 docs/ の該当行を直接引用し、コード内で
- * 出典を明示する（build-conformance-tables.js を介さない小さな出典引用は、V4 単体では表を作るほどの
- * 分量が無いための判断。将来 secret パターンや experimental 一覧が正典側で構造化されたら
- * 専用の conformance table へ移すべき）。
+ * V1〜V3 と異なり、V4 には data の専用コレクションが無い（secret のパターンの定義や experimental
+ * 機能の一覧は canon-reference に構造化されていない）。そのため本モジュールは canon-reference の
+ * 該当節を出典に挙げ、判定の根拠が canon 側の推定である部分はコードにその旨を書く。
  *
- * 実装する検査（正典に根拠がある範囲のみ）:
+ * 実装する検査:
  *   1. `.mcp.json`（または frontmatter 内のインライン mcpServers 定義）の
  *      command/args/env/url/headers における ${VAR} 展開遵守
- *      （出典: docs/L4_AUTOMATION.md:551-556 環境変数展開 / docs/BEST_PRACTICES.md:451
- *       「.mcp.json に API key を直書きしない → ${VAR} 環境変数展開」）。
+ *      （出典: canon-reference features/mcp.md「資格情報」——秘密の値は `.mcp.json` に直接書かず
+ *       `${VAR}` で読む。置ける位置は V-mcp-06 の `expands_env` が `true` のフィールド）。
  *      「資格情報らしいキー名か」は KEY/TOKEN/SECRET/PASSWORD/CREDENTIAL の語を含むかで
- *      判定する簡易ヒューリスティック（正典はキー名の具体的な判定パターンまでは定義していない。
- *      これは「直書き禁止」という正典の方針をコード化する際に避けられない最小限の推定であり、
- *      正典に無い判断の「捏造」と区別するため、ここに明示する）。
+ *      判定する簡易ヒューリスティック（canon-reference はキー名の判定パターンまでは定義していない。
+ *      これは「直書き禁止」という方針をコード化する際に避けられない最小限の推定であり、
+ *      canon-reference に無い判断の「捏造」と区別するため、ここに明示する）。
  *   2. Authorization ヘッダのリテラル Bearer トークン直書き
- *      （出典: docs/BEST_PRACTICES.md:451 の例 `"Authorization": "Bearer ${API_KEY}"` そのものが
- *       正典の「良い例」。その否定形＝`${` を伴わないリテラルを違反とする）。
+ *      （出典: 1 と同じ。`"Authorization": "Bearer ${API_KEY}"` の形が良い例で、その否定形＝
+ *       `${` を伴わないリテラルを違反とする）。
  *   3. Agent Teams（`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`）依存の experimental 明示
- *      （出典: docs/L3_AGENTS.md:23,51,385,403,693。正典自身がこの機能を言及するたび
- *       一貫して「実験機能」と明示している一次観察に基づく）。
+ *      （canon 独自の規則。canon-reference selection.md は agent teams を「実験的な機能で、既定では
+ *       無効」と書くが、この環境変数の名前は `env-vars` に無い。名前はコードに残している）。
  *
- * 実装しない検査（正典に根拠が無い・index.json known_limitations 相当）:
+ * 実装しない検査（canon-reference に根拠が無い）:
  *   - 汎用の secret 正規表現スキャン（AWS key・sk- 系トークン等の一般的パターンマッチ）。
- *     BEST_PRACTICES.md §7.2 は方針のみでパターン定義が無いため、実装すると
- *     「正典に無い判断の捏造」になる。
- *   - experimental 機能の網羅的検出。正典に構造化された一覧が無く、Agent Teams 以外は
+ *     canon-reference は方針（秘密の値を直接書かない）のみでパターン定義が無いため、実装すると
+ *     「canon-reference に無い判断の捏造」になる。
+ *   - experimental 機能の網羅的検出。canon-reference に構造化された一覧が無く、Agent Teams 以外は
  *     散文に散在するのみ（Themes/Monitors は plugin.json 由来で対象ファイル種別が異なる）。
  *
  * 純関数。副作用なし。
  */
 
 import { violation } from '../../../../../lib/artifact.js';
+import { cite } from '../../../../../lib/tables.js';
 
 const CHECK = 'V4';
 
-const VAR_SOURCE = 'docs/L4_AUTOMATION.md:551-556（環境変数展開） / docs/BEST_PRACTICES.md:451（直書き禁止）';
+const VAR_SOURCE = `canon-reference features/mcp.md「資格情報」/ ${cite('V-mcp-06', 'mcp:mcp-json-fields')}`;
 const CREDENTIAL_KEY_RE = /(key|token|secret|password|credential)/i;
 const AGENT_TEAMS_ENV = 'CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS';
 const EXPERIMENTAL_DISCLOSURE_RE = /実験機能|experimental/i;
-const AGENT_TEAMS_SOURCE = 'docs/L3_AGENTS.md:23,51,385,403,693';
+const AGENT_TEAMS_SOURCE = 'canon 独自の規則（canon-reference selection.md: agent teams は実験的な機能）';
 
 function hasVarExpansion(v) {
   return typeof v === 'string' && v.includes('${');

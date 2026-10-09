@@ -138,7 +138,7 @@ test('V8: 実ファイル1行1件の list は通過する（緩めすぎてい�
 });
 
 // ---------------------------------------------------------------------------
-// skill supporting files（正典 docs/L2_SKILLS.md §2.1）と hook ハンドラ実体（L4_AUTOMATION.md §2.1）が
+// skill supporting files（canon-reference V-skills-18）と hook ハンドラ実体（features/hooks.md）が
 // 生成物として通ること。どちらも「正典が示す形なのに検査が弾く」内部矛盾を防ぐためにある。
 //
 // 緩和側だけを固定すると「検出しないこと」しかテストしないので、各テストで**故意の違反**を
@@ -179,7 +179,7 @@ test('V8: .claude/hooks/ の hook ハンドラ実体は管理パス集合内、.
   writeDesignMap(ts);
   mkdirSync(path.join(G, '.claude', 'hooks'), { recursive: true });
   mkdirSync(path.join(out(ts), 'deploy'), { recursive: true });
-  // 正典 docs/L4_AUTOMATION.md §2.1 の公式例と同じ配置。
+  // canon-reference features/hooks.md の公式の例と同じ配置。
   writeFileSync(path.join(G, '.claude', 'hooks', 'block-rm.sh'), '#!/bin/bash\nexit 0\n');
   writeFileSync(
     path.join(G, '.claude', 'settings.json'),

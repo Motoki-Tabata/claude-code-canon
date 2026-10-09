@@ -15,9 +15,9 @@
  *
  * 禁止機能を代表例で列挙しない。`constraints` の**キー全集合**を走査し、
  * `allowed: false` のキーごとに CAPABILITY_DETECTORS の検出器を当てる。検出器は
- * 「その能力が生成物に現れうる全経路」を持ち、可能な限り正典 SSoT から導出する
- * （hooks のイベント名は conformance_tables/hooks.json の全イベント、plugin 同梱物は
- * L5_DISTRIBUTION.md:72 の自動発見ディレクトリ）。hooks 禁止を「settings.json の
+ * 「その能力が生成物に現れうる全経路」を持ち、可能な限り canon-reference の data から導出する
+ * （hooks のイベント名は canon-reference の hook-events:events の全イベント、plugin 同梱物は
+ * `plugin-manifest:components` の既定のディレクトリに合わせた正規表現）。hooks 禁止を「settings.json の
  * hooks キー」だけで書くと、plugin 同梱 hooks や .claude/hooks/ の実体が素通りする。
  *
  * **未知キーは違反**: `allowed: false` なのに検出器を持たないキーは「禁止したはずの機能が
@@ -33,21 +33,21 @@
  */
 
 import path from 'node:path';
-import { hooksTable } from '../../../../../lib/tables.js';
+import { collection } from '../../../../../lib/tables.js';
 import { parseRequirementsDoc, RequirementsError } from '../../../../../lib/requirements.js';
 import { L5_PLUGIN_PATTERN } from '../../../../../lib/managed-paths.js';
 import { findHeading, sectionSlice, mentionsIdentifier } from '../../../../../lib/markdown.js';
 
 const CHECK = 'V9';
 
-/** 正典 SSoT: hook イベント名の全集合（docs/L4_AUTOMATION.md §2.1 由来）。 */
-const HOOK_EVENTS = new Set((hooksTable.events ?? []).map((e) => e.event));
+/** Hook のイベント名の全集合（canon-reference の `hook-events:events`。`complete: true`）。 */
+const HOOK_EVENTS = new Set(collection('hook-events:events').items.map((e) => e.id));
 
 /** `allowed` を持たない自由文キー（機械判定できないことを明示する対象）。 */
 const FREEFORM_KEYS = new Set(['organization_policy']);
 
 /**
- * 強度（artifacts.md §3 / 00_INDEX.md §4.4 の3段階）→ その強度を実現する機能。
+ * 強度（artifacts.md §3 の3段階）→ その強度を実現する機能。
  * 縮退設計の検査（conflicts の登録漏れ）に使う。advisory は CLAUDE.md であり
  * constraints で禁止されうる機能に対応しないため写像を持たない。
  */
@@ -132,7 +132,7 @@ const CAPABILITY_DETECTORS = {
             }
           }
           for (const n of names) {
-            hits.push(ev(f.rel, `hooks 宣言に正典イベント "${n}" が含まれる（出典: conformance_tables/hooks.json）`));
+            hits.push(ev(f.rel, `hooks 宣言に正典イベント "${n}" が含まれる（出典: canon-reference hook-events:events）`));
           }
         }
       }
@@ -208,7 +208,7 @@ const CAPABILITY_DETECTORS = {
           hits.push(ev(f.rel, 'frontmatter に context: fork がある'));
         }
         if (String(fval(f.frontmatter, 'isolation') ?? '').trim() === 'subagent') {
-          hits.push(ev(f.rel, 'frontmatter に isolation: subagent がある（context:fork の公式表記・00_INDEX.md:302）'));
+          hits.push(ev(f.rel, 'frontmatter に isolation: subagent がある（canon 独自の検出。canon-reference の `frontmatter:subagent/isolation` の値は `worktree` だけで、この値は V2 も別に止める）'));
         }
       }
       if (typeof f.text === 'string') {
@@ -217,7 +217,7 @@ const CAPABILITY_DETECTORS = {
         }
       }
       if (/(^|\/)(themes|monitors|channels)\//.test(f.rel)) {
-        hits.push(ev(f.rel, 'plugin 同梱の experimental 配布物（themes/ monitors/ channels/・L5_DISTRIBUTION.md:625-626）'));
+        hits.push(ev(f.rel, 'plugin 同梱の experimental 配布物（themes/ monitors/ channels/・`plugin-manifest:fields/experimental.themes` ほか）'));
       }
     }
     // design-map の ## Experimental Dependencies 節（artifacts.md §8.2 V9 の experimental ④）

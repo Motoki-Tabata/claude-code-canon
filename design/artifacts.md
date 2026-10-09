@@ -2,7 +2,7 @@
 title: claude-canon 成果物と検査の契約
 purpose: run が作る成果物のフォルダ構成と書式、既存カスタマイズの扱い（keep 条件 K1〜K5）、MANIFEST と README の生成規則、verify の検査 V1〜V9、review-bundle、deploy の契約を定める。Phase・工程・責務・handoff.md・git 運用は architecture.md に置く。
 audience: [ai, human]
-canon_version: v2.1.280
+canon_version: 2.1.295
 ---
 
 # claude-canon 成果物と検査の契約
@@ -194,7 +194,7 @@ design-map をこれだけで引けること、検証とレビューが受入基
 
 | 節 | 内容 |
 |---|---|
-| §0 メタ | spec_id / canon_version / inputs（investigation の3ファイルと requirements.md のパス）。**canon_version は `gates/conformance_tables/index.json` の `canon_version` を写す**（正典の「確認したClaude Codeバージョン」から生成された値）。設計書の frontmatter から写さない（人が保守するので正典より遅れうる） |
+| §0 メタ | spec_id / canon_version / inputs（investigation の3ファイルと requirements.md のパス）。**canon_version は `.claude/skills/canon-reference/sources.json` の `claude_code_version` を写す**（`v` なし）。設計書の frontmatter から写さない（人が保守するので正典より遅れうる） |
 | §1 目的とあるべき全体像 | purpose / strength の内訳 / scope_layer |
 | §2 新要件 | id / want / rationale / project_grounding（focused.md の findings から、evidence 付きで接地させる） |
 | §3 既存資産の棚卸し | existing.md の全レコードを参照する。keep か modify かは決めない（事実のみ） |
@@ -477,7 +477,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 - **出力**: `output/<ts>/verify-report.md` を書き、違反が1件でもあれば exit 1、無ければ exit 0 を返す。`<ts>` の形式違い、または `output/<ts>/` が無いときは何も作らず exit 2 を返す。想定外の例外で検査が中断しても、その検査の違反として report に載せる。report には、検査ごとの結果（pass／違反の一覧／warning の一覧／「対象なし」とその理由）、検査した generated/ のハッシュ（architecture.md §6.2 と同じ計算）、実行時刻を載せる。
 - **検査対象ゼロは違反**: generated/ が無い・空、design-map・requirements.md が無い、など判定の入力が揃わないときは、合格にせず違反にする。「対象なし」と書けるのは、定義上対象が無いと確定する場合（new モードの V7 など）だけで、その理由を report に明記する。
 - **error と warning**: 正典に MUST の明文があるか、規則として確定したものは error（違反）、正典が観測されたパターンとしてしか示していないものは warning（報告のみ）にする。warning も黙って捨てない。
-- **判定表の出典**: frontmatter の必須キー・正規のツール名・パス規約はハードコードせず、`docs/` から生成した `gates/conformance_tables/*.json` を使う。判定表が「できない」と自己申告している検査（型の照合が未提供・語彙が open など）は実装しない。正典に根拠が無い規則は §8.3 の例外として出典を明記する。
+- **判定表の出典**: frontmatter の必須キー・正規のツール名・パス規約はハードコードせず、`.claude/skills/canon-reference/data/*.json` を `lib/tables.js` 経由で使う。data が `complete: false` と自己申告している検査（型の照合が未提供・語彙が open など）は実装しない。正典に根拠が無い規則は §8.3 の例外として出典を明記する。
 - **非スキーマのファイル**: `CLAUDE.md`・`.claude/README.md`・`.claude/settings.json`・`.claude/hooks/**`・skill パッケージの supporting files は Agent・Skill・Rule の定義ではないので、V1 の配置種別と V2 のスキーマの対象から外す。この除外の判定は1か所（共有 lib）に置き、各検査で複製しない。
 - **レビューに回さない**: V1〜V9 は真偽が機械的に決まる。レビューはこれらを判定し直さない（architecture.md §1.3）。
 

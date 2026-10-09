@@ -1,53 +1,83 @@
 /**
  * V2 frontmatter（per-file・artifacts.md §8.2）。
  *
- * 出典: gates/conformance_tables/frontmatter.json（正典 docs/L3_AGENTS.md §2.1・
- * L2_SKILLS.md §2.1・L1_CONTEXT_MANAGEMENT.md §2.2 から生成）。
+ * 出典: 正典リファレンス canon-reference の `frontmatter:*`（lib/tables.js）と、各機能ファイル §6 の
+ * 検証ルール。
  *
  * 検査内容:
- *   - 必須キー存在（Subagent: name＋description）
- *   - 未知キー検出
- *   - 型・語彙照合
+ *   - 必須キー存在（`required: true` の要素。サブエージェントは name・description・V-subagents-02）
+ *   - 未知キー検出（キーがコレクションのどの `id` とも一致しない・V-subagents-04・V-skills-04・
+ *     V-skills-05・V-rules-03）。コレクションが `complete: false` なら違反でなく未判定（V-common-01）
+ *   - 閉じた語彙（`allowed_values` を持つキー・V-subagents-05・V-skills-06）
+ *   - 真偽値の型（`type: boolean` のキー・V-skills-07）
  *
- * 照合表が「できない」と自己申告している検査は実装しない（frontmatter.json の
- * known_limitations・各 kind の unknown_key_detection.supported / types.available を厳守）:
- *   - agent の型照合: types.available === false のため未実装
- *   - rule の未知キー検出: unknown_key_detection.supported === false のため未実装
- *   - model 語彙の closed 照合: agent/skill とも closed === false（full ID 許容）のため未実装
- *     （open な語彙は「既知の値集合に含まれること」の判定を放棄する。含まれない値を
- *     誤って拒否しないため）
+ * 開いた語彙: サブエージェントの `model` は `allowed_values` にエイリアスと `inherit` を持つが、
+ * 完全なモデル ID も取る（subagents.md §3）。値の集合との照合はしない。
  *
  * 純関数。副作用なし。
  */
 
-import { frontmatterTable } from '../../../../../lib/tables.js';
+import { collection, cite, plain } from '../../../../../lib/tables.js';
 import { violation } from '../../../../../lib/artifact.js';
 
-const KINDS = frontmatterTable.kinds;
+const CHECK = 'V2';
 
-/** agent の disallowedTools ⇔ disallowed-tools のような、正典が明言する互換キー名。 */
-function aliasSetFor(kindTable) {
-  const set = new Map(); // alias -> canonical
-  for (const a of kindTable.aliases ?? []) {
-    set.set(a.alias, a.key);
+/**
+ * artifact の種別とパスから、当てる `frontmatter:*` のコレクションと検証ルールの ID を決める。
+ * コマンドファイル（`.claude/commands/`）は artifact の種別では skill だが、受け付けるキーが違う
+ * （`name`・`paths` を含まない）ので `frontmatter:command` を当てる。
+ */
+function schemaFor(artifact) {
+  if (artifact.kind === 'agent') return { ref: 'frontmatter:subagent', unknownRule: 'V-subagents-04', vocabRule: 'V-subagents-05', requiredRule: 'V-subagents-02' };
+  if (artifact.kind === 'skill') {
+    if (artifact.path.split('/').includes('commands')) {
+      return { ref: 'frontmatter:command', unknownRule: 'V-skills-05', vocabRule: 'V-skills-06', requiredRule: 'V-skills-05' };
+    }
+    return { ref: 'frontmatter:skill', unknownRule: 'V-skills-04', vocabRule: 'V-skills-06', requiredRule: 'V-skills-04' };
   }
-  return set;
+  if (artifact.kind === 'rule') return { ref: 'frontmatter:rule', unknownRule: 'V-rules-03', vocabRule: 'V-rules-03', requiredRule: 'V-rules-03' };
+  return null;
 }
 
-function knownKeySet(kindTable) {
-  return new Set((kindTable.known_keys ?? []).map((k) => k.key));
+/** 値の集合との照合をしないキー（`<コレクション>/<キー>`）。理由は冒頭のコメント。 */
+const OPEN_VOCAB = new Set(['frontmatter:subagent/model']);
+
+/** V-skills-07 が真偽値として受け付ける書き方（大文字小文字を問わない）。 */
+const BOOLEAN_RAW = /^(true|false|yes|no|on|off|1|0)$/i;
+
+function isBooleanType(item) {
+  return plain(item.type) === 'boolean';
 }
 
-function checkRequiredKeys(artifact, kindTable, check) {
+function checkRequiredKeys(artifact, schema, col) {
   const violations = [];
-  for (const req of kindTable.required_keys ?? []) {
-    if (!artifact.frontmatterPresent || !(req.key in artifact.frontmatter)) {
+  for (const item of col.items) {
+    if (plain(item.required) !== true) continue;
+    if (!artifact.frontmatterPresent || !(item.id in artifact.frontmatter)) {
+      violations.push(
+        violation(CHECK, artifact.path, `必須キー "${item.id}" が frontmatter に無い。`, cite(schema.requiredRule, `${col.ref}/${item.id}`))
+      );
+    }
+  }
+  return violations;
+}
+
+function checkUnknownKeys(artifact, schema, col) {
+  const violations = [];
+  for (const key of Object.keys(artifact.frontmatter)) {
+    if (col.byId.has(key)) continue;
+    if (col.complete) {
+      violations.push(
+        violation(CHECK, artifact.path, `未知の frontmatter キー "${key}"（${col.ref} に無い）。`, cite(schema.unknownRule, col.ref))
+      );
+    } else {
       violations.push(
         violation(
-          check,
+          CHECK,
           artifact.path,
-          `必須キー "${req.key}" が frontmatter に無い。`,
-          req.source ?? kindTable.canon_section
+          `frontmatter キー "${key}" が ${col.ref} に無い。${col.ref} は全件を収めていないので未判定とする。公式ページで確かめること。`,
+          `${cite(schema.unknownRule, col.ref)}・${cite('V-common-01')}`,
+          'undetermined'
         )
       );
     }
@@ -55,89 +85,60 @@ function checkRequiredKeys(artifact, kindTable, check) {
   return violations;
 }
 
-function checkUnknownKeys(artifact, kindTable, check) {
+function checkClosedVocab(artifact, schema, col) {
   const violations = [];
-  if (kindTable.unknown_key_detection?.supported !== true) return violations;
-  const known = knownKeySet(kindTable);
-  const aliases = aliasSetFor(kindTable);
-  for (const key of Object.keys(artifact.frontmatter)) {
-    if (known.has(key)) continue;
-    if (aliases.has(key)) continue; // 正典が明言する互換キー名
+  for (const item of col.items) {
+    const allowedValues = plain(item.allowed_values);
+    if (!Array.isArray(allowedValues) || allowedValues.length === 0) continue;
+    if (isBooleanType(item)) continue; // 真偽値は checkTypes が見る
+    if (OPEN_VOCAB.has(`${col.ref}/${item.id}`)) continue;
+    const entry = artifact.frontmatter[item.id];
+    if (!entry) continue;
+    const allowed = new Set(allowedValues.map((v) => String(plain(v))));
+    const candidates = Array.isArray(entry.value) ? entry.value : [entry.value];
+    for (const v of candidates) {
+      if (typeof v === 'string' && !allowed.has(v)) {
+        violations.push(
+          violation(
+            CHECK,
+            artifact.path,
+            `frontmatter "${item.id}" の値 "${v}" が allowed_values ${JSON.stringify([...allowed])} に無い。`,
+            cite(schema.vocabRule, `${col.ref}/${item.id}`)
+          )
+        );
+      }
+    }
+  }
+  return violations;
+}
+
+function checkTypes(artifact, col) {
+  const violations = [];
+  for (const item of col.items) {
+    if (!isBooleanType(item)) continue;
+    const entry = artifact.frontmatter[item.id];
+    if (!entry || entry.nested) continue;
+    if (typeof entry.value === 'boolean') continue;
+    if (BOOLEAN_RAW.test(String(entry.value).trim())) continue;
     violations.push(
       violation(
-        check,
+        CHECK,
         artifact.path,
-        `未知の frontmatter キー "${key}"（正典の frontmatter 完全リファレンスに無い）。`,
-        kindTable.canon_section
+        `frontmatter "${item.id}" は真偽値のはずが実際の値は "${entry.raw}"（true・false・yes・no・on・off・1・0 のどれでもない）。`,
+        cite('V-skills-07', `${col.ref}/${item.id}`)
       )
     );
   }
   return violations;
 }
 
-function checkClosedVocab(artifact, kindTable, check) {
-  const violations = [];
-  for (const [key, vocab] of Object.entries(kindTable.vocabularies ?? {})) {
-    if (vocab.closed !== true) continue; // open 語彙は判定不可（frontmatter.json 自身がそう申告）
-    const entry = artifact.frontmatter[key];
-    if (!entry) continue;
-    const allowed = new Set(vocab.values);
-    if (vocab.alias) allowed.add(vocab.alias.value);
-    const value = entry.value;
-    const candidates = Array.isArray(value) ? value : [value];
-    for (const v of candidates) {
-      if (typeof v === 'string' && !allowed.has(v)) {
-        violations.push(
-          violation(
-            check,
-            artifact.path,
-            `frontmatter "${key}" の値 "${v}" が既知語彙 ${JSON.stringify(vocab.values)} に無い。`,
-            vocab.source
-          )
-        );
-      }
-    }
-  }
-  return violations;
-}
-
-function checkTypes(artifact, kindTable, check) {
-  const violations = [];
-  if (kindTable.types?.available === false) return violations; // 正典に型情報なし（agent）
-  const types = kindTable.types;
-  if (!types || typeof types !== 'object') return violations;
-  for (const [key, spec] of Object.entries(types)) {
-    if (!spec || typeof spec.type !== 'string') continue;
-    const entry = artifact.frontmatter[key];
-    if (!entry) continue;
-    if (spec.type === 'bool') {
-      if (typeof entry.value !== 'boolean') {
-        violations.push(
-          violation(
-            check,
-            artifact.path,
-            `frontmatter "${key}" は bool 型のはずが実際の値は "${entry.raw}"（真偽値でない）。`,
-            spec.source
-          )
-        );
-      }
-    }
-    // string / list / fork / bash・powershell 等は語彙側 or リスト検査で別途扱うため、
-    // ここでは bool のみ判定する（型が構文的に一意に決まるのは bool だけ。
-    // それ以外は agent 同様「型情報が構文だけでは決定論的に確定しない」ため見送る）。
-  }
-  return violations;
-}
-
-const CHECK = 'V2';
-
 /** parseFrontmatter が積んだ構文エラー（unparsed_line・duplicate_key・unterminated_block）を違反にする。 */
-function checkParseErrors(artifact, check) {
+function checkParseErrors(artifact) {
   return (artifact.errors ?? [])
     .filter((e) => e.type !== 'missing_file') // 欠落は呼び出し側（loadArtifact の利用者）の領分
     .map((e) =>
       violation(
-        check,
+        CHECK,
         artifact.path,
         `frontmatter の構文エラー（${e.type}${e.line ? `・${e.line}行目` : ''}）: ${e.message}`,
         'lib/artifact.js parseFrontmatter()'
@@ -151,8 +152,8 @@ function checkParseErrors(artifact, check) {
  * （黙って何もしないと vacuous pass になる）。
  */
 export function checkV2(artifact) {
-  const kindTable = KINDS[artifact.kind];
-  if (!kindTable) {
+  const schema = schemaFor(artifact);
+  if (!schema) {
     return [
       violation(
         CHECK,
@@ -162,13 +163,13 @@ export function checkV2(artifact) {
       ),
     ];
   }
+  const col = collection(schema.ref);
 
   return [
-    ...checkParseErrors(artifact, CHECK),
-    ...checkRequiredKeys(artifact, kindTable, CHECK),
-    ...checkUnknownKeys(artifact, kindTable, CHECK),
-    ...checkClosedVocab(artifact, kindTable, CHECK),
-    ...checkTypes(artifact, kindTable, CHECK),
+    ...checkParseErrors(artifact),
+    ...checkRequiredKeys(artifact, schema, col),
+    ...checkUnknownKeys(artifact, schema, col),
+    ...checkClosedVocab(artifact, schema, col),
+    ...checkTypes(artifact, col),
   ];
 }
-

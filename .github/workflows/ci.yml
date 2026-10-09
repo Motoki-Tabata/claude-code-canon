@@ -27,16 +27,5 @@ jobs:
 
       # 依存ゼロ設計（package.json の comments.deps 参照）: npm install/ci は不要。
 
-      - name: 照合表の鮮度検査（docs/ からの再生成と working tree の一致）
-        run: |
-          npm run build:tables
-          DIFF="$(git diff --unified=0 -- gates/conformance_tables/ | grep -E '^[+-]' | grep -v '^[+-][+-][+-]' | grep -v '"generated_at"' || true)"
-          if [ -n "$DIFF" ]; then
-            echo "gates/conformance_tables/ が docs/ から再生成した内容と一致しません。"
-            echo "docs/ を変更したら npm run build:tables を実行してコミットしてください。"
-            echo "$DIFF"
-            exit 1
-          fi
-
       - name: npm test
         run: npm test

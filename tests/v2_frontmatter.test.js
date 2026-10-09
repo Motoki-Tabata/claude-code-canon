@@ -37,8 +37,7 @@ describe('V2 frontmatter スキーマ', () => {
     assert.match(v[0].message, /未知の frontmatter キー/);
   });
 
-  // E3b（2026-08-19・保守課題まとめ処理）: 互換 alias を撤廃し未知キーとして検出する側へ倒した
-  // （L3_AGENTS.md:198・公式 sub-agents に複数回の再検証でハイフン形の裏付けが無いと確定）。
+  // サブエージェントのキーは大文字小文字まで frontmatter:subagent の id と一致する（V-subagents-04）。
   test('agent: disallowed-tools（ハイフン形）は互換受理せず未知キーとして検出する', () => {
     const v = checkV2(agent('name: x\ndescription: d\ndisallowed-tools: Write'));
     assert.equal(v.length, 1);
@@ -55,12 +54,12 @@ describe('V2 frontmatter スキーマ', () => {
     assert.equal(v.length, 4);
   });
 
-  test('agent: permissionMode のエイリアス manual は違反にしない', () => {
+  test('agent: permissionMode の manual は allowed_values にあるので違反にしない', () => {
     const v = checkV2(agent('name: x\ndescription: d\npermissionMode: manual'));
     assert.deepEqual(v, []);
   });
 
-  test('agent: model は open 語彙なので任意の値を通す（full ID 等）', () => {
+  test('agent: model は完全なモデル ID も取るので、allowed_values との照合をしない', () => {
     const v = checkV2(agent('name: x\ndescription: d\nmodel: claude-opus-4-8'));
     assert.deepEqual(v, []);
   });
@@ -76,10 +75,25 @@ describe('V2 frontmatter スキーマ', () => {
     assert.equal(v.length, 1);
   });
 
-  test('skill: bool 型キーに非 bool 値を入れると型違反', () => {
-    const v = checkV2(skill('name: x\ndisable-model-invocation: yes'));
+  test('skill: 真偽値のキーに真偽値でない値を入れると型違反（V-skills-07）', () => {
+    const v = checkV2(skill('name: x\ndisable-model-invocation: maybe'));
     assert.equal(v.length, 1);
-    assert.match(v[0].message, /bool 型/);
+    assert.match(v[0].message, /真偽値/);
+    assert.match(v[0].source, /V-skills-07/);
+  });
+
+  test('skill: yes・no・on・off・1・0 は真偽値として通す（大文字小文字を問わない・V-skills-07）', () => {
+    for (const raw of ['yes', 'No', 'on', 'OFF', '1', '0']) {
+      assert.deepEqual(checkV2(skill(`name: x\nuser-invocable: ${raw}`)), [], raw);
+    }
+  });
+
+  test('command: frontmatter:command を当てる（name は受け付けない・V-skills-05）', () => {
+    const a = artifactFromText('.claude/commands/x.md', '---\nname: x\ndescription: d\n---\nbody');
+    const v = checkV2(a);
+    assert.equal(v.length, 1);
+    assert.match(v[0].message, /"name"/);
+    assert.match(v[0].source, /V-skills-05/);
   });
 
   test('skill: shell/context の closed 語彙違反を検出する', () => {
@@ -87,9 +101,11 @@ describe('V2 frontmatter スキーマ', () => {
     assert.equal(v.length, 2);
   });
 
-  test('rule: 未知キー検出は非対応（正典に完全リファレンスが無いため）', () => {
+  test('rule: frontmatter:rule は complete: true なので未知キーを違反にする（V-rules-03）', () => {
     const v = checkV2(rule('paths: ["**/*.ts"]\nsome-made-up-key: 1'));
-    assert.deepEqual(v, []);
+    assert.equal(v.length, 1);
+    assert.equal(v[0].severity, 'error');
+    assert.match(v[0].source, /V-rules-03/);
   });
 
   test('kind 不明（unknown）は種別不明の1件を返す（黙って何もしない、を避ける）', () => {

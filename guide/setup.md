@@ -17,11 +17,9 @@ claude-canon は、Claude Code のカスタマイズ一式を Phase A〜D・工�
 git clone https://github.com/Motoki-Tabata/claude-code-canon.git
 cd claude-code-canon
 
-npm run build:tables   # docs/ から verify の判定表 gates/conformance_tables/*.json を生成
 npm test               # 検査・スクリプト・自己適用のテスト
 ```
 
-- 判定表は生成物です。手で編集せず、`docs/` を変えたら `npm run build:tables` を再実行してコミットします。CI は判定表が `docs/` と一致していることを検査します。
 - `npm test` が緑でないまま run を始めないでください。claude-canon 自身の `.claude/` がスキーマに合っていること、ワーカーがコマンド実行系のツールを持たないこともここで確かめています。
 
 ## 2. 標準 Skill を入れる
@@ -157,13 +155,12 @@ rm -rf work/<ts> output/<ts>
 | `npm run run-manifest -- <output-dir> <target-dir>` | 配置手順書 RUN.md を書く | D |
 | `npm run pre-deploy -- <output-dir> <target-dir>` | 配置前照合。uncaptured があれば exit 1 | D |
 | `npm run deploy -- <output-dir> <target-dir> [--confirm]` | 配置。`--confirm` が無ければ予定の表示だけ | D（人間） |
-| `npm run build:tables` | `docs/` から判定表を生成する | 保守 |
 | `npm run tokens -- <session-id \| jsonl のパス>` | セッションのトークン消費を集計する（Phase D の終わりの振り返りでも使う） | 保守 |
 | `npm test` | テスト | 保守 |
 
 ## 7. 正典 `docs/` の更新
 
-正典を更新する専用のコマンドはありません。保守のセッションで `docs/SOURCES.md` の一次ソース一覧と調査手順に沿って公式ドキュメントと突き合わせ、`docs/` を直したら `npm run build:tables` と `npm test` を通し、PR で main に入れます。規律は `.claude/rules/canon-docs.md` にあります。
+正典を更新する専用のコマンドはありません。保守のセッションで `docs/SOURCES.md` の一次ソース一覧と調査手順に沿って公式ドキュメントと突き合わせ、`docs/` を直したら `npm test` を通し、PR で main に入れます。規律は `.claude/rules/canon-docs.md` にあります。
 
 ## トラブルシューティング
 
@@ -175,4 +172,3 @@ rm -rf work/<ts> output/<ts>
 | `npm run pre-deploy` が exit 1 で uncaptured を出す | uncaptured がある | 一覧のファイルを調査に含めるか、design-map で扱いを決め直す |
 | `deploy --confirm` が「移動できないファイル」で拒否する | sandbox の中で実行した（バインドマウントされたファイルは rename できない） | sandbox の外の通常のシェルで実行する。対象は変更されていない |
 | 新しいテストが `TS_NAMESPACES に '<name>' が未登録` で赤 | `tests/helpers/ts.js` への登録漏れ | 他と重複しない8桁の日付を `TS_NAMESPACES` に登録する |
-| CI が「判定表が docs/ と一致しない」で赤 | `docs/` を変えて `build:tables` を回していない | `npm run build:tables` を実行してコミットする |

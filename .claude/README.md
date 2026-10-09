@@ -47,14 +47,13 @@ claude-canon 本体を保守するときの規律です。run の生成物には
 | Rule | 読み込まれるとき | 内容 |
 |---|---|---|
 | `workflow` | 常に | 日本語で応答する・申し送りを裏取りする・件数を数え直す・承認ゲートを縮めない・削除の前に参照を確かめる・canon への改修要求を `tasks/lessons.md` に起票する |
-| `gates-and-tests` | `lib/**`・`.claude/skills/*/scripts/**`・`gates/**`・`tools/**`・`tests/**` を扱うとき | 検査対象ゼロを合格にしない・禁止リストを能力で書く・判定ロジックを複製しない、など検査とテストの書き方 |
+| `gates-and-tests` | `lib/**`・`.claude/skills/*/scripts/**`・`tools/**`・`tests/**` を扱うとき | 検査対象ゼロを合格にしない・禁止リストを能力で書く・判定ロジックを複製しない、など検査とテストの書き方 |
 | `canon-docs` | `docs/**` を扱うとき | 正典を一次ソースで更新する・ページに無いことと存在しないことを区別する |
 | `worker-definitions` | `.claude/agents/**`・`.claude/skills/**`・`.claude/settings.json` を扱うとき | 検査の変更をワーカー定義に追従させる・値の書式を実例で示す・応答を逐語で書き出す |
 
 ## 4. 前提のセットアップ
 
 - **Node.js 22 以上と git**。依存パッケージはありません（`npm install` は不要）。
-- **照合表**: `npm run build:tables` で `docs/` から verify の判定表を作ります（`docs/` を変えたら作り直す）。
 - **標準 Skill**: Phase C は `prompt-auditor` が `/claude-api prompt-audit` を実行し、builder は skill-creator の執筆指針の要約に従います。claude-api などはプラグイン `example-skills@anthropic-agent-skills`（marketplace `anthropics/skills`）で入れます。手順は [guide/setup.md](../guide/setup.md) にあります。
 - **フック・MCP・実験的機能**: この `.claude/` は使いません。
 

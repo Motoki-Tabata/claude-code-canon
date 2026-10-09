@@ -1,54 +1,46 @@
 /**
  * V1 配置パス（per-file・artifacts.md §8.2）。
  *
- * 出典: gates/conformance_tables/paths.json（正典 docs/L3_AGENTS.md §2.1・L2_SKILLS.md §2.1・
- * L1_CONTEXT_MANAGEMENT.md §2.2 から生成）。
+ * 出典: 正典リファレンス canon-reference の検証ルールと `paths:files`（lib/tables.js）。
  *
  * 検査内容:
- *   - 許可パス合致（配置パターン一致）
- *   - 拡張子・種別整合
+ *   - Skill の定義ファイルは `.claude/skills/<name>/SKILL.md`（V-skills-01）。パッケージ内の
+ *     補助ファイル（`template.md`・`examples/*.md`・`scripts/*`）は違反にしない（skills.md §3 と
+ *     V-skills-18 が、SKILL.md から相対パスで指す補助ファイルをディレクトリ内に置くことを前提にする）
+ *   - ルールは `.claude/rules/` の下の `.md`（サブディレクトリ可・V-rules-01）
+ *   - サブエージェントは `.claude/agents/` の下の `.md`（ディレクトリは再帰的に走査される・subagents.md §3）
+ *   - コマンドファイル（`.claude/commands/*.md`）は Skill に統合された古い形式。補助ファイルを持てない
+ *     ので warning にする（skills.md §1）
  *   - skill ディレクトリ名＝name 一致 ※これだけは正典由来でなく設計由来（artifacts.md §8.3）
  *
- * skill パッケージの supporting files（`template.md`・`examples/*.md`・`scripts/*`）は違反ではない。
- * 正典 docs/L2_SKILLS.md §2.1「ディレクトリ構造」が SKILL.md（必須）＋任意の supporting files を
- * 明示的に許可しており（paths.json の kinds.skill.package_layout が SSoT）、V6 は逆にその実在を
- * 要求する。`filename_fixed: SKILL.md` は**スキル定義ファイルの名前**が固定であることのみを述べ、
- * 同ディレクトリの他ファイルを禁じてはいない。
+ * 機能ファイルに確定の配置規則が無いもの（サブエージェント・既知の機能に属さないパス）は、
+ * `paths:files` の形との照合（V-common-02）になる。`paths:files` は `complete: false` なので、
+ * 一致しなければ違反でなく未判定にする（V-common-01）。
  *
  * 純関数。副作用（fs 書込・process.exit）なし。
  */
 
-import { pathsTable } from '../../../../../lib/tables.js';
+import { cite } from '../../../../../lib/tables.js';
 import { skillPathRole, violation } from '../../../../../lib/artifact.js';
 import { DESIGN_DOC_ARTIFACTS } from '../../../../../lib/canon.js';
 
-const AGENT_SOURCE = pathsTable.kinds.agent.canon_section;
-const SKILL_SOURCE = pathsTable.kinds.skill.canon_section;
-const RULE_SOURCE = pathsTable.kinds.rule.canon_section;
-const SKILL_DIRNAME_ITEM = pathsTable.design_derived_requirements.items.find(
-  (i) => i.requirement === 'skill ディレクトリ名 = frontmatter name の一致'
-);
+const CHECK = 'V1';
 
-// skill パッケージ配下に supporting files を置いてよいか。正典 docs/L2_SKILLS.md §2.1
-// 「ディレクトリ構造」から build-conformance-tables.js が抽出した値（正典由来・捏造しない）。
-// 表が許可を述べていなければ従来どおり "SKILL.md 以外は違反" へ縮退する（fail-closed）。
-const SUPPORTING_FILES_ALLOWED = pathsTable.kinds.skill.package_layout?.supporting_files_allowed === true;
-
-// 配置パターンは `.claude/<family>/...` という接頭辞が Project/User 両スコープに共通して
-// 現れる（paths.json の placements を参照）。plugin スコープ（`<plugin>/agents/<name>.md` 等、
-// `.claude/` を前置しない）はここでは検査対象外とする（既知の限界。報告参照）。
-const AGENT_DIR_FORM = /(^|\/)\.claude\/agents\/([^/]+)\/([^/]+)\.md$/;
-const AGENT_FLAT_FORM = /(^|\/)\.claude\/agents\/([^/]+)\.md$/;
+const AGENT_FORM = /(^|\/)\.claude\/agents\/(.+\/)?[^/]+\.md$/;
 const SKILL_FORM = /(^|\/)\.claude\/skills\/([^/]+)\/SKILL\.md$/;
-const RULE_FORM = /(^|\/)\.claude\/rules\/([^/]+)\.md$/;
-const USER_RULE_FORM = /(^|\/)~\/\.claude\/rules\/([^/]+)\.md$/;
+const RULE_FORM = /(^|\/)(\.claude|~\/\.claude)\/rules\/(.+\/)?[^/]+\.md$/;
+
+const AGENT_SOURCE = cite('V-common-02', 'paths:files/project:.claude/agents/*.md');
+const SKILL_SOURCE = cite('V-skills-01', 'paths:files/project:.claude/skills/<name>/SKILL.md');
+const RULE_SOURCE = cite('V-rules-01', 'paths:files/project:.claude/rules/*.md');
+const COMMAND_SOURCE = 'canon-reference references/features/skills.md §1（コマンドファイル）';
 
 /** パスに含まれるファミリー語（agents/skills/commands/rules）から所属先を大まかに当てる。 */
 function classifyPathFamily(p) {
   const segs = p.split('/');
   if (segs.includes('agents')) return 'agent';
   if (segs.includes('skills')) return 'skill';
-  if (segs.includes('commands')) return 'commands-deprecated';
+  if (segs.includes('commands')) return 'command';
   if (segs.includes('rules')) return 'rule';
   return null;
 }
@@ -63,44 +55,30 @@ export function checkV1(artifact) {
   const family = classifyPathFamily(p);
 
   if (family === 'agent') {
-    if (!AGENT_DIR_FORM.test(p) && !AGENT_FLAT_FORM.test(p)) {
+    if (!AGENT_FORM.test(p)) {
       violations.push(
         violation(
-          'V1',
+          CHECK,
           p,
-          'agent の配置パスが許可パターン（.claude/agents/<name>/<name>.md または .claude/agents/<name>.md）に合致しない。',
-          AGENT_SOURCE
+          'サブエージェントの配置が `paths:files` の形（.claude/agents/ の下の .md）に一致しない。`paths:files` は全件を収めていないので未判定とする。公式ページで確かめること。',
+          `${AGENT_SOURCE}・${cite('V-common-01')}`,
+          'undetermined'
         )
       );
-    }
-    if (!p.endsWith('.md')) {
-      violations.push(violation('V1', p, 'agent ファイルの拡張子は .md でなければならない。', AGENT_SOURCE));
     }
   } else if (family === 'skill') {
     const base = p.split('/').pop();
     const role = skillPathRole(p);
 
-    if (role === 'supporting' && SUPPORTING_FILES_ALLOWED) {
-      // supporting file（`template.md`・`examples/*.md`・`scripts/*` 等）。正典が明示的に
-      // 許可する Progressive Disclosure の参照先であり、配置違反ではない（L2_SKILLS.md §2.1 ディレクトリ構造）。
-      // 「skill パッケージに SKILL.md が実在するか」は per-file では判定できないため V6 が持つ。
+    if (role === 'supporting') {
+      // 補助ファイル。パッケージの必須エントリ（SKILL.md）の実在は per-file では判定できないので V6 が持つ。
     } else if (base !== 'SKILL.md') {
       violations.push(
-        violation(
-          'V1',
-          p,
-          `skill ディレクトリ配下のファイル名は固定 "SKILL.md" でなければならない（実際: "${base}"）。`,
-          `${SKILL_SOURCE}（filename_fixed: ${pathsTable.kinds.skill.filename_fixed}）`
-        )
+        violation(CHECK, p, `Skill の定義ファイルの名前は "SKILL.md" でなければならない（実際: "${base}"）。`, SKILL_SOURCE)
       );
     } else if (!SKILL_FORM.test(p)) {
       violations.push(
-        violation(
-          'V1',
-          p,
-          'skill の配置パスが許可パターン（.claude/skills/<skill-name>/SKILL.md）に合致しない。',
-          SKILL_SOURCE
-        )
+        violation(CHECK, p, 'Skill の配置が .claude/skills/<skill-name>/SKILL.md の形に一致しない。', SKILL_SOURCE)
       );
     }
 
@@ -113,49 +91,49 @@ export function checkV1(artifact) {
       if (typeof nameValue === 'string' && nameValue !== '' && nameValue !== dirName) {
         violations.push(
           violation(
-            'V1',
+            CHECK,
             p,
             `skill ディレクトリ名 "${dirName}" が frontmatter の name "${nameValue}" と一致しない。` +
               `これは正典由来の要件ではなく設計由来の要件（${DESIGN_DOC_ARTIFACTS} §8.3・accepted_by_human）。`,
-            `${SKILL_DIRNAME_ITEM?.source ?? `${DESIGN_DOC_ARTIFACTS} §8.3`}（design_derived_requirements、正典由来ではない）`
+            `${DESIGN_DOC_ARTIFACTS} §8.3（設計由来、正典由来ではない）`
           )
         );
       }
     }
-  } else if (family === 'commands-deprecated') {
+  } else if (family === 'command') {
     violations.push(
       violation(
-        'V1',
+        CHECK,
         p,
-        '.claude/commands/ への配置は廃止予定（⚠ Custom Commands）。.claude/skills/<skill-name>/SKILL.md へ移行すること。',
-        SKILL_SOURCE,
+        '.claude/commands/ は Skill に統合された古い形式で、補助ファイルを持てない。.claude/skills/<skill-name>/SKILL.md を使うこと。',
+        COMMAND_SOURCE,
         'warning'
       )
     );
   } else if (family === 'rule') {
-    if (!RULE_FORM.test(p) && !USER_RULE_FORM.test(p)) {
+    if (!RULE_FORM.test(p)) {
       violations.push(
         violation(
-          'V1',
+          CHECK,
           p,
-          'rule の配置パスが許可パターン（.claude/rules/<name>.md または ~/.claude/rules/<name>.md）に合致しない。',
+          'ルールの配置が .claude/rules/ の下の .md（サブディレクトリ可）の形に一致しない。',
           RULE_SOURCE
         )
       );
     }
   } else {
-    // agents/skills/commands/rules いずれのファミリー語も含まないパス。
-    // カスタマイズ生成物である以上、いずれかに属さねばならない。
+    // agents/skills/commands/rules のどのファミリー語も含まないパス。`paths:files` は全件を収めて
+    // いないので、ここで「置けない場所」とは断定しない。
     violations.push(
       violation(
-        'V1',
+        CHECK,
         p,
-        '既知の配置ファミリー（.claude/agents/ .claude/skills/ .claude/rules/）のいずれにも属さないパス。',
-        `${AGENT_SOURCE} / ${SKILL_SOURCE} / ${RULE_SOURCE}`
+        '既知の配置（.claude/agents/・.claude/skills/・.claude/rules/）のどれにも属さない。`paths:files` は全件を収めていないので未判定とする。公式ページで確かめること。',
+        `${cite('V-common-02', 'paths:files')}・${cite('V-common-01')}`,
+        'undetermined'
       )
     );
   }
 
   return violations;
 }
-

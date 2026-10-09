@@ -17,10 +17,6 @@
 /node_modules/
 npm-debug.log*
 
-# 注: gates/conformance_tables/ は【除外しない】。docs/ からの生成物だが、除外すると新規クローンで判定表が
-# 不在となり検査が沈黙＝vacuous pass を招く。「手で編集しない」は編集の規律であって除外の理由ではなく、
-# コミットすることで正典更新に伴う判定表の差分が追える（CI が鮮度を検査する・architecture.md §10）。
-
 # OS
 Thumbs.db
 Desktop.ini

@@ -63,6 +63,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 1. `npm run verify -- <ts>` を実行する。`output/<ts>/verify-report.md` が書かれる。
 2. exit 1 なら、report の違反を層ごとに分け、handoff の「差し戻し」に逐語で書き、該当する層の builder を新しく起動して直させる。直したら `npm run manifest -- <ts>` → `npm run verify -- <ts>` をやり直す。違反がなくなるまで繰り返す。
 3. warning は exit code に影響しないが、P4 で示す。種別ごとの件数と代表例を示す（全件は `verify-report.md` にある。パス様トークンの warning は1ファイルにつき1件にまとまっている）。
+   verify の未判定（report の「未判定」。正典リファレンスが全件を収めていない一覧と照合して一致しなかった名前・canon-reference の `references/quality.md` の V-common-01）も exit code に影響しない。違反とも問題なしとも扱わず、1件ずつ出典の公式ページ（`.md` 版を `curl -sSL` で取る）で確かめ、確かめた結果を P4 で示す。公式ページで置けない・使えないと分かったものは、違反と同じく builder に直させる。
 4. 違反が keep のファイルにある（V7）なら、builder では直せない。keep は design-map が正なので、下の「keep に及ぶ修正」の手順で P3 に戻す。
 5. **生成物のテストを実行する**: builder は実行できない（シェルが無い）ので、書いたテストが通るかは verify（V1〜V9）では分からない。`generated/` に `*.test.*`・`*.spec.*` があれば、あなたが対象の一時 worktree で実行する（`<target>` は handoff の `target`、`<root>` は canon のルートの絶対パス）。
    1. `git -C <target> worktree add --detach <root>/work/<ts>/trial HEAD` で作る（手順の根拠は canon-b の工程5-3。対象のブランチと作業ツリーには触れない。worktree が使えない対象は、対象を `cp -a` した一時ディレクトリで代える）。
@@ -104,7 +105,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 1. **verify の回し忘れを確かめる**: `verify-report.md` の「generated/ のハッシュ」と、`npm run approvals -- <ts> hash P4` の値（先頭12桁）が一致することを確かめる。違えば、最後の修正の後に verify を回していないので、`npm run manifest -- <ts>` → `npm run verify -- <ts>` をやり直す。
 2. 次を**1回の提示にまとめる**（生成物だけでは判断材料がそろわないので、レビューと分けない）。件数は示す前に数え直す。
    - 生成物の一覧（新規・改修・維持・廃止。`MANIFEST.md` から）と `generated/.claude/README.md` のパス
-   - verify-report の結果（違反0件であること・warning の全件）
+   - verify-report の結果（違反0件であること・warning の全件・verify の未判定の全件と、公式ページで確かめた結果）
    - `review-*.md`（全分割・追加起動の分を含む）・keep-review.md の指摘の全件（重大度別）。未判定の対象が残っていないこと。K2・K4 に疑いありとされた keep は必ず示す
    - prompt-audit の要点（`prompt-audit.md` から）、または実行できなかったこと
    - 修正ループで直した指摘と、直さないとユーザーが決めた指摘とその理由。**未決の指摘（「ご指示があれば直します」など）を残さない**。振り分けを取っていない指摘があれば、P4 の前に取る

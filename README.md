@@ -8,7 +8,7 @@ Claude Code のカスタマイズ一式（`CLAUDE.md`・Rules・Skills・Subagen
 無人で最後まで走らせることはしません。
 
 - **SSoT**: 正典 `docs/`（Claude Code の公式仕様を整理したリファレンス9ファイルと、一次ソースの一覧
-  `docs/SOURCES.md`）。生成物の検査に使う判定表もここから生成します（`npm run build:tables`）。
+  `docs/SOURCES.md`）。生成物の検査は `.claude/skills/canon-reference/data/` を直接読みます。
 - **成果物**: 対象プロジェクトに配置するファイル一式と、なぜその構成にしたかの記録（spec・design-map・
   MANIFEST）、使い方の説明（README）、配置の手順と照合結果。
 - **既存のカスタマイズがある場合**: 差分パッチではなく、既存と新しい要件から全体を設計し直し、
@@ -50,7 +50,6 @@ Phase の境界でセッションを切っても失うものはありません�
 git clone https://github.com/Motoki-Tabata/claude-code-canon.git
 cd claude-code-canon
 
-npm run build:tables   # 正典から判定表を生成（docs/ を変えたら再実行）
 npm test               # 検査・スクリプト・自己適用のテスト
 ```
 
@@ -62,7 +61,6 @@ npm test               # 検査・スクリプト・自己適用のテスト
 - `.claude/` — 本体。Phase Skill `canon-a`〜`canon-d`（`scripts/` を含む）、知識 Skill 5件、Subagent 8体、
   保守用の Rule、`settings.json`（permissions だけ）。使い方は [.claude/README.md](.claude/README.md)
 - `lib/` — スクリプトが共有するパーサと管理パス集合
-- `gates/` — `docs/` から判定表を生成する `build-conformance-tables.js` と、生成された `conformance_tables/`（手で編集しない）
 - `tools/` — `approvals.js`（承認の記録と照合）・`check.js`（requirements・spec・design-map の機械点検）・`handoff.js`（handoff.md の更新）・`token-usage.js`（セッションのトークン消費の集計）
 - `tests/` — 検査・スクリプト・自己適用のテスト（`node --test`）
 - `design/` — 設計書2冊

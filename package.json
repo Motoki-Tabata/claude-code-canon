@@ -35,7 +35,6 @@
     "pre-deploy": "node .claude/skills/canon-d/scripts/pre-deploy-check.js",
     "run-manifest": "node .claude/skills/canon-d/scripts/emit-run-manifest.js",
     "deploy": "node .claude/skills/canon-d/scripts/deploy.js",
-    "build:tables": "node gates/build-conformance-tables.js",
     "tokens": "node tools/token-usage.js",
     "check": "node tools/check.js",
     "handoff": "node tools/handoff.js",
