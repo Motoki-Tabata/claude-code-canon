@@ -2,14 +2,13 @@
 paths:
   - "lib/**"
   - ".claude/skills/*/scripts/**"
-  - "gates/**"
   - "tools/**"
   - "tests/**"
 ---
 
 # 検査・テスト・CLI 実装規律
 
-検査（`.claude/skills/canon-c/scripts/verify/`）・CLI（Phase Skill の `scripts/`・`gates/`・`tools/`）・
+検査（`.claude/skills/canon-c/scripts/verify/`）・CLI（Phase Skill の `scripts/`・`tools/`）・
 共有モジュール（`lib/`）・テストを書き足す／直すときは次を守る。
 
 - **vacuous pass を最優先で疑う**。検出0件は「検出成功」の証拠にならない。故意の違反を注入して

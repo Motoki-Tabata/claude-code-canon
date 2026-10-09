@@ -3,32 +3,31 @@
  *
  * 検査内容:
  *   1. preload skill（`skills:`）実在
- *      出典: docs/L3_AGENTS.md:176「skills: [skill-name] # Preload Skills」
+ *      出典: canon-reference features/subagents.md（`frontmatter:subagent/skills` は Skill の全文を起動時に注入する）
  *   2. `disable-model-invocation:true` skill を preload していない
- *      出典: docs/L3_AGENTS.md:714「disable-model-invocation: true の Skill を skills: で preload → エラー」
+ *      出典: V-subagents-11（`disable-model-invocation: true` の Skill は preload できない）
  *   3. description による委譲トリガーの妥当
- *      出典: docs/L3_AGENTS.md:124「description の精度が的中率を決める」＋公式コード例4件
- *      （docs/L3_AGENTS.md:243・docs/ORCHESTRATION.md:264,381,408）が全て "Delegate when"/"Delegate for"
- *      で締める。ただし正典はこれを MUST として明文化していない（観測されたパターンに留まる）ため、
- *      2段構えにする:
+ *      出典: Q-subagents-01（description は、どの依頼のときに委譲すべきかを具体的に書く）。
+ *      "Delegate when"/"Delegate for" で締める形は canon の慣習で、canon-reference は
+ *      その文言を MUST として定めていない。そのため2段構えにする:
  *        (a) error: frontmatter の description が公式テンプレートの未編集プレースホルダそのもの
- *            （docs/L3_AGENTS.md:155 "What this agent does and when Claude should delegate to it"）
+ *            （canon 独自の規則。未編集のテンプレートの文言を「書かれていない」と見なす）
  *            ＝実質的に書かれていないので機械的に確実な違反。
  *        (b) warning: "Delegate when"/"Delegate for" 相当（日本語の「委譲される」「委譲する」を含む）の
  *            委譲条件節が description に無い。
- *            正典に MUST の明文が無いため error にはしない（捏造回避）。
+ *            canon-reference に MUST の明文が無いため error にはしない（捏造回避）。
  *   4. supporting files 実在
- *      出典: docs/L2_SKILLS.md:77,99-109（Progressive Disclosure Loading・スキルディレクトリ構造）。
+ *      出典: V-skills-18（SKILL.md から相対パスでリンクした補助ファイルが Skill のディレクトリの中に存在する）。
  *      SKILL.md body 中でバッククォート参照されるパス様トークン（`template.md`・`examples/sample.md`
  *      等）を2段で扱う（artifacts.md §8.2 V6-4）。パスらしい構文（拡張子付き or ディレクトリ区切りを
- *      含む・空白/`$`/URL を含まない）に絞るのは、正典がパターンを構造化していないための設計判断。
+ *      含む・空白/`$`/URL を含まない）に絞るのは、canon-reference がパターンを構造化していないための設計判断。
  *   5. plugin 参照実在
- *      出典: docs/L5_DISTRIBUTION.md:140-200（Plugin Manifest 完全スキーマ・Path挙動規則）。
+ *      出典: V-plugins-05（manifest が指すコンポーネントのパスが、プラグインの中に存在する）。
  *      plugin.json の `skills` / `commands` / `agents` / `hooks` / `mcpServers` / `outputStyles` /
  *      `lspServers` / `experimental.themes` / `experimental.monitors` は明示パス文字列（単一 or 配列）
  *      であり、plugin root 相対で実在照合する。
  *   6. skill パッケージに定義ファイル SKILL.md が実在
- *      出典: docs/L2_SKILLS.md §2.1「ディレクトリ構造」（`SKILL.md # メイン指示（必須）`）。
+ *      出典: V-skills-01（Skill の定義ファイルは `skills/<name>/` の直下の `SKILL.md`）。
  *      V1 が supporting files を許す以上、「定義ファイルが無いパッケージ」の検出はここで明示的に持つ。
  *   7. 非管理ファイルへの行番号引用の禁止（本書由来・artifacts.md §8.3）
  *      generated/ 配下のファイルが、管理パス集合（`lib/managed-paths.js` の `isManaged()`）に属さない
@@ -55,6 +54,13 @@ const PLACEHOLDER_DESCRIPTION = 'What this agent does and when Claude should del
 // 英語の "Delegate when/for" に加え、日本語の description の委譲条件（「…ときに委譲される」「…は委譲する」）も認める。
 const DELEGATE_TRIGGER_RE = /Delegate (when|for)|委譲(される|する)/i;
 // skill パッケージの必須エントリ（SKILL.md）の出典。
+const PRELOAD_SOURCE = 'canon-reference features/subagents.md（frontmatter:subagent/skills）';
+const PRELOAD_DISABLED_SOURCE = cite('V-subagents-11', 'frontmatter:skill/disable-model-invocation');
+const DELEGATE_SOURCE = cite('Q-subagents-01');
+const PLACEHOLDER_SOURCE = 'canon 独自の規則（公式テンプレートの未編集の文言）';
+const SUPPORTING_FILE_SOURCE = cite('V-skills-18');
+const PLUGIN_PATH_SOURCE = cite('V-plugins-05', 'plugin-manifest:fields');
+const PLUGIN_JSON_SOURCE = cite('V-plugins-01', 'plugin-manifest:fields');
 const SKILL_PACKAGE_SOURCE = `${cite('V-skills-01', 'paths:files/project:.claude/skills/<name>/SKILL.md')}（SKILL.md は必須）`;
 
 /** generated/ 相対パス（posix）を正規化する（`..` を解き、先頭 `./` を落とす）。 */
@@ -110,7 +116,7 @@ function checkAgentReferences(ctx, skillRegistry) {
               CHECK,
               artifact.path,
               `frontmatter "skills:" が preload するスキル "${skillName}" が output/<ts>/generated/.claude/skills/ に実在しない。`,
-              'docs/L3_AGENTS.md:176'
+              PRELOAD_SOURCE
             )
           );
           continue;
@@ -122,7 +128,7 @@ function checkAgentReferences(ctx, skillRegistry) {
               CHECK,
               artifact.path,
               `frontmatter "skills:" が preload するスキル "${skillName}"（${target.path}）は disable-model-invocation:true であり preload 不可（エラーになる）。`,
-              'docs/L3_AGENTS.md:714'
+              PRELOAD_DISABLED_SOURCE
             )
           );
         }
@@ -138,7 +144,7 @@ function checkAgentReferences(ctx, skillRegistry) {
           CHECK,
           artifact.path,
           'frontmatter "description" が公式テンプレートの未編集プレースホルダのまま（実質未記入）。委譲判断ができない。',
-          'docs/L3_AGENTS.md:155'
+          PLACEHOLDER_SOURCE
         )
       );
     } else if (descValue && !DELEGATE_TRIGGER_RE.test(descValue)) {
@@ -147,9 +153,8 @@ function checkAgentReferences(ctx, skillRegistry) {
           CHECK,
           artifact.path,
           'frontmatter "description" に委譲トリガー節（"Delegate when"/"Delegate for" 相当）が見当たらない。' +
-            '正典の公式コード例は一貫してこの形を採る（docs/L3_AGENTS.md:243・docs/ORCHESTRATION.md:264,381,408）が、' +
-            'MUST として明文化されてはいないため非ブロッキングの注意に留める。',
-          'docs/L3_AGENTS.md:124,243・docs/ORCHESTRATION.md:264,381,408',
+            'canon の description はこの形で委譲の条件を書く慣習だが、canon-reference は文言を定めていないため非ブロッキングの注意に留める。',
+          DELEGATE_SOURCE,
           'warning'
         )
       );
@@ -219,8 +224,8 @@ function checkSupportingFiles(ctx) {
             violation(
               CHECK,
               artifact.path,
-              `body 中で参照される supporting file "${tok}" がスキルディレクトリ配下に実在しない（Progressive Disclosure Loading 対象・§L2_SKILLS.md）。`,
-              'docs/L2_SKILLS.md:77,99-109'
+              `body 中で参照される supporting file "${tok}" がスキルディレクトリ配下に実在しない（V-skills-18）。`,
+              SUPPORTING_FILE_SOURCE
             )
           );
         }
@@ -248,7 +253,7 @@ function checkSupportingFiles(ctx) {
           artifact.path,
           `body 中のパス様トークン ${unresolved.length}件の参照先が解決できない: ${sample}${rest}` +
             '（supporting file か地の文かを構造だけでは断定できないため報告のみ）。',
-          'docs/L2_SKILLS.md:77,99-109',
+          SUPPORTING_FILE_SOURCE,
           'warning'
         )
       );
@@ -295,11 +300,11 @@ function checkPluginReferences(ctx) {
   try {
     manifest = JSON.parse(file.text);
   } catch (err) {
-    violations.push(violation(CHECK, PLUGIN_MANIFEST, `plugin.json が正当な JSON として解析できない: ${err.message}`, 'docs/L5_DISTRIBUTION.md:140'));
+    violations.push(violation(CHECK, PLUGIN_MANIFEST, `plugin.json が正当な JSON として解析できない: ${err.message}`, PLUGIN_JSON_SOURCE));
     return { violations, checked: 0 };
   }
   if (manifest === null || typeof manifest !== 'object' || Array.isArray(manifest)) {
-    violations.push(violation(CHECK, PLUGIN_MANIFEST, 'plugin.json のトップレベルが JSON object でない。', 'docs/L5_DISTRIBUTION.md:140'));
+    violations.push(violation(CHECK, PLUGIN_MANIFEST, 'plugin.json のトップレベルが JSON object でない。', PLUGIN_JSON_SOURCE));
     return { violations, checked: 0 };
   }
 
@@ -311,7 +316,7 @@ function checkPluginReferences(ctx) {
           CHECK,
           PLUGIN_MANIFEST,
           `plugin.json の "${field}" が参照するパス "${value}" が plugin root 配下に実在しない。`,
-          'docs/L5_DISTRIBUTION.md:140-200（Plugin Manifest 完全スキーマ・Path挙動規則）'
+          PLUGIN_PATH_SOURCE
         )
       );
     }
@@ -326,8 +331,7 @@ function checkPluginReferences(ctx) {
 /**
  * `.claude/skills/<name>/` の各パッケージディレクトリに `SKILL.md` が実在することを照合する。
  *
- * 出典: docs/L2_SKILLS.md §2.1「ディレクトリ構造」——`SKILL.md # メイン指示（必須）`。
- * paths.json の `kinds.skill.package_layout.required_entry` が SSoT。
+ * 出典: V-skills-01。`paths:files/project:.claude/skills/<name>/SKILL.md` が SSoT。
  *
  * なぜ V6 に置くか: V1（per-file・純関数）は1ファイルしか見ないため「パッケージに定義ファイルが
  * 無い」を構造的に判定できない。V1 が supporting files を許す以上、`Skill.md` のような綴り違い
@@ -345,7 +349,7 @@ function checkSkillPackages(ctx) {
         violation(
           CHECK,
           dir,
-          `skill パッケージ "${name}/" に定義ファイル SKILL.md が実在しない（正典は「SKILL.md: メイン指示（必須）」と明記）。` +
+          `skill パッケージ "${name}/" に定義ファイル SKILL.md が実在しない（V-skills-01: 定義ファイルは SKILL.md）。` +
             `supporting files だけを置いてもスキルは発動しない（エラーも出ないサイレント不発火）。`,
           SKILL_PACKAGE_SOURCE
         )

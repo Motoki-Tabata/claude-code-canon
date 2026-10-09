@@ -108,7 +108,7 @@ describe('artifactFromText', () => {
 
 /**
  * skillPathRole: skill パッケージ内の役割判定（V1・V6・non-schema.js が共有する SSoT）。
- * 正典 docs/L2_SKILLS.md §2.1「ディレクトリ構造」が SKILL.md（必須）＋supporting files（任意）を
+ * canon-reference（V-skills-01・V-skills-18）が SKILL.md（必須）＋supporting files（任意）を
  * 許可することの機械的表現。
  */
 describe('skillPathRole', () => {

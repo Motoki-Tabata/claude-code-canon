@@ -79,7 +79,7 @@ test('skill パッケージの supporting files は非スキーマ（正典 L2_S
   assert.equal(isNonSchemaRel('.claude/skills/orphan.md', 'generated'), false);
 });
 
-test('.claude/hooks/ 配下は非スキーマ（hook ハンドラ実体・docs/L4_AUTOMATION.md §2.1）', () => {
+test('.claude/hooks/ 配下は非スキーマ（hook ハンドラ実体・canon-reference features/hooks.md）', () => {
   assert.equal(isNonSchemaRel('.claude/hooks/block-rm.sh', 'generated'), true);
   assert.equal(isNonSchemaRel('.claude/hooks/notes.md', 'generated'), true);
   assert.equal(isNonSchemaRel('hooks/block-rm.sh', 'claude'), true);

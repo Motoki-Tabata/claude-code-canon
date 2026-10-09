@@ -71,7 +71,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 ## 工程4 spec → P2
 
-1. spec-writer を起動する。requirements.md に `## 参照元` があれば、その旨（requirements.md を読めば分かる）を添える。渡すもの: `existing.md`・`profile.md`・`focused.md`・（あれば）`official-check.md`・`requirements.md`・`<root>/gates/conformance_tables/index.json` の絶対パスと、書込先 `<root>/output/<ts>/spec.md`。
+1. spec-writer を起動する。requirements.md に `## 参照元` があれば、その旨（requirements.md を読めば分かる）を添える。渡すもの: `existing.md`・`profile.md`・`focused.md`・（あれば）`official-check.md`・`requirements.md`・`<root>/.claude/skills/canon-reference/sources.json` の絶対パスと、書込先 `<root>/output/<ts>/spec.md`。
 2. `npm run check -- <ts> spec` を実行する（§9 が空か・受入基準の件数・`[mandatory]` の有無を機械で判定する）。NG が出たら、その節だけを読んで直す。全文を読むのは、P2 の要旨を作るときだけにする。確かめる中身は次のとおり。
    - §9 未決事項が空である（`check` が判定する）。空でなければ、その論点をユーザーと詰め、requirements に関わるなら P1 からやり直す。spec の書き直しは spec-writer を新しく起動して行う。
    - §8 受入基準に `[mandatory]` が付いた基準がある（`check` が判定する）。

@@ -2,7 +2,7 @@
 title: claude-canon アーキテクチャ
 purpose: claude-canon の全体像を定める。Phase A〜D と工程1〜9・人間ゲート P1〜P5、Agent と Skill の責務、handoff.md による状態と承認の引き継ぎ、run の置き場所と canon の版、標準 Skill の取り込み、フックを使わない理由を扱う。成果物の書式・verify の検査契約・deploy の契約は artifacts.md に置く。
 audience: [ai, human]
-canon_version: v2.1.280
+canon_version: 2.1.295
 ---
 
 # claude-canon アーキテクチャ
@@ -16,7 +16,7 @@ claude-canon の設計は本書と [artifacts.md](artifacts.md) の2冊にまと
 
 節番号は冊ごとに §1 から振る。もう一方の冊を参照するときは「artifacts.md §8」のように冊名を付けて書く。
 
-frontmatter の `canon_version` は、本書を書いたときに参照していた正典のバージョン（`docs/` のメタ情報表にある「確認したClaude Codeバージョン」）である。本書自体の版ではない。正典が更新されたら、人が手で追従させる。docs/ の値と一致していることは `tests/conformance_tables.test.js` が検査する。
+frontmatter の `canon_version` は、本書を書いたときに参照していた正典のバージョン（`.claude/skills/canon-reference/sources.json` の `claude_code_version`、`v` なし）である。本書自体の版ではない。正典が更新されたら、人が手で追従させる。`sources.json` の値と一致していることは `tests/canon_version.test.js` が検査する。
 
 ---
 
@@ -40,7 +40,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 | 柱 | 内容 |
 |---|---|
-| 正典駆動 | `docs/` を唯一の参照源にする。verify の判定表も `docs/` から生成する（`gates/conformance_tables/`・`npm run build:tables`） |
+| 正典駆動 | `docs/` を唯一の参照源にする。verify は `.claude/skills/canon-reference/data/` を直接読んで判定する |
 | 責任の局所化 | Agent と Skill はそれぞれ1文で言える責任を持つ。判定は design-map を作る工程5に集める（調査は判定しない → spec は方向づけまで → design-map が確定する） |
 | 決定論と意味判断の分離 | 機械的に真偽が決まる検査（verify の V1〜V9）と、意味の判断を要するレビュー（reviewer・keep-reviewer・標準 Skill のレビュー）を別系統に置く。レビューの非決定性で決定論の判定を汚さず、レビューは verify が見た項目を判定し直さない |
 
@@ -158,7 +158,6 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 | `.claude/skills/canon-c/scripts/` | `verify.js`・`verify/*.js`（V1〜V9 の各検査と共通の書式）・`slice.js`・`copy-keep.js`・`emit-manifest.js`・`review-bundle.js` |
 | `.claude/skills/canon-d/scripts/` | `emit-run-manifest.js`・`pre-deploy-check.js`・`deploy.js`・`self-target-guard.js`（自己指定の拒否・artifacts.md §10.5） |
 | `lib/`（リポジトリ直下） | 複数のスクリプトが共有するパーサと管理パス集合（1か所にだけ置く） |
-| `gates/build-conformance-tables.js`・`gates/conformance_tables/` | `docs/` から判定表を生成する |
 | `tools/approvals.js` | 承認行の記録と照合（§6.3）。すべての Phase が使うので、Phase Skill ではなく tools/ に置く |
 | `tools/token-usage.js` | セッションのトークン消費を集計する |
 
@@ -347,7 +346,6 @@ claude-canon/
 │   ├─ settings.json      permissions のみ（hooks は置かない）
 │   └─ README.md          起動方法の説明
 ├─ lib/                   スクリプトが共有するパーサ・管理パス集合
-├─ gates/                 build-conformance-tables.js と conformance_tables/（docs/ から生成・手で編集しない）
 ├─ tools/                 approvals.js・token-usage.js
 ├─ tests/                 自己検証（verify の各検査・スクリプト・自己適用）
 ├─ design/                architecture.md・artifacts.md
@@ -357,5 +355,5 @@ claude-canon/
 └─ package.json・CHANGELOG.md・README.md
 ```
 
-- **docs/ → conformance_tables/ の生成関係**が SSoT の実装である。判定表は正典から生成し、手で編集しない。正典を更新したら `npm run build:tables` で再生成する。CI は判定表が最新であることを検査する。
+- **`canon-reference/data/` が verify の SSoT の実装である**。verify は `lib/tables.js` を通して data を直接読む。判定表の生成の仕組みは無い。
 - **work/・output/ を gitignore にする理由**: 実行結果は claude-canon 本体の版とは別物である。成果物は最終的に対象プロジェクトの側で版管理される。

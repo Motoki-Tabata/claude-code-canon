@@ -14,14 +14,14 @@ skills: [requirements]
 - `work/<ts>/investigation/existing.md`・`profile.md`・`focused.md`
 - `work/<ts>/investigation/official-check.md`（Claude Code の仕様に依存する要件があるときだけ渡される。公式仕様の確認結果。focused.md と食い違えば、両方を §9 未決事項か §4 に書き、どちらかを黙って採らない）
 - `work/<ts>/requirements.md`（承認済み。`## 参照元` があれば、それは移植の基準であり、spec に参照元のパスを写さず「移植の基準にする別プロジェクトの一式がある」ことと role だけを §1〜§4 の該当箇所に書く）
-- `gates/conformance_tables/index.json`（`canon_version` の出典。参照だけ）
+- `.claude/skills/canon-reference/sources.json`（`canon_version` の出典。参照だけ）
 - 書込先 `output/<ts>/spec.md`
 
 ## 手順
 
 1. preload された requirements Skill の指示に従い、`.claude/skills/requirements/references/spec-template.md`（このリポジトリのルートからの相対パス）を読む。
 2. 入力をすべて読み、テンプレートの §0〜§9 の書式で書く。
-3. 書いた自分の出力を Read し直し、次を確かめる: `canon_version` が index.json の値と一致している／existing.md の全レコードが §3 に反映されている／focused.md で `resolved: false` の参照が §4「未解決の参照」に全件ある／§8 の `[mandatory]` 行が反映先を名指ししている／§9 が空なら散文で書かれている。
+3. 書いた自分の出力を Read し直し、次を確かめる: `canon_version` が sources.json の `claude_code_version` と一致している／existing.md の全レコードが §3 に反映されている／focused.md で `resolved: false` の参照が §4「未解決の参照」に全件ある／§8 の `[mandatory]` 行が反映先を名指ししている／§9 が空なら散文で書かれている。
 
 ## 判定しない
 
