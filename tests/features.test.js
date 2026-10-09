@@ -5,7 +5,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { REFERENCE_DIR, collection } from '../lib/tables.js';
 import { FEATURES, UNITS, UNIT_NAMES, OTHER_UNIT, unitOfFeature, featureOfPath, unitOfPath } from '../lib/features.js';
@@ -69,4 +69,10 @@ test('project スコープで canon が生成する機能の paths は、すべ�
     if (it.path.endsWith('/')) continue; // ディレクトリ（agent-memory）は生成物のパスにならない
     assert.ok(featureOfPath(sample) !== null, `${it.path}（${sample}）がどの機能にも引けない`);
   }
+});
+
+test('generation Skill は、担当ごとの規約 references/<担当>.md を持つ（builder が読む契約）', () => {
+  const dir = path.join(REFERENCE_DIR, '..', 'generation', 'references');
+  assert.equal(UNIT_NAMES.length, 8, '担当が0件では照合が vacuous になる');
+  for (const unit of UNIT_NAMES) assert.ok(existsSync(path.join(dir, `${unit}.md`)), `${unit}.md が無い`);
 });
