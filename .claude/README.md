@@ -17,6 +17,7 @@
 | `/canon-c <ts>` | canon のルート | sonnet | 6 生成 → 7 検証（verify）→ 8 品質検査と修正ループ → P4 |
 | `/canon-d <ts>` | canon のルート | sonnet | 9 配置前照合 → P5 → 配置（人間が sandbox の外で実行）→ 配置後の手順 |
 
+- 正典 `canon-reference` の更新は run の外の保守作業で、`/canon-update` で起動します（Phase Skill ではありません）。
 - `<ts>` は `/canon-a` が採番する run の識別子（`YYYYMMDD_hhmmss`）です。
 - 中断した Phase A は、`/canon-a <ts>` を実行すると再開します。
 - 2つ目以降の Phase も、canon のルートで `claude --model <opus|sonnet>` の新しいセッションを起動してから実行します。

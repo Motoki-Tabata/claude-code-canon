@@ -136,7 +136,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 - builder は層ごとにオーケストレーターが直接起動する。builder をまとめる中継役は置かない（§5.1）。
 - 調査を担う investigator・session-analyst の書き込みは、自分の成果物ファイルに限る（定義で書込先を明示する）。investigator には Edit も与える。調査結果は数十KBになり、差し戻しや自己確認で直すたびに全文を Write し直すと、出力が重複するためである。session-analyst は差し戻しを受けないので Edit を与えない。session-analyst が自分で書くのは、分析の応答をメインが逐語で書き写すと、転記だけにメインの出力トークンを使うためである。
 
-### 4.2 Skill（10件）
+### 4.2 Skill（11件）
 
 | Skill | 種別 | 内容 |
 |---|---|---|
@@ -147,6 +147,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 | `generation` | 知識（builder が preload） | 担当単位（8ファイル）の生成規約（`references/`。正典は `canon-reference` の §5 を参照させ、canon 固有の契約だけを持つ）、「読み手が解決できない参照・作者向けの編集メモ・経緯を示す ID を書かない」規約 |
 | `canon-reference` | 正典リファレンス（SSoT） | `user-invocable: false`。12機能の `references/features/*.md`・`selection.md`・`patterns.md`・`quality.md` と、機械可読の `data/*.json`・`sources.json`。知識 Skill は本文に正典を写さず、該当ファイル・節をパスで参照させる（ワーカーへの届け方は preload のまま） |
 | `review` | 知識（reviewer・keep-reviewer が preload） | 観点の定義、verify との境界、出力の契約 |
+| `canon-update` | 保守（正典の更新） | `disable-model-invocation: true`。保守者が `/canon-update` で起動し、`canon-reference` を公式ドキュメントから**全ファイル作り直す**。手順書 `references/build.md`、検査 `scripts/check.js`（`npm run reference-check`）。run の工程には含まれない |
 
 - 知識 Skill はユーザーが直接起動するものではないので `user-invocable: false` を明示する。
 - 書式の実例（テンプレート）は各知識 Skill の `references/` に置く。
@@ -340,6 +341,7 @@ claude-canon/
 │   ├─ skills/
 │   │   ├─ canon-reference/        正典リファレンス（SSoT。references/・data/・sources.json）
 │   │   ├─ canon-a/ … canon-d/     Phase オーケストレーター（scripts/ を含む）
+│   │   ├─ canon-update/           正典の更新（手順書 references/build.md・検査 scripts/）
 │   │   └─ investigation/ requirements/ design/ generation/ review/   知識 Skill（references/ を含む）
 │   ├─ agents/            investigator・session-analyst・spec-writer・designer・builder・reviewer・keep-reviewer・prompt-auditor
 │   ├─ rules/             claude-canon 自身の開発規律（paths: で読み込む範囲を絞る）

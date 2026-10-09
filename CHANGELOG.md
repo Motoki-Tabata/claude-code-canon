@@ -11,6 +11,8 @@
 
 ### Added
 
+- **更新 Skill `canon-update`**: 正典 `canon-reference` を公式ドキュメントから全ファイル作り直す保守用の Skill（`/canon-update`）。手順書 `design/canon-reference-build.md` を `.claude/skills/canon-update/references/build.md` に移し、検査（1〜9・11）を `npm run reference-check` にしました（`--online` で 2・4・5 も実行。`npm test` はオフラインの検査を実リファレンスに当てます）。
+
 - **run の振り返り（Phase D の終わり）**: handoff の `## セッション` にある Phase A〜D の session-id を `npm run tokens` で集計し、session-analyst を1セッションにつき1体、並列に起動して `work/<ts>/retro/session-analysis-<phase>.md` に分析させ、canon 本体への改修要求を `tasks/lessons.md` に起票します。あわせて canon-a〜d の各 Phase の終わりに、SKILL.md の手順の外で行った操作の自己点検を必須にしました。
 - **reviewer 用の review-bundle**: `npm run review-bundle -- <ts>` が `work/<ts>/review-bundle/reviewer/` に、判定の対象の全件
   （20件ずつに分けた `INDEX-<k>.md`。reviewer は分割数だけ並列に起動し、読み切れなかった対象は未判定として報告させて追加で起動します）・rationale を除いた設計意図（`design.md`）・受入基準（`acceptance.md`）を書きます。reviewer は

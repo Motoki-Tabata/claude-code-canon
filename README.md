@@ -57,7 +57,7 @@ npm test               # 検査・スクリプト・自己適用のテスト
 
 ## ディレクトリ構成
 
-- `.claude/` — 本体。Phase Skill `canon-a`〜`canon-d`（`scripts/` を含む）、知識 Skill 5件と正典リファレンス `canon-reference`、Subagent 8体、
+- `.claude/` — 本体。Phase Skill `canon-a`〜`canon-d`（`scripts/` を含む）、知識 Skill 5件と正典リファレンス `canon-reference`、その更新 Skill `canon-update`、Subagent 8体、
   保守用の Rule、`settings.json`（permissions だけ）。使い方は [.claude/README.md](.claude/README.md)
 - `lib/` — スクリプトが共有するパーサと管理パス集合
 - `tools/` — `approvals.js`（承認の記録と照合）・`check.js`（requirements・spec・design-map の機械点検）・`handoff.js`（handoff.md の更新）・`token-usage.js`（セッションのトークン消費の集計）

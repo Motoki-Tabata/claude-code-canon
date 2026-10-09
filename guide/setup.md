@@ -155,12 +155,21 @@ rm -rf work/<ts> output/<ts>
 | `npm run run-manifest -- <output-dir> <target-dir>` | 配置手順書 RUN.md を書く | D |
 | `npm run pre-deploy -- <output-dir> <target-dir>` | 配置前照合。uncaptured があれば exit 1 | D |
 | `npm run deploy -- <output-dir> <target-dir> [--confirm]` | 配置。`--confirm` が無ければ予定の表示だけ | D（人間） |
+| `npm run reference-check [-- --online]` | 正典リファレンスの検査（build.md §8 の 1〜9・11。`--online` で 2・4・5 も）。違反があれば exit 1 | 保守 |
 | `npm run tokens -- <session-id \| jsonl のパス>` | セッションのトークン消費を集計する（Phase D の終わりの振り返りでも使う） | 保守 |
 | `npm test` | テスト | 保守 |
 
 ## 7. 正典 `canon-reference` の更新
 
-正典を更新する専用のコマンドはありません。保守のセッションで `design/canon-reference-build.md` の手順に沿って公式ドキュメントと突き合わせ、`.claude/skills/canon-reference/`（`references/`・`data/`・`sources.json`）を直したら `npm test` を通し、PR で main に入れます。規律は `.claude/rules/canon-reference.md` にあります。
+canon のルートで `/canon-update` を実行します。公式ドキュメントから `.claude/skills/canon-reference/`（`references/`・`data/`・`sources.json`）を**全ファイル作り直す**保守用の Skill で、run の外で使います。手順は `.claude/skills/canon-update/references/build.md` にあり、途中で人に見せる関門が2つあります（ページの分類、検査の結果）。
+
+検査だけを実行するには次のコマンドを使います。`--online` を付けると、公式サイトへ取得する検査（anchor の実在、ページ一覧、配置できるファイルの表）も実行します。付けないとき、それらは「未実行」と表示され、合格には数えません。
+
+```bash
+npm run reference-check -- --online
+```
+
+作り直したら `npm test` を通し、PR で main に入れます。規律は `.claude/rules/canon-reference.md` にあります。
 
 ## トラブルシューティング
 
