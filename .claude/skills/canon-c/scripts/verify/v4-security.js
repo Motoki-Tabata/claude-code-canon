@@ -32,7 +32,7 @@
  */
 
 import { violation } from '../../../../../lib/artifact.js';
-import { cite } from '../../../../../lib/tables.js';
+import { cite } from '../../../../../lib/reference-data.js';
 
 const CHECK = 'V4';
 

@@ -18,8 +18,8 @@ Hook のイベント名は `canon-reference/data/hook-events.json`（`hook-event
 - スクリプトには実行権限が要る。配置後の手作業として、design-map の「配置時の追加手順」に載っていることを確かめる。
 - パスは `${CLAUDE_PROJECT_DIR}` で書く。絶対パスを書かない。
 - 要件が求めない permission 規則を足さない。
-- status line のスクリプトの置き場は、design-map の宣言に従う。モックの入力で単体で動かせる形にする。実行して確かめるのはオーケストレーターで、builder は動かせない。
-- 実験機能（Experimental）に依存するときは、それが実験機能であることを本文か設定のコメントで明示する（V4）。constraints の `experimental` が `allowed: false` なら、そもそも作らない。
+- status line は、`statusLine.command` にコマンドをインラインで書く。スクリプトのファイルが要る設計は、管理パス集合にその置き場が無いので、design-map の `## 管理パス外の変更` の項目で運ぶ（そのファイルは `claude-md` の担当が `outside-managed/` に書く。settings の担当は書かない。項目が無いのにスクリプトを前提にした `command` を求められたら、書かずに報告する）。`.claude/hooks/` には置かない（verify の V9 が Hook の実体として数え、hooks を禁止した run で止まる）。どちらの形でも、モックの入力で単体で動かせる形にする。実行して確かめるのはオーケストレーターで、builder は動かせない。
+- 実験機能（Experimental）に依存するときは、それが実験機能であることを本文か設定のコメントで明示する。verify が機械で止めるのは Agent Teams（`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`）の明示漏れだけ（V4）で、それ以外の明示は reviewer が見る。constraints の `experimental` が `allowed: false` なら、そもそも作らない。
 
 ## 読み込み元
 

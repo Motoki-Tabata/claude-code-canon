@@ -101,7 +101,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
    - reviewer を spawn する（correctness・security・正典の意図・context の4観点）。refactor モードでは keep-reviewer も spawn する（K2・K4 と merge 先の妥当性）。両者は同一 turn で並列に動かす。
    - prompt-auditor を、reviewer と同じ turn で並列に spawn する。標準 Skill のレビュー（`generated/` に対する `/claude-api prompt-audit`）を実行し、報告を逐語で書く（§8）。メインの会話で実行すると、報告が以後の全ターンで読み込まれ続ける。
    - 結果は `output/<ts>/review/` に置く。
-5. **修正ループ**: 直すと決めた指摘は、handoff.md の「差し戻し」に逐語で記録し、該当層の builder を新規 spawn して直させる → verify → 変更した箇所だけを再レビュー、を指摘が尽きるまで繰り返す。
+5. **修正ループ**: 直すと決めた指摘は、handoff.md の「差し戻し」に逐語で記録し、該当する担当の builder を新規 spawn して直させる → verify → 変更した箇所だけを再レビュー、を指摘が尽きるまで繰り返す。
 6. **P4**: 生成物・verify-report・レビュー結果を1回で提示する。生成物を単独で見ても判断材料が揃わないので、レビュー結果と分けずに出す。P4 に出す前に、verify-report に記録された generated/ のハッシュが現在の generated/ と一致することを確かめる（修正後に verify を回し忘れていないことの確認・§9.3）。
 7. 承認を記録し、Phase D を案内する。
 
@@ -126,14 +126,14 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 | `investigator` | 対象プロジェクトを読み取り専用で調べ、モード（`existing`・`profile`・`focused`）に応じた調査結果を書く | investigation | `work/<ts>/investigation/<mode>.md` | sonnet |
 | `session-analyst` | セッション履歴を読み、分析を書く（工程2でユーザーが要件の材料に指定したとき・Phase D の終わりの run の振り返り） | なし | `work/<ts>/session-analysis-<名前>.md`・`work/<ts>/retro/session-analysis-<phase>.md` | sonnet |
 | `spec-writer` | 調査結果と承認済みの要件を統合し、spec を書く | requirements | `output/<ts>/spec.md` | sonnet |
-| `designer` | 承認済みの spec から機能を選び、層・責務・既存の処遇・モデル割当を design-map に確定する | design | `output/<ts>/design-map.md` | opus |
-| `builder` | 指定された層の生成物を design-map のスライスどおりに書く | generation | `output/<ts>/generated/` のうち担当する層の範囲 | sonnet |
+| `designer` | 承認済みの spec から機能を選び、構成と責務・既存の処遇・モデル割当を design-map に確定する | design | `output/<ts>/design-map.md` | opus |
+| `builder` | 指定された担当の生成物を design-map のスライスどおりに書く | generation | `output/<ts>/generated/` のうち担当の範囲 | sonnet |
 | `reviewer` | 生成物を correctness・security・正典の意図・context の4観点で判定する（判定の対象20件ごとに1体を並列に起動し、未判定があれば追加で起動する） | review | `output/<ts>/review/review-<k>.md` | sonnet |
 | `keep-reviewer` | keep と merge の妥当性（K2・K4・統合先）を、designer の主張を除いた入力だけで判定する（refactor モードのみ） | review | `output/<ts>/review/keep-review.md` | opus |
 | `prompt-auditor` | 標準 Skill `claude-api` の prompt-audit を `generated/` に対して実行し、報告を逐語で書く。時点に依存する語を固定のパターンで走査して足す。編集は適用しない（Edit を持たない） | なし（`Skill` ツールで呼ぶ） | `output/<ts>/review/prompt-audit.md` | sonnet |
 
 - designer は機能選定と設計を一続きに行う。機能選定の結果はそのまま design-map に載るので、分けて spawn する利点が無い。
-- builder は層ごとにオーケストレーターが直接起動する。builder をまとめる中継役は置かない（§5.1）。
+- builder は担当ごとにオーケストレーターが直接起動する。builder をまとめる中継役は置かない（§5.1）。
 - 調査を担う investigator・session-analyst の書き込みは、自分の成果物ファイルに限る（定義で書込先を明示する）。investigator には Edit も与える。調査結果は数十KBになり、差し戻しや自己確認で直すたびに全文を Write し直すと、出力が重複するためである。session-analyst は差し戻しを受けないので Edit を与えない。session-analyst が自分で書くのは、分析の応答をメインが逐語で書き写すと、転記だけにメインの出力トークンを使うためである。
 
 ### 4.2 Skill（11件）
@@ -161,7 +161,10 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 | `.claude/skills/canon-d/scripts/` | `emit-run-manifest.js`・`pre-deploy-check.js`・`deploy.js`・`self-target-guard.js`（自己指定の拒否・artifacts.md §10.5） |
 | `lib/`（リポジトリ直下） | 複数のスクリプトが共有するパーサと管理パス集合（1か所にだけ置く） |
 | `tools/approvals.js` | 承認行の記録と照合（§6.3）。すべての Phase が使うので、Phase Skill ではなく tools/ に置く |
+| `tools/check.js` | requirements・spec・design-map の機械点検（項目ごとの OK / NG） |
+| `tools/handoff.js` | handoff.md の進捗の印・frontmatter・節への追記・セッションの記録 |
 | `tools/token-usage.js` | セッションのトークン消費を集計する |
+| `.claude/skills/canon-update/scripts/` | `check.js`・`checks.js`（正典リファレンスの検査・`npm run reference-check`）。run の工程には含まれない |
 
 入口はすべて `package.json` の scripts から呼べるようにする。
 
@@ -171,13 +174,13 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 ### 5.1 メイン Claude が直接 spawn する
 
-- オーケストレーターは inline のメイン Claude である。ワーカーはすべてオーケストレーターが直接 spawn し、深さは2に留める。独立したワーカー（調査①の2モード、各層の builder、reviewer と keep-reviewer）は同一 turn で並列に起動する。
+- オーケストレーターは inline のメイン Claude である。ワーカーはすべてオーケストレーターが直接 spawn し、深さは2に留める。独立したワーカー（調査①の2モード、各担当の builder、reviewer と keep-reviewer）は同一 turn で並列に起動する。
 - 中継役（ワーカーを束ねるワーカー）は置かない。深さ2の子の報告が呼び出し元ではなくメインに届く、中継役が子の結果を回収せずに turn を終える、といった失敗が起きやすく、中継役が担っていた集約は、ワーカー自身がファイルに書くこととスクリプトによる決定論の生成で置き換えられるためである。
 - ワーカーの応答は「書いた旨」の短い報告だけにし、成果物の本文は会話に通さない。オーケストレーターはワーカーが終わるたびに成果物の実在を確かめる。
 
 ### 5.2 ファイル駆動
 
-工程間の状態は、オーケストレーターの文脈ではなく `work/`・`output/` のファイルが持つ。各工程は「入力ファイルを読み、出力ファイルを書き、終わったことを返す」だけにする。調査結果・requirements・spec・design-map がそのまま工程間のインターフェースになる。正典に handoffs の機構は無く、1本の文脈チェーンで全工程を回すと調査の大量のファイルで文脈があふれる（`docs/BEST_PRACTICES.md`）。
+工程間の状態は、オーケストレーターの文脈ではなく `work/`・`output/` のファイルが持つ。各工程は「入力ファイルを読み、出力ファイルを書き、終わったことを返す」だけにする。調査結果・requirements・spec・design-map がそのまま工程間のインターフェースになる。正典に handoffs の機構は無く、1本の文脈チェーンで全工程を回すと調査の大量のファイルで文脈があふれる（`canon-reference/references/patterns.md` §2）。
 
 ### 5.3 差し戻しは新規 spawn
 
@@ -348,7 +351,7 @@ claude-canon/
 │   ├─ settings.json      permissions のみ（hooks は置かない）
 │   └─ README.md          起動方法の説明
 ├─ lib/                   スクリプトが共有するパーサ・管理パス集合
-├─ tools/                 approvals.js・token-usage.js
+├─ tools/                 approvals.js・check.js・handoff.js・token-usage.js
 ├─ tests/                 自己検証（verify の各検査・スクリプト・自己適用）
 ├─ design/                architecture.md・artifacts.md
 ├─ guide/                 セットアップと運用の手順
@@ -357,5 +360,5 @@ claude-canon/
 └─ package.json・CHANGELOG.md・README.md
 ```
 
-- **`canon-reference/data/` が verify の SSoT の実装である**。verify は `lib/tables.js` を通して data を直接読む。
+- **`canon-reference/data/` が verify の SSoT の実装である**。verify は `lib/reference-data.js` を通して data を直接読む。
 - **work/・output/ を gitignore にする理由**: 実行結果は claude-canon 本体の版とは別物である。成果物は最終的に対象プロジェクトの側で版管理される。

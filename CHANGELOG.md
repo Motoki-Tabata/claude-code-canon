@@ -32,7 +32,7 @@
 
 - **`npm run check -- <ts> requirements|spec|design-map`**: requirements・spec・design-map の点検を項目ごとの OK / NG にしました
   （exit 0 全 OK・1 NG あり・2 引数不正）。要件の件数と強度・優先度の内訳、spec の §9 と `[mandatory]`、design-map の
-  Used Features・層の宣言・既存判定の件数照合・K1〜K5・Write Scopes・mandatory の対応・`allowed: false` の機能・
+  Used Features・起動する機能の宣言・既存判定の件数照合・K1〜K5・Write Scopes・mandatory の対応・`allowed: false` の機能・
   `outside_managed` の範囲を機械で判定します。canon-a・canon-b は、これらを全文を読んで確かめる手順から置き換えました。
   requirements-template に、散文の小節を足してよいことを書きました。
 
@@ -49,8 +49,8 @@
   `npm run copy-keep` が keep と同じ仕組み（sha256 の照合・管理パス集合の検査）でバイト単位に `generated/` へコピーします。
   コピー元は requirements.md の `## 参照元` の配下に限ります。builder は打ち直さず、コピー済みのファイルの差分だけを Edit します。
   new モード（既存判定の無い design-map）でも動きます。`npm run check -- <ts> design-map` が書式・宣言・配下を点検します。
-- **skills 層の builder の分割**: L2 の宣言が20件を超えるとき、`slice.js` が skill 単位に `skills-<k>.md`・`targets-l2-<k>.txt` を足し、
-  Phase C は分割数だけ builder を並列に起動します（`skills.md`・`targets-l2.txt` は全体として残ります）。
+- **skills の担当の builder の分割**: skills の宣言が20件を超えるとき、`slice.js` が skill 単位に `skills-<k>.md`・`targets-skills-<k>.txt` を足し、
+  Phase C は分割数だけ builder を並列に起動します（`skills.md`・`targets-skills.txt` は全体として残ります）。
 
 - **生成物のテストの実行（Phase C 工程7）**: 生成物に `*.test.*` があれば、対象の一時 worktree に generated/（と outside-managed/）を
   重ねて対象のテストランナーで実行し、失敗を verify の違反と同じに扱います。builder にはシェルが無く、書いたテストの失敗が
@@ -67,8 +67,10 @@
 
 ### Changed
 
-- **正典を `canon-reference` に切り替え**: 正典（SSoT）を旧 `docs/` から Skill `canon-reference`（`references/`・`data/`・`sources.json`）に移しました。verify は `data/*.json` を `lib/tables.js` 経由で直接読み、`data` が未提供の検査は違反にせず「未判定」と報告します（exit code には影響しません）。`canon_version` の出典は `sources.json` の `claude_code_version`（`v` なし）です。
+- **正典を `canon-reference` に切り替え**: 正典（SSoT）を旧 `docs/` から Skill `canon-reference`（`references/`・`data/`・`sources.json`）に移しました。verify は `data/*.json` を `lib/reference-data.js` 経由で直接読み、`data` が未提供の検査は違反にせず「未判定」と報告します（exit code には影響しません）。`canon_version` の出典は `sources.json` の `claude_code_version`（`v` なし）です。
 - **層の語彙を機能単位に**: L1〜L5・`2層|3層`・パターン A〜F をやめました。design-map の節は `## <機能>`（12機能）、`## メタ` の `layers` は `patterns`（委譲・並列・強制・配布）、`## レイヤー構成` は `## 構成と責務` になりました。builder は8担当（`claude-md`・`rules`・`skills`・`subagents`・`settings`・`mcp`・`plugins`・`output-styles`）で、スライスは `<担当>.md`・`targets-<担当>.txt` です。管理パス集合に `AGENTS.md`・`.claude/commands/**`・`.claude/output-styles/**` を加えました。
+- **status line のスクリプトの置き場**: 管理パス集合に置き場が無いので、`statusLine.command` はインラインで書き、スクリプトのファイルが要るときは design-map の `## 管理パス外の変更` で運びます（`.claude/hooks/` には置きません。V9 が Hook の実体として数えるため）。
+- **data の読み口の改名**: `lib/tables.js` を `lib/reference-data.js` にしました（廃止した判定表の仕組みと紛らわしいため）。
 - **知識 Skill とルール**: design・generation・review・requirements・investigation は正典の内容を写さず `canon-reference` の該当節を参照します。generation の `references/` は担当単位の8ファイルです。ルール `canon-docs` を `canon-reference`（`.claude/skills/canon-reference/**` を扱うときに読み込む）に置き換えました。設計書2冊とガイドも新しい語彙に合わせました。
 
 - **生成物の README の「使用例」**: spec の受入基準 A1 の転記をやめ、利用者が起動する Skill の起動行
@@ -99,14 +101,20 @@
 ### Removed
 
 - **旧 `docs/`（正典9ファイルと `SOURCES.md`）と判定表の仕組み**: `gates/`・`npm run build:tables`・CI の判定表の鮮度検査を削除しました。旧 `docs/` は git 履歴に残っています。
+- **層単位の知識 Skill の references**: `design/references/layer-design.md` と、`generation/references/` の `l1.md`・`l4.md`・`l5.md`・`agents.md`・`skill-writing.md` を削除しました（機能単位の `structure.md` と担当単位の8ファイルに置き換え、Skill の執筆指針は `canon-reference` の skills §4 を参照します）。
 
 ### Fixed
+
+- **verify が出力スタイルと `AGENTS.md` を止めていた**: `.claude/output-styles/*.md` と `AGENTS.md` を「種別を判定できない」として V1 の違反にしていました。出力スタイルには V1（`paths:files`）と V2（`frontmatter:output-style`）を当て、`AGENTS.md` は `CLAUDE.md` と同じ非スキーマのファイル（V7 の署名は見出しの構造）として扱います。
+- **V6 が SKILL.md の Markdown リンクの実在を見ていなかった**: 生成規約が推奨する `[表示名](./references/x.md)` の参照先が無くても通っていました。コードフェンスの外の相対リンクを skill ディレクトリ相対で解決し、無ければ違反にします（V-skills-18）。
+- **刷新の追従漏れ**: 設計書・`.claude/README.md`・`tools/check.js` のメッセージに残っていた層の語彙と、削除した旧 `docs/` への参照を直しました。生成規約の「実験機能の明示（V4）」を、V4 が機械で見る Agent Teams に限って書き直し、artifacts.md §8 に未判定と V9 の検出経路（`channels/`・`extraKnownMarketplaces`・`isolation: subagent`）を書き足しました。
+- **回帰テスト**: 工程側に層の語彙と旧 `docs/`・判定表の語が残っていないこと、工程側から `canon-reference` への参照（ファイル・節・V-/Q- ID・data の要素）がすべて解決することを `npm test` で検査します。`/canon-update` で正典を作り直したとき、節や ID の変更に追従していない箇所を止めます。
 
 - **配置先のブランチと未コミットの変更を事前に確かめる**: pre-deploy-check が、対象が既定ブランチ（`origin/HEAD`、無ければ main・master）に
   いるとき、未コミットの変更があるとき、git の状態を読めないときに、report に warning を書きます（exit には影響しません）。
   RUN.md は配置の前に作業ブランチを切る手順（`git switch -c`）を置きます。
 - **管理パス外の変更の変更後のファイルを P4 が束縛**: Phase C の工程6で、変更後のファイルを `output/<ts>/outside-managed/<対象パス>` に
-  作ります（対象の現物をコピーし、l1 の builder が直す）。P4 のハッシュは、このディレクトリにファイルがあるとき generated/ と
+  作ります（対象の現物をコピーし、claude-md の担当の builder が直す）。P4 のハッシュは、このディレクトリにファイルがあるとき generated/ と
   合わせて取ります（無ければ従来と同じ値）。RUN.md の 3a に、対象へコピーするコマンドを載せます。
 - **修正ループの振り分けをユーザーから取る**: 工程8の直後に、指摘を直すかを1問で取ります。既定は全件を直すこと、
   「直さない」は理由付きの候補だけを示します。P4 の提示に未決の指摘を残しません。

@@ -62,6 +62,7 @@ npm test               # 検査・スクリプト・自己適用のテスト
 - `lib/` — スクリプトが共有するパーサと管理パス集合
 - `tools/` — `approvals.js`（承認の記録と照合）・`check.js`（requirements・spec・design-map の機械点検）・`handoff.js`（handoff.md の更新）・`token-usage.js`（セッションのトークン消費の集計）
 - `tests/` — 検査・スクリプト・自己適用のテスト（`node --test`）
+  正典リファレンスの検査は `npm run reference-check`（`-- --online` で公式サイトとの照合も行う。手順は guide を参照）
 - `design/` — 設計書2冊
 - `guide/` — セットアップと運用の手順
 - `tasks/lessons.md` — claude-canon 本体への改修要求の台帳

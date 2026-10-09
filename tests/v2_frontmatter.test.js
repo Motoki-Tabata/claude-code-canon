@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkV2 } from '../.claude/skills/canon-c/scripts/verify/v2-frontmatter.js';
+import { checkV2, checkUnknownKeys } from '../.claude/skills/canon-c/scripts/verify/v2-frontmatter.js';
 import { artifactFromText } from '../lib/artifact.js';
 
 function agent(fm) {
@@ -11,6 +11,9 @@ function skill(fm) {
 }
 function rule(fm) {
   return artifactFromText('.claude/rules/x.md', `---\n${fm}\n---\nbody`);
+}
+function outputStyle(fm) {
+  return artifactFromText('.claude/output-styles/x.md', `---\n${fm}\n---\nbody`);
 }
 
 describe('V2 frontmatter スキーマ', () => {
@@ -106,6 +109,31 @@ describe('V2 frontmatter スキーマ', () => {
     assert.equal(v.length, 1);
     assert.equal(v[0].severity, 'error');
     assert.match(v[0].source, /V-rules-03/);
+  });
+
+  test('output-style: frontmatter:output-style のキーなら違反0件、未知キーは違反（V-output-styles-01）', () => {
+    assert.deepEqual(checkV2(outputStyle('name: terse\ndescription: d\nkeep-coding-instructions: true')), []);
+    const v = checkV2(outputStyle('name: terse\nmade-up: 1'));
+    assert.equal(v.length, 1);
+    assert.equal(v[0].severity, 'error');
+    assert.match(v[0].source, /V-output-styles-01/);
+  });
+
+  test('output-style: boolean のキーに真偽値でない値は違反', () => {
+    const v = checkV2(outputStyle('name: terse\nkeep-coding-instructions: maybe'));
+    assert.equal(v.length, 1);
+    assert.match(v[0].message, /keep-coding-instructions/);
+  });
+
+  test('complete: false のコレクションに無いキーは違反でなく未判定（V-common-01）', () => {
+    const col = { ref: 'frontmatter:fake', complete: false, items: [{ id: 'name' }], byId: new Map([['name', { id: 'name' }]]) };
+    const schema = { unknownRule: 'V-rules-03' };
+    const v = checkUnknownKeys(rule('name: x\nlater-added: 1'), schema, col);
+    assert.equal(v.length, 1);
+    assert.equal(v[0].severity, 'undetermined');
+    assert.match(v[0].source, /V-common-01/);
+    // 対照: 同じ入力でも complete: true なら違反
+    assert.equal(checkUnknownKeys(rule('name: x\nlater-added: 1'), schema, { ...col, complete: true })[0].severity, 'error');
   });
 
   test('kind 不明（unknown）は種別不明の1件を返す（黙って何もしない、を避ける）', () => {

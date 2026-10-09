@@ -179,7 +179,7 @@ conflicts:
 
 - **`## 参照元`**（任意）は、対象とは別のプロジェクトの一式を移植の基準にするときの入力欄である。`path` は絶対パス、`role` は基準の用途。focused 調査（investigator）・spec-writer・designer・builder が読む。生成物には参照元のパスや名前を書かない。`lib/requirements.js` の `parseReferenceSources` が読み、`npm run check -- <ts> requirements` が実在を確かめる。参照元から一式を機械的にコピーする手順は §5（design-map の `## 参照元からのコピー`）にある。
 
-- `strength_needed` は `canon-reference/references/selection.md` §4（制御の強さ）の層に対応する canon の3段階語彙（advisory＝指示、deterministic＝Hook、enforced＝permission 規則・サンドボックス）で、制約との衝突の検出に使う。
+- `strength_needed` は `canon-reference/references/selection.md` §4（制御の強さ）の段階に対応する canon の3段階語彙（advisory＝指示、deterministic＝Hook、enforced＝permission 規則・サンドボックス）で、制約との衝突の検出に使う。
 - `constraints` は要件とは独立した環境条件で、機能選定の分岐を先に刈り込む。制約は、調査での検出（Hook が無い・MCP の設定が無い・ポリシーの痕跡）とヒアリングでの確認（禁止なのか、使っていないだけなのか）を合わせて拾う。
 - `conflicts` は方向づけまでにとどめ、判定しない。
 - **`conflicts` のブロック自体が無いのと、空（`conflicts: []`）とは区別する**。衝突が無ければ `conflicts: []` と明示する。ブロックが無いのは記録漏れで、V9 が違反にする（§8.2）。
@@ -332,6 +332,7 @@ generated/ と配置は管理パス集合の中に限られる（§10.1）。要
 
 - **書式**: ``### <ID> `<対象パス>` <要約>`` の見出しと、`要件`・`変更内容`・`根拠`・`確認`・`撤回条件`・`撤回したら直す生成物` の6欄（`- <欄>:` の箇条書き）。emit-manifest は、欄の欠け・見出しに対象パスが無い・対象パスが管理パス集合の中にある、のどれかがあれば失敗する（集合の中なら generated/ に置くべきもの）。
 - **根拠**: 対象のテスト・ビルド・CI の振る舞いを変える変更は、designer が「試行待ち」と書き、Phase B のオーケストレーターが対象の一時 worktree に適用して実行した結果に書き換える（canon-b 工程5）。「現状どこも使っていない」のような不在だけを根拠にしない。「試行待ち」が残っていれば emit-manifest が失敗する。
+- **status line のスクリプト**: 集合に置き場が無いので、ファイルが要るときはこの節の項目にする（`.claude/hooks/` に置くと V9 が Hook の実体として数える）。インラインの `statusLine.command` で足りるなら項目にしない。
 - **撤回したら直す生成物**: 生成物の本文がこの変更の成果物を前提に書かれているなら、そのパスと節を挙げる。撤回したとき、宙に浮いた生成物を直す範囲がここで決まる。
 - **変更後のファイル**: Phase C の工程6で、対象の現物を `output/<ts>/outside-managed/<対象パス>` にコピーし、`claude-md` 担当の builder が「変更内容」どおりに直す（新規ファイルは builder が書く）。このディレクトリは generated/ の外なので、管理パス集合にも V1〜V9 にも入らない。代わりに **P4 の承認が束縛する**: P4 のハッシュは、`outside-managed/` にファイルがあるとき generated/ と合わせた1つの一覧から取る（無ければ従来どおり generated/ だけ。verify-report の再計算コマンドが両方の形を書く）。承認後に変わると P4 が無効になる。なお、各項目に対応するファイルが `outside-managed/` にあるかは機械では検査しない（Phase C のオーケストレーターが実在を確かめる）。
 - **運び方**: MANIFEST が同名の節を写し（§7.2）、RUN.md が「3a」として逐語で転記する（§10.4）。Phase D で配置の後に1件ずつ適用・確認し、結果（撤回したなら直した生成物）を handoff.md に記録する。
@@ -407,7 +408,7 @@ modify・merge・retire は「変える」判断なので差分に出て、人�
 | 文書 | 内容 | 読み手 | 読むとき |
 |---|---|---|---|
 | spec.md | なぜこの構成か（要件・意図） | 設計を追う人 | — |
-| design-map.md | どう設計したか（層・判定） | 設計を検証する人 | — |
+| design-map.md | どう設計したか（機能・判定） | 設計を検証する人 | — |
 | MANIFEST.md | 何が変わるか（新規・改修・維持・廃止） | 配置を承認する人 | 配置時に1回 |
 | README.md | どう使うか | 日常的に使う開発者 | 配置後に繰り返し |
 
@@ -475,11 +476,12 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 `npm run verify -- <ts>`（`canon-c/scripts/verify.js`）は、V1〜V9 を1本の CLI で実行する。
 
 - **1回の走査**: generated/ を1回だけ走査し、ファイルごとに V1〜V6 を当て、全体に V7〜V9 を当てる。検査ごとに同じツリーを読み直さない。
-- **出力**: `output/<ts>/verify-report.md` を書き、違反が1件でもあれば exit 1、無ければ exit 0 を返す。`<ts>` の形式違い、または `output/<ts>/` が無いときは何も作らず exit 2 を返す。想定外の例外で検査が中断しても、その検査の違反として report に載せる。report には、検査ごとの結果（pass／違反の一覧／warning の一覧／「対象なし」とその理由）、検査した generated/ のハッシュ（architecture.md §6.2 と同じ計算）、実行時刻を載せる。
+- **出力**: `output/<ts>/verify-report.md` を書き、違反が1件でもあれば exit 1、無ければ exit 0 を返す。`<ts>` の形式違い、または `output/<ts>/` が無いときは何も作らず exit 2 を返す。想定外の例外で検査が中断しても、その検査の違反として report に載せる。report には、検査ごとの結果（pass／違反の一覧／warning の一覧／未判定の一覧／「対象なし」とその理由）、検査した generated/ のハッシュ（architecture.md §6.2 と同じ計算）、実行時刻を載せる。
 - **検査対象ゼロは違反**: generated/ が無い・空、design-map・requirements.md が無い、など判定の入力が揃わないときは、合格にせず違反にする。「対象なし」と書けるのは、定義上対象が無いと確定する場合（new モードの V7 など）だけで、その理由を report に明記する。
 - **error と warning**: 正典に MUST の明文があるか、規則として確定したものは error（違反）、正典が観測されたパターンとしてしか示していないものは warning（報告のみ）にする。warning も黙って捨てない。
-- **data の出典**: frontmatter の必須キー・正規のツール名・パス規約はハードコードせず、`canon-reference/data/*.json` を `lib/tables.js` 経由で使う。data が `complete: false` と自己申告している検査（型の照合が未提供・語彙が open など）は実装しない。正典に根拠が無い規則は §8.3 の例外として出典を明記する。
-- **非スキーマのファイル**: `CLAUDE.md`・`.claude/README.md`・`.claude/settings.json`・`.claude/hooks/**`・skill パッケージの supporting files は Agent・Skill・Rule の定義ではないので、V1 の配置種別と V2 のスキーマの対象から外す。この除外の判定は1か所（共有 lib）に置き、各検査で複製しない。
+- **未判定**: `complete: false` のコレクション（全件を収めていない一覧）と照合して一致しなかった名前は、違反にも合格にもせず未判定として report に載せる（`canon-reference` の V-common-01）。warning と同じく exit code には影響しない。
+- **data の出典**: frontmatter の必須キー・正規のツール名・パス規約はハードコードせず、`canon-reference/data/*.json` を `lib/reference-data.js` 経由で使う。data が型や語彙を提供していない検査（型の照合が未提供・語彙が open など）は実装しない。`complete: false` のコレクションとの照合は実装し、一致しない名前を未判定にする（上の「未判定」）。正典に根拠が無い規則は §8.3 の例外として出典を明記する。
+- **非スキーマのファイル**: `CLAUDE.md`・`AGENTS.md`・`.claude/README.md`・`.claude/settings.json`・`.claude/hooks/**`・skill パッケージの supporting files は Agent・Skill・Rule の定義ではないので、V1 の配置種別と V2 のスキーマの対象から外す。この除外の判定は1か所（共有 lib）に置き、各検査で複製しない。
 - **レビューに回さない**: V1〜V9 は真偽が機械的に決まる。レビューはこれらを判定し直さない（architecture.md §1.3）。
 
 ### 8.2 検査一覧
@@ -497,12 +499,12 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 | V9 constraints | requirements.md の禁止機能が生成物に現れないか | — | requirements.md |
 
 **V1 配置パス**
-- 許可されたパス（data の `paths:files`）に合致するか、拡張子と種別が整合するか。
+- 許可されたパス（data の `paths:files`）に合致するか、拡張子と種別が整合するか。種別は Subagent・Skill（コマンドファイルを含む）・Rule・出力スタイル（`.claude/output-styles/*.md`・plugin の `output-styles/*.md`）。
 - skill パッケージの中の supporting files（`template.md`・`examples/`・`scripts/`・`references/` など）は違反にしない。`canon-reference` の `features/skills.md` のディレクトリ構造が明示的に許可している。`SKILL.md` という名前の固定は定義ファイルの名前の話で、同じディレクトリの他のファイルを禁じていない。
 - skill のディレクトリ名と frontmatter の `name` の一致を要求する（§8.3 の例外）。
 
 **V2 frontmatter**
-- 必須キーがあるか（Subagent は name と description）、未知のキーが無いか、型と語彙が合うか（data の `frontmatter:*`。ルールは `frontmatter:rule`、コマンドファイルは `frontmatter:command`）。
+- 必須キーがあるか（Subagent は name と description）、未知のキーが無いか、型と語彙が合うか（data の `frontmatter:*`。ルールは `frontmatter:rule`、コマンドファイルは `frontmatter:command`、出力スタイルは `frontmatter:output-style`）。
 - data が `complete: false` と自己申告している検査は、通せないものを違反にせず「未判定」と報告する（V-common-01）。model は完全な ID も許す開いた語彙なので、既知の集合に無い値を拒否しない。
 
 **V3 ツール名**
@@ -525,6 +527,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 3. description による委譲のトリガー: 公式テンプレートのプレースホルダのままなら error。「Delegate when／Delegate for」に当たる委譲条件の節（日本語の「委譲される」「委譲する」を含む）が無ければ warning（正典はこの形を MUST として明文化していない）。
 4. supporting files が実在する。SKILL.md 本文のバッククォートで囲まれたパスらしいトークンを2段で扱う。
    - **error**: `./`・`../` で始まるトークン、または第1セグメントが skill ディレクトリ直下に実在するエントリ名と一致するトークン（例: `examples/` があるときの `examples/sample.md`）。構造上、段階的開示の参照と確定するので、実在しなければ違反にする。
+   - **error**: コードフェンスの外にある Markdown の相対リンク（`[表示名](./references/x.md)`）。V-skills-18 の「相対パスでリンクした補助ファイル」そのものなので、`#` 以降を除いて skill ディレクトリ相対で解決し、無ければ違反にする。URL・`#` だけのリンク・絶対パスは対象外。
    - **warning**: それ以外のトークンは、skill ディレクトリ → generated/ のルート → 対象のルートの順に解決を試み、どこでも解決できないものだけを報告する（リポジトリ相対の地の文の参照や、一般名詞としてのファイル名を違反にしない）。パスを含まないファイル名は、generated/ 全体の basename 一致でも解決とみなす。未解決は1ファイルにつき1件の warning にまとめ、件数と代表例（先頭の5件）を載せる。
 5. plugin.json の `skills`・`commands`・`agents`・`hooks`・`mcpServers`・`outputStyles`・`lspServers`・`experimental.themes`・`experimental.monitors` のパスが plugin のルート相対で実在する（`canon-reference` の `features/plugins.md`）。
 6. skill パッケージに定義ファイル `SKILL.md` が実在する。V1 が supporting files を許す以上、ここで明示的に確かめないと、`Skill.md` のような綴り違いで Skill が読み込まれない失敗が検査をすり抜ける。
@@ -543,7 +546,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
    |---|---|
    | SKILL.md・Subagent の定義 | frontmatter の `name` |
    | rule | `paths:` の値（並べ替えた一覧）。`paths:` が無い rule は「無条件に読み込まれること」を署名にする。本文の節の追加は署名に含めない |
-   | `CLAUDE.md`・`.claude/README.md` | 見出しの構造 |
+   | `CLAUDE.md`・`AGENTS.md`・`.claude/README.md` | 見出しの構造 |
    | JSON（settings.json・.mcp.json など） | トップレベルのキーの集合 |
    | 付随スクリプト（`.js`・`.mjs`） | export する識別子の集合 |
    | 上記以外 | 検査できない＝`none` の宣言は違反（宣言と強制がずれることを許さない） |
@@ -551,7 +554,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 8. **対象なし**: new モード（existing_disposition が空であるべき）なら、V7 は「対象なし（new モード）」と report に書く。refactor モードで existing_disposition が読めない・0件のときは違反にする。
 
 **V8 スナップショット完全性**
-1. **design-map の宣言 ⇒ generated/**: design-map の層ごとの節で宣言された生成物と、keep・modify のレコードが、generated/ にすべて実在する（宣言源は `targets-all.txt` と同じ）。層の節の照合は §5.4 のとおり。層の節が1つも無いのに、disposition に無いファイルが generated/ にあれば違反（宣言の0件で素通りさせない）。
+1. **design-map の宣言 ⇒ generated/**: design-map の機能ごとの節で宣言された生成物と、keep・modify のレコードが、generated/ にすべて実在する（宣言源は `targets-all.txt` と同じ）。機能の節の照合は §5.4 のとおり。機能の節が1つも無いのに、disposition に無いファイルが generated/ にあれば違反（宣言の0件で素通りさせない）。
 2. **MANIFEST ⇔ generated/**: MANIFEST の `## 全ファイル` 節と generated/ の実ファイルが双方向に一致する（節が無い・1行欠けている・実在しない行がある、のいずれも違反）。
 3. **空でない**: generated/ にファイルがある。
 4. **配置リスト**: `managed-paths.list` の各行が管理パス集合（§10.1）に属し、glob ではなく、generated/ に実在する。generated/ の全ファイルが `managed-paths.list` に載っている（配置されない生成物を作らない）。集合への所属の判定（パターンの照合）と具体性の判定（glob でないこと）は別に行う（`.claude/rules/**` のパターンは glob の行にもマッチしてしまうため）。
@@ -566,8 +569,8 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
   |---|---|
   | `hooks` | ① 生成した JSON（`.claude/settings.json`・`plugin.json`・`.claude-plugin/plugin.json` など）の `hooks` の宣言 ② その宣言のイベント名を `hook-events:events` の全イベント集合と照合 ③ hook スクリプトの実体（`.claude/hooks/**`・`plugin/hooks/**`） ④ frontmatter の `hooks:` |
   | `mcp` | ① `.mcp.json`（plugin 同梱を含む） ② frontmatter の `mcpServers:` ③ `tools`・`disallowedTools`・`allowed-tools`・`disallowed-tools` の中の `mcp__<server>__<tool>` ④ settings.json の `enabledMcpjsonServers` |
-  | `plugins` | ① 管理パス集合の plugins パターン（`plugin/**`）に合う生成物 ② `plugin.json`・`marketplace.json` ③ settings.json の `enabledPlugins` |
-  | `experimental` | ① frontmatter の `context: fork` ② 環境変数の**接頭辞** `CLAUDE_CODE_EXPERIMENTAL_`（個別の変数名で書かない） ③ plugin 同梱の `themes/`・`monitors/` ④ design-map の `## Experimental Dependencies` 節が空でない。プレビュー段階の組込み Skill（`/design` など）への依存は、生成物には本文の起動の案内として現れるだけなので①〜③では検出しない（④に書かれたときだけ止まる） |
+  | `plugins` | ① 管理パス集合の plugins パターン（`plugin/**`）に合う生成物 ② `plugin.json`・`marketplace.json` ③ settings.json の `enabledPlugins`・`extraKnownMarketplaces` |
+  | `experimental` | ① frontmatter の `context: fork` ② 環境変数の**接頭辞** `CLAUDE_CODE_EXPERIMENTAL_`（個別の変数名で書かない） ③ plugin 同梱の `themes/`・`monitors/`・`channels/` ④ design-map の `## Experimental Dependencies` 節が空でない ⑤ frontmatter の `isolation: subagent`（canon 独自の検出。data の `frontmatter:subagent/isolation` は `worktree` だけ）。プレビュー段階の組込み Skill（`/design` など）への依存は、生成物には本文の起動の案内として現れるだけなので①〜③では検出しない（④に書かれたときだけ止まる） |
   | `organization_policy` | `allowed` を持たない自由文。**機械では判定できない**ことを report に明記する（違反にはしないが、無かったことにもしない）。準拠は reviewer の security 観点が見る |
   | 上記以外のキー | `allowed: false` なら、検出器が無い＝検査できないので**違反** |
 
@@ -602,7 +605,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 `review-bundle.js` は、reviewer と keep-reviewer が「何を見るか」を決定論で確定し、`work/<ts>/review-bundle/` に書く。入力の収集を LLM に任せると、入力を探し損ねて何も見つけず、問題なしと答える経路ができるためである。
 
 - **keep-reviewer 用**（`review-bundle/keep-review/`・refactor モードのときだけ作る）: keep と merge のレコード1件につき1ファイル。入力は design-map の existing_disposition・spec の新要件と統合方針・requirements.md の conflicts・strength_needed・constraints・investigation・対象の原本。
-- **reviewer 用**（`review-bundle/reviewer/`・mode によらず常に作る）: `INDEX-<k>.md`（generated/ の全ファイルを20件（`REVIEW_CHUNK_SIZE`）ずつに分けたもの。k は1始まりで、20件以下でも `INDEX-1.md` を作る。各 INDEX は担当の対象を1行1件で、処遇と、security 観点で見る frontmatter の `tools`・`allowed-tools`・`model` 等を併記。接地材料 spec・requirements・profile・focused（あれば official-check）と対象ルートの絶対パス、書込先 `review/review-<k>.md` を持つ。全 INDEX の和が generated/ の全件と一致し、重複しない）・`design.md`（design-map の共通の節と層の節。既存判定は path・disposition・統合先・interface_change だけ）・`acceptance.md`（spec §8 の逐語。`design.md`・`acceptance.md` は全分割で共有する）。generated/ が0件なら失敗する。1体の reviewer に全件を渡すと読み切れず、実測で79件に対して Read が34回だった。分割して並列に起動し、読み切れなかった対象は `## 未判定の対象` として報告させ、あれば追加で起動する（工程8は未判定が尽きるまで完了しない）。reviewer は design-map の全文と slices を読まない。
+- **reviewer 用**（`review-bundle/reviewer/`・mode によらず常に作る）: `INDEX-<k>.md`（generated/ の全ファイルを20件（`REVIEW_CHUNK_SIZE`）ずつに分けたもの。k は1始まりで、20件以下でも `INDEX-1.md` を作る。各 INDEX は担当の対象を1行1件で、処遇と、security 観点で見る frontmatter の `tools`・`allowed-tools`・`model` 等を併記。接地材料 spec・requirements・profile・focused（あれば official-check）と対象ルートの絶対パス、書込先 `review/review-<k>.md` を持つ。全 INDEX の和が generated/ の全件と一致し、重複しない）・`design.md`（design-map の共通の節と機能の節。既存判定は path・disposition・統合先・interface_change だけ）・`acceptance.md`（spec §8 の逐語。`design.md`・`acceptance.md` は全分割で共有する）。generated/ が0件なら失敗する。1体の reviewer に全件を渡すと読み切れず、実測で79件に対して Read が34回だった。分割して並列に起動し、読み切れなかった対象は `## 未判定の対象` として報告させ、あれば追加で起動する（工程8は未判定が尽きるまで完了しない）。reviewer は design-map の全文と slices を読まない。
 - **宣言を除く規約（最重要）**: バンドルから、**designer が立てた `keep_conditions` の boolean と rationale を機械的に除く**。除かなければ、判定者は「K2: true」という判定対象自身の主張に引きずられ、常に問題なしと答える（検査が恒真になる）。merge も「統合元 → 統合先」の対応だけを渡し、妥当性の主張は落とす。reviewer 用のバンドルからも design-map の rationale（designer の自己弁護）を除く。除けていることはテストで固定する（バンドルに `keep_conditions`・`K2:` などが現れないこと）。
 - **生成物からの逆引き**: 宣言を除くと、判定者は「keep 対象の弱点を補う記述が他の生成物にあるか」を確かめる材料を失い、実在する記述を「無い」と断定しかねない。そこで、keep 対象を名指ししている生成物の箇所を `file:line` で機械的に逆引きして同梱する。designer の主張ではなく生成物の実体なので、恒真にはならない。言及が見つからなければ「Grep で確かめてから不在と言う」旨を添える。
 - **書き出す前に出力先を空にする**: 差し戻しで keep が減った後に前回のバンドルが残ると、判定の対象外のファイルを判定してしまう。

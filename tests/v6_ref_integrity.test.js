@@ -342,3 +342,34 @@ test('V6 Tier B: 未解決のトークンは1ファイル1件にまとめ、件�
   assert.ok(!w[0].includes('"lib/m5.js"'), '代表例は先頭の5件');
   assert.match(w[0], /ほか3件/);
 });
+
+test('V6 V-skills-18: SKILL.md の Markdown 相対リンクの参照先が無ければ違反、あれば通る（故意の違反注入）', (t) => {
+  const ts = tsFor(import.meta.url, 34);
+  setup(t, ts);
+  const skillDir = path.join(out(ts), 'generated', '.claude', 'skills', 'linked');
+  mkdirSync(path.join(skillDir, 'references'), { recursive: true });
+  writeFileSync(path.join(skillDir, 'references', 'guide.md'), '# guide\n');
+  writeFileSync(
+    path.join(skillDir, 'SKILL.md'),
+    '---\nname: linked\ndescription: x\n---\n' +
+      '詳細は [ガイド](./references/guide.md#使い方) を、書式は [書式](references/format.md) を読む。\n'
+  );
+  const r = v6(ts);
+  assert.ok(r.violations.some((v) => v.includes('references/format.md')), JSON.stringify(r.violations));
+  assert.ok(!r.violations.some((v) => v.includes('references/guide.md')), '実在するリンク（anchor 付き）は通す');
+});
+
+test('V6 V-skills-18: コードフェンスの中のリンク・URL・anchor だけのリンクは検査しない', (t) => {
+  const ts = tsFor(import.meta.url, 35);
+  setup(t, ts);
+  const skillDir = path.join(out(ts), 'generated', '.claude', 'skills', 'fenced');
+  mkdirSync(skillDir, { recursive: true });
+  writeFileSync(
+    path.join(skillDir, 'SKILL.md'),
+    '---\nname: fenced\ndescription: x\n---\n' +
+      '[公式](https://code.claude.com/docs/en/skills.md)・[節](#手順)・[メール](mailto:a@example.com)\n' +
+      '```markdown\n[例](./example-only.md)\n```\n'
+  );
+  const r = v6(ts);
+  assert.deepEqual(r.violations.filter((v) => v.includes('fenced/SKILL.md')), []);
+});

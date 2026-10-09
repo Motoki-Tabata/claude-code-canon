@@ -91,6 +91,18 @@ describe('V1 パス規約', () => {
     assert.match(v[0].source, /V-rules-01/);
   });
 
+  test('出力スタイルの正しい配置（.claude/output-styles/*.md・plugin/output-styles/）は違反0件（V-output-styles-05）', () => {
+    assert.deepEqual(checkV1(art('.claude/output-styles/terse.md', 'name: terse\ndescription: d')), []);
+    assert.deepEqual(checkV1(art('plugin/output-styles/terse.md', 'name: terse\ndescription: d')), []);
+  });
+
+  test('出力スタイルがサブディレクトリにあるときは違反でなく未判定（paths:files は complete: false）', () => {
+    const v = checkV1(art('.claude/output-styles/team/terse.md', 'name: terse'));
+    assert.equal(v.length, 1);
+    assert.equal(v[0].severity, 'undetermined');
+    assert.match(v[0].source, /V-output-styles-05/);
+  });
+
   test('既知の配置に属さないパスは違反でなく未判定（paths:files は complete: false）', () => {
     const v = checkV1(art('random/place/orphan.md', 'name: orphan'));
     assert.equal(v.length, 1);

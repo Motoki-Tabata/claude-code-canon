@@ -154,6 +154,21 @@ test('verify: CLAUDE.md と README.md に agent/skill のスキーマを当て�
   }
 });
 
+test('verify: 出力スタイルと AGENTS.md を種別不明にしない（output-style は V1・V2 を当て、AGENTS.md は非スキーマ）', (t) => {
+  const ts = nextTs();
+  cleanupTs(t, ts);
+  write(genDir(ts), 'AGENTS.md', '# agents\n本文\n');
+  write(genDir(ts), '.claude/output-styles/terse.md', '---\nname: terse\ndescription: 短く答える\n---\n短く答える。\n');
+  const r = runChecks(buildContext(ts));
+  assert.deepEqual(r.V1.violations, [], JSON.stringify(r.V1.violations));
+  assert.deepEqual(r.V2.violations, [], JSON.stringify(r.V2.violations));
+  assert.equal(r.V2.checked, 1, 'output-style に V2 を当てる（AGENTS.md は当てない）');
+  // 故意の違反: 未知キーは V2 が拾う
+  write(genDir(ts), '.claude/output-styles/terse.md', '---\nname: terse\nmade-up: 1\n---\n本文\n');
+  const bad = runChecks(buildContext(ts));
+  assert.ok(bad.V2.violations.some((v) => v.includes('made-up')), JSON.stringify(bad.V2.violations));
+});
+
 test('verify: 定義でない .md を黙って飛ばさない（agents 配下の走り書きは V2、種別不明の .md は V1 の違反）', (t) => {
   const ts = nextTs();
   cleanupTs(t, ts);

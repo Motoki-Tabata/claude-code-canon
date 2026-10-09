@@ -33,7 +33,7 @@
  */
 
 import path from 'node:path';
-import { collection } from '../../../../../lib/tables.js';
+import { collection } from '../../../../../lib/reference-data.js';
 import { parseRequirementsDoc, RequirementsError } from '../../../../../lib/requirements.js';
 import { PLUGIN_PATTERN } from '../../../../../lib/managed-paths.js';
 import { findHeading, sectionSlice, mentionsIdentifier } from '../../../../../lib/markdown.js';

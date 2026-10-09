@@ -7,7 +7,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
-import { REFERENCE_DIR, collection } from '../lib/tables.js';
+import { REFERENCE_DIR, collection } from '../lib/reference-data.js';
 import { FEATURES, UNITS, UNIT_NAMES, OTHER_UNIT, unitOfFeature, featureOfPath, unitOfPath } from '../lib/features.js';
 
 test('FEATURES は references/features/*.md のファイル名と過不足なく一致する', () => {

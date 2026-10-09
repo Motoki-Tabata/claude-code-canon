@@ -21,6 +21,8 @@ import { checkV4 } from '../.claude/skills/canon-c/scripts/verify/v4-security.js
 import { readdirSync } from 'node:fs';
 import { isNonSchemaRel } from '../lib/non-schema.js';
 import { ROOT } from './helpers/paths.js';
+import { REFERENCE_DIR } from '../lib/reference-data.js';
+import { buildReferenceIndex, extractReferenceRefs, resolveReferenceRef } from './helpers/reference-refs.js';
 
 const SELF = path.join(ROOT, '.claude');
 
@@ -320,6 +322,96 @@ test('検出器の素振り: run の worktree 方式の語を拾い、新方式�
   for (const ok of ['canon のルートで起動する', 'canon_commit', 'tasks/lessons.md に書く', 'git worktree list --porcelain']) {
     assert.ok(!RUN_WORKTREE_TERMS.test(ok), `${ok} を過検出した`);
   }
+});
+
+/**
+ * 層の語彙（L1〜L5・N層・layers・targets-l<N>）と、削除した旧 docs/・判定表の仕組みの語が、工程側に
+ * 残っていないか。工程は機能単位（canon-reference の12機能・builder の8担当）で組んである。
+ * 対象外: canon-reference（正典の本文は reference-check の検査9が見る）、検出の規則そのもの
+ * （canon-update の build.md・checks.js）、旧語を写し替えるための誤マッピング表（terminology.md）、
+ * 検出器と故意の違反を含む tests/、過去の版を記録する CHANGELOG.md。
+ */
+const LAYER_ERA_TERMS =
+  /(?<![A-Za-z0-9])L[1-5](?![A-Za-z0-9])|L[1-5]_[A-Z]|(?<!階)層|レイヤー|layers:|targets-l\d|docs\/(00_INDEX|BEST_PRACTICES|ORCHESTRATION|SOURCES|TOOLS)|gates\/|conformance_tables|build:tables|canon-docs/;
+const LAYER_ERA_EXEMPT = new Set([
+  '.claude/skills/canon-update/references/build.md',
+  '.claude/skills/canon-update/scripts/checks.js',
+  '.claude/skills/requirements/references/terminology.md',
+]);
+
+test('工程側に層の語彙と旧 docs/・判定表の語が残っていない', () => {
+  const out = execFileSync('git', ['ls-files', '-z', '--', '.claude', 'lib', 'tools', 'design', 'guide', 'README.md', 'package.json', '.github', '.gitignore'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  });
+  const files = out
+    .split('\0')
+    .filter(Boolean)
+    .filter((rel) => !rel.startsWith('.claude/skills/canon-reference/') && !LAYER_ERA_EXEMPT.has(rel));
+  assert.ok(files.length >= 50, `検査対象が少なすぎる（実際: ${files.length}）`);
+  const hits = files.flatMap((rel) =>
+    readFileSync(path.join(ROOT, rel), 'utf8')
+      .split('\n')
+      .flatMap((line, i) => (LAYER_ERA_TERMS.test(line) ? [`${rel}:${i + 1}: ${line.trim().slice(0, 80)}`] : []))
+  );
+  assert.deepEqual(hits, []);
+});
+
+test('検出器の素振り: 層の語彙と旧 docs/ の語を拾い、普通の語は拾わない', () => {
+  for (const bad of ['L2 の宣言', 'builder を起動する層', 'targets-l2.txt', 'layers: 3層', '正典 L2_SKILLS.md', 'docs/BEST_PRACTICES.md', 'gates/conformance_tables', '## レイヤー構成']) {
+    assert.ok(LAYER_ERA_TERMS.test(bad), `${bad} を見逃した`);
+  }
+  for (const ok of ['WSL2 で動かす', 'ディレクトリの階層', 'builder の担当', 'targets-skills-1.txt', 'code.claude.com/docs/en/hooks.md']) {
+    assert.ok(!LAYER_ERA_TERMS.test(ok), `${ok} を過検出した`);
+  }
+});
+
+/**
+ * 工程側から canon-reference への参照（`features/x.md §N`・V-/Q- ID・`` `<data>:<collection>/<id>` ``）が
+ * すべて解決するか。canon-reference は `/canon-update` で全ファイルを作り直すので、節や ID が変わったときに
+ * 工程側の追従漏れをここで止める（reference-check は canon-reference の内側しか見ない）。
+ */
+test('工程側から canon-reference への参照（ファイル・節・ID・data）がすべて解決する', () => {
+  const index = buildReferenceIndex(REFERENCE_DIR);
+  const out = execFileSync('git', ['ls-files', '-z', '--', '.claude', 'lib', 'tools', 'design', 'guide', 'README.md'], { cwd: ROOT, encoding: 'utf8' });
+  const files = out
+    .split('\0')
+    .filter(Boolean)
+    .filter((rel) => /\.(md|js)$/.test(rel) && !rel.startsWith('.claude/skills/canon-reference/'));
+  const counts = { file: 0, section: 0, id: 0, data: 0 };
+  const broken = [];
+  for (const rel of files) {
+    readFileSync(path.join(ROOT, rel), 'utf8')
+      .split('\n')
+      .forEach((line, i) => {
+        for (const ref of extractReferenceRefs(line, index)) {
+          counts[ref.type]++;
+          const why = resolveReferenceRef(ref, index);
+          if (why) broken.push(`${rel}:${i + 1}: ${why}`);
+        }
+      });
+  }
+  for (const [type, n] of Object.entries(counts)) assert.ok(n >= 5, `${type} の参照が少なすぎる（実際: ${n}）。抽出が発火していない`);
+  assert.deepEqual(broken, []);
+});
+
+test('検出器の素振り: 存在しない節・ID・data の要素・ファイルを解決できないと報告する', () => {
+  const index = buildReferenceIndex(REFERENCE_DIR);
+  const bad = [
+    '`canon-reference/references/features/skills.md` §99',
+    'selection.md §42',
+    'V-skills-999',
+    '`tools:tools/NoSuchTool`',
+    '`canon-reference/references/features/no-such.md`',
+  ];
+  for (const line of bad) {
+    const refs = extractReferenceRefs(line, index);
+    assert.ok(refs.length > 0, `${line} を参照として抜き出せない`);
+    assert.ok(refs.some((r) => resolveReferenceRef(r, index) !== null), `${line} の不在を見逃した`);
+  }
+  const good = extractReferenceRefs('`canon-reference/references/features/skills.md` §4・V-skills-18・`tools:tools/Read`', index);
+  assert.deepEqual(good.map((r) => resolveReferenceRef(r, index)).filter(Boolean), []);
+  assert.deepEqual(extractReferenceRefs('`generation/references/skills.md` §4', index), [], '工程側の同名ファイルを正典と取り違えない');
 });
 
 test('Phase Skill が、廃止した標準レビュー（/security-review・/code-review）を呼ばない', () => {

@@ -29,7 +29,7 @@ Phase C は Anthropic の標準 Skill を使います。
 | Skill | 使いどころ | 入手 |
 |---|---|---|
 | `/claude-api prompt-audit` | Phase C で生成物のプロンプトを監査する | プラグイン `example-skills`（Claude Code に同梱されている場合はそれを使う） |
-| `skill-creator` | 対象向けの Skill の description を trigger eval で磨きたいとき（任意）。builder 自身は `generation` Skill に置いた執筆指針の要約に従う | プラグイン `example-skills` |
+| `skill-creator` | 対象向けの Skill の description を trigger eval で磨きたいとき（任意）。builder 自身は `canon-reference` の skills §4（`generation` Skill から参照）に従う | プラグイン `example-skills` |
 | `mcp-builder` | MCP サーバーの新規実装が要るときに、対象側で使うよう案内する | プラグイン `example-skills` |
 
 プラグインは Claude Code の中で次のように入れます。

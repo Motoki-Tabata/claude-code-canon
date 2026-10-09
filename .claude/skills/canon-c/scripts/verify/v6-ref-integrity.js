@@ -21,6 +21,9 @@
  *      SKILL.md body 中でバッククォート参照されるパス様トークン（`template.md`・`examples/sample.md`
  *      等）を2段で扱う（artifacts.md §8.2 V6-4）。パスらしい構文（拡張子付き or ディレクトリ区切りを
  *      含む・空白/`$`/URL を含まない）に絞るのは、canon-reference がパターンを構造化していないための設計判断。
+ *      Markdown の相対リンク（`[表示名](./references/x.md)`）は、V-skills-18 の「相対パスでリンクした」
+ *      そのものなので、コードフェンスの外のものを skill ディレクトリ相対で解決し、無ければ error にする
+ *      （URL・`#` だけのリンク・絶対パスは対象外）。
  *   5. plugin 参照実在
  *      出典: V-plugins-05（manifest が指すコンポーネントのパスが、プラグインの中に存在する）。
  *      plugin.json の `skills` / `commands` / `agents` / `hooks` / `mcpServers` / `outputStyles` /
@@ -44,9 +47,10 @@
 
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { cite } from '../../../../../lib/tables.js';
+import { cite } from '../../../../../lib/reference-data.js';
 import { skillPathRole, violation, splitListValue } from '../../../../../lib/artifact.js';
 import { isManaged } from '../../../../../lib/managed-paths.js';
+import { computeFenceMask } from '../../../../../lib/markdown.js';
 import { splitBySeverity } from './format.js';
 
 const CHECK = 'V6';
@@ -186,6 +190,26 @@ function extractPathLikeTokens(text) {
 }
 
 /**
+ * コードフェンスの外にある Markdown の相対リンクの参照先（`#anchor` を除いたパス）を集める。
+ * URL（`scheme:`）・`#` だけのリンク・絶対パス・プレースホルダ（`$`・`<`）は対象外。
+ */
+function extractRelativeLinks(text) {
+  const lines = text.split('\n');
+  const mask = computeFenceMask(lines);
+  const targets = [];
+  lines.forEach((line, i) => {
+    if (mask[i]) return;
+    for (const m of line.matchAll(/\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
+      const target = m[1].split('#')[0];
+      if (!target || /^[a-z][a-z0-9+.-]*:/i.test(target) || target.startsWith('/')) continue;
+      if (target.includes('$') || target.includes('<')) continue;
+      targets.push(target);
+    }
+  });
+  return [...new Set(targets)];
+}
+
+/**
  * トークンが Tier A（構造上 supporting file 参照と確定できる）かを判定する（artifacts.md §8.2 V6-4）:
  *   - `./`・`../` を冠する明示相対トークン、または
  *   - トークンの第1セグメントがスキルディレクトリ直下に実在するエントリ名と一致するトークン
@@ -214,7 +238,21 @@ function checkSupportingFiles(ctx) {
   for (const f of listSkillDefinitions(ctx)) {
     const artifact = f.artifact;
     const skillDir = path.posix.dirname(f.rel);
-    const tokens = extractPathLikeTokens(artifact.body ?? artifact.rawText ?? '');
+    const body = artifact.body ?? artifact.rawText ?? '';
+    for (const link of extractRelativeLinks(body)) {
+      checked++;
+      if (!existsInTree(ctx, path.posix.join(skillDir, link))) {
+        violations.push(
+          violation(
+            CHECK,
+            artifact.path,
+            `body 中の Markdown リンク "${link}" の参照先がスキルディレクトリ配下に実在しない（V-skills-18）。`,
+            SUPPORTING_FILE_SOURCE
+          )
+        );
+      }
+    }
+    const tokens = extractPathLikeTokens(body);
     const unresolved = [];
     for (const tok of tokens) {
       checked++;

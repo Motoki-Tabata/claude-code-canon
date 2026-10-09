@@ -48,7 +48,7 @@ export const CHECKS = [
 ];
 
 /** スキーマ（frontmatter）を持つ種別。これだけが V1〜V4 の per-file 検査の対象。 */
-const SCHEMA_KINDS = new Set(['agent', 'skill', 'rule']);
+const SCHEMA_KINDS = new Set(['agent', 'skill', 'rule', 'output-style']);
 
 function readIfExists(p) {
   return existsSync(p) ? readFileSync(p, 'utf8') : null;
@@ -125,11 +125,11 @@ function runPerFile(ctx, results) {
       mcpJson++;
       continue;
     }
-    if (!f.artifact || isNonSchemaRel(f.rel)) continue; // CLAUDE.md・README・hooks・supporting files
+    if (!f.artifact || isNonSchemaRel(f.rel)) continue; // CLAUDE.md・AGENTS.md・README・hooks・supporting files
     if (!SCHEMA_KINDS.has(f.artifact.kind)) {
       // 種別を判定できない .md を黙って飛ばすと vacuous pass になる（配置の誤り）。
       results.V1.violations.push(
-        `V1 ${f.rel}: 種別（agent・skill・rule）を判定できず、既知の非スキーマファイルでもない。配置が誤っている可能性。`
+        `V1 ${f.rel}: 種別（agent・skill・rule・output-style）を判定できず、既知の非スキーマファイルでもない。配置が誤っている可能性。`
       );
       results.V1.checked++;
       continue;
@@ -139,7 +139,7 @@ function runPerFile(ctx, results) {
     add('V3', checkV3(f.artifact));
     add('V4', checkV4(f.artifact));
   }
-  const noSchema = 'スキーマを持つファイル（agent・skill・rule）が generated/ に無い';
+  const noSchema = 'スキーマを持つファイル（agent・skill・rule・output-style）が generated/ に無い';
   for (const id of ['V1', 'V2', 'V3']) if (results[id].checked === 0) results[id].na = noSchema;
   if (results.V4.checked === 0 && mcpJson === 0) results.V4.na = `${noSchema}。.mcp.json も無い`;
   Object.assign(results.V5, checkV5(ctx));

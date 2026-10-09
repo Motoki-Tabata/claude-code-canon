@@ -14,6 +14,7 @@ import { outputDir, workDir } from './helpers/paths.js';
 import { tsFor } from './helpers/ts.js';
 import { checkV7 } from '../.claude/skills/canon-c/scripts/verify/v7-keep.js';
 import { buildContext } from '../.claude/skills/canon-c/scripts/verify.js';
+import { interfaceSignature } from '../lib/interface-signature.js';
 
 function v7(ts) {
   const r = checkV7(buildContext(ts));
@@ -301,4 +302,11 @@ test('V7: disposition が空（null・未記入）のレコードも違反', (t)
   editDesignMap(c, (s) => s.replace('disposition: keep', 'disposition:'));
   const r = v7(c.ts);
   assert.ok(has(r, 'disposition', '未記入'), JSON.stringify(r.violations));
+});
+
+test('interfaceSignature: AGENTS.md は CLAUDE.md と同じく見出し構造が署名', () => {
+  const a = interfaceSignature('AGENTS.md', '# a\n本文\n## b\n');
+  assert.equal(a.kind, 'heading-structure');
+  assert.equal(a.verifiable, true);
+  assert.notEqual(interfaceSignature('AGENTS.md', '# a\n## b\n## c\n').signature, a.signature, '節の追加で署名が変わる');
 });
