@@ -1,0 +1,1782 @@
+{
+  "id": "hook-events",
+  "description": "Hook のイベント・ハンドラーの種別・exit code・共通の入力フィールド・共通の出力フィールドの一覧。",
+  "collections": {
+    "events": {
+      "description": "Hook のイベント。matcher の対象、ブロックできるか、イベント固有の入力と出力、使えるハンドラーの種別を持つ。",
+      "complete": true,
+      "complete_basis": "公式ページがイベントの要約表・exit code 2 の表・Hook events の節で全件を列挙しており、3つが一致する",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "SessionStart",
+          "when_ja": "セッションの開始・再開時",
+          "matcher_target": "source（セッションの始まり方）",
+          "matcher_values": [
+            "startup",
+            "resume",
+            "clear",
+            "compact",
+            "fork"
+          ],
+          "if_supported": false,
+          "can_block": false,
+          "exit2_effect_ja": "stderr をユーザーにだけ表示する",
+          "decision_pattern_ja": "コンテキストの追加のみ（ブロック・決定の制御なし）",
+          "input_fields": [
+            "source",
+            "model",
+            "agent_type",
+            "session_title",
+            "seconds_since_last_response",
+            "context_tokens",
+            "prompt_cache_likely_expired",
+            "estimated_cache_write_usd"
+          ],
+          "decision_fields": [
+            {
+              "name": "additionalContext",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "initialUserMessage",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "sessionTitle",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "watchPaths",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "reloadSkills",
+              "location": "hookSpecificOutput"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": true,
+          "claude_env_file": true,
+          "notes_ja": "起動時（--continue・--resume を含む）の SessionStart では mcp_tool ハンドラーは呼ばれずに飛ばされる。/clear やコンパクションの後に再び発火したときは動く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#sessionstart"
+          }
+        },
+        {
+          "id": "Setup",
+          "when_ja": "--init-only、または -p モードで --init・--maintenance を付けて起動したときだけ",
+          "matcher_target": "trigger（setup を起こした CLI フラグ）",
+          "matcher_values": [
+            "init",
+            "maintenance"
+          ],
+          "if_supported": false,
+          "can_block": false,
+          "exit2_effect_ja": "exit code と stderr を無視する",
+          "decision_pattern_ja": "なし（JSON 出力はどの exit code でも捨てられる）",
+          "input_fields": [
+            "trigger"
+          ],
+          "decision_fields": [],
+          "handler_types": [
+            "command",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": true,
+          "notes_ja": "Setup で実際に動くのは command だけで、mcp_tool ハンドラーは常に飛ばされる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#setup"
+          }
+        },
+        {
+          "id": "InstructionsLoaded",
+          "when_ja": "CLAUDE.md または .claude/rules/*.md がコンテキストに読み込まれたとき（セッション開始時と遅延読み込み時）",
+          "matcher_target": "load_reason（読み込みの理由）",
+          "matcher_values": [
+            "session_start",
+            "nested_traversal",
+            "path_glob_match",
+            "include",
+            "compact"
+          ],
+          "if_supported": false,
+          "can_block": false,
+          "exit2_effect_ja": "exit code を無視する",
+          "decision_pattern_ja": "なし（JSON 出力は捨てられる。非同期で動く観測用のイベント）",
+          "input_fields": [
+            "file_path",
+            "memory_type",
+            "load_reason",
+            "globs",
+            "trigger_file_path",
+            "parent_file_path"
+          ],
+          "decision_fields": [],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#instructionsloaded"
+          }
+        },
+        {
+          "id": "UserPromptSubmit",
+          "when_ja": "プロンプトの送信時、Claude が処理する前（予定タスク・バックグラウンドのサブエージェントの報告・他セッションからのメッセージでも発火する）",
+          "matcher_target": null,
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "プロンプトをブロックし、Claude に届けない",
+          "decision_pattern_ja": "トップレベルの decision",
+          "input_fields": [
+            "prompt",
+            "session_title"
+          ],
+          "decision_fields": [
+            {
+              "name": "decision",
+              "location": "top-level"
+            },
+            {
+              "name": "reason",
+              "location": "top-level"
+            },
+            {
+              "name": "additionalContext",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "sessionTitle",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "suppressOriginalPrompt",
+              "location": "hookSpecificOutput"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool",
+            "prompt",
+            "agent"
+          ],
+          "plain_stdout_to_context": true,
+          "claude_env_file": false,
+          "default_timeout_override_sec": 30,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#userpromptsubmit"
+          }
+        },
+        {
+          "id": "UserPromptExpansion",
+          "when_ja": "ユーザーが打ったコマンドがプロンプトに展開されるとき、Claude に届く前",
+          "matcher_target": "command_name（コマンド名）",
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "展開をブロックする",
+          "decision_pattern_ja": "トップレベルの decision",
+          "input_fields": [
+            "expansion_type",
+            "command_name",
+            "command_args",
+            "command_source",
+            "prompt"
+          ],
+          "decision_fields": [
+            {
+              "name": "decision",
+              "location": "top-level"
+            },
+            {
+              "name": "reason",
+              "location": "top-level"
+            },
+            {
+              "name": "additionalContext",
+              "location": "hookSpecificOutput"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool",
+            "prompt",
+            "agent"
+          ],
+          "plain_stdout_to_context": true,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#userpromptexpansion"
+          }
+        },
+        {
+          "id": "MessageDisplay",
+          "when_ja": "アシスタントのメッセージの文字列が画面に流れている間（行のまとまりごと）",
+          "matcher_target": null,
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": false,
+          "exit2_effect_ja": "元の文字列を表示する",
+          "decision_pattern_ja": "hookSpecificOutput（表示だけを置き換える。トランスクリプトと Claude が見る内容は元のまま）",
+          "input_fields": [
+            "turn_id",
+            "message_id",
+            "index",
+            "final",
+            "delta"
+          ],
+          "decision_fields": [
+            {
+              "name": "displayContent",
+              "location": "hookSpecificOutput"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "default_timeout_override_sec": 10,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#messagedisplay"
+          }
+        },
+        {
+          "id": "PreToolUse",
+          "when_ja": "ツールの引数ができた後、ツール呼び出しを処理する前（EndConversation を除く）",
+          "matcher_target": "ツール名（tool_name）。組み込みツールは tools:tools の id、MCP ツールは mcp__<server>__<tool>",
+          "matcher_values": null,
+          "if_supported": true,
+          "can_block": true,
+          "exit2_effect_ja": "ツール呼び出しをブロックする",
+          "decision_pattern_ja": "hookSpecificOutput",
+          "input_fields": [
+            "tool_name",
+            "tool_input",
+            "tool_use_id",
+            "mcp_server"
+          ],
+          "decision_fields": [
+            {
+              "name": "permissionDecision",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "permissionDecisionReason",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "updatedInput",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "additionalContext",
+              "location": "hookSpecificOutput"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool",
+            "prompt",
+            "agent"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "permission_decision_values": [
+            "allow",
+            "deny",
+            "ask",
+            "defer"
+          ],
+          "decision_precedence": [
+            "deny",
+            "defer",
+            "ask",
+            "allow"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#pretooluse"
+          }
+        },
+        {
+          "id": "PermissionRequest",
+          "when_ja": "Claude Code が利用者にツールの許可を求めようとするとき（プロンプトを出せないセッションで自動拒否しようとするときも）",
+          "matcher_target": "ツール名（tool_name）。組み込みツールは tools:tools の id、MCP ツールは mcp__<server>__<tool>",
+          "matcher_values": null,
+          "if_supported": true,
+          "can_block": false,
+          "exit2_effect_ja": "exit 2 は効かず、許可の流れはそのまま進む（拒否は decision オブジェクトで行う）",
+          "decision_pattern_ja": "hookSpecificOutput の decision.behavior",
+          "input_fields": [
+            "tool_name",
+            "tool_input",
+            "mcp_server",
+            "permission_suggestions"
+          ],
+          "decision_fields": [
+            {
+              "name": "behavior",
+              "location": "hookSpecificOutput.decision"
+            },
+            {
+              "name": "updatedInput",
+              "location": "hookSpecificOutput.decision"
+            },
+            {
+              "name": "updatedPermissions",
+              "location": "hookSpecificOutput.decision"
+            },
+            {
+              "name": "message",
+              "location": "hookSpecificOutput.decision"
+            },
+            {
+              "name": "interrupt",
+              "location": "hookSpecificOutput.decision"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool",
+            "prompt"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "notes_ja": "tool_use_id は受け取らない。agent ハンドラーは飛ばされ、prompt ハンドラーの ok: false は効果が無い。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#permissionrequest"
+          }
+        },
+        {
+          "id": "PostToolUse",
+          "when_ja": "ツールが成功した直後",
+          "matcher_target": "ツール名（tool_name）。組み込みツールは tools:tools の id、MCP ツールは mcp__<server>__<tool>",
+          "matcher_values": null,
+          "if_supported": true,
+          "can_block": false,
+          "exit2_effect_ja": "stderr を Claude に見せる（ツールは実行済み）",
+          "decision_pattern_ja": "トップレベルの decision",
+          "input_fields": [
+            "tool_name",
+            "tool_input",
+            "tool_response",
+            "tool_use_id",
+            "duration_ms",
+            "mcp_server"
+          ],
+          "decision_fields": [
+            {
+              "name": "decision",
+              "location": "top-level"
+            },
+            {
+              "name": "reason",
+              "location": "top-level"
+            },
+            {
+              "name": "additionalContext",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "classifierContext",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "updatedToolOutput",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "updatedMCPToolOutput",
+              "location": "hookSpecificOutput"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool",
+            "prompt",
+            "agent"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#posttooluse"
+          }
+        },
+        {
+          "id": "PostToolUseFailure",
+          "when_ja": "実行を始めたツールが失敗したとき（実行前の拒否・検証エラーでは発火しない）",
+          "matcher_target": "ツール名（tool_name）。組み込みツールは tools:tools の id、MCP ツールは mcp__<server>__<tool>",
+          "matcher_values": null,
+          "if_supported": true,
+          "can_block": false,
+          "exit2_effect_ja": "stderr を Claude に見せる（ツールは失敗済み）",
+          "decision_pattern_ja": "hookSpecificOutput の additionalContext（Decision control の要約表ではトップレベルの decision の行に載るが、この節は decision を挙げていない）",
+          "input_fields": [
+            "tool_name",
+            "tool_input",
+            "tool_use_id",
+            "error",
+            "is_interrupt",
+            "duration_ms",
+            "mcp_server"
+          ],
+          "decision_fields": [
+            {
+              "name": "additionalContext",
+              "location": "hookSpecificOutput"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool",
+            "prompt",
+            "agent"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#posttoolusefailure"
+          }
+        },
+        {
+          "id": "PostToolBatch",
+          "when_ja": "並列のツール呼び出しの一まとまりが全部解決した後、次のモデル呼び出しの前",
+          "matcher_target": null,
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "次のモデル呼び出しの前にエージェントのループを止める",
+          "decision_pattern_ja": "トップレベルの decision",
+          "input_fields": [
+            "tool_calls"
+          ],
+          "decision_fields": [
+            {
+              "name": "decision",
+              "location": "top-level"
+            },
+            {
+              "name": "reason",
+              "location": "top-level"
+            },
+            {
+              "name": "additionalContext",
+              "location": "hookSpecificOutput"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool",
+            "prompt",
+            "agent"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#posttoolbatch"
+          }
+        },
+        {
+          "id": "PermissionDenied",
+          "when_ja": "auto mode がツール呼び出しを拒否したとき（auto mode でだけ発火）",
+          "matcher_target": "ツール名（tool_name）。組み込みツールは tools:tools の id、MCP ツールは mcp__<server>__<tool>",
+          "matcher_values": null,
+          "if_supported": true,
+          "can_block": false,
+          "exit2_effect_ja": "exit code と stderr を無視する（拒否は済んでいる）",
+          "decision_pattern_ja": "hookSpecificOutput",
+          "input_fields": [
+            "tool_name",
+            "tool_input",
+            "tool_use_id",
+            "reason",
+            "mcp_server"
+          ],
+          "decision_fields": [
+            {
+              "name": "retry",
+              "location": "hookSpecificOutput"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool",
+            "prompt",
+            "agent"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "notes_ja": "prompt・agent ハンドラーは動くが retry を設定できず、出力は捨てられる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#permissiondenied"
+          }
+        },
+        {
+          "id": "Notification",
+          "when_ja": "Claude Code が通知を送るとき",
+          "matcher_target": "notification_type（通知の種類）",
+          "matcher_values": [
+            "permission_prompt",
+            "idle_prompt",
+            "auth_success",
+            "elicitation_dialog",
+            "elicitation_url_dialog",
+            "elicitation_complete",
+            "elicitation_response",
+            "agent_needs_input",
+            "agent_completed",
+            "quota_auto_resume_fired",
+            "quota_auto_resume_stale",
+            "quota_auto_resume_disabled"
+          ],
+          "if_supported": false,
+          "can_block": false,
+          "exit2_effect_ja": "exit code と stderr を無視する",
+          "decision_pattern_ja": "なし（systemMessage と continue は捨てられ、terminalSequence は効く）",
+          "input_fields": [
+            "message",
+            "title",
+            "notification_type"
+          ],
+          "decision_fields": [],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#notification"
+          }
+        },
+        {
+          "id": "SubagentStart",
+          "when_ja": "Agent ツールでサブエージェントを起動・再開したとき、in-process の agent team の teammate が新しいメッセージを扱うたび",
+          "matcher_target": "agent_type（エージェント名。カスタムは frontmatter の name、プラグインは <plugin>:<name>）",
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": false,
+          "exit2_effect_ja": "stderr をユーザーにだけ表示する",
+          "decision_pattern_ja": "コンテキストの追加のみ",
+          "input_fields": [
+            "agent_id",
+            "agent_type"
+          ],
+          "decision_fields": [
+            {
+              "name": "additionalContext",
+              "location": "hookSpecificOutput"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#subagentstart"
+          }
+        },
+        {
+          "id": "SubagentStop",
+          "when_ja": "サブエージェントが応答を終えたとき",
+          "matcher_target": "agent_type（SubagentStart と同じ値）",
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "サブエージェントが止まるのを防ぐ",
+          "decision_pattern_ja": "トップレベルの decision",
+          "input_fields": [
+            "stop_hook_active",
+            "agent_id",
+            "agent_type",
+            "agent_transcript_path",
+            "last_assistant_message",
+            "background_tasks",
+            "session_crons"
+          ],
+          "decision_fields": [
+            {
+              "name": "decision",
+              "location": "top-level"
+            },
+            {
+              "name": "reason",
+              "location": "top-level"
+            },
+            {
+              "name": "additionalContext",
+              "location": "hookSpecificOutput"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool",
+            "prompt",
+            "agent"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#subagentstop"
+          }
+        },
+        {
+          "id": "TaskCreated",
+          "when_ja": "TaskCreate ツールでタスクを作るとき",
+          "matcher_target": null,
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "タスクの作成を取り消す",
+          "decision_pattern_ja": "exit code またはトップレベルの decision（continue: false は無視）",
+          "input_fields": [
+            "task_id",
+            "task_subject",
+            "task_description",
+            "teammate_name",
+            "team_name",
+            "agent_id"
+          ],
+          "decision_fields": [
+            {
+              "name": "decision",
+              "location": "top-level"
+            },
+            {
+              "name": "reason",
+              "location": "top-level"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool",
+            "prompt",
+            "agent"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#taskcreated"
+          }
+        },
+        {
+          "id": "TaskCompleted",
+          "when_ja": "タスクを完了にするとき（TaskUpdate ツール、または teammate が進行中のタスクを持ったままターンを終えたとき）",
+          "matcher_target": null,
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "タスクが完了になるのを防ぐ",
+          "decision_pattern_ja": "exit code または continue: false",
+          "input_fields": [
+            "task_id",
+            "task_subject",
+            "task_description",
+            "teammate_name",
+            "team_name",
+            "agent_id"
+          ],
+          "decision_fields": [
+            {
+              "name": "continue",
+              "location": "top-level"
+            },
+            {
+              "name": "stopReason",
+              "location": "top-level"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool",
+            "prompt",
+            "agent"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#taskcompleted"
+          }
+        },
+        {
+          "id": "Stop",
+          "when_ja": "メインのエージェントが応答を終えたとき（ユーザーの中断では発火せず、API エラーでは StopFailure が発火する）",
+          "matcher_target": null,
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "Claude が止まるのを防ぎ、会話を続ける",
+          "decision_pattern_ja": "トップレベルの decision",
+          "input_fields": [
+            "stop_hook_active",
+            "last_assistant_message",
+            "background_tasks",
+            "session_crons"
+          ],
+          "decision_fields": [
+            {
+              "name": "decision",
+              "location": "top-level"
+            },
+            {
+              "name": "reason",
+              "location": "top-level"
+            },
+            {
+              "name": "additionalContext",
+              "location": "hookSpecificOutput"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool",
+            "prompt",
+            "agent"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#stop"
+          }
+        },
+        {
+          "id": "StopFailure",
+          "when_ja": "API エラーでターンが終わったとき（Stop の代わり）",
+          "matcher_target": "error（エラーの種類）",
+          "matcher_values": [
+            "rate_limit",
+            "overloaded",
+            "authentication_failed",
+            "oauth_org_not_allowed",
+            "account_on_hold",
+            "billing_error",
+            "invalid_request",
+            "model_not_found",
+            "server_error",
+            "max_output_tokens",
+            "cloud_credential_error",
+            "unknown"
+          ],
+          "if_supported": false,
+          "can_block": false,
+          "exit2_effect_ja": "出力と exit code を無視する（terminalSequence を除く）",
+          "decision_pattern_ja": "なし",
+          "input_fields": [
+            "error",
+            "error_details",
+            "last_assistant_message"
+          ],
+          "decision_fields": [],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "notes_ja": "matcher の完全一致として扱う文字は英数字・_・| だけで、- や空白や , を含むと正規表現として扱う。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#stopfailure"
+          }
+        },
+        {
+          "id": "TeammateIdle",
+          "when_ja": "agent team の teammate がアイドルになろうとするとき",
+          "matcher_target": null,
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "teammate がアイドルになるのを防ぎ、作業を続けさせる",
+          "decision_pattern_ja": "exit code または continue: false",
+          "input_fields": [
+            "teammate_name",
+            "team_name",
+            "agent_id"
+          ],
+          "decision_fields": [
+            {
+              "name": "continue",
+              "location": "top-level"
+            },
+            {
+              "name": "stopReason",
+              "location": "top-level"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool",
+            "prompt",
+            "agent"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#teammateidle"
+          }
+        },
+        {
+          "id": "ConfigChange",
+          "when_ja": "セッション中に設定ファイル・managed policy のファイル・skill のファイルが変わったとき",
+          "matcher_target": "source（設定の出どころ）",
+          "matcher_values": [
+            "user_settings",
+            "project_settings",
+            "local_settings",
+            "policy_settings",
+            "skills"
+          ],
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "設定の変更を反映させない（policy_settings は除く）",
+          "decision_pattern_ja": "トップレベルの decision",
+          "input_fields": [
+            "source",
+            "file_path"
+          ],
+          "decision_fields": [
+            {
+              "name": "decision",
+              "location": "top-level"
+            },
+            {
+              "name": "reason",
+              "location": "top-level"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "notes_ja": "ブロックしてもユーザーにも Claude にもメッセージは出ず、debug log に1行書くだけ。reason は受け付けるが表示されない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#configchange"
+          }
+        },
+        {
+          "id": "CwdChanged",
+          "when_ja": "メインの会話のシェルコマンドが作業ディレクトリを変えたとき",
+          "matcher_target": null,
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": false,
+          "exit2_effect_ja": "stderr をユーザーにだけ表示する",
+          "decision_pattern_ja": "なし（watchPaths と systemMessage を読み、continue は捨てる）",
+          "input_fields": [
+            "old_cwd",
+            "new_cwd"
+          ],
+          "decision_fields": [
+            {
+              "name": "watchPaths",
+              "location": null
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#cwdchanged"
+          }
+        },
+        {
+          "id": "DirectoryAdded",
+          "when_ja": "/add-dir または SDK の register_repo_root で作業ディレクトリを足したとき（--add-dir 起動フラグでは発火しない）",
+          "matcher_target": "source（ディレクトリの足し方）",
+          "matcher_values": [
+            "slash_command",
+            "register_repo_root"
+          ],
+          "if_supported": false,
+          "can_block": false,
+          "exit2_effect_ja": "stderr は debug log に行く（追加は済んでいる）",
+          "decision_pattern_ja": "なし",
+          "input_fields": [
+            "directory",
+            "source"
+          ],
+          "decision_fields": [],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "notes_ja": "Claude Code はフックを待たずにバックグラウンドで動かす。slash_command のとき systemMessage は次のターンで Claude にコンテキストとして渡る。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#directoryadded"
+          }
+        },
+        {
+          "id": "FileChanged",
+          "when_ja": "監視しているファイルがディスク上で変わったとき（何が変えたかを問わない）",
+          "matcher_target": "変更されたファイルの basename。同じ値を | で分けたものが作業ディレクトリ内の監視対象のファイル名になる",
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": false,
+          "exit2_effect_ja": "stderr をユーザーにだけ表示する",
+          "decision_pattern_ja": "なし（watchPaths と systemMessage を読み、continue は捨てる）",
+          "input_fields": [
+            "file_path",
+            "event"
+          ],
+          "decision_fields": [
+            {
+              "name": "watchPaths",
+              "location": null
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": true,
+          "notes_ja": "監視リストを作るときは matcher を正規表現として扱わず、| で分けた各部分を文字どおりのファイル名にする。matcher の完全一致として扱う文字は英数字・_・| だけ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#filechanged"
+          }
+        },
+        {
+          "id": "WorktreeCreate",
+          "when_ja": "--worktree・isolation: \"worktree\"・バックグラウンドのセッションで worktree を作るとき（既定の git の動作を置き換える）",
+          "matcher_target": null,
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "0 以外のどの exit code でも worktree の作成が失敗する",
+          "decision_pattern_ja": "パスを返す（command は stdout の最後の空でない行、http は hookSpecificOutput.worktreePath）",
+          "input_fields": [
+            "name"
+          ],
+          "decision_fields": [
+            {
+              "name": "worktreePath",
+              "location": "hookSpecificOutput"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "notes_ja": "worktreePath は http ハンドラーだけが使う。command ハンドラーは JSON を返せず、stdout の最後の空でない行をパスとして読まれる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#worktreecreate"
+          }
+        },
+        {
+          "id": "WorktreeRemove",
+          "when_ja": "WorktreeCreate のフックが作った worktree を片付けるとき",
+          "matcher_target": null,
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "0 以外の exit code で、ディレクトリが残っていれば削除が失敗する",
+          "decision_pattern_ja": "exit code（JSON 出力は捨てられる）",
+          "input_fields": [
+            "worktree_path"
+          ],
+          "decision_fields": [],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#worktreeremove"
+          }
+        },
+        {
+          "id": "PreCompact",
+          "when_ja": "コンパクションの前",
+          "matcher_target": "trigger（コンパクションのきっかけ）",
+          "matcher_values": [
+            "manual",
+            "auto"
+          ],
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "コンパクションをブロックする",
+          "decision_pattern_ja": "トップレベルの decision",
+          "input_fields": [
+            "trigger",
+            "custom_instructions"
+          ],
+          "decision_fields": [
+            {
+              "name": "decision",
+              "location": "top-level"
+            },
+            {
+              "name": "reason",
+              "location": "top-level"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#precompact"
+          }
+        },
+        {
+          "id": "PostCompact",
+          "when_ja": "コンパクションが終わった後",
+          "matcher_target": "trigger（コンパクションのきっかけ）",
+          "matcher_values": [
+            "manual",
+            "auto"
+          ],
+          "if_supported": false,
+          "can_block": false,
+          "exit2_effect_ja": "stderr をユーザーにだけ表示する",
+          "decision_pattern_ja": "なし",
+          "input_fields": [
+            "trigger",
+            "compact_summary"
+          ],
+          "decision_fields": [],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#postcompact"
+          }
+        },
+        {
+          "id": "PreModelSwitch",
+          "when_ja": "利用者やクライアントが求めたモデルの切り替えを適用する前（Claude Code が自分で行う切り替えでは発火しない）",
+          "matcher_target": "切り替え先のモデル（to_model）の正規名。[1m] の接尾辞は無視",
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "モデルの切り替えをブロックし、stderr をユーザーに表示する",
+          "decision_pattern_ja": "hookSpecificOutput またはトップレベルの decision",
+          "input_fields": [
+            "from_model",
+            "to_model",
+            "requested_model",
+            "source",
+            "context_tokens",
+            "prompt_cache_warm",
+            "cache_ttl",
+            "estimated_cache_write_usd",
+            "pricing"
+          ],
+          "decision_fields": [
+            {
+              "name": "permissionDecision",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "permissionDecisionReason",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "decision",
+              "location": "top-level"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "default_timeout_override_sec": 30,
+          "permission_decision_values": [
+            "allow",
+            "deny",
+            "ask"
+          ],
+          "decision_precedence": [
+            "deny",
+            "ask",
+            "allow"
+          ],
+          "notes_ja": "タイムアウトしたフックは切り替えをブロックする。正規名を決められないモデルでは matcher を問わず全フックが動く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#premodelswitch"
+          }
+        },
+        {
+          "id": "PostModelSwitch",
+          "when_ja": "セッションのモデルが変わった後（Claude Code が自分で行う変更も含む）",
+          "matcher_target": "切り替え先のモデルの正規名（PreModelSwitch と同じ規則）",
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": false,
+          "exit2_effect_ja": "stderr をユーザーにだけ表示する（モデルは切り替え済み）",
+          "decision_pattern_ja": "コンテキストの追加のみ",
+          "input_fields": [
+            "from_model",
+            "to_model",
+            "requested_model",
+            "source",
+            "context_tokens",
+            "prompt_cache_warm",
+            "cache_ttl",
+            "estimated_cache_write_usd",
+            "pricing"
+          ],
+          "decision_fields": [
+            {
+              "name": "additionalContext",
+              "location": "hookSpecificOutput"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": true,
+          "claude_env_file": false,
+          "default_timeout_override_sec": 30,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#postmodelswitch"
+          }
+        },
+        {
+          "id": "SessionEnd",
+          "when_ja": "セッションが終わるとき",
+          "matcher_target": "reason（終了の理由）",
+          "matcher_values": [
+            "clear",
+            "resume",
+            "logout",
+            "prompt_input_exit",
+            "other"
+          ],
+          "if_supported": false,
+          "can_block": false,
+          "exit2_effect_ja": "stderr をユーザーにだけ表示する",
+          "decision_pattern_ja": "なし（JSON 出力は捨てられる）",
+          "input_fields": [
+            "reason"
+          ],
+          "decision_fields": [],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "notes_ja": "SessionEnd のフックは合計 1.5 秒の予算を共有する。設定で長い timeout を書くと予算が最大 60 秒まで上がる（プラグインのフックの timeout は予算を上げない）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#sessionend"
+          }
+        },
+        {
+          "id": "Elicitation",
+          "when_ja": "MCP サーバーがツール呼び出し中に利用者の入力を求めたとき",
+          "matcher_target": "MCP サーバー名",
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "要求を断り、ダイアログを出さない",
+          "decision_pattern_ja": "hookSpecificOutput またはトップレベルの decision",
+          "input_fields": [
+            "mcp_server_name",
+            "message",
+            "mode",
+            "url",
+            "elicitation_id",
+            "requested_schema"
+          ],
+          "decision_fields": [
+            {
+              "name": "action",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "content",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "decision",
+              "location": "top-level"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "action_values": [
+            "accept",
+            "decline",
+            "cancel"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#elicitation"
+          }
+        },
+        {
+          "id": "ElicitationResult",
+          "when_ja": "利用者が MCP の elicitation に答えた後、サーバーに返す前",
+          "matcher_target": "MCP サーバー名",
+          "matcher_values": null,
+          "if_supported": false,
+          "can_block": true,
+          "exit2_effect_ja": "応答をブロックする（action が decline になる）",
+          "decision_pattern_ja": "hookSpecificOutput またはトップレベルの decision",
+          "input_fields": [
+            "mcp_server_name",
+            "action",
+            "mode",
+            "elicitation_id",
+            "content"
+          ],
+          "decision_fields": [
+            {
+              "name": "action",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "content",
+              "location": "hookSpecificOutput"
+            },
+            {
+              "name": "decision",
+              "location": "top-level"
+            }
+          ],
+          "handler_types": [
+            "command",
+            "http",
+            "mcp_tool"
+          ],
+          "plain_stdout_to_context": false,
+          "claude_env_file": false,
+          "action_values": [
+            "accept",
+            "decline",
+            "cancel"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#elicitationresult"
+          }
+        }
+      ]
+    },
+    "handler-types": {
+      "description": "ハンドラーの種別（handler の type の値）。fields は種別固有のフィールドで、すべての種別に共通のフィールドは hook-events:handler-common-fields にある。",
+      "complete": true,
+      "complete_basis": "公式ページが種別を5つと明記して列挙している",
+      "stated_total": 5,
+      "items": [
+        {
+          "id": "command",
+          "description_ja": "シェルコマンドを動かす。入力は stdin の JSON、結果は exit code と stdout で返す",
+          "default_timeout_sec": 600,
+          "fields": [
+            {
+              "id": "command",
+              "required": true,
+              "description_ja": "実行するシェルコマンド。args があるときは直接起動する実行ファイル"
+            },
+            {
+              "id": "args",
+              "required": false,
+              "description_ja": "引数の配列。あるとシェルを通さず command を実行ファイルとして直接起動する（exec form）"
+            },
+            {
+              "id": "async",
+              "required": false,
+              "description_ja": "true ならバックグラウンドで動かし、ブロックしない"
+            },
+            {
+              "id": "asyncRewake",
+              "required": false,
+              "description_ja": "true ならバックグラウンドで動かし、exit 2 で Claude を起こす"
+            },
+            {
+              "id": "shell",
+              "required": false,
+              "description_ja": "使うシェル。\"bash\" か \"powershell\"。args があるときは無視される"
+            }
+          ],
+          "experimental": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#command-hook-fields"
+          }
+        },
+        {
+          "id": "http",
+          "description_ja": "イベントの JSON 入力を URL に POST する。結果はレスポンスの本文で command と同じ JSON 出力の形で返す",
+          "default_timeout_sec": 600,
+          "fields": [
+            {
+              "id": "url",
+              "required": true,
+              "description_ja": "POST する URL"
+            },
+            {
+              "id": "headers",
+              "required": false,
+              "description_ja": "追加の HTTP ヘッダー。値に $VAR_NAME・${VAR_NAME} を書けるが、allowedEnvVars にある変数だけが展開される"
+            },
+            {
+              "id": "allowedEnvVars",
+              "required": false,
+              "description_ja": "ヘッダーの値に展開してよい環境変数名の一覧。無いと環境変数は展開されない"
+            }
+          ],
+          "response_handling_ja": "2xx で本文が空なら成功、2xx で JSON オブジェクトなら JSON 出力として解釈、2xx でそれ以外の本文・2xx 以外・接続失敗は非ブロックのエラー。ステータスコードだけではブロックできず、ブロックするには 2xx で決定のフィールドを持つ JSON を返す",
+          "experimental": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#http-hook-fields"
+          }
+        },
+        {
+          "id": "mcp_tool",
+          "description_ja": "設定済みの MCP サーバーのツールを呼ぶ。ツールの文字列の出力は command の stdout と同じに扱う",
+          "default_timeout_sec": 600,
+          "fields": [
+            {
+              "id": "server",
+              "required": true,
+              "description_ja": "設定済みの MCP サーバー名。プラグイン同梱のサーバーは plugin:<plugin-name>:<server-name>"
+            },
+            {
+              "id": "tool",
+              "required": true,
+              "description_ja": "そのサーバーで呼ぶツール名"
+            },
+            {
+              "id": "input",
+              "required": false,
+              "description_ja": "ツールに渡す引数。文字列の値に ${path} でフックの JSON 入力を差し込める（例: ${tool_input.file_path}）"
+            }
+          ],
+          "experimental": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#mcp-tool-hook-fields"
+          }
+        },
+        {
+          "id": "prompt",
+          "description_ja": "Claude のモデルに1回だけ問い合わせて判定させる。モデルは {ok, reason, impossible} の JSON で答える",
+          "default_timeout_sec": 30,
+          "fields": [
+            {
+              "id": "prompt",
+              "required": true,
+              "description_ja": "モデルに送るプロンプト。$ARGUMENTS がフックの入力 JSON に置き換わる。無ければ入力 JSON を末尾に足す",
+              "source": {
+                "url": "https://code.claude.com/docs/en/hooks.md",
+                "anchor": "#prompt-hook-configuration"
+              }
+            },
+            {
+              "id": "model",
+              "required": false,
+              "description_ja": "判定に使うモデル。既定はバックグラウンドの機能に使うモデル"
+            },
+            {
+              "id": "continueOnBlock",
+              "required": false,
+              "description_ja": "対応するイベントで、ok: false の理由を Claude に返してターンを続ける。既定は false",
+              "source": {
+                "url": "https://code.claude.com/docs/en/hooks.md",
+                "anchor": "#prompt-hook-configuration"
+              }
+            }
+          ],
+          "experimental": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#prompt-and-agent-hook-fields"
+          }
+        },
+        {
+          "id": "agent",
+          "description_ja": "Read・Grep・Glob などのツールを使えるサブエージェントを起動して条件を確かめ、{ok, reason} で判定を返す。最大 50 ターン",
+          "default_timeout_sec": 60,
+          "fields": [
+            {
+              "id": "prompt",
+              "required": true,
+              "description_ja": "サブエージェントに渡すプロンプト。$ARGUMENTS がフックの入力 JSON に置き換わる"
+            },
+            {
+              "id": "model",
+              "required": false,
+              "description_ja": "使うモデル。既定はバックグラウンドの機能に使うモデル"
+            }
+          ],
+          "experimental": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#prompt-and-agent-hook-fields"
+          }
+        }
+      ]
+    },
+    "handler-common-fields": {
+      "description": "すべてのハンドラーの種別に共通のフィールド。",
+      "complete": true,
+      "complete_basis": "公式の Common fields の表が全件を列挙しており、全部を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "type",
+          "required": true,
+          "description_ja": "ハンドラーの種別。hook-events:handler-types の id のどれか",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-fields"
+          }
+        },
+        {
+          "id": "if",
+          "required": false,
+          "description_ja": "permission rule の構文でツール名と引数を絞る条件。規則は1つだけ書ける。ツールのイベント（PreToolUse・PostToolUse・PostToolUseFailure・PermissionRequest・PermissionDenied）でだけ評価され、ほかのイベントで書くとそのハンドラーは動かない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-fields"
+          }
+        },
+        {
+          "id": "timeout",
+          "required": false,
+          "description_ja": "取り消すまでの秒数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-fields"
+          }
+        },
+        {
+          "id": "statusMessage",
+          "required": false,
+          "description_ja": "ハンドラーが動いている間に出すスピナーの文言",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-fields"
+          }
+        },
+        {
+          "id": "once",
+          "required": false,
+          "description_ja": "true なら最初に成功した後で外す。skill の frontmatter で宣言したフックでだけ効き、settings と agent の frontmatter では無視される",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-fields"
+          }
+        }
+      ]
+    },
+    "exit-codes": {
+      "description": "command ハンドラーの exit code の区分。",
+      "complete": true,
+      "complete_basis": "公式ページが exit code を 0・2・それ以外の3区分で定義している",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "0",
+          "blocks": false,
+          "description_ja": "成功。構造化した制御のために JSON を出すときの exit code。stdout は { で始まり } で終わるときだけ JSON として解釈し、それ以外は平文として扱う。多くのイベントで stdout は debug log に書かれるだけで、UserPromptSubmit・UserPromptExpansion・SessionStart・PostModelSwitch では平文の stdout を Claude のコンテキストに足す。stderr は debug log にだけ行く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#exit-code-0"
+          }
+        },
+        {
+          "id": "2",
+          "blocks": true,
+          "description_ja": "ブロックするエラー。ブロックできるイベントでは JSON の有無にかかわらずブロックし、JSON の permissionDecision: \"allow\" でも覆せない。ブロックの理由は JSON のブロックの決定の reason、無ければ stderr。効果はイベントごとに違う（hook-events:events の exit2_effect_ja）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#exit-code-2"
+          }
+        },
+        {
+          "id": "other",
+          "blocks": false,
+          "description_ja": "0・2 以外。多くのイベントではそれだけではブロックしない。スキーマに合う JSON があれば exit code を無視して JSON だけで決まり、無ければ非ブロックのエラーとして処理が進み、トランスクリプトに `<hook name> hook error` の通知と stderr の1行目が出る。exit 1 も非ブロック。WorktreeCreate・WorktreeRemove は 0 以外で失敗する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#other-exit-codes"
+          }
+        }
+      ]
+    },
+    "common-input": {
+      "description": "全イベントの入力 JSON に共通するフィールド（イベント固有のフィールドは events の input_fields）。",
+      "complete": true,
+      "complete_basis": "公式ページが Common input fields の2つの表で全件を列挙している",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "session_id",
+          "presence": "always",
+          "description_ja": "現在のセッションの識別子",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-input-fields"
+          }
+        },
+        {
+          "id": "prompt_id",
+          "presence": "conditional",
+          "description_ja": "処理中のユーザープロンプトの UUID。最初のユーザー入力まで無い",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-input-fields"
+          }
+        },
+        {
+          "id": "transcript_path",
+          "presence": "always",
+          "description_ja": "会話の JSON のパス。非同期で書かれるので最新のメッセージを含まないことがある",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-input-fields"
+          }
+        },
+        {
+          "id": "cwd",
+          "presence": "always",
+          "description_ja": "フックを呼んだときの作業ディレクトリ。worktree に入ると worktree のルートになる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-input-fields"
+          }
+        },
+        {
+          "id": "scratchpad_dir",
+          "presence": "conditional",
+          "description_ja": "セッションの scratchpad ディレクトリのパス。scratchpad が無いときは無い",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-input-fields"
+          }
+        },
+        {
+          "id": "permission_mode",
+          "presence": "conditional",
+          "description_ja": "現在の permission mode（default・plan・acceptEdits・auto・dontAsk・bypassPermissions）。受け取らないイベントもある",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-input-fields"
+          }
+        },
+        {
+          "id": "effort",
+          "presence": "conditional",
+          "description_ja": "level フィールドを持つオブジェクト。ツール使用の文脈で発火するイベントで、モデルが effort に対応するときにある",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-input-fields"
+          }
+        },
+        {
+          "id": "hook_event_name",
+          "presence": "always",
+          "description_ja": "発火したイベントの名前",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-input-fields"
+          }
+        },
+        {
+          "id": "agent_id",
+          "presence": "conditional",
+          "description_ja": "サブエージェントの一意な識別子。サブエージェントの中で発火したときだけある",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-input-fields"
+          }
+        },
+        {
+          "id": "agent_type",
+          "presence": "conditional",
+          "description_ja": "エージェント名。--agent で起動したとき、またはサブエージェントの中で発火したときにある",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-input-fields"
+          }
+        }
+      ]
+    },
+    "common-output": {
+      "description": "JSON 出力のトップレベルのフィールド（universal と、トップレベルの decision・reason と、hookSpecificOutput）。",
+      "complete": true,
+      "complete_basis": "公式ページが JSON 出力のフィールドを3種類（universal の表・トップレベルの decision と reason・hookSpecificOutput）と定めて列挙している",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "continue",
+          "kind": "universal",
+          "default": true,
+          "description_ja": "false ならフックの後で Claude の処理を完全に止める。イベント固有の決定より優先する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#json-output"
+          }
+        },
+        {
+          "id": "stopReason",
+          "kind": "universal",
+          "default": null,
+          "description_ja": "continue が false のときユーザーに見せる文言",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#json-output"
+          }
+        },
+        {
+          "id": "suppressOutput",
+          "kind": "universal",
+          "default": false,
+          "description_ja": "受け付けるが効果が無い",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#json-output"
+          }
+        },
+        {
+          "id": "systemMessage",
+          "kind": "universal",
+          "default": null,
+          "description_ja": "ユーザーに見せる警告の文言。捨てるイベント・別の場所に届けるイベントがある",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#json-output"
+          }
+        },
+        {
+          "id": "terminalSequence",
+          "kind": "universal",
+          "default": null,
+          "description_ja": "Claude Code に代わりに出させる端末のエスケープシーケンス（OSC 0/1/2/9/99/777 と BEL だけ）。対話セッションでだけ効く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#json-output"
+          }
+        },
+        {
+          "id": "decision",
+          "kind": "top-level-decision",
+          "default": null,
+          "description_ja": "一部のイベントでブロックやフィードバックに使う。値は \"block\" だけ",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#decision-control"
+          }
+        },
+        {
+          "id": "reason",
+          "kind": "top-level-decision",
+          "default": null,
+          "description_ja": "decision と組で使う理由",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#decision-control"
+          }
+        },
+        {
+          "id": "hookSpecificOutput",
+          "kind": "nested",
+          "default": null,
+          "description_ja": "イベント固有の制御を入れる入れ子のオブジェクト。イベント名を入れた hookEventName が必須",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#json-output"
+          }
+        }
+      ]
+    }
+  }
+}

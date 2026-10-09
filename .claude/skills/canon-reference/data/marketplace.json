@@ -1,0 +1,701 @@
+{
+  "id": "marketplace",
+  "description": "マーケットプレイスのファイル（.claude-plugin/marketplace.json）のフィールドと、プラグインソース・マーケットプレイスソースの種別の一覧。",
+  "collections": {
+    "fields": {
+      "description": "marketplace.json のトップレベルのキー（level: top-level）と、plugins の各エントリ固有のキー・エントリで意味の変わる manifest のキー（level: plugin-entry、id は plugins[].<キー>）。エントリはこのほか、ディレクトリ掲載用のフィールドを除く plugin-manifest:fields のキーも受け付ける。",
+      "complete": true,
+      "complete_basis": "公式の Top-level fields 表（Claude Code が読む全キー）と Plugin entries 表を全部収めた。Top-level fields 表で1行にまとめられた metadata.description と metadata.version は別の要素にした",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "name",
+          "level": "top-level",
+          "type": "string",
+          "required": true,
+          "default": null,
+          "description_ja": "マーケットプレイスの識別子。英数字・`.`・`_`・`-` で、英数字で始まり、`..` を含まない。それ以外は `claude plugin validate` が失敗にする。利用者はプラグイン id の `@` の後ろに書く（例: `my-plugin@my-marketplace`）。予約名がある（reserved_names）。",
+          "reserved_names": {
+            "value": {
+              "official": [
+                "claude-code-marketplace",
+                "claude-code-plugins",
+                "claude-plugins-official",
+                "anthropic-marketplace",
+                "anthropic-plugins",
+                "agent-skills",
+                "anthropic-agent-skills",
+                "life-sciences",
+                "knowledge-work-plugins",
+                "claude-for-legal",
+                "claude-for-financial-services",
+                "financial-services-plugins",
+                "first-party-plugins",
+                "claude-tag-plugins"
+              ],
+              "community": [
+                "claude-community",
+                "claude-plugins-community",
+                "healthcare"
+              ],
+              "plugin-directory": [
+                "anthropic-plugin-directory",
+                "claude-plugin-directory"
+              ],
+              "non-marketplace-origins": [
+                "inline",
+                "builtin",
+                "skills-dir",
+                "synced",
+                "claude-plugin-test"
+              ],
+              "any-casing": [
+                "npm",
+                "pip",
+                "uv",
+                "cargo",
+                "github",
+                "gh"
+              ],
+              "prefixes": [
+                "claudeai-"
+              ]
+            },
+            "note_ja": "official・community・plugin-directory は github.com/anthropics/ 配下の github か git のソースから来るときだけ使える。ほかに、公式のマーケットプレイスを装う名前（非 ASCII 文字を含む名前など）と、予約名の別表記（末尾のドット、ハイフンの代わりのアンダースコア以外の記号）も使えない",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+              "anchor": "#reserved-names"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#top-level-fields"
+          }
+        },
+        {
+          "id": "owner",
+          "level": "top-level",
+          "type": "object",
+          "required": true,
+          "default": null,
+          "description_ja": "管理者の情報。`name` が必須で、`email` と `url` は任意。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#top-level-fields"
+          }
+        },
+        {
+          "id": "plugins",
+          "level": "top-level",
+          "type": "array",
+          "required": true,
+          "default": null,
+          "description_ja": "プラグインのエントリの配列。エントリは1件ずつ検証され、1件が不正でもマーケットプレイス全体は失敗しない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#top-level-fields"
+          }
+        },
+        {
+          "id": "$schema",
+          "level": "top-level",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "エディタの補完用の JSON Schema の URL。読み込み時に無視される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#top-level-fields"
+          }
+        },
+        {
+          "id": "description",
+          "level": "top-level",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "利用者に見せるマーケットプレイスの説明。無いと `claude plugin validate` が警告する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#top-level-fields"
+          }
+        },
+        {
+          "id": "version",
+          "level": "top-level",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "マーケットプレイスの manifest の版。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#top-level-fields"
+          }
+        },
+        {
+          "id": "metadata.description",
+          "level": "top-level",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "`description` の別の置き場所。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#top-level-fields"
+          }
+        },
+        {
+          "id": "metadata.version",
+          "level": "top-level",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "`version` の別の置き場所。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#top-level-fields"
+          }
+        },
+        {
+          "id": "metadata.pluginRoot",
+          "level": "top-level",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "素の名前（`/` を含まない1つのディレクトリ名）のプラグインソースを解決する基準のディレクトリ。マーケットプレイス内の相対パスでなければならない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#top-level-fields"
+          }
+        },
+        {
+          "id": "forceRemoveDeletedPlugins",
+          "level": "top-level",
+          "type": "boolean",
+          "required": false,
+          "default": null,
+          "description_ja": "`true` のとき、`plugins` から外したプラグインを利用者のマシンからアンインストールする。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#top-level-fields"
+          }
+        },
+        {
+          "id": "allowCrossMarketplaceDependenciesOn",
+          "level": "top-level",
+          "type": "array of strings",
+          "required": false,
+          "default": null,
+          "description_ja": "このマーケットプレイスのプラグインの依存として、プラグインをインストールしてよい別のマーケットプレイスの名前。インストール時は、そのプラグイン自身のマーケットプレイスの一覧だけが依存の連鎖全体に適用される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#top-level-fields"
+          }
+        },
+        {
+          "id": "renames",
+          "level": "top-level",
+          "type": "object",
+          "required": false,
+          "default": null,
+          "description_ja": "以前のプラグインの `name` から現在の名前へのマップ。削除したプラグインは `null` に写す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#top-level-fields"
+          }
+        },
+        {
+          "id": "plugins[].name",
+          "level": "plugin-entry",
+          "type": "string",
+          "required": true,
+          "default": null,
+          "description_ja": "プラグインの識別子。英数字・`.`・`_`・`-` で、英数字で始まる。利用者はインストール時に `@` の前に書き、`plugin.json` の `name` と違っていてもこちらがインストールと有効化のキーになる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-entries"
+          }
+        },
+        {
+          "id": "plugins[].source",
+          "level": "plugin-entry",
+          "type": "string or object",
+          "required": true,
+          "default": null,
+          "description_ja": "プラグインの取得元。相対パスの文字列か、`source` キーで種別を名乗るオブジェクト（`marketplace:source-types` の `plugin:*`）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-entries"
+          }
+        },
+        {
+          "id": "plugins[].description",
+          "level": "plugin-entry",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "`/plugin` の一覧と詳細に表示される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-entries"
+          }
+        },
+        {
+          "id": "plugins[].version",
+          "level": "plugin-entry",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "プラグインの版。`plugin.json` も `version` を持つと `plugin.json` が優先し、`claude plugin validate` が警告する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-entries"
+          }
+        },
+        {
+          "id": "plugins[].category",
+          "level": "plugin-entry",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "カタログを整理するための自由形式のカテゴリ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-entries"
+          }
+        },
+        {
+          "id": "plugins[].tags",
+          "level": "plugin-entry",
+          "type": "array of strings",
+          "required": false,
+          "default": null,
+          "description_ja": "検索用の自由形式のタグ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-entries"
+          }
+        },
+        {
+          "id": "plugins[].strict",
+          "level": "plugin-entry",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description_ja": "`plugin.json` をコンポーネントの決定的な定義元とするか。`plugin.json` があり `false` のとき、エントリがコンポーネントのフィールドを宣言すると衝突して読み込みに失敗する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-entries"
+          }
+        },
+        {
+          "id": "plugins[].relevance",
+          "level": "plugin-entry",
+          "type": "object",
+          "required": false,
+          "default": null,
+          "description_ja": "Claude Code がプラグインを提案する条件（`topic` と `signals`）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-entries"
+          }
+        },
+        {
+          "id": "plugins[].dependencies",
+          "level": "plugin-entry",
+          "type": "array",
+          "required": false,
+          "default": null,
+          "description_ja": "このプラグインが動くために有効でなければならないプラグイン。各要素は `\"name\"`・`\"name@marketplace\"`・オブジェクトのいずれか。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-entries"
+          }
+        },
+        {
+          "id": "plugins[].defaultEnabled",
+          "level": "plugin-entry",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description_ja": "利用者が `enabledPlugins` で設定していないときに有効で始まるか。エントリの値が `plugin.json` より優先する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-entries"
+          }
+        },
+        {
+          "id": "plugins[].displayName",
+          "level": "plugin-entry",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "UI に表示する人向けの名前。エントリにも `plugin.json` にも無いときは `name` が表示される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-entries"
+          }
+        },
+        {
+          "id": "plugins[].metadata",
+          "level": "plugin-entry",
+          "type": "object",
+          "required": false,
+          "default": null,
+          "description_ja": "独自のフィールドを入れる自由形式のオブジェクト。Claude Code は読まない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-entries"
+          }
+        },
+        {
+          "id": "plugins[].headers",
+          "level": "plugin-entry",
+          "type": "object",
+          "required": false,
+          "default": null,
+          "description_ja": "このエントリの `archive` をダウンロードするときに送る HTTP ヘッダー。マーケットプレイスのソースの同名のヘッダーを置き換える。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-entries"
+          }
+        },
+        {
+          "id": "plugins[].headersHelper",
+          "level": "plugin-entry",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "このエントリの archive ダウンロード用のヘッダーを1つの JSON オブジェクトとして出力するコマンド（期限のある認証情報向け）。エントリに `\"strict\": false` も必要。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-entries"
+          }
+        }
+      ]
+    },
+    "source-types": {
+      "description": "プラグインのエントリの source の種別（kind: plugin、id は plugin:<種別>）と、マーケットプレイスの取得元の種別（kind: marketplace、id は marketplace:<種別>）。同じ名前（url・github・npm）でも両者で意味が違うので分けて持つ。",
+      "complete": true,
+      "complete_basis": "公式の Plugin sources 表と Marketplace sources 表がそれぞれ全種別を列挙しており、全部を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "plugin:relative-path",
+          "kind": "plugin",
+          "type_name": null,
+          "type": "string",
+          "fields": [],
+          "required": null,
+          "description_ja": "マーケットプレイスの中のディレクトリを、マーケットプレイスのルート（`.claude-plugin/` を含むディレクトリ）から解決する文字列。`./` で始める（`metadata.pluginRoot` の下の素の名前は例外、`\".\"` はルート自身）。`..` を含むと検証に失敗する。マーケットプレイスのソースが `url` のときは解決できず、`settings` では拒否される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-sources"
+          }
+        },
+        {
+          "id": "plugin:github",
+          "kind": "plugin",
+          "type_name": "github",
+          "type": "object",
+          "fields": [
+            "repo",
+            "ref",
+            "sha"
+          ],
+          "required": [
+            "repo"
+          ],
+          "description_ja": "`owner/repo` 形式の GitHub リポジトリ。`ref` と `sha` は任意。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-sources"
+          }
+        },
+        {
+          "id": "plugin:url",
+          "kind": "plugin",
+          "type_name": "url",
+          "type": "object",
+          "fields": [
+            "url",
+            "ref",
+            "sha"
+          ],
+          "required": null,
+          "description_ja": "URL で指定する任意の git リポジトリ（`https://`・`http://`・`file://`・`git@`）。`owner/repo` の省略形は受け付けない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-sources"
+          }
+        },
+        {
+          "id": "plugin:git-subdir",
+          "kind": "plugin",
+          "type_name": "git-subdir",
+          "type": "object",
+          "fields": [
+            "url",
+            "path",
+            "ref",
+            "sha"
+          ],
+          "required": null,
+          "description_ja": "git リポジトリの1つのサブディレクトリを sparse checkout で取得する。`url` は完全な git URL か GitHub の `owner/repo`。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-sources"
+          }
+        },
+        {
+          "id": "plugin:npm",
+          "kind": "plugin",
+          "type_name": "npm",
+          "type": "object",
+          "fields": [
+            "package",
+            "version",
+            "registry"
+          ],
+          "required": null,
+          "description_ja": "npm レジストリのパッケージか tarball のリンク。npm クライアントで取得し、install スクリプトは実行しない。`version` を省くと `latest`。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-sources"
+          }
+        },
+        {
+          "id": "plugin:archive",
+          "kind": "plugin",
+          "type_name": "archive",
+          "type": "object",
+          "fields": [
+            "url",
+            "sha256"
+          ],
+          "required": null,
+          "description_ja": "HTTPS の zip アーカイブ。`url` は `https://` で、ループバック・リンクローカル・クラウドメタデータのホストを指せない。`sha256` を設定すると一致しないダウンロードを拒否する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-sources"
+          }
+        },
+        {
+          "id": "plugin:command",
+          "kind": "plugin",
+          "type_name": "command",
+          "type": "object",
+          "fields": [
+            "command",
+            "timeout",
+            "mode"
+          ],
+          "required": null,
+          "description_ja": "利用者のマシンでコマンドを実行し、出力されたディレクトリをプラグインとする。`timeout` は1〜600秒で既定60、`mode` は `copy`（既定）か `link`。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#plugin-sources"
+          }
+        },
+        {
+          "id": "marketplace:url",
+          "kind": "marketplace",
+          "type_name": "url",
+          "type": "object",
+          "fields": [
+            "url",
+            "headers",
+            "headersHelper"
+          ],
+          "required": null,
+          "marketplace_add_input": "`git` の形に当たらない `http://` か `https://` の URL",
+          "in_extraKnownMarketplaces": "読み込む",
+          "in_strictKnownMarketplaces": "同じ URL を許可",
+          "in_blockedMarketplaces": "同じ URL を拒否",
+          "description_ja": "`marketplace.json` ファイルへの直接リンク。そのファイルだけを取得するので、相対パスのプラグインソースは使えない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#marketplace-sources"
+          }
+        },
+        {
+          "id": "marketplace:github",
+          "kind": "marketplace",
+          "type_name": "github",
+          "type": "object",
+          "fields": [
+            "repo",
+            "ref",
+            "path",
+            "sparsePaths"
+          ],
+          "required": null,
+          "marketplace_add_input": "`owner/repo`・`owner/repo@ref`・`owner/repo#ref`",
+          "in_extraKnownMarketplaces": "読み込む",
+          "in_strictKnownMarketplaces": "同じ `repo`・`ref`・`path` を許可。`repo` は `owner/*` も可",
+          "in_blockedMarketplaces": "同じものと、同じリポジトリへの `git` URL を拒否",
+          "description_ja": "GitHub リポジトリ。`path` の既定は `.claude-plugin/marketplace.json`。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#marketplace-sources"
+          }
+        },
+        {
+          "id": "marketplace:git",
+          "kind": "marketplace",
+          "type_name": "git",
+          "type": "object",
+          "fields": [
+            "url",
+            "ref",
+            "path",
+            "sparsePaths"
+          ],
+          "required": null,
+          "marketplace_add_input": "`user@host:path` の URL、または `.git` で終わる・`/_git/` を含む・github.com か gitlab.com のリポジトリを指す `http(s)://` の URL。`#ref` で ref を固定",
+          "in_extraKnownMarketplaces": "読み込む",
+          "in_strictKnownMarketplaces": "同じ URL・`ref`・`path` を許可",
+          "in_blockedMarketplaces": "同じものと、同じ github.com リポジトリの別表記を拒否",
+          "description_ja": "クローンする git リポジトリ。マーケットプレイスのソースにだけある種別。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#marketplace-sources"
+          }
+        },
+        {
+          "id": "marketplace:npm",
+          "kind": "marketplace",
+          "type_name": "npm",
+          "type": "object",
+          "fields": [
+            "package"
+          ],
+          "required": null,
+          "marketplace_add_input": null,
+          "in_extraKnownMarketplaces": "読み込みに失敗する（`NPM marketplace sources not yet implemented`）",
+          "in_strictKnownMarketplaces": "解釈されるが何にも一致しない",
+          "in_blockedMarketplaces": "解釈されるが何にも一致しない",
+          "description_ja": "npm パッケージ。マーケットプレイスのソースとしては登録できない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#marketplace-sources"
+          }
+        },
+        {
+          "id": "marketplace:file",
+          "kind": "marketplace",
+          "type_name": "file",
+          "type": "object",
+          "fields": [
+            "path"
+          ],
+          "required": null,
+          "marketplace_add_input": "`.json` ファイルへのパス",
+          "in_extraKnownMarketplaces": "読み込む",
+          "in_strictKnownMarketplaces": "同じパスを許可",
+          "in_blockedMarketplaces": "同じパスを拒否",
+          "description_ja": "マーケットプレイスのファイルそのもの。2階層上のディレクトリをマーケットプレイスのルートとみなす。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#marketplace-sources"
+          }
+        },
+        {
+          "id": "marketplace:directory",
+          "kind": "marketplace",
+          "type_name": "directory",
+          "type": "object",
+          "fields": [
+            "path"
+          ],
+          "required": null,
+          "marketplace_add_input": "ディレクトリへのパス",
+          "in_extraKnownMarketplaces": "読み込む",
+          "in_strictKnownMarketplaces": "同じパスを許可",
+          "in_blockedMarketplaces": "同じパスを拒否",
+          "description_ja": "`.claude-plugin/marketplace.json` を含むマーケットプレイスのルート。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#marketplace-sources"
+          }
+        },
+        {
+          "id": "marketplace:settings",
+          "kind": "marketplace",
+          "type_name": "settings",
+          "type": "object",
+          "fields": [
+            "name",
+            "plugins",
+            "owner"
+          ],
+          "required": null,
+          "marketplace_add_input": null,
+          "in_extraKnownMarketplaces": "読み込む",
+          "in_strictKnownMarketplaces": "同じ `name` で `plugins` が同一のエントリを許可",
+          "in_blockedMarketplaces": "同じ `name` を拒否",
+          "description_ja": "settings に書くインラインのカタログ。`name` は `extraKnownMarketplaces` のキーと等しく、各プラグインの `source` はオブジェクトの種別で書く（相対パスは不可）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#marketplace-sources"
+          }
+        },
+        {
+          "id": "marketplace:skills-dir",
+          "kind": "marketplace",
+          "type_name": "skills-dir",
+          "type": "object",
+          "fields": [],
+          "required": null,
+          "marketplace_add_input": null,
+          "in_extraKnownMarketplaces": "読み込みに失敗する（`Unsupported marketplace source type`）",
+          "in_strictKnownMarketplaces": "許可リストがあっても skills ディレクトリのプラグインを読み込み続ける",
+          "in_blockedMarketplaces": "skills ディレクトリのプラグインを止める",
+          "description_ja": "ソースではなく、ポリシーの一覧でだけ有効な値。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#marketplace-sources"
+          }
+        },
+        {
+          "id": "marketplace:hostPattern",
+          "kind": "marketplace",
+          "type_name": "hostPattern",
+          "type": "object",
+          "fields": [
+            "hostPattern"
+          ],
+          "required": null,
+          "marketplace_add_input": null,
+          "in_extraKnownMarketplaces": "読み込みに失敗する（`Unsupported marketplace source type`）",
+          "in_strictKnownMarketplaces": "ホストが一致する `github`・`git`・`url` のソースを許可",
+          "in_blockedMarketplaces": "それらのソースを拒否",
+          "description_ja": "ソースのホストに当てる正規表現。ポリシーの一覧でだけ有効。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#marketplace-sources"
+          }
+        },
+        {
+          "id": "marketplace:pathPattern",
+          "kind": "marketplace",
+          "type_name": "pathPattern",
+          "type": "object",
+          "fields": [
+            "pathPattern"
+          ],
+          "required": null,
+          "marketplace_add_input": null,
+          "in_extraKnownMarketplaces": "読み込みに失敗する（`Unsupported marketplace source type`）",
+          "in_strictKnownMarketplaces": "`path` が一致する `file`・`directory` のソースを許可",
+          "in_blockedMarketplaces": "それらのソースを拒否",
+          "description_ja": "ソースのパスに当てる正規表現。ポリシーの一覧でだけ有効。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+            "anchor": "#marketplace-sources"
+          }
+        }
+      ]
+    }
+  }
+}

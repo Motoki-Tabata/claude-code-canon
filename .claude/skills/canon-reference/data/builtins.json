@@ -1,0 +1,225 @@
+{
+  "id": "builtins",
+  "description": "Claude Code が組み込みで持つ名前（出力スタイル・サブエージェントの種類・Skill の置換変数）の一覧。",
+  "collections": {
+    "output-styles": {
+      "description": "組み込みの出力スタイル。id は settings の outputStyle に書く名前（大文字小文字を区別する）。`kind: default` はスタイルを選ばない状態で、`/output-style` の一覧には `default` として出る。`kind: builtin` は Default の指示を保ったまま自分の指示を足すスタイル。",
+      "complete": true,
+      "complete_basis": "公式の Built-in output styles の節が Default と、ほかの4つのスタイルを表で列挙しており、全部を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "Default",
+          "kind": "default",
+          "description_ja": "スタイルを選ばない状態。スタイルの指示を足さず、ソフトウェア開発向けの標準のシステムプロンプトで動く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/output-styles.md",
+            "anchor": "#default"
+          }
+        },
+        {
+          "id": "Proactive",
+          "kind": "builtin",
+          "description_ja": "日常的な判断は質問せず妥当な仮定を置いてすぐに作業を始める。頼まれない限り plan mode に入らない。permission mode は変えない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/output-styles.md",
+            "anchor": "#proactive"
+          }
+        },
+        {
+          "id": "Concise",
+          "kind": "builtin",
+          "description_ja": "応答の最初の文で結果を述べ、前置き・経過の説明・まとめを省く。依頼された説明と、安全に動くのに要る内容（エラー・失敗したテスト・警告・破壊的な操作の確認）は省かない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/output-styles.md",
+            "anchor": "#concise"
+          }
+        },
+        {
+          "id": "Explanatory",
+          "kind": "builtin",
+          "description_ja": "作業は Default と同じに行い、選択の理由を `Insight` のブロックで会話に足す（ファイルにはコメントとして書かない）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/output-styles.md",
+            "anchor": "#explanatory"
+          }
+        },
+        {
+          "id": "Learning",
+          "kind": "builtin",
+          "description_ja": "Explanatory と同じ `Insight` を足し、設計の判断を伴う箇所を `TODO(human)` として利用者に書かせて待つ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/output-styles.md",
+            "anchor": "#learning"
+          }
+        }
+      ]
+    },
+    "subagents": {
+      "description": "組み込みのサブエージェントの種類。id は Agent ツールの subagent_type と skill の `agent` に書く名前。`skips_claude_md` は CLAUDE.md と git status のスナップショットを読み込まないもの。 `model_ja` は公式が書くその種類のモデル。",
+      "complete": false,
+      "complete_basis": "公式が全件を列挙していない。Explore・Plan・General-purpose のタブと、Other のタブの補助エージェントの表を収めたが、Other の表が全件だとは書いていない",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "Explore",
+          "description_ja": "読み取り専用で、コードベースの検索と分析に特化する。Write と Edit は拒否される。呼び出し側が quick・medium・very thorough の詳しさを指定する。",
+          "skips_claude_md": true,
+          "model_ja": "メインの会話のモデル。メインが Fable のときは接続の仕方で決まる（Claude のサブスクリプション・Anthropic Console・ANTHROPIC_BASE_URL の LLM gateway では `opus` エイリアスが指すモデル、Bedrock・Google Cloud の Agent Platform・Microsoft Foundry などではメインのモデルのまま）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#built-in-subagents"
+          }
+        },
+        {
+          "id": "Plan",
+          "description_ja": "plan mode で計画を示す前に文脈を集める調査用のエージェント。Write と Edit は拒否される。",
+          "skips_claude_md": true,
+          "model_ja": "メインの会話から継承する（CLAUDE_CODE_SUBAGENT_MODEL を全サブエージェントに強制したときを除く）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#built-in-subagents"
+          }
+        },
+        {
+          "id": "general-purpose",
+          "description_ja": "探索と変更の両方を要る複雑な多段の作業向け。サブエージェントが使えるすべてのツールを持つ。subagent_type を省いた Agent ツールの呼び出しはこれに落ちる。",
+          "skips_claude_md": false,
+          "model_ja": "CLAUDE_CODE_SUBAGENT_MODEL があり、ほかにモデルを決めるものが無ければそれ、無ければメインの会話のモデル",
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#built-in-subagents"
+          }
+        },
+        {
+          "id": "claude",
+          "description_ja": "より専門のエージェントに当てはまらない作業向けの汎用のエージェント。サブエージェントが使えるすべてのツールを持つ。",
+          "skips_claude_md": false,
+          "model_ja": "自分のモデルを持たず、サブエージェントとして起動されたときはモデルの決まる順に従う",
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#built-in-subagents"
+          }
+        },
+        {
+          "id": "statusline-setup",
+          "description_ja": "`/statusline` で status line を設定するときに使われる。",
+          "skips_claude_md": false,
+          "model_ja": "Sonnet",
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#built-in-subagents"
+          }
+        },
+        {
+          "id": "claude-code-guide",
+          "description_ja": "Claude Code の機能について質問したときに使われる。",
+          "skips_claude_md": false,
+          "model_ja": "Haiku",
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#built-in-subagents"
+          }
+        }
+      ]
+    },
+    "skill-substitutions": {
+      "description": "Skill の本文で置換される変数。`scope: all` はすべての Skill、`scope: plugin` はプラグインの Skill でだけ置換される。`${CLAUDE_*}` の変数は本文と allowed-tools の Bash ルールの両方で置換される。",
+      "complete": true,
+      "complete_basis": "公式の Available string substitutions の表が全件を列挙しており、全部を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "$ARGUMENTS",
+          "scope": "all",
+          "description_ja": "呼び出しで渡された引数の全体。どの置換先にも引数が入らないときは、本文の末尾に `ARGUMENTS: <value>` が足される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#available-string-substitutions"
+          }
+        },
+        {
+          "id": "$ARGUMENTS[N]",
+          "scope": "all",
+          "description_ja": "0始まりの位置引数。引数はシェルと同じ規則で引用符を解釈して分ける。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#available-string-substitutions"
+          }
+        },
+        {
+          "id": "$N",
+          "scope": "all",
+          "description_ja": "`$ARGUMENTS[N]` の略記。対応する引数が無いときは置換されずに残る。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#available-string-substitutions"
+          }
+        },
+        {
+          "id": "$name",
+          "scope": "all",
+          "description_ja": "frontmatter の `arguments` で宣言した名前付きの引数。宣言の順に位置引数へ対応し、引数が無ければ空文字になる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#available-string-substitutions"
+          }
+        },
+        {
+          "id": "${CLAUDE_SESSION_ID}",
+          "scope": "all",
+          "description_ja": "現在のセッションの ID。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#available-string-substitutions"
+          }
+        },
+        {
+          "id": "${CLAUDE_EFFORT}",
+          "scope": "all",
+          "description_ja": "現在の effort level（`low`・`medium`・`high`・`xhigh`・`max`）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#available-string-substitutions"
+          }
+        },
+        {
+          "id": "${CLAUDE_SKILL_DIR}",
+          "scope": "all",
+          "description_ja": "`SKILL.md` のあるディレクトリ。プラグインの Skill ではプラグインのルートではなく、その Skill のサブディレクトリ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#available-string-substitutions"
+          }
+        },
+        {
+          "id": "${CLAUDE_PROJECT_DIR}",
+          "scope": "all",
+          "description_ja": "プロジェクトのルート。hooks と MCP サーバーが受け取る `CLAUDE_PROJECT_DIR` と同じパス。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#available-string-substitutions"
+          }
+        },
+        {
+          "id": "${CLAUDE_PLUGIN_ROOT}",
+          "scope": "plugin",
+          "description_ja": "プラグインのインストール先のディレクトリ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#available-string-substitutions"
+          }
+        },
+        {
+          "id": "${CLAUDE_PLUGIN_DATA}",
+          "scope": "plugin",
+          "description_ja": "プラグインの更新をまたいで残る永続データのディレクトリ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#available-string-substitutions"
+          }
+        }
+      ]
+    }
+  }
+}

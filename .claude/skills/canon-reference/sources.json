@@ -1,0 +1,2560 @@
+{
+  "generated_at": "2026-10-09",
+  "claude_code_version": "2.1.295",
+  "llms_txt": {
+    "url": "https://code.claude.com/docs/llms.txt",
+    "page_count": 221
+  },
+  "version_sources": [
+    "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md",
+    "https://code.claude.com/docs/en/changelog.md"
+  ],
+  "pages": [
+    {
+      "url": "https://code.claude.com/docs/en/overview.md",
+      "title": "Overview",
+      "section": "Getting started",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "導入・日常の使い方の説明で、カスタマイズの仕様や選択肢を持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/quickstart.md",
+      "title": "Quickstart",
+      "section": "Getting started",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "導入・日常の使い方の説明で、カスタマイズの仕様や選択肢を持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/changelog.md",
+      "title": "Claude Code changelog",
+      "section": "Getting started",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/how-claude-code-works.md",
+      "title": "How Claude Code works",
+      "section": "Getting started > Core concepts",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/features-overview.md",
+      "title": "Extend Claude Code",
+      "section": "Getting started > Core concepts",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/claude-directory.md",
+      "title": "Explore the .claude directory",
+      "section": "Getting started > Core concepts",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "claude-md",
+        "rules",
+        "skills",
+        "subagents",
+        "mcp",
+        "settings",
+        "output-styles"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/context-window.md",
+      "title": "Explore the context window",
+      "section": "Getting started > Core concepts",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/prompt-caching.md",
+      "title": "How Claude Code uses prompt caching",
+      "section": "Getting started > Core concepts",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/memory.md",
+      "title": "How Claude remembers your project",
+      "section": "Getting started > Use Claude Code",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "claude-md",
+        "rules"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/sessions.md",
+      "title": "Manage sessions",
+      "section": "Getting started > Use Claude Code",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "個人の端末・表示・操作の設定で、プロジェクトに配置するカスタマイズではない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/common-workflows.md",
+      "title": "Common workflows",
+      "section": "Getting started > Use Claude Code",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "導入・日常の使い方の説明で、カスタマイズの仕様や選択肢を持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/prompt-library.md",
+      "title": "Prompt library",
+      "section": "Getting started > Use Claude Code",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "導入・日常の使い方の説明で、カスタマイズの仕様や選択肢を持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/best-practices.md",
+      "title": "Best practices for Claude Code",
+      "section": "Getting started > Use Claude Code",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/platforms.md",
+      "title": "Platforms and integrations",
+      "section": "Getting started > Platforms and integrations",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/remote-control.md",
+      "title": "Continue local sessions from any device with Remote Control",
+      "section": "Getting started > Platforms and integrations",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/claude-projects.md",
+      "title": "Let Claude coordinate ongoing work with Projects",
+      "section": "Getting started > Platforms and integrations",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/mobile.md",
+      "title": "Claude Code on mobile",
+      "section": "Getting started > Platforms and integrations",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/chrome.md",
+      "title": "Use Claude Code with Chrome",
+      "section": "Getting started > Platforms and integrations",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/computer-use.md",
+      "title": "Let Claude use your computer from the CLI",
+      "section": "Getting started > Platforms and integrations",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/vs-code.md",
+      "title": "Use Claude Code in VS Code",
+      "section": "Getting started > Platforms and integrations",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/jetbrains.md",
+      "title": "JetBrains IDEs",
+      "section": "Getting started > Platforms and integrations",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/slack.md",
+      "title": "Claude Code in Slack",
+      "section": "Getting started > Platforms and integrations",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/claude-tag.md",
+      "title": "Claude Tag",
+      "section": "Getting started > Platforms and integrations",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/web-quickstart.md",
+      "title": "Get started with Claude Code in the cloud",
+      "section": "Getting started > Platforms and integrations > Claude Code in the cloud",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/claude-code-on-the-web.md",
+      "title": "Use Claude Code in the cloud",
+      "section": "Getting started > Platforms and integrations > Claude Code in the cloud",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/routines.md",
+      "title": "Automate work with routines",
+      "section": "Getting started > Platforms and integrations > Claude Code in the cloud",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/ultrareview.md",
+      "title": "Find bugs with ultrareview",
+      "section": "Getting started > Platforms and integrations > Claude Code in the cloud",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/desktop-quickstart.md",
+      "title": "Get started with the desktop app",
+      "section": "Getting started > Platforms and integrations > Claude Code on desktop",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/desktop.md",
+      "title": "Desktop application",
+      "section": "Getting started > Platforms and integrations > Claude Code on desktop",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/desktop-linux.md",
+      "title": "Claude Desktop on Linux (beta)",
+      "section": "Getting started > Platforms and integrations > Claude Code on desktop",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/desktop-wsl.md",
+      "title": "Claude Code Desktop in WSL",
+      "section": "Getting started > Platforms and integrations > Claude Code on desktop",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/desktop-scheduled-tasks.md",
+      "title": "Schedule recurring tasks in Claude Code Desktop",
+      "section": "Getting started > Platforms and integrations > Claude Code on desktop",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/desktop-ios-simulator.md",
+      "title": "Test iOS apps in the simulator",
+      "section": "Getting started > Platforms and integrations > Claude Code on desktop",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/security-guidance.md",
+      "title": "Catch security issues as Claude writes code",
+      "section": "Getting started > Platforms and integrations > Code review & CI/CD",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/claude-security.md",
+      "title": "Scan your codebase for vulnerabilities",
+      "section": "Getting started > Platforms and integrations > Code review & CI/CD",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/code-review.md",
+      "title": "Code Review",
+      "section": "Getting started > Platforms and integrations > Code review & CI/CD",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/github-actions.md",
+      "title": "Claude Code GitHub Actions",
+      "section": "Getting started > Platforms and integrations > Code review & CI/CD",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/github-actions-cloud-providers.md",
+      "title": "Use Claude Code GitHub Actions with cloud providers",
+      "section": "Getting started > Platforms and integrations > Code review & CI/CD",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "デプロイ・クラウドプロバイダー・ネットワークの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/github-enterprise-server.md",
+      "title": "Claude Code with GitHub Enterprise Server",
+      "section": "Getting started > Platforms and integrations > Code review & CI/CD",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "デプロイ・クラウドプロバイダー・ネットワークの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/gitlab-ci-cd.md",
+      "title": "Claude Code GitLab CI/CD",
+      "section": "Getting started > Platforms and integrations > Code review & CI/CD",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agents.md",
+      "title": "Run agents in parallel",
+      "section": "Build with Claude Code > Agents and parallel work",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/sub-agents.md",
+      "title": "Create custom subagents",
+      "section": "Build with Claude Code > Agents and parallel work",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "subagents"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-view.md",
+      "title": "Manage multiple agents with agent view",
+      "section": "Build with Claude Code > Agents and parallel work",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-teams.md",
+      "title": "Orchestrate teams of Claude Code sessions",
+      "section": "Build with Claude Code > Agents and parallel work",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/cross-session-messaging.md",
+      "title": "Message your other Claude Code sessions",
+      "section": "Build with Claude Code > Agents and parallel work",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/workflows.md",
+      "title": "Orchestrate subagents at scale with dynamic workflows",
+      "section": "Build with Claude Code > Agents and parallel work",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/worktrees.md",
+      "title": "Run parallel sessions with worktrees",
+      "section": "Build with Claude Code > Agents and parallel work",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/mcp-quickstart.md",
+      "title": "Connect to MCP servers",
+      "section": "Build with Claude Code > MCP",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/mcp.md",
+      "title": "Connect Claude Code to tools via MCP",
+      "section": "Build with Claude Code > MCP",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "mcp"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/skills.md",
+      "title": "Extend Claude with skills",
+      "section": "Build with Claude Code > Skills",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "skills"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/artifacts.md",
+      "title": "Share session output as artifacts",
+      "section": "Build with Claude Code > Artifacts",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "特定のプラットフォーム・クライアントの使い方で、配置するファイルを持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/hooks-guide.md",
+      "title": "Automate actions with hooks",
+      "section": "Build with Claude Code > Automation",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "hooks"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/channels.md",
+      "title": "Push events into a running session with channels",
+      "section": "Build with Claude Code > Automation",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/scheduled-tasks.md",
+      "title": "Run prompts on a schedule",
+      "section": "Build with Claude Code > Automation",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/goal.md",
+      "title": "Keep Claude working toward a goal",
+      "section": "Build with Claude Code > Automation",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/headless.md",
+      "title": "Run Claude Code programmatically",
+      "section": "Build with Claude Code > Automation",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/deep-links.md",
+      "title": "Launch sessions from links",
+      "section": "Build with Claude Code > Automation",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "個人の端末・表示・操作の設定で、プロジェクトに配置するカスタマイズではない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/large-codebases.md",
+      "title": "Set up Claude Code in a monorepo or large codebase",
+      "section": "Build with Claude Code > Guides",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/troubleshoot-install.md",
+      "title": "Troubleshoot installation and login",
+      "section": "Build with Claude Code > Troubleshooting",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "トラブルシューティング"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/troubleshooting.md",
+      "title": "Troubleshooting",
+      "section": "Build with Claude Code > Troubleshooting",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "トラブルシューティング"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/debug-your-config.md",
+      "title": "Debug your configuration",
+      "section": "Build with Claude Code > Troubleshooting",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "トラブルシューティング"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/errors.md",
+      "title": "Error reference",
+      "section": "Build with Claude Code > Troubleshooting",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "トラブルシューティング"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/overview.md",
+      "title": "Plugins overview",
+      "section": "Plugins",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugins"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/install.md",
+      "title": "Install and manage plugins",
+      "section": "Plugins > Use plugins",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugins"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/anthropic-marketplaces.md",
+      "title": "Anthropic's marketplaces",
+      "section": "Plugins > Use plugins",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/code-intelligence.md",
+      "title": "Code intelligence plugins",
+      "section": "Plugins > Use plugins",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugins"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/security.md",
+      "title": "Plugin security and trust",
+      "section": "Plugins > Use plugins",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/create.md",
+      "title": "Create a Claude Code plugin",
+      "section": "Plugins > Create plugins",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugins"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/components.md",
+      "title": "Add components to a plugin",
+      "section": "Plugins > Create plugins",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugins"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/dependencies.md",
+      "title": "Plugin dependencies",
+      "section": "Plugins > Create plugins",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugins"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugin-evals.md",
+      "title": "Test plugins with evals",
+      "section": "Plugins > Create plugins",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/publish.md",
+      "title": "Publish and distribute a plugin",
+      "section": "Plugins > Create plugins",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugins"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/measure.md",
+      "title": "Measure plugin cost and usage",
+      "section": "Plugins > Create plugins",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "利用状況・費用の監視で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/cli-hints.md",
+      "title": "Recommend your plugin from your CLI",
+      "section": "Plugins > Create plugins",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "外部の CLI・SDK からプラグインを推奨する仕組みで、canon が生成するファイルの範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/mods/overview.md",
+      "title": "Mods overview",
+      "section": "Plugins > Mods",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugin-mods"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/mods/create.md",
+      "title": "Create a mod",
+      "section": "Plugins > Mods",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugin-mods"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+      "title": "Mods reference",
+      "section": "Plugins > Mods",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugin-mods"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+      "title": "Draw in the interface with a mod",
+      "section": "Plugins > Mods > Build",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugin-mods"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/mods/gallery.md",
+      "title": "Interface gallery for mods",
+      "section": "Plugins > Mods > Build",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugin-mods"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+      "title": "React to events with a mod",
+      "section": "Plugins > Mods > Build",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugin-mods"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+      "title": "Use the mods API",
+      "section": "Plugins > Mods > Build",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugin-mods"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/mods/test.md",
+      "title": "Test a mod",
+      "section": "Plugins > Mods > Test and troubleshoot",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugin-mods"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/mods/troubleshoot.md",
+      "title": "Troubleshoot a mod",
+      "section": "Plugins > Mods > Test and troubleshoot",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "トラブルシューティング"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/create-marketplace.md",
+      "title": "Create a marketplace",
+      "section": "Plugins > Run a marketplace",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugins"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/host-marketplace.md",
+      "title": "Host and maintain a marketplace",
+      "section": "Plugins > Run a marketplace",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugins"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/relevance.md",
+      "title": "Recommend plugins for your org",
+      "section": "Plugins > Run a marketplace",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugins"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/org.md",
+      "title": "Manage Claude Code plugins for your organization",
+      "section": "Plugins > Manage plugins for your organization",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "組織の管理・ポリシー配布で、canon が生成する設定ファイルの範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/mods/admin.md",
+      "title": "Manage mods for your organization",
+      "section": "Plugins > Manage plugins for your organization",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "組織の管理・ポリシー配布で、canon が生成する設定ファイルの範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/troubleshooting.md",
+      "title": "Troubleshoot plugins",
+      "section": "Plugins > Troubleshooting",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "トラブルシューティング"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/loading.md",
+      "title": "Plugin loading reference",
+      "section": "Plugins > Troubleshooting",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugins"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+      "title": "Plugin manifest reference",
+      "section": "Plugins > Reference",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugins"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/marketplace-reference.md",
+      "title": "Marketplace reference",
+      "section": "Plugins > Reference",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugins"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/plugins/cli-reference.md",
+      "title": "Plugin commands reference",
+      "section": "Plugins > Reference",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "plugins"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/admin-setup.md",
+      "title": "Set up Claude Code for your organization",
+      "section": "Administration > Setup and access",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "組織の管理・ポリシー配布で、canon が生成する設定ファイルの範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/setup.md",
+      "title": "Advanced setup",
+      "section": "Administration > Setup and access",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "導入・日常の使い方の説明で、カスタマイズの仕様や選択肢を持たない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/authentication.md",
+      "title": "Authentication",
+      "section": "Administration > Setup and access",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "組織の管理・ポリシー配布で、canon が生成する設定ファイルの範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/managed-settings.md",
+      "title": "Deploy managed settings",
+      "section": "Administration > Setup and access",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "組織の管理・ポリシー配布で、canon が生成する設定ファイルの範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/server-managed-settings.md",
+      "title": "Configure server-managed settings",
+      "section": "Administration > Setup and access",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "組織の管理・ポリシー配布で、canon が生成する設定ファイルの範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/managed-mcp.md",
+      "title": "Control MCP server access for your organization",
+      "section": "Administration > Setup and access",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "組織の管理・ポリシー配布で、canon が生成する設定ファイルの範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/auto-mode-config.md",
+      "title": "Configure auto mode",
+      "section": "Administration > Setup and access",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "組織の管理・ポリシー配布で、canon が生成する設定ファイルの範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/third-party-integrations.md",
+      "title": "Enterprise deployment overview",
+      "section": "Administration > Deployment",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "デプロイ・クラウドプロバイダー・ネットワークの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/feature-availability.md",
+      "title": "Feature availability",
+      "section": "Administration > Deployment",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/amazon-bedrock.md",
+      "title": "Claude Code on Amazon Bedrock",
+      "section": "Administration > Deployment",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "デプロイ・クラウドプロバイダー・ネットワークの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/claude-platform-on-aws.md",
+      "title": "Claude Code on Claude Platform on AWS",
+      "section": "Administration > Deployment",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "デプロイ・クラウドプロバイダー・ネットワークの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/google-vertex-ai.md",
+      "title": "Claude Code on Google Cloud's Agent Platform",
+      "section": "Administration > Deployment",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "デプロイ・クラウドプロバイダー・ネットワークの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/microsoft-foundry.md",
+      "title": "Claude Code on Microsoft Foundry",
+      "section": "Administration > Deployment",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "デプロイ・クラウドプロバイダー・ネットワークの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/network-config.md",
+      "title": "Enterprise network configuration",
+      "section": "Administration > Deployment",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "デプロイ・クラウドプロバイダー・ネットワークの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/corporate-launcher.md",
+      "title": "Run Claude Code behind a corporate launcher",
+      "section": "Administration > Deployment",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "デプロイ・クラウドプロバイダー・ネットワークの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/devcontainer.md",
+      "title": "Development containers",
+      "section": "Administration > Deployment",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "デプロイ・クラウドプロバイダー・ネットワークの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/gateways.md",
+      "title": "Run Claude Code through a gateway",
+      "section": "Administration > Gateways",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "ゲートウェイの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/claude-apps-gateway.md",
+      "title": "Claude apps gateway for Amazon Bedrock, Claude Platform on AWS, Google Cloud, and Microsoft Foundry",
+      "section": "Administration > Gateways > Claude apps gateway",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "ゲートウェイの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/claude-apps-gateway-config.md",
+      "title": "Claude apps gateway configuration",
+      "section": "Administration > Gateways > Claude apps gateway",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "ゲートウェイの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/claude-apps-gateway-spend-limits.md",
+      "title": "Claude apps gateway spend limits",
+      "section": "Administration > Gateways > Claude apps gateway",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "ゲートウェイの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/claude-apps-gateway-deploy.md",
+      "title": "Claude apps gateway deployment and operations",
+      "section": "Administration > Gateways > Claude apps gateway",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "ゲートウェイの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/claude-apps-gateway-on-aws.md",
+      "title": "Deploy Claude apps gateway on AWS",
+      "section": "Administration > Gateways > Claude apps gateway",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "ゲートウェイの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/claude-apps-gateway-on-gcp.md",
+      "title": "Deploy Claude apps gateway on Google Cloud",
+      "section": "Administration > Gateways > Claude apps gateway",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "ゲートウェイの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/llm-gateway.md",
+      "title": "Other LLM gateways",
+      "section": "Administration > Gateways > Other gateways",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "ゲートウェイの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/llm-gateway-connect.md",
+      "title": "Connect Claude Code to an LLM gateway",
+      "section": "Administration > Gateways > Other gateways",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "ゲートウェイの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/llm-gateway-rollout.md",
+      "title": "Roll out an LLM gateway for your organization",
+      "section": "Administration > Gateways > Other gateways",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "ゲートウェイの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/llm-gateway-protocol.md",
+      "title": "Claude Code gateway compatibility guide",
+      "section": "Administration > Gateways > Other gateways",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "ゲートウェイの構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/monitoring-usage.md",
+      "title": "Monitoring",
+      "section": "Administration > Usage and costs",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "利用状況・費用の監視で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/costs.md",
+      "title": "Manage costs effectively",
+      "section": "Administration > Usage and costs",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "利用状況・費用の監視で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/analytics.md",
+      "title": "Track team usage with analytics",
+      "section": "Administration > Usage and costs",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "利用状況・費用の監視で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/security.md",
+      "title": "Security",
+      "section": "Administration > Security and data",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/data-usage.md",
+      "title": "Data usage",
+      "section": "Administration > Security and data",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "法務・コンプライアンス"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/zero-data-retention.md",
+      "title": "Zero data retention",
+      "section": "Administration > Security and data",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "法務・コンプライアンス"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/hipaa-setup.md",
+      "title": "Set up Claude Code (local mode) for a HIPAA-ready organization",
+      "section": "Administration > Security and data",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "法務・コンプライアンス"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/communications-kit.md",
+      "title": "Communications kit",
+      "section": "Administration > Adoption",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "組織への導入の広報資料で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/champion-kit.md",
+      "title": "Champion kit",
+      "section": "Administration > Adoption",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "組織への導入の広報資料で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/settings.md",
+      "title": "Settings files and precedence",
+      "section": "Configuration > Settings",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "settings"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/settings-reference.md",
+      "title": "All settings",
+      "section": "Configuration > Settings",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "settings"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/settings-example.md",
+      "title": "Example settings files",
+      "section": "Configuration > Settings",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "settings"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/permissions.md",
+      "title": "Configure permissions",
+      "section": "Configuration > Permissions and sandboxing",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "permissions"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/permission-modes.md",
+      "title": "Choose a permission mode",
+      "section": "Configuration > Permissions and sandboxing",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "permissions"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/sandboxing.md",
+      "title": "Configure the sandboxed Bash tool",
+      "section": "Configuration > Permissions and sandboxing",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "permissions"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/sandbox-environments.md",
+      "title": "Choose a sandbox environment",
+      "section": "Configuration > Permissions and sandboxing",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/cloud-environments.md",
+      "title": "Configure cloud environments",
+      "section": "Configuration > Environments",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "クラウド・セルフホストの実行環境の構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/self-hosted-environments.md",
+      "title": "Self-hosted environments",
+      "section": "Configuration > Environments > Self-hosted environments",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "クラウド・セルフホストの実行環境の構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/self-hosted-environments-quickstart.md",
+      "title": "Self-hosted environments quickstart",
+      "section": "Configuration > Environments > Self-hosted environments",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "クラウド・セルフホストの実行環境の構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/self-hosted-environments-deploy.md",
+      "title": "Deploy self-hosted environments to production",
+      "section": "Configuration > Environments > Self-hosted environments",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "クラウド・セルフホストの実行環境の構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/self-hosted-environments-configuration.md",
+      "title": "Customize sessions in self-hosted environments",
+      "section": "Configuration > Environments > Self-hosted environments",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "クラウド・セルフホストの実行環境の構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/self-hosted-environments-testing.md",
+      "title": "Test self-hosted environments end to end",
+      "section": "Configuration > Environments > Self-hosted environments",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "クラウド・セルフホストの実行環境の構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/self-hosted-environments-reference.md",
+      "title": "Self-hosted environments reference",
+      "section": "Configuration > Environments > Self-hosted environments",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "クラウド・セルフホストの実行環境の構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/self-hosted-environments-identity.md",
+      "title": "Verify session identity in self-hosted environments",
+      "section": "Configuration > Environments > Self-hosted environments",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "クラウド・セルフホストの実行環境の構成で、canon の範囲外"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/model-config.md",
+      "title": "Model configuration",
+      "section": "Configuration > Model and responses",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "settings",
+        "skills",
+        "subagents"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/fast-mode.md",
+      "title": "Speed up responses with fast mode",
+      "section": "Configuration > Model and responses",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "個人の端末・表示・操作の設定で、プロジェクトに配置するカスタマイズではない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/advisor.md",
+      "title": "Escalate hard decisions with the advisor tool",
+      "section": "Configuration > Model and responses",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/output-styles.md",
+      "title": "Output styles",
+      "section": "Configuration > Model and responses",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "output-styles"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/terminal-config.md",
+      "title": "Configure your terminal for Claude Code",
+      "section": "Configuration > Interface",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "個人の端末・表示・操作の設定で、プロジェクトに配置するカスタマイズではない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/fullscreen.md",
+      "title": "Fullscreen rendering",
+      "section": "Configuration > Interface",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "個人の端末・表示・操作の設定で、プロジェクトに配置するカスタマイズではない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/accessibility.md",
+      "title": "Use Claude Code with a screen reader",
+      "section": "Configuration > Interface",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "個人の端末・表示・操作の設定で、プロジェクトに配置するカスタマイズではない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/voice-dictation.md",
+      "title": "Voice dictation",
+      "section": "Configuration > Interface",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "個人の端末・表示・操作の設定で、プロジェクトに配置するカスタマイズではない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/statusline.md",
+      "title": "Customize your status line",
+      "section": "Configuration > Interface",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "statusline"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/keybindings.md",
+      "title": "Customize keyboard shortcuts",
+      "section": "Configuration > Interface",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "個人の端末・表示・操作の設定で、プロジェクトに配置するカスタマイズではない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/cli-reference.md",
+      "title": "CLI reference",
+      "section": "Reference",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "settings"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/commands.md",
+      "title": "Commands",
+      "section": "Reference",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "skills"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/env-vars.md",
+      "title": "Environment variables",
+      "section": "Reference",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "settings"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/tools-reference.md",
+      "title": "Tools reference",
+      "section": "Reference",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "permissions",
+        "skills",
+        "subagents",
+        "hooks"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/interactive-mode.md",
+      "title": "Interactive mode",
+      "section": "Reference",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "個人の端末・表示・操作の設定で、プロジェクトに配置するカスタマイズではない"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/checkpointing.md",
+      "title": "Checkpointing",
+      "section": "Reference",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/hooks.md",
+      "title": "Hooks reference",
+      "section": "Reference",
+      "kind": "spec",
+      "treatment": "detailed",
+      "features": [
+        "hooks"
+      ],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/channels-reference.md",
+      "title": "Channels reference",
+      "section": "Reference",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/glossary.md",
+      "title": "Glossary",
+      "section": "Reference > Glossary",
+      "kind": "spec",
+      "treatment": "selection-only",
+      "features": [],
+      "reason": null
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/overview.md",
+      "title": "Agent SDK overview",
+      "section": "Agent SDK",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/quickstart.md",
+      "title": "Quickstart",
+      "section": "Agent SDK",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/migration-guide.md",
+      "title": "Migrate to Claude Agent SDK",
+      "section": "Agent SDK",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/troubleshooting.md",
+      "title": "Troubleshoot the Agent SDK",
+      "section": "Agent SDK",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/configuration.md",
+      "title": "Configure your agent",
+      "section": "Agent SDK > Build agents",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/examples.md",
+      "title": "Examples",
+      "section": "Agent SDK > Build agents",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/agent-loop.md",
+      "title": "How the agent loop works",
+      "section": "Agent SDK > Core concepts",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/claude-code-features.md",
+      "title": "Use Claude Code features in the SDK",
+      "section": "Agent SDK > Core concepts",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/sessions.md",
+      "title": "Work with sessions",
+      "section": "Agent SDK > Core concepts",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/session-storage.md",
+      "title": "Persist sessions to external storage",
+      "section": "Agent SDK > Core concepts",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/streaming-vs-single-mode.md",
+      "title": "Streaming Input",
+      "section": "Agent SDK > Input and output",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/user-input.md",
+      "title": "Handle approvals and user input",
+      "section": "Agent SDK > Input and output",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/streaming-output.md",
+      "title": "Stream responses in real-time",
+      "section": "Agent SDK > Input and output",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/structured-outputs.md",
+      "title": "Get structured output from agents",
+      "section": "Agent SDK > Input and output",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/custom-tools.md",
+      "title": "Give Claude custom tools",
+      "section": "Agent SDK > Extend with tools",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/mcp.md",
+      "title": "Connect to external tools with MCP",
+      "section": "Agent SDK > Extend with tools",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/tool-search.md",
+      "title": "Scale to many tools with tool search",
+      "section": "Agent SDK > Extend with tools",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/subagents.md",
+      "title": "Subagents in the SDK",
+      "section": "Agent SDK > Extend with tools",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/modifying-system-prompts.md",
+      "title": "Modifying system prompts",
+      "section": "Agent SDK > Customize behavior",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/skills.md",
+      "title": "Extend agents with skills",
+      "section": "Agent SDK > Customize behavior",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/plugins.md",
+      "title": "Plugins in the SDK",
+      "section": "Agent SDK > Customize behavior",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/permissions.md",
+      "title": "Configure permissions",
+      "section": "Agent SDK > Control and observability",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/hooks.md",
+      "title": "Intercept and control agent behavior with hooks",
+      "section": "Agent SDK > Control and observability",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/file-checkpointing.md",
+      "title": "Rewind file changes with checkpointing",
+      "section": "Agent SDK > Control and observability",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/cost-tracking.md",
+      "title": "Track cost and usage",
+      "section": "Agent SDK > Control and observability",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/observability.md",
+      "title": "Observability with OpenTelemetry",
+      "section": "Agent SDK > Control and observability",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/todo-tracking.md",
+      "title": "Track todos",
+      "section": "Agent SDK > Control and observability",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/hosting.md",
+      "title": "Hosting the Agent SDK",
+      "section": "Agent SDK > Deployment",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/secure-deployment.md",
+      "title": "Securely deploying AI agents",
+      "section": "Agent SDK > Deployment",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/typescript.md",
+      "title": "Agent SDK reference - TypeScript",
+      "section": "Agent SDK > SDK references",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/typescript-v2-preview.md",
+      "title": "TypeScript SDK V2 session API (removed)",
+      "section": "Agent SDK > SDK references",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/agent-sdk/python.md",
+      "title": "Agent SDK reference - Python",
+      "section": "Agent SDK > SDK references",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "Agent SDK のアプリ開発で、canon は Claude Code の設定ファイルだけを生成する"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/index.md",
+      "title": "What's new",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w37.md",
+      "title": "Week 37 · September 7–11, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w36.md",
+      "title": "Week 36 · August 31 – September 4, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w35.md",
+      "title": "Week 35 · August 24–28, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w34.md",
+      "title": "Week 34 · August 17–21, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w33.md",
+      "title": "Week 33 · August 10–14, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w32.md",
+      "title": "Week 32 · August 3–7, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w30.md",
+      "title": "Week 30 · July 20–24, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w29.md",
+      "title": "Week 29 · July 13–17, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w28.md",
+      "title": "Week 28 · July 6–10, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w27.md",
+      "title": "Week 27 · June 29 – July 3, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w26.md",
+      "title": "Week 26 · June 22–26, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w25.md",
+      "title": "Week 25 · June 15–19, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w24.md",
+      "title": "Week 24 · June 8–12, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w23.md",
+      "title": "Week 23 · June 1–5, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w22.md",
+      "title": "Week 22 · May 25–29, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w21.md",
+      "title": "Week 21 · May 18–22, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w20.md",
+      "title": "Week 20 · May 11–15, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w19.md",
+      "title": "Week 19 · May 4–8, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w18.md",
+      "title": "Week 18 · April 27 – May 1, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w17.md",
+      "title": "Week 17 · April 20–24, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w16.md",
+      "title": "Week 16 · April 13–17, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w15.md",
+      "title": "Week 15 · April 6–10, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w14.md",
+      "title": "Week 14 · March 30 – April 3, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/whats-new/2026-w13.md",
+      "title": "Week 13 · March 23–27, 2026",
+      "section": "What's New",
+      "kind": "version",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "版の決定と新機能の検出にだけ使う（本文の根拠にしない）"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/legal-and-compliance.md",
+      "title": "Legal and compliance",
+      "section": "Resources",
+      "kind": "spec",
+      "treatment": "out-of-scope",
+      "features": [],
+      "reason": "法務・コンプライアンス"
+    }
+  ],
+  "insights": [
+    {
+      "url": "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices.md",
+      "title": "Skill authoring best practices",
+      "publisher": "Anthropic（Claude Platform Docs）",
+      "used_by": [
+        "skills",
+        "quality"
+      ]
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview.md",
+      "title": "Agent Skills overview",
+      "publisher": "Anthropic（Claude Platform Docs）",
+      "used_by": [
+        "skills"
+      ]
+    },
+    {
+      "url": "https://raw.githubusercontent.com/anthropics/skills/main/skills/skill-creator/SKILL.md",
+      "title": "skill-creator",
+      "publisher": "Anthropic（GitHub anthropics/skills）",
+      "used_by": [
+        "skills",
+        "quality"
+      ]
+    },
+    {
+      "url": "https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills",
+      "title": "Equipping agents for the real world with Agent Skills",
+      "publisher": "Anthropic Engineering",
+      "used_by": [
+        "skills",
+        "patterns"
+      ]
+    },
+    {
+      "url": "https://www.anthropic.com/engineering/claude-code-best-practices",
+      "title": "Claude Code best practices",
+      "publisher": "Anthropic Engineering",
+      "used_by": [
+        "claude-md",
+        "selection",
+        "patterns"
+      ]
+    },
+    {
+      "url": "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents",
+      "title": "Effective context engineering for AI agents",
+      "publisher": "Anthropic Engineering",
+      "used_by": [
+        "quality",
+        "patterns"
+      ]
+    },
+    {
+      "url": "https://www.anthropic.com/engineering/writing-tools-for-agents",
+      "title": "Writing effective tools for agents",
+      "publisher": "Anthropic Engineering",
+      "used_by": [
+        "mcp",
+        "quality"
+      ]
+    },
+    {
+      "url": "https://www.anthropic.com/engineering/building-effective-agents",
+      "title": "Building effective agents",
+      "publisher": "Anthropic Engineering",
+      "used_by": [
+        "patterns"
+      ]
+    },
+    {
+      "url": "https://www.anthropic.com/engineering/multi-agent-research-system",
+      "title": "How we built our multi-agent research system",
+      "publisher": "Anthropic Engineering",
+      "used_by": [
+        "subagents",
+        "patterns"
+      ]
+    },
+    {
+      "url": "https://claude.dev/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models/",
+      "title": "The new rules of context engineering for Claude 5 generation models",
+      "publisher": "claude.dev",
+      "used_by": [
+        "quality",
+        "claude-md"
+      ]
+    },
+    {
+      "url": "https://claude.dev/blog/building-effective-agent-automations/",
+      "title": "Building effective agent automations",
+      "publisher": "claude.dev",
+      "used_by": [
+        "patterns",
+        "hooks"
+      ]
+    },
+    {
+      "url": "https://claude.dev/blog/getting-started-with-claude-code-mods/",
+      "title": "Getting started with Claude Code mods",
+      "publisher": "claude.dev",
+      "used_by": [
+        "plugin-mods"
+      ]
+    }
+  ],
+  "placeable_files": [
+    {
+      "file": "CLAUDE.md",
+      "assigned_to": "claude-md",
+      "reason": null,
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": "rules/*.md",
+      "assigned_to": "rules",
+      "reason": null,
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": "settings.json",
+      "assigned_to": "settings",
+      "reason": null,
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": "settings.local.json",
+      "assigned_to": "settings",
+      "reason": null,
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": ".mcp.json",
+      "assigned_to": "mcp",
+      "reason": null,
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": ".worktreeinclude",
+      "assigned_to": "selection",
+      "reason": "worktree の運用に付随するファイルで、選定ガイドで worktree の選択肢として扱う",
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": "skills/<name>/SKILL.md",
+      "assigned_to": "skills",
+      "reason": null,
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": "commands/*.md",
+      "assigned_to": "skills",
+      "reason": null,
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": "output-styles/*.md",
+      "assigned_to": "output-styles",
+      "reason": null,
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": "agents/*.md",
+      "assigned_to": "subagents",
+      "reason": null,
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": "workflows/*.js",
+      "assigned_to": "selection",
+      "reason": "公式には Claude が書いて /workflows から保存するもので、一から書くものではない。選定ガイドで並列化の選択肢として扱う",
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": "agent-memory/<name>/",
+      "assigned_to": "subagents",
+      "reason": null,
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": "~/.claude.json",
+      "assigned_to": "settings",
+      "reason": null,
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": "projects/<project>/memory/",
+      "assigned_to": "claude-md",
+      "reason": null,
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": "keybindings.json",
+      "assigned_to": "out-of-scope",
+      "reason": "個人の UI 設定で、プロジェクトに配置するカスタマイズではない",
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    },
+    {
+      "file": "themes/*.json",
+      "assigned_to": "out-of-scope",
+      "reason": "個人の UI 設定で、プロジェクトに配置するカスタマイズではない",
+      "source": {
+        "url": "https://code.claude.com/docs/en/claude-directory.md",
+        "anchor": "#file-reference"
+      }
+    }
+  ],
+  "unverified": [
+    {
+      "where": "data/frontmatter.json",
+      "item": "output-style/name",
+      "what": "frontmatter に name を設定したあとも、ファイル名でスタイルを選べるかが公式に書かれていない"
+    },
+    {
+      "where": "references/features/output-styles.md",
+      "item": "同名の出力スタイルの優先順位",
+      "what": "managed・user・project に同名のスタイルがあるときの優先順位のうち、managed の位置が公式に書かれていない"
+    },
+    {
+      "where": "references/features/output-styles.md",
+      "item": "プラグインの出力スタイルの名前",
+      "what": "settings の outputStyle にプラグインのスタイルを書くとき <plugin>:<name> の形が要るかが公式に書かれていない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "rule/paths",
+      "what": "パターンをプロジェクトのルートとルールファイルの位置のどちらを基準に照合するかが明記されていない（表の例から読み取れるだけ）"
+    },
+    {
+      "where": "references/features/rules.md",
+      "item": "サブディレクトリの .claude/rules/",
+      "what": "入れ子の .claude/rules/ が読み込まれる条件の詳細が公式に書かれていない"
+    },
+    {
+      "where": "references/features/rules.md",
+      "item": "managed とプラグインのルール",
+      "what": "managed のルール用ディレクトリと、プラグインでルールを配布する手段が、取得した detailed のページに出てこない（無いとは断定しない）"
+    },
+    {
+      "where": "data/statusline.json",
+      "item": "input-fields/prompt_cache.last_miss_cause.causes",
+      "what": "キャッシュが外れた原因名は公式が例を挙げているだけで、全件が列挙されていない"
+    },
+    {
+      "where": "references/features/statusline.md",
+      "item": "statusLine の下位キー",
+      "what": "type・command・padding・refreshInterval・hideVimModeIndicator 以外のキーを拒否するかが明記されていない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "subagent/maxTurns の type",
+      "what": "公式の表に型の明記が無い。説明文から number とした"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "subagent/skills・subagent/mcpServers の type",
+      "what": "公式の例は YAML のリストだけで、カンマ区切りの文字列を受け付けるかが書かれていない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "subagent/background・subagent/omitClaudeMd の default",
+      "what": "既定値（false）が明記されていない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "subagent/initialPrompt・plugin-agent/initialPrompt",
+      "what": "sub-agents の表は「プラグインのサブエージェントでは無視」とするが、同じページの Note は hooks・mcpServers・permissionMode の3つしか挙げていない。表に従った"
+    },
+    {
+      "where": "data/mcp.json",
+      "item": "transports",
+      "what": "type の値の閉じた一覧は公式に無い。インストールの選択肢と sub-agents の列挙から complete と判断した"
+    },
+    {
+      "where": "data/mcp.json",
+      "item": "mcp-json-fields/mcpServers の予約名",
+      "what": "予約されたサーバー名は公式が including で例示しているだけで、全件ではない"
+    },
+    {
+      "where": "data/mcp.json",
+      "item": "mcp-json-fields/timeout の source",
+      "what": "定義が Tip の中にあり、見出しの anchor は直前の節を指している"
+    },
+    {
+      "where": "data/paths.json",
+      "item": "managed:managed-settings.json",
+      "what": "OS ごとの配置パスが detailed のページに書かれていない（正は out-of-scope の managed-settings ページ）。os_paths は null"
+    },
+    {
+      "where": "data/paths.json",
+      "item": "managed の skills・agents・output-styles",
+      "what": "managed settings directory の OS ごとの実体が detailed のページに書かれていない（skills の Linux の例 /etc/claude-code/ だけ）"
+    },
+    {
+      "where": "data/paths.json",
+      "item": "user:~/.claude/projects/<project>/memory/MEMORY.md の startup_load_limit",
+      "what": "公式の表記は 25KB で、25000 バイトか 25600 バイトかが書かれていない"
+    },
+    {
+      "where": "data/paths.json",
+      "item": "managed:CLAUDE.md",
+      "what": "managed settings directory の中に置くのかが memory に書かれていない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "skill・command の type",
+      "what": "多くのキーで型が明記されておらず、説明文から推定した（hooks を object とした点を含む）"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "skill/description の required",
+      "what": "公式の Required 列は Recommended。required: false と recommended: true で表した"
+    },
+    {
+      "where": "data/builtin-commands.json",
+      "item": "commands/plugin-authoring",
+      "what": "公式は built-in plugin が提供する skill と書くが、表に Skill の印が無い"
+    },
+    {
+      "where": "data/builtin-commands.json",
+      "item": "commands",
+      "what": "利用できるかはプラットフォーム・プラン・環境で変わると公式が書いている。表の全行を全件として扱った"
+    },
+    {
+      "where": "data/hook-events.json",
+      "item": "events/PostToolUseFailure の decision_fields",
+      "what": "Decision control の要約表はトップレベルの decision の行に載せるが、個別の節は additionalContext しか挙げていない。節に従った"
+    },
+    {
+      "where": "data/hook-events.json",
+      "item": "events/CwdChanged・events/FileChanged の watchPaths",
+      "what": "hookSpecificOutput の中に置くのかトップレベルに置くのかが書かれていない"
+    },
+    {
+      "where": "data/hook-events.json",
+      "item": "events/Setup の handler_types",
+      "what": "Prompt-based hooks の節は mcp_tool に対応するとし、Setup の節は mcp_tool は常に飛ばされると書いている"
+    },
+    {
+      "where": "data/hook-events.json",
+      "item": "handler-types の fields",
+      "what": "ハンドラーに未知のキーを書いたときの扱い（無視かエラーか）が書かれていない"
+    },
+    {
+      "where": "data/permissions.json",
+      "item": "rule-syntax の Artifact 規則",
+      "what": "permissions は Artifact 規則に触れるが、書式は out-of-scope の artifacts ページにしか無く、収めていない"
+    },
+    {
+      "where": "data/permissions.json",
+      "item": "rule-syntax/Bash の applies_to の Monitor",
+      "what": "Monitor(...) と書くのか、Bash(...) が Monitor にも効くのかが本文から読み取れない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "plugin-agent/description の required",
+      "what": "プラグインの agent で description を省いたときの扱いが書かれていない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "plugin-agent/skills・hooks・mcpServers・initialPrompt の type",
+      "what": "値の型が明記されていない"
+    },
+    {
+      "where": "data/marketplace.json",
+      "item": "source-types の plugin:url・plugin:git-subdir・plugin:npm・plugin:archive・plugin:command",
+      "what": "必須フィールドが明記されていない"
+    },
+    {
+      "where": "data/plugin-manifest.json",
+      "item": "fields/commands の entry_fields",
+      "what": "source と content のどちらか一方だけという規則で、個々の必須は決まらない"
+    },
+    {
+      "where": "data/mods.json",
+      "item": "api（documented: false の要素）",
+      "what": "公式の一覧に名前だけが載り、説明が無い"
+    },
+    {
+      "where": "data/mods.json",
+      "item": "api/$.fs.exists・api/$.fs.stat",
+      "what": "戻り値の形が書かれていない"
+    },
+    {
+      "where": "data/mods.json",
+      "item": "events の interface グループ",
+      "what": "ui.render 以外の hook が返せる値が示されていない"
+    },
+    {
+      "where": "data/mods.json",
+      "item": "events・api",
+      "what": "公式は TypeScript 宣言（spec ページではない）を完全なリファレンスとしている。spec ページの表との差は確かめていない"
+    },
+    {
+      "where": "data/models.json",
+      "item": "aliases の opusplan[1m]",
+      "what": "model-config の opusplan の節では有効な値だが、Model aliases の表に無いので要素にしていない"
+    },
+    {
+      "where": "data/settings.json",
+      "item": "permissions.disableAutoMode",
+      "what": "disableAutoMode の項目と permissions の Type では受け付けると書かれるが、Settings index に行が無い。disableAutoMode の notes_ja に書いた"
+    },
+    {
+      "where": "data/settings.json",
+      "item": "$schema",
+      "what": "settings のページは使い方を説明するが、Settings index に行が無い。キーとしては収めていない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "command",
+      "what": "skills は commands/*.md が name と paths を除く skill のキーを受け付けるとし、plugins/components は skill と同じ frontmatter とだけ書いている。skills に従った"
+    }
+  ]
+}

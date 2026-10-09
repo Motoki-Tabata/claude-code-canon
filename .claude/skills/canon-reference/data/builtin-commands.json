@@ -1,0 +1,1722 @@
+{
+  "id": "builtin-commands",
+  "description": "Claude Code に含まれるコマンド（組み込みコマンド・bundled skill・bundled workflow）の一覧。公式 commands ページの All commands 表の各行を1要素にする",
+  "collections": {
+    "commands": {
+      "description": "`/` で呼ぶコマンド。id は `/` を除いた名前。marked_as は公式の表の印（Skill＝bundled skill、Workflow＝bundled workflow、null＝印なし）。aliases はその行に書かれた別名、alias_of は別名の行が指す本体。removed は公式が削除済みと書いている行、hidden_from_menu は `/` メニューに出ず全名を打つと動く行。利用できるかはプラットフォーム・プラン・環境で変わる",
+      "complete": true,
+      "complete_basis": "公式ページの All commands 表が Claude Code に含まれる全コマンドを列挙していると明記しており、その全行を収めた（削除済みの行も含む）",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "add-dir",
+          "usage": "/add-dir <path>",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "現在のセッションでファイルにアクセスできる作業ディレクトリを足す。追加したディレクトリの `.claude/` の設定の大半は読み込まれない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "advisor",
+          "usage": "/advisor [model|off]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "作業の要所で別のモデルに助言を求める advisor ツールを有効・無効にする",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "agents",
+          "usage": "/agents",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "サブエージェントの作成・管理は Claude に頼むか `.claude/agents/`・`~/.claude/agents/` を直接編集するよう案内を表示する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "artifact-capabilities",
+          "usage": "/artifact-capabilities",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "公開した artifact が使える実行時の機能のリファレンスを読み込む",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "artifact-diagramming",
+          "usage": "/artifact-diagramming",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "artifact で図を描くときの指針を読み込む",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "artifacts",
+          "usage": "/artifacts",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "自分の、または共有された artifact を一覧し、セッションに添付・ブラウザで開く・リンクをコピーする",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "auto-mode-setup",
+          "usage": "/auto-mode-setup",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "プロジェクトと最近のセッションから `autoMode.environment` の項目を下書きし、確認してユーザー設定に保存する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "autocompact",
+          "usage": "/autocompact [auto|<tokens>]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "自動 compact が働くまでのコンテキストの大きさを設定する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "autofix-pr",
+          "usage": "/autofix-pr [prompt]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "現在のブランチの PR を見張り、CI の失敗やレビューコメントに修正を push するクラウドセッションを起動する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "background",
+          "usage": "/background [prompt]",
+          "marked_as": null,
+          "aliases": [
+            "bg"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "現在のセッションをバックグラウンドエージェントとして切り離し、端末を空ける",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "batch",
+          "usage": "/batch <instruction>",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "コードベース全体にわたる大きな変更を独立した単位に分け、単位ごとに worktree のバックグラウンドサブエージェントで並列に実装する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "branch",
+          "usage": "/branch [name]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "会話をこの時点で分岐し、元の会話を残したまま別の方向を試す",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "btw",
+          "usage": "/btw [question]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "会話の履歴に足さずに、現在のセッションについて脇の質問をする",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "bug",
+          "usage": "/bug [report]",
+          "marked_as": null,
+          "aliases": [
+            "share"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "バグを報告するか会話を共有する。送る前に同意の画面で確認する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "cd",
+          "usage": "/cd <path>",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "会話を保ったままセッションを別の作業ディレクトリに移す",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "chrome",
+          "usage": "/chrome",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Claude in Chrome の設定を行う",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "claude-api",
+          "usage": "/claude-api [migrate|upgrade|managed-agents-onboard|prompt-audit|cost-optimize|build-eval|hillclimb|preserved-thinking-migration]",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "プロジェクトの言語向けの Claude API と Managed Agents のリファレンスを読み込む。`anthropic`・`@anthropic-ai/sdk` を import するコードでは自動でも有効になる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "claude-in-chrome",
+          "usage": "/claude-in-chrome [task]",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Claude in Chrome を通じてブラウザで作業させる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "clear",
+          "usage": "/clear [name]",
+          "marked_as": null,
+          "aliases": [
+            "reset",
+            "new"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "空のコンテキストで新しい会話を始める",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "code-review",
+          "usage": "/code-review [low|medium|high|xhigh|max|ultra] [--fix] [--comment] [--max-findings n|all|default] [pr#|branch|path]",
+          "marked_as": "Skill",
+          "aliases": [
+            "review"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "現在の差分、または指定した PR・ブランチ・パスの正しさのバグをレビューする。`--fix` で指摘を適用する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "color",
+          "usage": "/color [color|default]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "現在のセッションのプロンプトバーの色を設定する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "compact",
+          "usage": "/compact [instructions]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "それまでの会話を要約してコンテキストを空ける。要約の焦点を指示できる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "config",
+          "usage": "/config [key=value ...]",
+          "marked_as": null,
+          "aliases": [
+            "settings"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "テーマ・モデル・output style などを調整する設定画面を開く。`key=value` で直接設定もできる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "context",
+          "usage": "/context [all]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "現在のコンテキストの使用量を色付きのグリッドで表示する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "copy",
+          "usage": "/copy [N]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "直前のアシスタントの応答をクリップボードにコピーする",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "cost",
+          "usage": "/cost",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": "usage",
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "`/usage` の別名",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "dataviz",
+          "usage": "/dataviz [request]",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "グラフ・チャート・ダッシュボードの設計の指針を与える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "debug",
+          "usage": "/debug [description]",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "現在のセッションでデバッグログを有効にし、ログを読んで問題を調べる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "deep-research",
+          "usage": "/deep-research <question>",
+          "marked_as": "Workflow",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "問いについて Web 検索を並列に行い、出典を突き合わせて出典付きの報告にまとめる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "design",
+          "usage": "/design [brief]",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "UI のモックアップ・画面遷移などを Claude Design の artifact として下書きする",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "design-login",
+          "usage": "/design-login",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "`/design-sync` のためのデザインシステムへのアクセスを claude.ai のアカウントで認可する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "design-sync",
+          "usage": "/design-sync [hint]",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "リポジトリの React デザインシステムを変換して Claude Design にアップロードする",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "desktop",
+          "usage": "/desktop",
+          "marked_as": null,
+          "aliases": [
+            "app"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "現在のセッションを Claude Code Desktop アプリで続ける",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "diff",
+          "usage": "/diff",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Claude がこれまでに加えた編集を含め、作業ツリーの変更を確認する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "doctor",
+          "usage": "/doctor [prompt-audit [path]]",
+          "marked_as": "Skill",
+          "aliases": [
+            "checkup"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "インストール・設定・拡張・`CLAUDE.md` の問題を診断し、確認のうえで修正するセットアップの点検を行う。`prompt-audit` で指示ファイルの監査を行う",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "effort",
+          "usage": "/effort [level|auto|status|ultracode [on|off]]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "effort level を設定する。`status` で表示し、`ultracode` で ultracode を切り替える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "exit",
+          "usage": "/exit",
+          "marked_as": null,
+          "aliases": [
+            "quit"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "CLI を終了する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "export",
+          "usage": "/export [filename]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "現在の会話をプレーンテキストで書き出す",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "fast",
+          "usage": "/fast [on|off]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "fast mode を切り替える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "feedback",
+          "usage": "/feedback [report]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Claude Code への製品フィードバックを送る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "fewer-permission-prompts",
+          "usage": "/fewer-permission-prompts",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "トランスクリプトからよく使う読み取り専用の Bash・MCP のツール呼び出しを探し、プロジェクトの `.claude/settings.json` に許可リストを足す",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "focus",
+          "usage": "/focus",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "最後のプロンプト・ツール呼び出しの要約・最終応答だけを表示する focus view を切り替える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "fork",
+          "usage": "/fork [prompt]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "現在の会話を新しいバックグラウンドセッションにコピーし、ここでの作業を続ける",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "goal",
+          "usage": "/goal [condition|clear]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "条件を満たすまで Claude がターンをまたいで作業を続ける goal を設定する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "heapdump",
+          "usage": "/heapdump",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": true,
+          "description_ja": "高いメモリ使用量の診断のため、JavaScript のヒープスナップショットとメモリの内訳を書き出す",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "help",
+          "usage": "/help",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "ヘルプと使えるコマンドを表示する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "hooks",
+          "usage": "/hooks",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Hook の設定を表示する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "ide",
+          "usage": "/ide",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "IDE との連携を管理し、状態を表示する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "import",
+          "usage": "/import [codex|gemini|cursor] [--dry-run] [--yes]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "OpenAI Codex・Gemini CLI・Cursor の設定（指示ファイル・MCP サーバー・コマンド・サブエージェント・Skill）を Claude Code に取り込む",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "init",
+          "usage": "/init",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "プロジェクトの `CLAUDE.md` を作る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "insights",
+          "usage": "/insights",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "このマシンの最近のセッションを分析した HTML の報告を作る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "install-github-app",
+          "usage": "/install-github-app",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "リポジトリに Claude GitHub App を入れ、GitHub Actions の workflow とシークレットの設定もできる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "install-slack-app",
+          "usage": "/install-slack-app",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Claude Slack アプリを入れる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "keybindings",
+          "usage": "/keybindings",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "キーボードショートカットのファイルを開く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "list-agents",
+          "usage": "/list-agents",
+          "marked_as": null,
+          "aliases": [
+            "peers"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Claude がメッセージを送れるサブエージェント・agent team のチームメイト・他のセッションを一覧する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "login",
+          "usage": "/login",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Anthropic のアカウントにサインインする",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "logout",
+          "usage": "/logout",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Anthropic のアカウントからサインアウトする",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "loop",
+          "usage": "/loop [interval] [prompt]",
+          "marked_as": "Skill",
+          "aliases": [
+            "proactive"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "セッションが開いている間、プロンプトを繰り返し実行する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "mcp",
+          "usage": "/mcp [reconnect (<server>|all)|enable|disable [<server>|all]]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "MCP サーバーの接続と OAuth 認証を管理する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "memory",
+          "usage": "/memory",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "`CLAUDE.md` を編集し、auto memory の有効・無効の切り替えと項目の確認を行う",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "mobile",
+          "usage": "/mobile",
+          "marked_as": null,
+          "aliases": [
+            "ios",
+            "android"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Claude モバイルアプリのダウンロード用の QR コードを表示する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "model",
+          "usage": "/model [model]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "AI モデルを切り替え、新しいセッションの既定として保存する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "output-style",
+          "usage": "/output-style [style]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "output style を一覧するか、切り替える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "passes",
+          "usage": "/passes",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Claude Code の無料の1週間を友人と共有する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "permissions",
+          "usage": "/permissions",
+          "marked_as": null,
+          "aliases": [
+            "allowed-tools"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "ツールの権限の allow・ask・deny のルールを管理する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "plan",
+          "usage": "/plan [description]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "プロンプトから直接 plan mode に入る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "plugin",
+          "usage": "/plugin [subcommand]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Claude Code の Plugin を管理する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "plugin-authoring",
+          "usage": "/plugin-authoring",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "mod を書くときに Claude が従うリファレンスを読み込む。組み込みの Plugin が提供する Skill",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "powerup",
+          "usage": "/powerup",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "短い対話型のレッスンで Claude Code の機能を知る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "pr-comments",
+          "usage": "/pr-comments [PR]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": true,
+          "hidden_from_menu": false,
+          "description_ja": "削除済み。PR のコメントは Claude に直接頼む",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "privacy-settings",
+          "usage": "/privacy-settings",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "プライバシーの設定を確認・更新する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "radio",
+          "usage": "/radio",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Claude FM のラジオをブラウザで開く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "rate-limit-options",
+          "usage": "/rate-limit-options",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "claude.ai の利用上限に達したときに作業を続ける方法を表示する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "recap",
+          "usage": "/recap",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "現在のセッションの1行の要約を作る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "release-notes",
+          "usage": "/release-notes",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "版を選んで変更履歴を表示する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "reload-plugins",
+          "usage": "/reload-plugins [--force]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "有効な Plugin を再読み込みし、保留中の変更を再起動なしで反映する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "reload-skills",
+          "usage": "/reload-skills",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Skill とコマンドのディレクトリを走査し直し、セッション中に追加・変更された Skill を再起動なしで使えるようにする",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "remote-control",
+          "usage": "/remote-control",
+          "marked_as": null,
+          "aliases": [
+            "rc"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "このセッションを claude.ai から Remote Control で操作できるようにする",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "remote-env",
+          "usage": "/remote-env",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "CLI から始めるクラウドセッションの既定のクラウド環境を選ぶ",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "rename",
+          "usage": "/rename [name]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "現在のセッションの名前を変える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "resume",
+          "usage": "/resume [session]",
+          "marked_as": null,
+          "aliases": [
+            "continue"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "ID か名前で会話を再開するか、セッションの選択画面を開く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "review",
+          "usage": "/review [low|medium|high|xhigh|max|ultra] [--fix] [--comment] [--max-findings n|all|default] [pr#|branch|path]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": "code-review",
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "`/code-review` の別名。同じ effort level とフラグを受け付ける",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "rewind",
+          "usage": "/rewind",
+          "marked_as": null,
+          "aliases": [
+            "checkpoint",
+            "undo"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "会話とコードを前の時点に戻すか、選んだメッセージから要約する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "run",
+          "usage": "/run",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "プロジェクトのアプリを起動して操作し、変更が動くことを確かめる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "run-skill-generator",
+          "usage": "/run-skill-generator",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "プロジェクトのアプリをきれいな環境からビルド・起動・操作する手順をプロジェクトの Skill として書き、`/run` と `/verify` に教える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "sandbox",
+          "usage": "/sandbox",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "sandbox mode を切り替える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "schedule",
+          "usage": "/schedule [description]",
+          "marked_as": null,
+          "aliases": [
+            "routines"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "クラウドで実行する routine を作成・更新・一覧・実行する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "scroll-speed",
+          "usage": "/scroll-speed",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "マウスホイールのスクロール速度を調整する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "security-review",
+          "usage": "/security-review",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "現在のブランチの変更をセキュリティの脆弱性の観点で分析する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "setup-bedrock",
+          "usage": "/setup-bedrock",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": true,
+          "description_ja": "Amazon Bedrock の認証・リージョン・モデルの固定を対話で設定する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "setup-vertex",
+          "usage": "/setup-vertex",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": true,
+          "description_ja": "Google Cloud の Agent Platform の認証・プロジェクト・リージョン・モデルの固定を対話で設定する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "simplify",
+          "usage": "/simplify [target]",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "変更したコードの整理の余地をレビューし、修正を適用する。正しさのバグは探さない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "skill-doctor",
+          "usage": "/skill-doctor",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "各 Skill のコンテキストのコストと使用頻度を表示し、無効にする候補を探す",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "skills",
+          "usage": "/skills",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "使える Skill を一覧し、Claude と `/` メニューへの見え方を切り替える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "slides",
+          "usage": "/slides [brief]",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "依頼内容から Claude Slides の artifact としてプレゼンテーションを作る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "stats",
+          "usage": "/stats",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": "usage",
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "`/usage` の別名。Stats タブで開く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "status",
+          "usage": "/status",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "版・モデル・アカウント・接続状況を示す設定画面の Status タブを開く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "statusline",
+          "usage": "/statusline",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Claude Code の status line を設定する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "stickers",
+          "usage": "/stickers",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Claude Code のステッカーを注文する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "stop",
+          "usage": "/stop",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "接続しているバックグラウンドセッションを止める",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "subtask",
+          "usage": "/subtask <task>",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "会話全体を引き継ぐ forked subagent を起動し、作業を続ける間にタスクを任せる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "tasks",
+          "usage": "/tasks",
+          "marked_as": null,
+          "aliases": [
+            "bashes"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "現在のセッションのバックグラウンドの作業を確認・管理する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "team-onboarding",
+          "usage": "/team-onboarding",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "Claude Code の利用履歴からチームのオンボーディングガイドを作る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "teleport",
+          "usage": "/teleport",
+          "marked_as": null,
+          "aliases": [
+            "tp"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "クラウドセッションをこの端末に取り込む",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "terminal-setup",
+          "usage": "/terminal-setup",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "改行用の Shift+Enter などの端末のキー設定を入れる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "theme",
+          "usage": "/theme",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "配色のテーマを変える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "tui",
+          "usage": "/tui [default|fullscreen]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "端末 UI の描画方式を設定し、会話を保ったまま再起動する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "ultraplan",
+          "usage": "/ultraplan <prompt>",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": true,
+          "hidden_from_menu": false,
+          "description_ja": "削除済み。plan mode を使う",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "ultrareview",
+          "usage": "/ultrareview [PR or branch]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": "code-review",
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "クラウドのサンドボックスで複数エージェントによる深いコードレビューを行う。推奨の呼び出しは `/code-review ultra`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "update-config",
+          "usage": "/update-config [request]",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "依頼した設定の変更を、対応する `settings.json` に Claude が書き込む",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "upgrade",
+          "usage": "/upgrade",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "上位のプランに切り替えるページをブラウザで開く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "usage",
+          "usage": "/usage",
+          "marked_as": null,
+          "aliases": [
+            "cost",
+            "stats"
+          ],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "セッションのコスト・プランの利用上限・利用状況を表示する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "usage-credits",
+          "usage": "/usage-credits",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "上限に達したときに usage credits を設定するか、管理者に依頼する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "verify",
+          "usage": "/verify",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "プロジェクトのアプリをビルド・実行して結果を観察し、変更が意図どおりかを確かめる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "vim",
+          "usage": "/vim",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": true,
+          "hidden_from_menu": false,
+          "description_ja": "削除済み。Vim と Normal の編集モードの切り替えは `/config` の Editor mode で行う",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "voice",
+          "usage": "/voice [hold|tap|off]",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "音声入力を切り替える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "web-setup",
+          "usage": "/web-setup",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "ローカルの `gh` の認証情報で、クラウドセッション用に GitHub アカウントを接続する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "workflow-authoring",
+          "usage": "/workflow-authoring",
+          "marked_as": "Skill",
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "dynamic workflow のスクリプトを書くためのリファレンスを読み込む",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        },
+        {
+          "id": "workflows",
+          "usage": "/workflows",
+          "marked_as": null,
+          "aliases": [],
+          "alias_of": null,
+          "removed": false,
+          "hidden_from_menu": false,
+          "description_ja": "workflow の進捗画面を開き、実行中・完了した workflow を確認・一時停止・再開・保存する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/commands.md",
+            "anchor": "#all-commands"
+          }
+        }
+      ]
+    }
+  }
+}

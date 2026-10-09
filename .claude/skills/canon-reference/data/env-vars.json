@@ -1,0 +1,953 @@
+{
+  "id": "env-vars",
+  "description": "Claude Code が読む環境変数のうち、canon の生成物（settings の env・hook・status line・MCP・サブエージェント・skills）が参照しうるものの一覧。",
+  "collections": {
+    "vars": {
+      "description": "id は変数名。used_for はその変数が関わる機能（canon-reference の機能ファイルの id）。settings の env で無視される変数は env-vars:ignored-in-env にある。",
+      "complete": false,
+      "complete_basis": "生成で使うものだけを選んだ。選んだ基準は、(1) hook・status line・MCP サーバーのスクリプトが読む、Claude Code が設定する変数、(2) canon が生成する設定（モデルのエイリアス・output style・サブエージェント・hooks・MCP・skills・CLAUDE.md の読み込み・Bash の時間と出力）の効き方を変える変数。認証・プロバイダー・プロキシ・テレメトリ・表示・自動更新の変数は含めない。",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "CLAUDECODE",
+          "description_ja": "Claude Code が起動するサブプロセス（Bash・PowerShell ツール、hook のコマンド、status line のコマンド、stdio の MCP サーバー）で `1` になる。IDE 拡張の統合ターミナルでも設定される。スクリプトが Claude Code の中で動いているかの判定に使う。",
+          "used_for": [
+            "hooks",
+            "statusline",
+            "mcp"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_CHILD_SESSION",
+          "description_ja": "Bash・PowerShell・Monitor ツール、hook のコマンド、status line のコマンドで Claude Code が起動したサブプロセスで `1` になる。stdio の MCP サーバーと IDE 拡張では設定されないので、CLAUDECODE より確実に入れ子のセッションを見分けられる。",
+          "used_for": [
+            "hooks",
+            "statusline"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_SESSION_ID",
+          "description_ja": "Bash・PowerShell ツール、hook のコマンド、stdio の MCP サーバーのサブプロセスに現在のセッション ID が入る。Bash・PowerShell・hooks では hook の JSON 入力の session_id と一致し、/clear で更新される。",
+          "used_for": [
+            "hooks",
+            "mcp"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_ENV_FILE",
+          "description_ja": "Bash コマンドの前に同じシェルで実行するシェルスクリプトのパス。virtualenv などの有効化をコマンド間で保つのに使う。SessionStart・Setup・CwdChanged・FileChanged の hooks からも設定される。",
+          "used_for": [
+            "hooks"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CONFIG_DIR",
+          "description_ja": "設定ディレクトリ（既定は ~/.claude）を変える。settings・セッションの履歴・プラグインはこの下に置かれる。settings ファイルに書くときは絶対パスにする。",
+          "used_for": [
+            "settings"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "ANTHROPIC_MODEL",
+          "description_ja": "使うモデルの設定値（エイリアスかモデル名）。",
+          "used_for": [
+            "settings"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "ANTHROPIC_DEFAULT_MODEL",
+          "description_ja": "新しいセッションが既定で始まるモデル。",
+          "used_for": [
+            "settings"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "ANTHROPIC_DEFAULT_OPUS_MODEL",
+          "description_ja": "opus エイリアスが解決するモデル ID。opusplan が plan モードで使うモデルでもある。",
+          "used_for": [
+            "settings",
+            "subagents"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "ANTHROPIC_DEFAULT_SONNET_MODEL",
+          "description_ja": "sonnet エイリアスが解決するモデル ID。opusplan が plan モード以外で使うモデルでもある。",
+          "used_for": [
+            "settings",
+            "subagents"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+          "description_ja": "haiku エイリアスが解決するモデル ID。バックグラウンドの処理にも使われる。",
+          "used_for": [
+            "settings",
+            "subagents"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "ANTHROPIC_DEFAULT_FABLE_MODEL",
+          "description_ja": "fable エイリアスが解決するモデル ID。",
+          "used_for": [
+            "settings",
+            "subagents"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_SUBAGENT_MODEL",
+          "description_ja": "ほかの方法でモデルを割り当てられていないサブエージェント・agent team のメンバー・workflow のエージェントの既定のモデル。Claude が起動時に渡すモデルと、エージェント定義の model フィールド（inherit を含む）がこれに優先する。",
+          "used_for": [
+            "subagents"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_SUBAGENT_MODEL_FORCE",
+          "description_ja": "`1` でサブエージェント・agent team のメンバー・workflow のエージェントに1つのモデルを強制する。",
+          "used_for": [
+            "subagents"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_EFFORT_LEVEL",
+          "description_ja": "対応モデルの effort level（low・medium・high・xhigh・max・auto）。`--effort`・`/effort`・modelSettings・effortLevel に優先する。maxEffortLevel の上限は残る。",
+          "used_for": [
+            "settings",
+            "skills",
+            "subagents"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "MAX_THINKING_TOKENS",
+          "description_ja": "extended thinking のトークン予算を固定する。`0` で Anthropic API の thinking を切る（切れないモデルがある）。adaptive reasoning のモデルでは正の値の数そのものは無視される。",
+          "used_for": [
+            "settings"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH",
+          "description_ja": "メインの会話の下に重ねられるサブエージェントの層の数（既定 3）。`1` で入れ子を止める。",
+          "used_for": [
+            "subagents"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS",
+          "description_ja": "1セッションで同時に動かせるサブエージェントの数（既定 20）。超えると Agent ツールが起動を断る。",
+          "used_for": [
+            "subagents"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_DISABLE_EXPLORE_PLAN_AGENTS",
+          "description_ja": "`1` で組み込みの Explore と Plan のサブエージェントを無効にする。同名の独自サブエージェントには影響しない。",
+          "used_for": [
+            "subagents"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_FORK_SUBAGENT",
+          "description_ja": "fork モード（Claude が会話を分岐したサブエージェントを起動できる）を制御する。対話セッションでは既定で有効。`1` で `claude -p` と Agent SDK でも有効、`0` で全セッションで無効。",
+          "used_for": [
+            "subagents"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "BASH_DEFAULT_TIMEOUT_MS",
+          "description_ja": "前面の Bash・PowerShell ツールのコマンドの既定のタイムアウト（ミリ秒。既定 120000）。",
+          "used_for": [
+            "settings"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "BASH_MAX_TIMEOUT_MS",
+          "description_ja": "モデルが前面の Bash・PowerShell ツールのコマンドに設定できる最大のタイムアウト（ミリ秒。既定 600000）。",
+          "used_for": [
+            "settings"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "BASH_MAX_OUTPUT_LENGTH",
+          "description_ja": "Bash の出力をコマンドの結果に読み戻す最大の文字数（既定 30000、最大 150000）。bashOutputMaxChars を設定するとこの変数は無視される。",
+          "used_for": [
+            "settings"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "MCP_TIMEOUT",
+          "description_ja": "MCP サーバーの起動のタイムアウト（ミリ秒。既定 30000）。",
+          "used_for": [
+            "mcp"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "MCP_TOOL_TIMEOUT",
+          "description_ja": "MCP ツールの実行のタイムアウト（ミリ秒）。.mcp.json のサーバーごとの timeout がそのサーバーではこれに優先する。",
+          "used_for": [
+            "mcp"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "MAX_MCP_OUTPUT_TOKENS",
+          "description_ja": "MCP ツールの応答に許すトークン数の上限（既定 25000）。10000 を超えると警告を出す。",
+          "used_for": [
+            "mcp"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "ENABLE_TOOL_SEARCH",
+          "description_ja": "MCP の tool search を制御する。未設定では MCP ツールを既定で遅延読み込みする。true・auto・auto:N・false を取る。",
+          "used_for": [
+            "mcp"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_DISABLE_AUTO_MEMORY",
+          "description_ja": "`1` で auto memory を無効にする。`0` で `--bare` や autoMemoryEnabled: false があっても有効にする。",
+          "used_for": [
+            "claude-md"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_DISABLE_CLAUDE_MDS",
+          "description_ja": "`1` で user・project・auto memory を含むすべての CLAUDE.md をコンテキストに読み込まない。",
+          "used_for": [
+            "claude-md"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD",
+          "description_ja": "`1` で `--add-dir` で足したディレクトリからもメモリファイル（CLAUDE.md・.claude/CLAUDE.md・.claude/rules/*.md・CLAUDE.local.md）を読む。既定では読まない。",
+          "used_for": [
+            "claude-md",
+            "rules"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_DISABLE_BUNDLED_SKILLS",
+          "description_ja": "`1` で Claude Code 同梱の skills と workflows を無効にする。プラグイン・.claude/skills/・.claude/commands/ の skills には影響しない。disableBundledSkills と同等。",
+          "used_for": [
+            "skills"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "SLASH_COMMAND_TOOL_CHAR_BUDGET",
+          "description_ja": "Skill ツールに見せる skill のメタデータの文字数の予算を上書きする。既定はコンテキストウィンドウの1%で、取れないときは 8000 文字。互換のために残る旧名。",
+          "used_for": [
+            "skills"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS",
+          "description_ja": "`1` で組み込みのコミット・PR の手順の指示と git status のスナップショットを Claude のコンテキストから外す。独自の git の手順の skills を使うときに役立つ。includeGitInstructions に優先する。",
+          "used_for": [
+            "claude-md",
+            "skills"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS",
+          "description_ja": "SessionEnd の hooks の時間予算（ミリ秒）。timeout を持たない各 hook のタイムアウトにもなる。既定は 1.5 秒で、settings ファイルの hook の最大の timeout まで（上限 60 秒）引き上げられる。",
+          "used_for": [
+            "hooks"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_STOP_HOOK_BLOCK_CAP",
+          "description_ja": "Stop・SubagentStop の hook がターンの終了を連続でブロックできる回数（既定 8）。超えると Claude Code がターンを終える。`0` で上限を外す。",
+          "used_for": [
+            "hooks"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB",
+          "description_ja": "`1` で Claude Code が起動するサブプロセス（Bash コマンド・hooks・stdio の MCP サーバー）の環境から認証情報を取り除く。GitHub のトークンとプロキシの設定は残す。",
+          "used_for": [
+            "hooks",
+            "mcp",
+            "permissions"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_SHELL_PREFIX",
+          "description_ja": "Claude Code が起動するシェルコマンド（Bash ツール・hook のコマンド・status line のコマンド・stdio の MCP サーバーの起動コマンド）を包むコマンドの前置き。ログや監査に使う。PowerShell の hooks と exec 形式の hooks には付かない。",
+          "used_for": [
+            "hooks",
+            "statusline",
+            "mcp"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_PLUGIN_DIRS",
+          "description_ja": "セッションで読み込むプラグインのディレクトリ。各パスを `--plugin-dir` と同じく読み込む。Unix は `:`、Windows は `;` で区切り、絶対パスか `~` 始まりで書く（相対パスは飛ばされる）。",
+          "used_for": [
+            "plugins"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_SIMPLE_SYSTEM_PROMPT",
+          "description_ja": "Claude Code の完全なシステムプロンプトと、ツールの説明を短くしたプロンプトのどちらを使うかを選ぶ。`1` で常に短い方、`0`・`false`・`no`・`off` で常に完全な方。未設定のときはモデルによって既定が変わる。どちらでもツール一式・hooks・MCP サーバー・CLAUDE.md の探索は保たれる。",
+          "used_for": [
+            "output-styles"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        }
+      ]
+    },
+    "ignored-in-env": {
+      "description": "settings の env に書いても Claude Code が捨てる変数。`ignored_from: project-local` は project と local の settings（.claude/settings.json・.claude/settings.local.json）から無視され、shell・user settings・managed settings では効く。`ignored_from: all-files` はどの settings ファイルからも無視される。`kind: pattern` の id の `*` は任意の文字列。`off_value_allowed_ja` は、project と local からでも効く例外の値（テレメトリを止める値）。",
+      "complete": false,
+      "complete_basis": "公式が全件を列挙していない。Variables Claude Code ignores in env の節は、OS のディレクトリの変数・Windows の変数・ホスティング環境の識別の変数などを「such as」で例示している。節に名前が載るものはすべて収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "CLAUDE_CONFIG_DIR",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code が自分のファイルを置く・書く場所を決める変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_TMPDIR",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code が自分のファイルを置く・書く場所を決める変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "HOME",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code が自分のファイルを置く・書く場所を決める変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "TMPDIR",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code が自分のファイルを置く・書く場所を決める変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "TMP",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code が自分のファイルを置く・書く場所を決める変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "TEMP",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code が自分のファイルを置く・書く場所を決める変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "XDG_*",
+          "kind": "pattern",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code が自分のファイルを置く・書く場所を決める変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "SystemRoot",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code が起動するプロセスのプログラムとマシン全体の設定を選ぶ Windows の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "ComSpec",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code が起動するプロセスのプログラムとマシン全体の設定を選ぶ Windows の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "ProgramData",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code が起動するプロセスのプログラムとマシン全体の設定を選ぶ Windows の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "LOCALAPPDATA",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code が起動するプロセスのプログラムとマシン全体の設定を選ぶ Windows の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "PATHEXT",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code が起動するプロセスのプログラムとマシン全体の設定を選ぶ Windows の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "PSModulePath",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code が起動するプロセスのプログラムとマシン全体の設定を選ぶ Windows の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "ProgramFiles*",
+          "kind": "pattern",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code が起動するプロセスのプログラムとマシン全体の設定を選ぶ Windows の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "OTEL_LOG_RAW_API_BODIES",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "セッションの内容を外に出す変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "ENABLE_BETA_TRACING_DETAILED",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "セッションの内容を外に出す変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "BETA_TRACING_ENDPOINT",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "セッションの内容を外に出す変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_ENABLE_TELEMETRY",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "テレメトリを有効にする・送り先を決める・取り込む内容を決める OpenTelemetry の exporter の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_ENHANCED_TELEMETRY_BETA",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "テレメトリを有効にする・送り先を決める・取り込む内容を決める OpenTelemetry の exporter の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "ENABLE_ENHANCED_TELEMETRY_BETA",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "テレメトリを有効にする・送り先を決める・取り込む内容を決める OpenTelemetry の exporter の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "OTEL_LOGS_EXPORTER",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "テレメトリを有効にする・送り先を決める・取り込む内容を決める OpenTelemetry の exporter の変数",
+          "off_value_allowed_ja": "`none`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "OTEL_METRICS_EXPORTER",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "テレメトリを有効にする・送り先を決める・取り込む内容を決める OpenTelemetry の exporter の変数",
+          "off_value_allowed_ja": "`none`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "OTEL_TRACES_EXPORTER",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "テレメトリを有効にする・送り先を決める・取り込む内容を決める OpenTelemetry の exporter の変数",
+          "off_value_allowed_ja": "`none`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "OTEL_LOG_USER_PROMPTS",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "テレメトリを有効にする・送り先を決める・取り込む内容を決める OpenTelemetry の exporter の変数",
+          "off_value_allowed_ja": "`0` などの無効にする値",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "OTEL_LOG_ASSISTANT_RESPONSES",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "テレメトリを有効にする・送り先を決める・取り込む内容を決める OpenTelemetry の exporter の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "OTEL_LOG_TOOL_CONTENT",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "テレメトリを有効にする・送り先を決める・取り込む内容を決める OpenTelemetry の exporter の変数",
+          "off_value_allowed_ja": "`0` などの無効にする値",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "OTEL_LOG_TOOL_DETAILS",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "テレメトリを有効にする・送り先を決める・取り込む内容を決める OpenTelemetry の exporter の変数",
+          "off_value_allowed_ja": "`0` などの無効にする値",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "OTEL_EXPORTER_OTLP_*",
+          "kind": "pattern",
+          "ignored_from": "project-local",
+          "group_ja": "テレメトリを有効にする・送り先を決める・取り込む内容を決める OpenTelemetry の exporter の変数",
+          "pattern_note_ja": "名前が `_ENDPOINT`・`_HEADERS`・`_PROTOCOL`・`_CERTIFICATE`・`_CLIENT_KEY`・`_INSECURE` で終わるもの（汎用とシグナルごとの形）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "OTEL_EXPORTER_PROMETHEUS_HOST",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "テレメトリを有効にする・送り先を決める・取り込む内容を決める OpenTelemetry の exporter の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "OTEL_EXPORTER_PROMETHEUS_PORT",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "テレメトリを有効にする・送り先を決める・取り込む内容を決める OpenTelemetry の exporter の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_PROCESS_WRAPPER",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code の起動や同期のしかたを変える変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_SYNC_SKILLS",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code の起動や同期のしかたを変える変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_SYNC_PLUGINS",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code の起動や同期のしかたを変える変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_PLUGIN_CACHE_DIR",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code の起動や同期のしかたを変える変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_PLUGIN_SEED_DIR",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "Claude Code の起動や同期のしかたを変える変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_USER_DIALOG_TIMEOUT_MS",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "答えの無いダイアログのタイマーを決める変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_AFK_TIMEOUT_MS",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "答えの無いダイアログのタイマーを決める変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_AFK_COUNTDOWN_MS",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "答えの無いダイアログのタイマーを決める変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_DISABLE_ATTACHMENTS",
+          "kind": "name",
+          "ignored_from": "project-local",
+          "group_ja": "添付の処理を止める変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_REMOTE",
+          "kind": "name",
+          "ignored_from": "all-files",
+          "group_ja": "Claude Code のホスティング環境が持つ識別の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_ACCOUNT_UUID",
+          "kind": "name",
+          "ignored_from": "all-files",
+          "group_ja": "Claude Code のホスティング環境が持つ識別の変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_MESSAGING_SOCKET",
+          "kind": "name",
+          "ignored_from": "all-files",
+          "group_ja": "Claude Code が自分で設定するか、起動時の環境からだけ読む変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_MESSAGING_TOKEN",
+          "kind": "name",
+          "ignored_from": "all-files",
+          "group_ja": "Claude Code が自分で設定するか、起動時の環境からだけ読む変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_PROJECT_DIR_NAME",
+          "kind": "name",
+          "ignored_from": "all-files",
+          "group_ja": "Claude Code が自分で設定するか、起動時の環境からだけ読む変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_RESTRICTED",
+          "kind": "name",
+          "ignored_from": "all-files",
+          "group_ja": "Claude Code が自分で設定するか、起動時の環境からだけ読む変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_DISABLE_POWERSHELL_CMD_RM_DENY",
+          "kind": "name",
+          "ignored_from": "all-files",
+          "group_ja": "Claude Code が自分で設定するか、起動時の環境からだけ読む変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_DISABLE_DANGEROUS_RM_TIMEOUT",
+          "kind": "name",
+          "ignored_from": "all-files",
+          "group_ja": "Claude Code が自分で設定するか、起動時の環境からだけ読む変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_DISABLE_SUBSTITUTION_RM_PROMPT",
+          "kind": "name",
+          "ignored_from": "all-files",
+          "group_ja": "Claude Code が自分で設定するか、起動時の環境からだけ読む変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        },
+        {
+          "id": "CLAUDE_CODE_DISABLE_INLINE_SHELL_RM_PROMPT",
+          "kind": "name",
+          "ignored_from": "all-files",
+          "group_ja": "Claude Code が自分で設定するか、起動時の環境からだけ読む変数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#variables-claude-code-ignores-in-env"
+          }
+        }
+      ]
+    }
+  }
+}

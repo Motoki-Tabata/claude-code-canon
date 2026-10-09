@@ -1,0 +1,1629 @@
+{
+  "id": "frontmatter",
+  "description": "Skill・コマンド・サブエージェント・プラグインの agent・ルール・出力スタイルの各ファイルが受け付ける frontmatter のキー",
+  "collections": {
+    "skill": {
+      "description": "`skills/<name>/SKILL.md` の frontmatter。フィールドはすべて任意で、`description` だけが推奨。フィールド名は表と完全一致が必要で、知らないフィールドはエラーなしで無視される。開きの `---` がファイルの1行目のときだけ frontmatter として読む。真偽値は `true`・`false` に加えて `yes`・`no`・`on`・`off`・`1`・`0`（大文字小文字を問わない）を受け付ける。agent_skills_spec は Agent Skills の仕様に含まれ、claude.ai へのアップロード・Skills API・`package_skill.py` でも使えるフィールドか",
+      "complete": true,
+      "complete_basis": "公式の skills ページの Frontmatter reference 表が全フィールドを列挙しており、claude-directory ページの Frontmatter fields by file 表の一覧とも一致する。その全件を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "name",
+          "type": "string",
+          "required": false,
+          "default": "ディレクトリ名",
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "`/` メニューに出るコマンド名。省略するとディレクトリ名になる。Plugin の Skill ではコマンドの最後の区切りを置き換え、Plugin の接頭辞は残る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "description",
+          "type": "string",
+          "required": false,
+          "recommended": true,
+          "default": "本文の最初の空でない行",
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill が何をし、いつ使うか。Claude が Skill を適用するかの判断に使う。公式が唯一「推奨」とするフィールド。Skill の一覧では `when_to_use` と合わせて 1,536 文字で切られるので、主な用途を先頭に書く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "when_to_use",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Claude が Skill を呼ぶべき場面の補足（きっかけの言い回しや依頼の例）。Skill の一覧で `description` の後ろに足され、1,536 文字の上限に数える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "argument-hint",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "補完のときに表示する、期待する引数のヒント（例: `[issue-number]`）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "arguments",
+          "type": "string | list",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "本文の `$name` 置換に使う名前付きの位置引数。空白区切りの文字列か YAML のリスト。名前は順に引数の位置に対応する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "disable-model-invocation",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "`true` で Claude が自動で読み込まなくなる（説明もコンテキストに載らない）。`/name` で手動で起動する workflow に使う。サブエージェントへの preload と、Skill をプロンプトにした scheduled task の起動も止める",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "user-invocable",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "`false` で `/` メニューから隠し、ユーザーが `/name` と打っても実行しない。Claude だけが呼ぶ背景知識に使う。Claude の Skill ツールからの呼び出しは止めない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "allowed-tools",
+          "type": "string | list",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill を呼んだターンの間、確認なしで使えるツール。次のメッセージを送ると解除される。使えるツールを制限はしない。空白かカンマ区切りの文字列か YAML のリスト",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "disallowed-tools",
+          "type": "string | list",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill が有効な間、使えるツールから外すツール。次のメッセージを送ると解除される。他のツールが残る限り `EndConversation` は外せない。空白かカンマ区切りの文字列か YAML のリスト",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "model",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill が有効な間のモデル。現在のターンの残りに効き、設定には保存されない。`/model` と同じ値（エイリアスか完全なモデル名）か、有効なモデルを保つ `inherit` を受け付ける。`context: fork` では fork したサブエージェントのモデルになる。組織の `availableModels` で除外された値は使われない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "effort",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ],
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill が有効な間の effort level。セッションの effort level を上書きする。省略すると effort の解決順で決まる。使える値はモデルによる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "context",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": [
+            "fork"
+          ],
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "`fork` で、会話の履歴を見ない新しいサブエージェントで Skill を実行する。本文がそのサブエージェントへのプロンプトになる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "agent",
+          "type": "string",
+          "required": false,
+          "default": {
+            "value": "general-purpose",
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#example-research-skill-using-explore-agent"
+            }
+          },
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "`context: fork` のときに使うサブエージェントの種類。組み込みのエージェント（`Explore`・`Plan`・`general-purpose`）か `.claude/agents/` のカスタムサブエージェント",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "background",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "`context: fork` のときだけ効く。`false` で、呼んだターンの中で fork したサブエージェントの結果を待つ（既定はバックグラウンドで実行）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "hooks",
+          "type": "object",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill を呼んだときに登録し、セッションの終わりまで動き続ける Hook。書式は hooks ページの「Hooks in skills and agents」",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "paths",
+          "type": "string | list",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill を有効にする場面を絞る glob パターン。設定すると、パターンに合うファイルを扱うときだけ Claude が自動で読み込む。書式は path-specific rules と同じ。カンマ区切りの文字列か YAML のリスト",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "shell",
+          "type": "string",
+          "required": false,
+          "default": "bash",
+          "allowed_values": [
+            "bash",
+            "powershell"
+          ],
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "本文の `` !`command` `` と ` ```! ` ブロックを実行するシェル。`powershell` は PowerShell ツールが有効なときに効く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "metadata",
+          "type": "map",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "自前のツールが読む任意のキーと値。Claude Code は中身に作用せず、map でない値は捨てる。`paths` などの frontmatter のフィールド名をキーに再利用しない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "license",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill のライセンス。Agent Skills の仕様のフィールドで、Claude Code は受け付けるが作用しない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "compatibility",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "max_length": 500,
+          "description_ja": "想定する製品やシステムの前提などの環境の要件。500 文字までの文字列。Agent Skills の仕様のフィールドで、Claude Code は受け付けるが作用しない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        }
+      ]
+    },
+    "command": {
+      "description": "`commands/*.md`（コマンドファイル）の frontmatter。Skill と同じフィールドから `name` と `paths` を除いたもの。各フィールドの意味は Skill と同じ。コマンド名はファイル名（拡張子なし）で決まる",
+      "complete": true,
+      "complete_basis": "公式の skills ページが「`name` と `paths` を除く Skill のフィールド」と定めており、Skill の全フィールドからその2つを除いた全件を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "description",
+          "type": "string",
+          "required": false,
+          "recommended": true,
+          "default": "本文の最初の空でない行",
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill が何をし、いつ使うか。Claude が Skill を適用するかの判断に使う。公式が唯一「推奨」とするフィールド。Skill の一覧では `when_to_use` と合わせて 1,536 文字で切られるので、主な用途を先頭に書く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "when_to_use",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Claude が Skill を呼ぶべき場面の補足（きっかけの言い回しや依頼の例）。Skill の一覧で `description` の後ろに足され、1,536 文字の上限に数える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "argument-hint",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "補完のときに表示する、期待する引数のヒント（例: `[issue-number]`）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "arguments",
+          "type": "string | list",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "本文の `$name` 置換に使う名前付きの位置引数。空白区切りの文字列か YAML のリスト。名前は順に引数の位置に対応する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "disable-model-invocation",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "`true` で Claude が自動で読み込まなくなる（説明もコンテキストに載らない）。`/name` で手動で起動する workflow に使う。サブエージェントへの preload と、Skill をプロンプトにした scheduled task の起動も止める",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "user-invocable",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "`false` で `/` メニューから隠し、ユーザーが `/name` と打っても実行しない。Claude だけが呼ぶ背景知識に使う。Claude の Skill ツールからの呼び出しは止めない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "allowed-tools",
+          "type": "string | list",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill を呼んだターンの間、確認なしで使えるツール。次のメッセージを送ると解除される。使えるツールを制限はしない。空白かカンマ区切りの文字列か YAML のリスト",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "disallowed-tools",
+          "type": "string | list",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill が有効な間、使えるツールから外すツール。次のメッセージを送ると解除される。他のツールが残る限り `EndConversation` は外せない。空白かカンマ区切りの文字列か YAML のリスト",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "model",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill が有効な間のモデル。現在のターンの残りに効き、設定には保存されない。`/model` と同じ値（エイリアスか完全なモデル名）か、有効なモデルを保つ `inherit` を受け付ける。`context: fork` では fork したサブエージェントのモデルになる。組織の `availableModels` で除外された値は使われない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "effort",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ],
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill が有効な間の effort level。セッションの effort level を上書きする。省略すると effort の解決順で決まる。使える値はモデルによる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "context",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": [
+            "fork"
+          ],
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "`fork` で、会話の履歴を見ない新しいサブエージェントで Skill を実行する。本文がそのサブエージェントへのプロンプトになる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "agent",
+          "type": "string",
+          "required": false,
+          "default": {
+            "value": "general-purpose",
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#example-research-skill-using-explore-agent"
+            }
+          },
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "`context: fork` のときに使うサブエージェントの種類。組み込みのエージェント（`Explore`・`Plan`・`general-purpose`）か `.claude/agents/` のカスタムサブエージェント",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "background",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "`context: fork` のときだけ効く。`false` で、呼んだターンの中で fork したサブエージェントの結果を待つ（既定はバックグラウンドで実行）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "hooks",
+          "type": "object",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill を呼んだときに登録し、セッションの終わりまで動き続ける Hook。書式は hooks ページの「Hooks in skills and agents」",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "shell",
+          "type": "string",
+          "required": false,
+          "default": "bash",
+          "allowed_values": [
+            "bash",
+            "powershell"
+          ],
+          "agent_skills_spec": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "本文の `` !`command` `` と ` ```! ` ブロックを実行するシェル。`powershell` は PowerShell ツールが有効なときに効く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "metadata",
+          "type": "map",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "自前のツールが読む任意のキーと値。Claude Code は中身に作用せず、map でない値は捨てる。`paths` などの frontmatter のフィールド名をキーに再利用しない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "license",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "description_ja": "Skill のライセンス。Agent Skills の仕様のフィールドで、Claude Code は受け付けるが作用しない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        },
+        {
+          "id": "compatibility",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "agent_skills_spec": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/skills.md",
+              "anchor": "#using-skill-frontmatter-outside-claude-code"
+            }
+          },
+          "max_length": 500,
+          "description_ja": "想定する製品やシステムの前提などの環境の要件。500 文字までの文字列。Agent Skills の仕様のフィールドで、Claude Code は受け付けるが作用しない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#frontmatter-reference"
+          }
+        }
+      ]
+    },
+    "subagent": {
+      "description": "サブエージェントの定義ファイル（agents/*.md）の frontmatter のキー。キー名は大文字小文字を含め完全一致が必要で、認識できないキーはエラーなしで無視される。",
+      "complete": true,
+      "complete_basis": "公式ページ sub-agents の Frontmatter reference 表が全キーを列挙しており、claude-directory の Frontmatter fields by file 表の agents/*.md の行とも一致する",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "name",
+          "type": "string",
+          "required": true,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "サブエージェントの一意な識別子。Hook には agent_type として渡る。ファイル名と一致しなくてよい。",
+          "constraints_ja": "256文字以内。`:` を含めない（plugin のスコープ付き識別子に予約）。`-` で始めない。違反すると読み込まれない（debug log にエラー）",
+          "in_agents_json": false,
+          "agents_json_note_ja": "--agents の JSON では最上位のキーが名前になる",
+          "plugin_ignored": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "description",
+          "type": "string",
+          "required": true,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "Claude がこのサブエージェントへ委譲すべき場面。name があって description が無いファイルは読み込まれない。",
+          "in_agents_json": true,
+          "plugin_ignored": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "tools",
+          "type": "string | list",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "使えるツール。`Read, Grep, Bash` のようなカンマ区切りの文字列か YAML のリスト。`mcp__<server>`・`mcp__<server>__*` の形でサーバー単位に指定できる。",
+          "default_behavior_ja": "省略するとサブエージェントが使えるツールをすべて継承する",
+          "in_agents_json": true,
+          "plugin_ignored": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "disallowedTools",
+          "type": "string | list",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "拒否するツール。継承した一覧または tools の一覧から取り除く。書式は tools と同じで、`mcp__*` で全 MCP ツールを外せる。`Bash(git push *)` のように指定子を付けてもツール全体が外れる。tools と両方あるときは disallowedTools を先に適用する。",
+          "in_agents_json": true,
+          "plugin_ignored": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "model",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": [
+            "sonnet",
+            "opus",
+            "haiku",
+            "fable",
+            "inherit"
+          ],
+          "description_ja": "使うモデル。エイリアス・完全なモデル ID（例: `claude-opus-5-5`）・`inherit`（メインの会話と同じ）。",
+          "also_accepts_ja": "完全なモデル ID（--model フラグと同じ値）",
+          "default_behavior_ja": "省略すると、呼び出しごとの model 引数 → CLAUDE_CODE_SUBAGENT_MODEL → メインの会話のモデル の順で決まる",
+          "in_agents_json": true,
+          "plugin_ignored": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "permissionMode",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": [
+            "default",
+            "acceptEdits",
+            "auto",
+            "dontAsk",
+            "bypassPermissions",
+            "plan",
+            "manual"
+          ],
+          "description_ja": "サブエージェントが動く権限モード。`manual` は `default` の別名。メインの会話が bypassPermissions・acceptEdits・auto のときは無視され、メインと同じモードで動く。",
+          "default_behavior_ja": "省略するとメインの会話の権限モードを継承する",
+          "in_agents_json": true,
+          "plugin_ignored": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "maxTurns",
+          "type": "number",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "サブエージェントが止まるまでの最大ターン数。上限に達すると出力は partial として返り、Claude は再開できる。",
+          "in_agents_json": true,
+          "plugin_ignored": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "skills",
+          "type": "list",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "起動時にコンテキストへ preload する Skill。説明だけでなく全文が注入される。列挙しない Skill も Skill ツールで呼べる。`disable-model-invocation: true` の Skill は preload できない。",
+          "in_agents_json": true,
+          "plugin_ignored": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "mcpServers",
+          "type": "list",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "このサブエージェントで使える MCP サーバー。各要素は設定済みサーバーの名前（文字列）か、サーバー名をキーにした `.mcp.json` と同じ形のインライン定義（stdio・http・sse・ws）。",
+          "in_agents_json": true,
+          "plugin_ignored": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "hooks",
+          "type": "object",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "このサブエージェントが動いている間だけ有効な Hook。全 Hook イベントを使え、Stop は実行時に SubagentStop に変わる。project のサブエージェントの Hook はフォルダーを trust するまで動かない。",
+          "in_agents_json": true,
+          "plugin_ignored": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "memory",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": [
+            "user",
+            "project",
+            "local"
+          ],
+          "description_ja": "永続メモリのスコープ。user は `~/.claude/agent-memory/<name>/`、project は `.claude/agent-memory/<name>/`、local は `.claude/agent-memory-local/<name>/`。auto memory を切ると効かない。",
+          "in_agents_json": true,
+          "plugin_ignored": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "background",
+          "type": "boolean",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "`true` にすると、Claude が foreground を求めてもこのサブエージェントを background で動かす。",
+          "in_agents_json": true,
+          "plugin_ignored": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "omitClaudeMd",
+          "type": "boolean",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "`true` にすると user・project・local の CLAUDE.md を読み込まずに起動する（managed のポリシーファイルは読み込む。managed のサブエージェントでは読み込まない）。--agent や agent 設定でメインのセッションとして動くときは無視される。",
+          "in_agents_json": true,
+          "plugin_ignored": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "effort",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ],
+          "description_ja": "このサブエージェントの effort レベル。セッションの effort を上書きするが CLAUDE_CODE_EFFORT_LEVEL は上書きしない。使える値はモデルによる。",
+          "in_agents_json": true,
+          "plugin_ignored": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "isolation",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": [
+            "worktree"
+          ],
+          "description_ja": "`worktree` にすると一時的な git worktree で動かす（既定ではデフォルトブランチから分岐）。変更が無ければ自動で片付く。",
+          "in_agents_json": true,
+          "plugin_ignored": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "color",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": [
+            "red",
+            "blue",
+            "green",
+            "yellow",
+            "purple",
+            "orange",
+            "pink",
+            "cyan"
+          ],
+          "description_ja": "タスク一覧とトランスクリプトでの表示色。",
+          "in_agents_json": false,
+          "plugin_ignored": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "initialPrompt",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "--agent や agent 設定でメインのセッションとして動くとき、最初のユーザーのターンとして自動送信される。コマンドと Skill は処理される。",
+          "in_agents_json": true,
+          "plugin_ignored": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        },
+        {
+          "id": "experimental",
+          "type": "object",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "実験的なオプションの map。`cacheTtl` キーに `5m` か `1h` を書くと、このサブエージェントのプロンプトキャッシュの寿命を選べる。それ以外の値は無視される。サブエージェントのファイルからだけ読まれる。",
+          "nested_keys": [
+            {
+              "id": "cacheTtl",
+              "allowed_values": [
+                "5m",
+                "1h"
+              ]
+            }
+          ],
+          "in_agents_json": false,
+          "plugin_ignored": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#supported-frontmatter-fields"
+          }
+        }
+      ]
+    },
+    "plugin-agent": {
+      "description": "プラグインの agents/ に置く agent の frontmatter のキー。supported: true は対応するキー、supported: false はプラグインの agent では無視されるキー。型と値は subagent の frontmatter の表に従う。",
+      "complete": true,
+      "complete_basis": "公式がプラグインの agent で対応するキーと無視するキーを列挙しており、subagent の frontmatter の表の全キーがどちらかに入る。全部を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "name",
+          "supported": true,
+          "type": {
+            "value": "string",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "agent の名前。プラグインの agent は `<plugin>:<name>`（サブフォルダがあれば間に挟む）として登録され、frontmatter の `name` はファイル名の部分だけを置き換える。無いときや frontmatter が解釈できないときはファイル名が使われる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "description",
+          "supported": true,
+          "type": {
+            "value": "string",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "required": null,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "Claude がいつこの agent に委譲するか。frontmatter が解釈できないときは `Agent from <plugin> plugin` になる。プラグインの agent で省略したときの扱いは公式に記述が無い。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "model",
+          "supported": true,
+          "type": {
+            "value": "string",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "required": false,
+          "default": null,
+          "allowed_values": {
+            "value": [
+              "sonnet",
+              "opus",
+              "haiku",
+              "fable",
+              "<完全なモデル ID>",
+              "inherit"
+            ],
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "description_ja": "使うモデル。省略時は subagent のモデルの決定順に従う。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "effort",
+          "supported": true,
+          "type": {
+            "value": "string",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "required": false,
+          "default": null,
+          "allowed_values": {
+            "value": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "description_ja": "この agent が動く間の effort レベル。使えるレベルはモデルによる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "maxTurns",
+          "supported": true,
+          "type": {
+            "value": "number",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "agent が止まるまでのエージェントのターン数の上限。上限に達すると出力は部分的なものとして返る。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "tools",
+          "supported": true,
+          "type": {
+            "value": "string or list",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "required": false,
+          "default": {
+            "value": "subagent が使えるツールをすべて継承",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "allowed_values": null,
+          "description_ja": "agent が使えるツール。`Read, Grep, Bash` のようなカンマ区切りの文字列か YAML のリスト。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "disallowedTools",
+          "supported": true,
+          "type": {
+            "value": "string or list",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "拒否するツール。継承したか指定した一覧から除く。書式は `tools` と同じ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "skills",
+          "supported": true,
+          "type": null,
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "起動時に agent のコンテキストへ全文を事前に読み込む skill。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "memory",
+          "supported": true,
+          "type": {
+            "value": "string",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "required": false,
+          "default": null,
+          "allowed_values": {
+            "value": [
+              "user",
+              "project",
+              "local"
+            ],
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "description_ja": "永続メモリのスコープ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "background",
+          "supported": true,
+          "type": {
+            "value": "boolean",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "`true` にすると、Claude が前景での実行を求めてもバックグラウンドで動かす。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "omitClaudeMd",
+          "supported": true,
+          "type": {
+            "value": "boolean",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "`true` にすると、user・project・local の CLAUDE.md を読み込まずに起動する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "isolation",
+          "supported": true,
+          "type": {
+            "value": "string",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "required": false,
+          "default": null,
+          "allowed_values": [
+            "worktree"
+          ],
+          "description_ja": "`worktree` にすると一時的な git worktree で動かす。プラグインの agent で有効な値は `\"worktree\"` だけ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "color",
+          "supported": true,
+          "type": {
+            "value": "string",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "required": false,
+          "default": null,
+          "allowed_values": {
+            "value": [
+              "red",
+              "blue",
+              "green",
+              "yellow",
+              "purple",
+              "orange",
+              "pink",
+              "cyan"
+            ],
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "description_ja": "タスク一覧とトランスクリプトでの表示色。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "experimental",
+          "supported": true,
+          "type": "object",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "nested_keys": [
+            {
+              "id": "cacheTtl",
+              "type": {
+                "value": "string",
+                "source": {
+                  "url": "https://code.claude.com/docs/en/sub-agents.md",
+                  "anchor": "#supported-frontmatter-fields"
+                }
+              },
+              "allowed_values": {
+                "value": [
+                  "5m",
+                  "1h"
+                ],
+                "source": {
+                  "url": "https://code.claude.com/docs/en/sub-agents.md",
+                  "anchor": "#supported-frontmatter-fields"
+                }
+              }
+            }
+          ],
+          "description_ja": "実験的なオプションの map。プラグインの agent では `experimental` のうち `cacheTtl`（この agent のリクエストのプロンプトキャッシュの寿命）だけが対応する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "permissionMode",
+          "supported": false,
+          "type": {
+            "value": "string",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#supported-frontmatter-fields"
+            }
+          },
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "プラグインの agent では無視される。必要なら agent ファイルを `.claude/agents/` か `~/.claude/agents/` に写す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "hooks",
+          "supported": false,
+          "type": null,
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "プラグインの agent では無視される。hook はプラグインの `hooks/hooks.json` に置く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "mcpServers",
+          "supported": false,
+          "type": null,
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "プラグインの agent では無視される。MCP サーバーはプラグインの `.mcp.json` に置く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        },
+        {
+          "id": "initialPrompt",
+          "supported": false,
+          "type": null,
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "プラグインの agent では無視される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#frontmatter-fields-in-plugin-agents"
+          }
+        }
+      ]
+    },
+    "rule": {
+      "description": ".claude/rules/*.md と ~/.claude/rules/*.md の frontmatter で Claude Code が読むキー。これ以外のキーはエラーにならずに無視される。",
+      "complete": true,
+      "complete_basis": "公式の Rule frontmatter reference が「paths is the only field Claude Code reads from a rule」と明記し、表に全件を列挙している",
+      "stated_total": 1,
+      "items": [
+        {
+          "id": "paths",
+          "type": "string[] | string",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "description_ja": "ルールを読み込む対象のファイルを glob パターンで絞る。YAML のリストか、カンマ区切りの文字列を受け付ける。指定しないルールはセッション開始時に無条件で読み込まれる。指定したルールは、Claude が一致するファイルを Read・Write・Edit したとき（1ファイルへの cat・head など読み取りに数える Bash コマンドを含む）に読み込まれる。",
+          "accepted_forms": [
+            "YAML のリスト",
+            "カンマ区切りの文字列"
+          ],
+          "when_absent": {
+            "value_ja": "セッション開始時に、.claude/CLAUDE.md と同じ優先度で無条件に読み込まれる",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#set-up-rules"
+            }
+          },
+          "brace_expansion_budget": {
+            "value_ja": "ルール1つの paths 全体で、展開後のパターン 1,000 個・4 MiB まで。予算を超えるパターンは展開されずに使われ、その中の波括弧はリテラルとして扱われるのでどのファイルにも一致しない。波括弧の無いパターンは予算に数えない",
+            "max_expanded_patterns": 1000,
+            "max_bytes": "4 MiB",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#path-specific-rules"
+            }
+          },
+          "invalid_pattern": {
+            "value_ja": "[ は角括弧式の開始として扱う。角括弧式として読めない [ を含むパターンは無効で、何にも一致しない（同じルールの他のパターンは有効なまま）。リテラルの [ は \\[ とエスケープする",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#path-specific-rules"
+            }
+          },
+          "parse_error": {
+            "value_ja": "frontmatter の YAML が解析できないとき、Claude Code は frontmatter を無視し、paths が無いルールとして読み込む。解析エラーは claude --debug で確認できる",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#rules-frontmatter-reference"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/memory.md",
+            "anchor": "#rules-frontmatter-reference"
+          }
+        }
+      ]
+    },
+    "output-style": {
+      "description": "出力スタイルのファイル（output-styles/*.md）の frontmatter のキー。",
+      "complete": true,
+      "complete_basis": "公式ページ output-styles の Frontmatter reference 表が全キーを列挙しており、その全行を収めた（claude-directory の Frontmatter fields by file 表の output-styles/*.md 行の4キーとも一致する）",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "name",
+          "type": "string",
+          "required": false,
+          "default": "ファイル名（拡張子 .md を除く）",
+          "allowed_values": null,
+          "applies_to": [
+            "user",
+            "project",
+            "managed",
+            "plugin"
+          ],
+          "description_ja": "出力スタイルの名前。/config のピッカーに表示される。設定しなければファイル名がスタイル名になる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/output-styles.md",
+            "anchor": "#frontmatter"
+          }
+        },
+        {
+          "id": "description",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "allowed_values": null,
+          "applies_to": [
+            "user",
+            "project",
+            "managed",
+            "plugin"
+          ],
+          "description_ja": "出力スタイルの説明。/config のピッカーに表示される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/output-styles.md",
+            "anchor": "#frontmatter"
+          }
+        },
+        {
+          "id": "keep-coding-instructions",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "allowed_values": [
+            true,
+            false
+          ],
+          "applies_to": [
+            "user",
+            "project",
+            "managed",
+            "plugin"
+          ],
+          "description_ja": "true にすると、完全なシステムプロンプトにだけ含まれる Claude Code 組み込みのソフトウェアエンジニアリングの指示の節を、スタイルと併せて残す。短いシステムプロンプトにはその節が無いため、そちらでは効果が無い。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/output-styles.md",
+            "anchor": "#frontmatter"
+          }
+        },
+        {
+          "id": "force-for-plugin",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "allowed_values": [
+            true,
+            false
+          ],
+          "applies_to": [
+            "plugin"
+          ],
+          "description_ja": "プラグインの出力スタイル専用。true にすると、プラグインが有効なあいだ、ユーザーが選ばなくてもこのスタイルを自動で適用し、ユーザーの outputStyle 設定を上書きする。有効な複数のプラグインが設定していれば、最初に読み込まれたものを使う。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/output-styles.md",
+            "anchor": "#frontmatter"
+          }
+        }
+      ]
+    }
+  }
+}
