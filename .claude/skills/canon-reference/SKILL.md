@@ -78,7 +78,7 @@ Claude Code のカスタマイズについて、canon が機能選定・設計�
 | `mcp.json` | MCP の transport・スコープ・`.mcp.json` のフィールド | `transports`・`scopes`・`mcp-json-fields` |
 | `models.json` | モデルのエイリアスと特別な値 | `aliases` |
 | `builtin-commands.json` | 組み込みのコマンド・bundled skill・bundled workflow | `commands` |
-| `env-vars.json` | 環境変数（canon の生成物が参照しうるもの） | `vars` |
+| `env-vars.json` | 環境変数（canon の生成物が参照しうるもの）と、settings の `env` で無視される変数 | `vars`・`ignored-in-env` |
 | `statusline.json` | status line のコマンドが受け取る JSON のフィールドと、subagent status line の `tasks` の要素のフィールド | `input-fields`・`subagent-task-fields` |
 | `mods.json` | Mods のイベント・mods API・ファイルの構成・描画の site と要素・上限 | `events`・`api`・`files`・`render-sites`・`elements`・`limits` |
 | `builtins.json` | Claude Code が組み込みで持つ名前（出力スタイル・サブエージェントの種類・Skill の置換変数） | `output-styles`・`subagents`・`skill-substitutions` |

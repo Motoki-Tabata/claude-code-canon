@@ -3,7 +3,7 @@
   "description": "Claude Code の組み込みツールの正規名（permission 規則・サブエージェントの tools・Hook の matcher に書く名前）の一覧。",
   "collections": {
     "tools": {
-      "description": "tools-reference 冒頭の表に載る組み込みツール。permission_required は Manual モードで作業ディレクトリ内のパスに対してプロンプトを出すか（表の Permission required 列）。rule_format は specifier の書式を決める permissions:rule-syntax の要素の id で、bare-only は specifier を取らずツール名だけを書けるもの。behavior_anchor は同じページ内の挙動の節。",
+      "description": "tools-reference 冒頭の表に載る組み込みツール。permission_required は Manual モードで作業ディレクトリ内のパスに対してプロンプトを出すか（表の Permission required 列）。rule_format は specifier の書式を決める permissions:rule-syntax の要素の id で、bare-only は specifier を取らずツール名だけを書けるもの。behavior_anchor は同じページ内の挙動の節。 aliases は公式が別名として今も効くと書く旧名。",
       "complete": true,
       "complete_basis": "公式の tools-reference 冒頭の表が組み込みツールを全件列挙しており、全部を収めた",
       "stated_total": null,
@@ -17,7 +17,17 @@
             "url": "https://code.claude.com/docs/en/tools-reference.md",
             "anchor": ""
           },
-          "behavior_anchor": "#agent-tool-behavior"
+          "behavior_anchor": "#agent-tool-behavior",
+          "aliases": {
+            "value": [
+              "Task"
+            ],
+            "description_ja": "旧名。settings と agent の定義にある `Task(...)` の参照は別名として今も効く",
+            "source": {
+              "url": "https://code.claude.com/docs/en/sub-agents.md",
+              "anchor": "#restrict-which-subagents-can-be-spawned"
+            }
+          }
         },
         {
           "id": "Artifact",

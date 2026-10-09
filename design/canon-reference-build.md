@@ -216,12 +216,12 @@ audience: [ai, human]
 | `mcp.json` | `transports`・`scopes`・`mcp-json-fields` | `id`・`description_ja` | `mcp` |
 | `models.json` | `aliases` | `id`（エイリアス）・`description_ja` | `model-config` |
 | `builtin-commands.json` | `commands` | `id`（`/` を除いた名前） | `commands` |
-| `env-vars.json` | `vars` | `id`・`description_ja`・`used_for` | `env-vars` |
+| `env-vars.json` | `vars`・`ignored-in-env` | vars: `id`・`description_ja`・`used_for`。ignored-in-env: `id`・`kind`（`name`/`pattern`）・`ignored_from`（`project-local`/`all-files`） | `env-vars`・`settings-reference` |
 | `statusline.json` | `input-fields`・`subagent-task-fields` | `id`（ドット区切りのフィールド名）・`type`・`description_ja`（subagent-task-fields は `optional` も） | `statusline` |
 | `mods.json` | `events`・`api`・`files`・`render-sites`・`elements`・`limits` | `id`・`description_ja`（render-sites と elements は `description_ja` の代わりに公式の列の `props`・`surfaces`、limits は `target`・`value`） | `plugins/mods/*` |
 | `builtins.json` | `output-styles`・`subagents`・`skill-substitutions` | `id`（Claude Code が組み込みで持つ名前）・`description_ja` | `output-styles`・`sub-agents`・`skills` |
 
-- `settings.json` と `env-vars.json` は生成で使うものだけを選ぶので `complete: false` にし、選んだ基準を `complete_basis` に書く。
+- `settings:keys` と `env-vars:vars` は生成で使うものだけを選ぶので `complete: false` にし、選んだ基準を `complete_basis` に書く。`env-vars:ignored-in-env` は選ばず、公式の節に名前が載るものをすべて収める。
 - `builtins.json` は、Claude Code が組み込みで持つ名前のうち、ほかのファイルの主題に収まらないもの（出力スタイル・サブエージェントの種類・Skill の置換変数）を置く。組み込みのツールとコマンドは `tools.json`・`builtin-commands.json` に置く。
 - hook の matcher の評価規則は名前の一覧ではなく規則なので、`data/` に置かず `hooks.md` の本文に書く。
 - `marketplace:source-types` の `required` は、公式が必須と明記したフィールドの `id` の配列にする。明記が無ければ `null` にする。

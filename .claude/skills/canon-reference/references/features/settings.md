@@ -76,7 +76,7 @@ settings は、Claude Code の振る舞いを変える JSON のキーである�
 
 [仕様] `.claude/settings.json` にコミットしたキーが全員に効かない理由は2つある。
 
-- **リポジトリのファイルでは無視されるキー**: Scope が `User, local, or managed`・`User or managed`・`Managed` のキーと、Global config のキー（`settings:global-config-keys`。どの settings ファイルでも無視される）。`permissions.defaultMode` の `auto` と `bypassPermissions` も、project と local の settings からは効かない。`env` の中では、一部の変数（`env-vars:vars/CLAUDE_CONFIG_DIR` やテレメトリの出力先など）が project と local から無視される。
+- **リポジトリのファイルでは無視されるキー**: Scope が `User, local, or managed`・`User or managed`・`Managed` のキーと、Global config のキー（`settings:global-config-keys`。どの settings ファイルでも無視される）。`permissions.defaultMode` の `auto` と `bypassPermissions` も、project と local の settings からは効かない。`env` の中では、一部の変数（`env-vars:ignored-in-env`。`CLAUDE_CONFIG_DIR` やテレメトリの送り先など）が project と local から、または全ファイルから無視される。
 - **信頼を待つキー**: `permissions.allow`・`permissions.additionalDirectories`・`extraKnownMarketplaces`・`env` の大半の値は、各自がフォルダを信頼した後にだけ効く。`deny` と `ask` はすぐに効く。
 
 ### 3.4 書式と検証
@@ -148,7 +148,7 @@ settings は、Claude Code の振る舞いを変える JSON のキーである�
 - **V-settings-01**: 生成した settings ファイル（`~/.claude/settings.json`・`.claude/settings.json`・`.claude/settings.local.json`）は、コメントと末尾のカンマを含まない JSON としてパースできる。[仕様]
 - **V-settings-02**: 生成した settings ファイルにある `settings:keys` のキーは、そのファイルのスコープ（user・project・local）が要素の `scopes` に含まれる。[仕様]
 - **V-settings-03**: `.claude/settings.json` と `.claude/settings.local.json` の `settings:keys/permissions.defaultMode` は `auto` でも `bypassPermissions` でもない。[仕様]
-- **V-settings-04**: `.claude/settings.json` と `.claude/settings.local.json` の `settings:keys/env` に、`env-vars:vars` で `ignored_in_project_env.value` が `true` の変数が無い。[仕様]
+- **V-settings-04**: `.claude/settings.json` と `.claude/settings.local.json` の `settings:keys/env` に、`env-vars:ignored-in-env` の変数（`kind: pattern` は `*` を任意の文字列として照合する）が無い。ただし `off_value_allowed_ja` の値は除く。[仕様]
 - **V-settings-05**: `settings:keys/permissions.disableBypassPermissionsMode` と `settings:keys/disableAutoMode` の値は文字列 `"disable"` である。[仕様]
 - **V-settings-06**: `settings:keys/statusLine` と `settings:keys/subagentStatusLine` の `type` は `"command"` で、`command` は文字列である。[仕様]
 - **V-settings-07**: `settings:keys/enabledPlugins` のキーは `<plugin-name>@<marketplace-name>` の形で、値は真偽値である。[仕様]

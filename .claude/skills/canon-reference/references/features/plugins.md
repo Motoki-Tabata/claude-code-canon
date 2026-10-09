@@ -40,7 +40,7 @@ sources:
   > "Keep that standalone setup while it serves one project or only you."
 - 近い機能との違い:
   - **`.claude/` の単体の構成**: プロジェクトの `.claude/` はリポジトリと一緒に配られ、名前に接頭辞が付かない。プラグインは接頭辞が付くので別プラグインの同名 skill と衝突しないが、利用者ごとにインストールか有効化が要る。[仕様]
-  - **skills ディレクトリのプラグイン**: `<project>/.claude/skills/<name>/.claude-plugin/plugin.json` を置くと、マーケットプレイス無しでそのリポジトリの全員に読み込まれる（`<name>@skills-dir`）。ワークスペースの信頼の後でだけ読み込まれ、MCP バンドルと monitor は読み込まれない。[仕様]
+  - **skills ディレクトリのプラグイン**: `<project>/.claude/skills/<name>/.claude-plugin/plugin.json` を置くと、マーケットプレイス無しでそのリポジトリの全員に読み込まれる（`<name>@skills-dir`）。ワークスペースの信頼の後でだけ読み込まれる。宣言した MCP サーバーはプロジェクトの `.mcp.json` と同じサーバーごとの承認を経る。MCP バンドル（`.mcpb`・`.dxt`）とプラグインのディレクトリの外のファイルで宣言したサーバーは飛ばされ、monitor は読み込まれない（inline かプラグインの中の `.mcp.json` で宣言する）。[仕様]
   - **Mods**: hook を JavaScript の関数で書き、画面に描けるプラグインは mod と呼ぶ。`plugin-mods` の機能ファイルで扱う。[仕様]
 - 有効にすると常時コンテキストを消費し、プラグインの hook・MCP サーバー・`bin/` の実行ファイルは利用者の権限で動く。導入の判断ではこの費用と信頼を見る。[仕様]
 - claude.ai と Cowork では読み込まれるコンポーネントの組が違い、トップレベルに `bin/` を持つプラグインはインストールされない。クラウドセッションはローカルの設定のプラグインを読み込まない。[仕様]

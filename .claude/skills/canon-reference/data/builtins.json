@@ -56,7 +56,7 @@
       ]
     },
     "subagents": {
-      "description": "組み込みのサブエージェントの種類。id は Agent ツールの subagent_type と skill の `agent` に書く名前。`skips_claude_md` は CLAUDE.md と git status のスナップショットを読み込まないもの。",
+      "description": "組み込みのサブエージェントの種類。id は Agent ツールの subagent_type と skill の `agent` に書く名前。`skips_claude_md` は CLAUDE.md と git status のスナップショットを読み込まないもの。 `model_ja` は公式が書くその種類のモデル。",
       "complete": false,
       "complete_basis": "公式が全件を列挙していない。Explore・Plan・General-purpose のタブと、Other のタブの補助エージェントの表を収めたが、Other の表が全件だとは書いていない",
       "stated_total": null,
@@ -64,56 +64,62 @@
         {
           "id": "Explore",
           "description_ja": "読み取り専用で、コードベースの検索と分析に特化する。Write と Edit は拒否される。呼び出し側が quick・medium・very thorough の詳しさを指定する。",
+          "skips_claude_md": true,
+          "model_ja": "メインの会話のモデル。メインが Fable のときは接続の仕方で決まる（Claude のサブスクリプション・Anthropic Console・ANTHROPIC_BASE_URL の LLM gateway では `opus` エイリアスが指すモデル、Bedrock・Google Cloud の Agent Platform・Microsoft Foundry などではメインのモデルのまま）",
           "source": {
             "url": "https://code.claude.com/docs/en/sub-agents.md",
             "anchor": "#built-in-subagents"
-          },
-          "skips_claude_md": true
+          }
         },
         {
           "id": "Plan",
           "description_ja": "plan mode で計画を示す前に文脈を集める調査用のエージェント。Write と Edit は拒否される。",
+          "skips_claude_md": true,
+          "model_ja": "メインの会話から継承する（CLAUDE_CODE_SUBAGENT_MODEL を全サブエージェントに強制したときを除く）",
           "source": {
             "url": "https://code.claude.com/docs/en/sub-agents.md",
             "anchor": "#built-in-subagents"
-          },
-          "skips_claude_md": true
+          }
         },
         {
           "id": "general-purpose",
           "description_ja": "探索と変更の両方を要る複雑な多段の作業向け。サブエージェントが使えるすべてのツールを持つ。subagent_type を省いた Agent ツールの呼び出しはこれに落ちる。",
+          "skips_claude_md": false,
+          "model_ja": "CLAUDE_CODE_SUBAGENT_MODEL があり、ほかにモデルを決めるものが無ければそれ、無ければメインの会話のモデル",
           "source": {
             "url": "https://code.claude.com/docs/en/sub-agents.md",
             "anchor": "#built-in-subagents"
-          },
-          "skips_claude_md": false
+          }
         },
         {
           "id": "claude",
           "description_ja": "より専門のエージェントに当てはまらない作業向けの汎用のエージェント。サブエージェントが使えるすべてのツールを持つ。",
+          "skips_claude_md": false,
+          "model_ja": "自分のモデルを持たず、サブエージェントとして起動されたときはモデルの決まる順に従う",
           "source": {
             "url": "https://code.claude.com/docs/en/sub-agents.md",
             "anchor": "#built-in-subagents"
-          },
-          "skips_claude_md": false
+          }
         },
         {
           "id": "statusline-setup",
           "description_ja": "`/statusline` で status line を設定するときに使われる。",
+          "skips_claude_md": false,
+          "model_ja": "Sonnet",
           "source": {
             "url": "https://code.claude.com/docs/en/sub-agents.md",
             "anchor": "#built-in-subagents"
-          },
-          "skips_claude_md": false
+          }
         },
         {
           "id": "claude-code-guide",
           "description_ja": "Claude Code の機能について質問したときに使われる。",
+          "skips_claude_md": false,
+          "model_ja": "Haiku",
           "source": {
             "url": "https://code.claude.com/docs/en/sub-agents.md",
             "anchor": "#built-in-subagents"
-          },
-          "skips_claude_md": false
+          }
         }
       ]
     },

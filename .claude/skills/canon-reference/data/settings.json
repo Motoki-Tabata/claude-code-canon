@@ -5,7 +5,7 @@
     "keys": {
       "description": "settings のキー。id はドット区切りの公式キー名。scopes はそのキーを置けるファイル（user・project・local・managed）で、公式の Settings index の Scope 列を写したもの。precedence_ja は settings のガイドのページが述べる、そのキーの結合・優先の例外。",
       "complete": false,
-      "complete_basis": "生成で使うものだけを選んだ。選んだ基準は、(1) canon が生成する設定（permissions・hooks・MCP の承認・プラグイン・status line・output style・モデル・env・skills・メモリ・git の帰属・worktree）を settings ファイルに書くときに使うキー（status line と並べて使う footerLinksRegexes、プラグインの mod の順序を決める prependPlugins・appendPlugins を含む）、(2) それらの生成物が効くかどうかを左右する managed のキー（allowManagedHooksOnly・allowManagedPermissionRulesOnly・allowManagedMcpServersOnly・strictKnownMarketplaces・strictPluginOnlyCustomization・disableSideloadFlags・claudeMd）。sandbox.* は permissions:sandbox-keys が持つので含めない。~/.claude.json にだけ置く Global config のキー、footerLinksRegexes 以外の表示・端末・通知・認証・更新・テレメトリのキーは含めない。",
+      "complete_basis": "生成で使うものだけを選んだ。選んだ基準は、(1) canon が生成する設定（permissions・hooks・MCP の承認・プラグイン・status line・output style・モデル・env・skills・メモリ・git の帰属・worktree）を settings ファイルに書くときに使うキー（status line と並べて使う footerLinksRegexes、プラグインの mod の順序を決める prependPlugins・appendPlugins を含む）、(2) それらの生成物が効くかどうかを左右する managed のキー（allowManagedHooksOnly・allowManagedPermissionRulesOnly・allowManagedMcpServersOnly・strictKnownMarketplaces・blockedMarketplaces・disableCommandPluginSources・strictPluginOnlyCustomization・disableSideloadFlags・claudeMd）。sandbox.* は permissions:sandbox-keys が持つので含めない。~/.claude.json にだけ置く Global config のキー、footerLinksRegexes 以外の表示・端末・通知・認証・更新・テレメトリのキーは含めない。",
       "stated_total": null,
       "items": [
         {
@@ -484,6 +484,36 @@
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference.md",
             "anchor": "#strictknownmarketplaces"
+          }
+        },
+        {
+          "id": "blockedMarketplaces",
+          "type": "array（マーケットプレイスの source オブジェクト。strictKnownMarketplaces と同じ形）",
+          "scopes": [
+            "managed"
+          ],
+          "scope_label": "Managed",
+          "topic": "Plugins and skills",
+          "default": "unset（どのマーケットプレイスも止めない）",
+          "description_ja": "組織のマーケットプレイスの source を拒否リストで止める。マーケットプレイスの追加と、プラグインのインストール・更新・再取得・自動更新のときに確かめる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#blockedmarketplaces"
+          }
+        },
+        {
+          "id": "disableCommandPluginSources",
+          "type": "boolean",
+          "scopes": [
+            "managed"
+          ],
+          "scope_label": "Managed",
+          "topic": "Plugins and skills",
+          "default": "unset（allowManagedHooksOnly に従う。hook を managed に限る組織では command の source も止まる）",
+          "description_ja": "`true` なら、マーケットプレイスが宣言したコマンドを動かしてインストールする `command` の source のプラグインを、インストール・更新せず、インストール済みのものも読み込まない。`false` なら明示的に許す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#disablecommandpluginsources"
           }
         },
         {

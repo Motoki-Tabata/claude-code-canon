@@ -65,7 +65,7 @@ sources:
 - サブエージェントには常に外されるツールがある（深さの上限での `Agent`、`AskUserQuestion`、`EnterPlanMode`、`permissionMode: plan` 以外での `ExitPlanMode` など）。background で動くサブエージェントは組み込みツールがさらに絞られるので、同じ定義でも foreground と background で使えるツールが変わる。[仕様]
 - `tools` のどの要素もツールに解決できないと、通常は起動を拒否してエラーになる。[仕様]
 - `disallowedTools` に `Bash(git push *)` のような指定子を書いても Bash 全体が外れる。特定のコマンドだけを止めたいときは `settings:keys/permissions.deny` に Bash の deny ルールを書く。[仕様]
-- サブエージェントの定義で `tools` に `Agent` を入れると、深さの上限までサブエージェントを起動できる。`Agent(worker, researcher)` の型の制限は `claude --agent` でメインスレッドとして動くときだけ効き、サブエージェントの定義では括弧の中は無視される。[仕様]（`tools:tools/Agent`）
+- サブエージェントの定義で `tools` に `Agent` を入れると、深さの上限までサブエージェントを起動できる。`Agent(worker, researcher)` の型の制限は `claude --agent` でメインスレッドとして動くときだけ効き、サブエージェントの定義では括弧の中は無視される。旧名の `Task(...)` は別名として今も効くが、生成では `Agent` と書く（別名は `tools:tools/Agent` の `aliases`。`Agent` と書くのは canon の規律）。[仕様]（`tools:tools/Agent`）
 - macOS・Linux・WSL では、`tools` に `Glob` か `Grep` を入れて `Bash` を外すと、そのサブエージェントに限り Glob・Grep が戻る。[仕様]
 
 ### モデルと effort
