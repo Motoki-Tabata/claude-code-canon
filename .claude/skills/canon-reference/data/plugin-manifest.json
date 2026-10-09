@@ -1,0 +1,853 @@
+{
+  "id": "plugin-manifest",
+  "description": "プラグインの manifest（.claude-plugin/plugin.json）のトップレベルのフィールドと、プラグインのコンポーネントの既定の配置の一覧。",
+  "collections": {
+    "fields": {
+      "description": "plugin.json のトップレベルのキー（experimental の子キーを含む）。マーケットプレイスのエントリも、ディレクトリ掲載用のフィールド以外はこれらを受け付ける。",
+      "complete": true,
+      "complete_basis": "公式の Fields 表が plugin.json のトップレベルのキーを全件列挙しており、全部を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "$schema",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "エディタの補完用の JSON Schema の URL。Claude Code は読み込み時に無視する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        },
+        {
+          "id": "name",
+          "type": "string",
+          "required": true,
+          "default": null,
+          "description_ja": "プラグインの識別子で、唯一の必須キー。kebab-case にする。空でなく、空白・`@`・`:`・パス区切り・制御文字・双方向書式文字を含めない。すべてのコンポーネントがこの名前で名前空間化される（例: `deploy-tools:reviewer`）。`claude-`・`anthropic-` などで始まる名前は `claude plugin validate` がエラーにする。",
+          "reserved_prefixes": [
+            "claude-",
+            "anthropic-",
+            "anthropics-",
+            "cc-plugin-"
+          ],
+          "reserved_values": [
+            "claude",
+            "anthropic",
+            "anthropics",
+            "claude-code",
+            "claude-mods"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#name"
+          }
+        },
+        {
+          "id": "displayName",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "UI で `name` の代わりに表示する名前。空白や大文字を含んでよく、名前空間や検索には使われない。マーケットプレイスのエントリの `displayName` が優先する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#displayname"
+          }
+        },
+        {
+          "id": "version",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "版の文字列（semver の検査はしない）。設定すると、変更するまで利用者はその版に留まる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#version"
+          }
+        },
+        {
+          "id": "description",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "プラグインが提供するものの短い説明。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        },
+        {
+          "id": "author",
+          "type": "object",
+          "required": false,
+          "default": null,
+          "description_ja": "`name`（必須）と、任意の `email`・`url` を持つ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        },
+        {
+          "id": "homepage",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "ドキュメントの URL。URL として解釈できないとプラグインは読み込みに失敗する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        },
+        {
+          "id": "repository",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "ソースリポジトリの URL。検証されない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        },
+        {
+          "id": "license",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "SPDX 識別子（例: `MIT`・`Apache-2.0`）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        },
+        {
+          "id": "keywords",
+          "type": "array of strings",
+          "required": false,
+          "default": null,
+          "description_ja": "発見用のタグ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        },
+        {
+          "id": "metadata",
+          "type": "object",
+          "required": false,
+          "default": null,
+          "description_ja": "利用者独自のデータを入れる自由形式のオブジェクト。Claude Code は読まない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#metadata"
+          }
+        },
+        {
+          "id": "icon",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "Anthropic のディレクトリの掲載用アイコン（プラグイン内の画像ファイルのパス）。Claude Code は読まない。`plugin.json` にだけ書く（マーケットプレイスのエントリでは不明なフィールドとして警告される）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#directory-listing-fields"
+          }
+        },
+        {
+          "id": "documentationUrl",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "Anthropic のディレクトリの掲載用ドキュメントリンク（`https://` の URL）。Claude Code は読まない。`plugin.json` にだけ書く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#directory-listing-fields"
+          }
+        },
+        {
+          "id": "supportUrl",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "Anthropic のディレクトリの掲載用サポートリンク（`https://` の URL）。Claude Code は読まない。`plugin.json` にだけ書く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#directory-listing-fields"
+          }
+        },
+        {
+          "id": "privacyPolicyUrl",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "Anthropic のディレクトリの掲載用プライバシーポリシーのリンク（`https://` の URL）。Claude Code は読まない。`plugin.json` にだけ書く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#directory-listing-fields"
+          }
+        },
+        {
+          "id": "termsOfServiceUrl",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description_ja": "Anthropic のディレクトリの掲載用利用規約のリンク（`https://` の URL）。Claude Code は読まない。`plugin.json` にだけ書く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#directory-listing-fields"
+          }
+        },
+        {
+          "id": "defaultEnabled",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description_ja": "利用者が `enabledPlugins` で設定していないときに有効で始まるか。有効なプラグインが依存するプラグインは値に関わらず有効で始まる。マーケットプレイスのエントリの同じフィールドが優先する。一度書かれた `enabledPlugins` は更新後も保たれる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#defaultenabled"
+          }
+        },
+        {
+          "id": "dependencies",
+          "type": "array of strings or objects",
+          "required": false,
+          "default": null,
+          "description_ja": "このプラグインが動くために有効でなければならないプラグイン。各要素は `\"name\"`・`\"name@marketplace\"`・`{ \"name\", \"marketplace\", \"version\" }` のいずれか。素の名前は自分のマーケットプレイスで解決される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#dependencies"
+          }
+        },
+        {
+          "id": "settings",
+          "type": "object",
+          "required": false,
+          "default": null,
+          "description_ja": "プラグインが有効な間に適用する設定。効くのは `agent` と `subagentStatusLine` だけで、他のキーは読み込み時に捨てられる。プラグインのルートの `settings.json` がこのキーより優先する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#settings"
+          }
+        },
+        {
+          "id": "userConfig",
+          "type": "object",
+          "required": false,
+          "default": null,
+          "description_ja": "プラグインを有効にしたときに利用者に入力を求める値。キーは英数字とアンダースコアで数字で始まらない識別子。各値は strict なオブジェクト（`type`・`title`・`description` が必須）。",
+          "option_fields": [
+            {
+              "id": "type",
+              "required": true,
+              "allowed_values": [
+                "string",
+                "number",
+                "boolean",
+                "directory",
+                "file"
+              ]
+            },
+            {
+              "id": "title",
+              "required": true
+            },
+            {
+              "id": "description",
+              "required": true
+            },
+            {
+              "id": "required",
+              "required": false
+            },
+            {
+              "id": "default",
+              "required": false
+            },
+            {
+              "id": "options",
+              "required": false
+            },
+            {
+              "id": "multiple",
+              "required": false
+            },
+            {
+              "id": "sensitive",
+              "required": false
+            },
+            {
+              "id": "min",
+              "required": false
+            },
+            {
+              "id": "max",
+              "required": false
+            }
+          ],
+          "strict": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#user-configuration"
+          }
+        },
+        {
+          "id": "types",
+          "type": "path",
+          "required": false,
+          "default": null,
+          "description_ja": "mod の `$.state` の値と `$` の名詞を宣言する `.d.ts` ファイル。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        },
+        {
+          "id": "channels",
+          "type": "array of objects",
+          "required": false,
+          "default": null,
+          "description_ja": "プラグインが提供するメッセージチャネル。各要素は strict なオブジェクトで、`server`（`mcpServers` のキー）が必須。",
+          "entry_fields": [
+            {
+              "id": "server",
+              "required": true
+            },
+            {
+              "id": "displayName",
+              "required": false
+            },
+            {
+              "id": "userConfig",
+              "required": false
+            }
+          ],
+          "strict": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#channels"
+          }
+        },
+        {
+          "id": "skills",
+          "type": "path or array of paths",
+          "required": false,
+          "default": null,
+          "description_ja": "skill を探すディレクトリ。`<name>/SKILL.md` のフォルダを並べたディレクトリか、`SKILL.md` を直接持つフォルダ。`\".\"` はプラグインのルートを指す。既定の `skills/` の走査に加わる。",
+          "component_relation": {
+            "value": "adds",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+              "anchor": "#how-each-key-combines-with-its-default-location"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        },
+        {
+          "id": "commands",
+          "type": "path, array of paths, or object",
+          "required": false,
+          "default": null,
+          "description_ja": "フラットな `.md` のコマンドファイル、そのディレクトリ、またはコマンド名から `source`/`content` へのオブジェクトマップ。既定の `commands/` の走査を置き換える。",
+          "component_relation": {
+            "value": "replaces",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+              "anchor": "#how-each-key-combines-with-its-default-location"
+            }
+          },
+          "entry_fields": [
+            {
+              "id": "source",
+              "required": null
+            },
+            {
+              "id": "content",
+              "required": null
+            },
+            {
+              "id": "description",
+              "required": false
+            },
+            {
+              "id": "argumentHint",
+              "required": false
+            },
+            {
+              "id": "model",
+              "required": false
+            },
+            {
+              "id": "allowedTools",
+              "required": false
+            }
+          ],
+          "entry_fields_note": "オブジェクトマップの各値は source と content のちょうど一方を持つ",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#commands"
+          }
+        },
+        {
+          "id": "agents",
+          "type": "path or array of paths",
+          "required": false,
+          "default": null,
+          "description_ja": "agent の `.md` ファイル。ディレクトリは受け付けない。既定の `agents/` の走査を置き換える。",
+          "component_relation": {
+            "value": "replaces",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+              "anchor": "#how-each-key-combines-with-its-default-location"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        },
+        {
+          "id": "hooks",
+          "type": "path, object, or array of either",
+          "required": false,
+          "default": null,
+          "description_ja": "`.json` の hook ファイルか、インラインの hook 設定。`hooks/hooks.json` と合わせて読み込まれる。ファイルはトップレベルの `\"hooks\"` キーで包み、インラインはイベントのマップそのものを書く。",
+          "component_relation": {
+            "value": "merges",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+              "anchor": "#how-each-key-combines-with-its-default-location"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#hooks"
+          }
+        },
+        {
+          "id": "mcpServers",
+          "type": "path, object, or array of either",
+          "required": false,
+          "default": null,
+          "description_ja": "`.json` の MCP 設定ファイル、`.mcpb`/`.dxt` のバンドル（パスか `https://` の URL）、または名前をキーにしたインラインのサーバー設定。`.mcp.json` と合わせて読み込まれ、後で宣言した同名のサーバーが前のものを置き換える。",
+          "component_relation": {
+            "value": "merges",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+              "anchor": "#how-each-key-combines-with-its-default-location"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#mcpservers"
+          }
+        },
+        {
+          "id": "lspServers",
+          "type": "path, object, or array of either",
+          "required": false,
+          "default": null,
+          "description_ja": "`.json` の LSP 設定ファイルか、名前をキーにしたインラインのサーバー設定。`.lsp.json` と合わせて読み込まれる。各サーバー設定は strict なオブジェクトで、`command` と `extensionToLanguage` が必須。",
+          "component_relation": {
+            "value": "merges",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+              "anchor": "#how-each-key-combines-with-its-default-location"
+            }
+          },
+          "server_fields": [
+            {
+              "id": "command",
+              "required": true
+            },
+            {
+              "id": "extensionToLanguage",
+              "required": true
+            },
+            {
+              "id": "args",
+              "required": false
+            },
+            {
+              "id": "transport",
+              "required": false,
+              "allowed_values": [
+                "stdio",
+                "socket"
+              ],
+              "default": "stdio"
+            },
+            {
+              "id": "env",
+              "required": false
+            },
+            {
+              "id": "initializationOptions",
+              "required": false
+            },
+            {
+              "id": "settings",
+              "required": false
+            },
+            {
+              "id": "workspaceFolder",
+              "required": false
+            },
+            {
+              "id": "startupTimeout",
+              "required": false
+            },
+            {
+              "id": "shutdownTimeout",
+              "required": false
+            },
+            {
+              "id": "requestTimeout",
+              "required": false,
+              "default": 60000
+            },
+            {
+              "id": "restartOnCrash",
+              "required": false,
+              "default": true
+            },
+            {
+              "id": "maxRestarts",
+              "required": false
+            },
+            {
+              "id": "diagnostics",
+              "required": false,
+              "default": true
+            }
+          ],
+          "strict": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#lspservers"
+          }
+        },
+        {
+          "id": "outputStyles",
+          "type": "path or array of paths",
+          "required": false,
+          "default": null,
+          "description_ja": "output style のファイルかディレクトリ。既定の `output-styles/` の走査を置き換える。",
+          "component_relation": {
+            "value": "replaces",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+              "anchor": "#how-each-key-combines-with-its-default-location"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        },
+        {
+          "id": "workflows",
+          "type": "path or array of paths",
+          "required": false,
+          "default": null,
+          "description_ja": "workflow の `.js` ファイルかディレクトリ。既定の `workflows/` の走査を置き換える。",
+          "component_relation": {
+            "value": "replaces",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+              "anchor": "#how-each-key-combines-with-its-default-location"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        },
+        {
+          "id": "experimental",
+          "type": "object",
+          "required": false,
+          "default": null,
+          "description_ja": "`themes`・`monitors`・`evals` の入れ物。manifest での形が今後変わりうる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        },
+        {
+          "id": "experimental.themes",
+          "type": "path or array of paths",
+          "required": false,
+          "default": null,
+          "description_ja": "テーマのファイルかディレクトリ。既定の `themes/` の走査を置き換える。トップレベルの `themes` も読み込まれるが `claude plugin validate` が警告する。",
+          "component_relation": {
+            "value": "replaces",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+              "anchor": "#how-each-key-combines-with-its-default-location"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        },
+        {
+          "id": "experimental.monitors",
+          "type": "path or inline array",
+          "required": false,
+          "default": "monitors/monitors.json",
+          "description_ja": "monitors の配列を持つ `.json` ファイルか、配列そのもの。省略時は `monitors/monitors.json`。トップレベルの `monitors` も読み込まれるが警告される。対話セッションでだけ動き、Amazon Bedrock・Google Cloud の Agent Platform・Microsoft Foundry では動かない。各要素は strict なオブジェクトで `name`・`command`・`description` が必須。",
+          "component_relation": {
+            "value": "replaces",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+              "anchor": "#how-each-key-combines-with-its-default-location"
+            }
+          },
+          "entry_fields": [
+            {
+              "id": "name",
+              "required": true
+            },
+            {
+              "id": "command",
+              "required": true
+            },
+            {
+              "id": "description",
+              "required": true
+            },
+            {
+              "id": "when",
+              "required": false,
+              "default": "always",
+              "allowed_values": [
+                "always",
+                "on-skill-invoke:<skill>"
+              ]
+            }
+          ],
+          "strict": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#monitors"
+          }
+        },
+        {
+          "id": "experimental.evals",
+          "type": "path or array of paths",
+          "required": false,
+          "default": null,
+          "description_ja": "eval のケースを置くディレクトリ（既定の `evals/` でないとき）。コンポーネントのパスではないのでパスの規則は適用されず、`./` は有っても無くてもよい。配列なら先頭だけを使う。`claude plugin eval --eval-dir` が上書きする。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#fields"
+          }
+        }
+      ]
+    },
+    "components": {
+      "description": "プラグインのコンポーネントごとの既定の配置（プラグインのルートからの相対パス）と、それを変える manifest のキー。",
+      "complete": true,
+      "complete_basis": "公式の Standard layout 表がコンポーネントの既定の配置を全件列挙しており、全部を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "manifest",
+          "type": "file",
+          "required": false,
+          "default_location": ".claude-plugin/plugin.json",
+          "manifest_key": null,
+          "description_ja": "プラグインのメタデータと設定。任意。`.claude-plugin/` には `plugin.json` だけを置き、他のファイルはプラグインのルートに置く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#standard-layout"
+          }
+        },
+        {
+          "id": "skills",
+          "type": "directory",
+          "required": false,
+          "default_location": "skills/",
+          "manifest_key": "skills",
+          "description_ja": "skill ごとに `<name>/SKILL.md` を1つ。`skills/` も `skills` キーも無く、ルートに `SKILL.md` があるプラグインは1つの skill として読み込まれる。",
+          "user_facing_name": {
+            "value": "/<plugin>:<directory>",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/components.md",
+              "anchor": "#skills"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#standard-layout"
+          }
+        },
+        {
+          "id": "commands",
+          "type": "directory",
+          "required": false,
+          "default_location": "commands/",
+          "manifest_key": "commands",
+          "description_ja": "フラットな Markdown のコマンドファイル。新しいプラグインでは `skills/` を使う。",
+          "user_facing_name": {
+            "value": "/<plugin>:<file>",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/components.md",
+              "anchor": "#commands"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#standard-layout"
+          }
+        },
+        {
+          "id": "agents",
+          "type": "directory",
+          "required": false,
+          "default_location": "agents/",
+          "manifest_key": "agents",
+          "description_ja": "agent の Markdown ファイル。サブフォルダは agent の名前の一部になる。",
+          "user_facing_name": {
+            "value": "<plugin>:<name>",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/components.md",
+              "anchor": "#agents"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#standard-layout"
+          }
+        },
+        {
+          "id": "hooks",
+          "type": "file",
+          "required": false,
+          "default_location": "hooks/hooks.json",
+          "manifest_key": "hooks",
+          "description_ja": "hook の設定。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#standard-layout"
+          }
+        },
+        {
+          "id": "mcp-servers",
+          "type": "file",
+          "required": false,
+          "default_location": ".mcp.json",
+          "manifest_key": "mcpServers",
+          "description_ja": "MCP サーバーの定義。",
+          "user_facing_name": {
+            "value": "plugin:<plugin>:<server>",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/components.md",
+              "anchor": "#server-names-tool-names-and-reloads"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#standard-layout"
+          }
+        },
+        {
+          "id": "lsp-servers",
+          "type": "file",
+          "required": false,
+          "default_location": ".lsp.json",
+          "manifest_key": "lspServers",
+          "description_ja": "LSP サーバーの設定。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#standard-layout"
+          }
+        },
+        {
+          "id": "output-styles",
+          "type": "directory",
+          "required": false,
+          "default_location": "output-styles/",
+          "manifest_key": "outputStyles",
+          "description_ja": "output style の Markdown ファイル。",
+          "user_facing_name": {
+            "value": "<plugin>:<name>",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/components.md",
+              "anchor": "#themes-and-output-styles"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#standard-layout"
+          }
+        },
+        {
+          "id": "workflows",
+          "type": "directory",
+          "required": false,
+          "default_location": "workflows/",
+          "manifest_key": "workflows",
+          "description_ja": "workflow の `.js` ファイル。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#standard-layout"
+          }
+        },
+        {
+          "id": "themes",
+          "type": "directory",
+          "required": false,
+          "default_location": "themes/",
+          "manifest_key": "experimental.themes",
+          "description_ja": "テーマの JSON ファイル。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#standard-layout"
+          }
+        },
+        {
+          "id": "monitors",
+          "type": "file",
+          "required": false,
+          "default_location": "monitors/monitors.json",
+          "manifest_key": "experimental.monitors",
+          "description_ja": "monitors の配列。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#standard-layout"
+          }
+        },
+        {
+          "id": "executables",
+          "type": "directory",
+          "required": false,
+          "default_location": "bin/",
+          "manifest_key": null,
+          "description_ja": "プラグインが有効な間、Bash ツールの `PATH` に載り、Claude が裸のコマンドとして実行できる。claude.ai と Cowork はこのディレクトリを持つプラグインをインストールしない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#standard-layout"
+          }
+        },
+        {
+          "id": "settings",
+          "type": "file",
+          "required": false,
+          "default_location": "settings.json",
+          "manifest_key": "settings",
+          "description_ja": "プラグインが有効な間に適用する `agent` と `subagentStatusLine` の既定値。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/manifest-reference.md",
+            "anchor": "#standard-layout"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,997 @@
+{
+  "id": "permissions",
+  "description": "permission 規則の書式、permission モード、サンドボックスの設定キーの一覧。",
+  "collections": {
+    "rule-syntax": {
+      "description": "permission 規則（Tool または Tool(specifier)）の書式をツールごとにまとめたもの。applies_to はその書式が効くツール、rule_lists は書ける規則の種類（allow・ask・deny）。tools:tools の rule_format がこの id を指す。",
+      "complete": false,
+      "complete_basis": "公式が全件を列挙していない。tools-reference の書式表と permissions の各節から集めたが、artifacts ページにだけ書式がある Artifact の規則は収めていない",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "Bash",
+          "applies_to": [
+            "Bash",
+            "Monitor"
+          ],
+          "rule_lists": [
+            "allow",
+            "ask",
+            "deny"
+          ],
+          "specifier_forms": [
+            {
+              "form": "Bash",
+              "meaning_ja": "全コマンドに一致。deny ではツールをコンテキストから取り除く"
+            },
+            {
+              "form": "Bash(*)",
+              "meaning_ja": "Bash と同じ（全コマンド）"
+            },
+            {
+              "form": "Bash(npm run build)",
+              "meaning_ja": "* を含まない形は1つのコマンドに完全一致"
+            },
+            {
+              "form": "Bash(npm run *)",
+              "meaning_ja": "* は空白を含む任意の文字列。末尾の「空白 + *」は引数なしの素のコマンドにも一致する（その * が唯一のワイルドカードのとき）"
+            },
+            {
+              "form": "Bash(ls*)",
+              "meaning_ja": "* の前に空白が無いと語の途中にも一致する（lsof にも一致）"
+            },
+            {
+              "form": "Bash(ls:*)",
+              "meaning_ja": "末尾の :* は末尾の「空白 + *」と同じ。末尾以外の : は文字そのもの"
+            }
+          ],
+          "notes_ja": "複合コマンド（&&・||・;・|・|&・&・改行）は分割し、allow はすべての部分コマンドに一致する必要がある。deny・ask はどれか1つの部分コマンドに一致すれば効く。timeout・time・nice・nohup・stdbuf・command・builtin・noglob・フラグ無しの xargs は照合前に取り除く。絶対パスでの起動や sh -c の中身には一致しないので、セキュリティ境界ではない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/permissions.md",
+            "anchor": "#bash"
+          }
+        },
+        {
+          "id": "PowerShell",
+          "applies_to": [
+            "PowerShell"
+          ],
+          "rule_lists": [
+            "allow",
+            "ask",
+            "deny"
+          ],
+          "specifier_forms": [
+            {
+              "form": "PowerShell",
+              "meaning_ja": "全コマンドに一致（PowerShell(*) も同じ）"
+            },
+            {
+              "form": "PowerShell(Get-ChildItem *)",
+              "meaning_ja": "Bash と同じ形。cmdlet 名の規則はその一般的なエイリアス（gci・ls・dir）にも一致し、大文字小文字を区別しない"
+            },
+            {
+              "form": "PowerShell(Get-ChildItem:*)",
+              "meaning_ja": "末尾の :* は末尾の「空白 + *」と同じ"
+            }
+          ],
+          "notes_ja": "AST を解析し、|・;・（PowerShell 7 以上の）&&・|| で分けた各部分コマンドに規則が一致する必要がある。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/permissions.md",
+            "anchor": "#powershell"
+          }
+        },
+        {
+          "id": "Read",
+          "applies_to": [
+            "Read",
+            "Grep",
+            "Glob",
+            "LSP"
+          ],
+          "rule_lists": [
+            "allow",
+            "ask",
+            "deny"
+          ],
+          "specifier_forms": [
+            {
+              "form": "Read(//path)",
+              "meaning_ja": "ファイルシステムのルートからの絶対パス"
+            },
+            {
+              "form": "Read(~/path)",
+              "meaning_ja": "ホームディレクトリからのパス"
+            },
+            {
+              "form": "Read(/path)",
+              "meaning_ja": "設定ファイルの出どころに対する相対（project・local 設定では主作業ディレクトリ、user 設定では ~/.claude）。絶対パスではない"
+            },
+            {
+              "form": "Read(path) / Read(./path)",
+              "meaning_ja": "現在のディレクトリからの相対。ディレクトリ1段のパターン（src/**）は allow では直下だけ、deny・ask では任意の深さに一致"
+            },
+            {
+              "form": "Read(!path)",
+              "meaning_ja": "deny・ask だけ。同じ出どころで前に並ぶ path・./path 形式の規則から除外する gitignore の否定"
+            }
+          ],
+          "notes_ja": "gitignore のパターン構文（* は1セグメント内、** はディレクトリをまたぐ）。Read の deny 規則は同じパスの Edit・Write も止める（NotebookEdit は止めない）。Glob(path) と書いても参照されないので Read(path) で書く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/permissions.md",
+            "anchor": "#read-and-edit"
+          }
+        },
+        {
+          "id": "Edit",
+          "applies_to": [
+            "Edit",
+            "Write",
+            "NotebookEdit"
+          ],
+          "rule_lists": [
+            "allow",
+            "ask",
+            "deny"
+          ],
+          "specifier_forms": [
+            {
+              "form": "Edit(//path) / Edit(~/path) / Edit(/path) / Edit(path)",
+              "meaning_ja": "Read と同じ4種のアンカーと gitignore パターン"
+            }
+          ],
+          "notes_ja": "ファイルを編集する全組み込みツールに効く。Write(path)・NotebookEdit(path)・MultiEdit(path) と書いても参照されないので Edit(path) で書く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/permissions.md",
+            "anchor": "#read-and-edit"
+          }
+        },
+        {
+          "id": "WebFetch",
+          "applies_to": [
+            "WebFetch"
+          ],
+          "rule_lists": [
+            "allow",
+            "ask",
+            "deny"
+          ],
+          "specifier_forms": [
+            {
+              "form": "WebFetch",
+              "meaning_ja": "全取得に一致。deny ではツールを取り除く。サンドボックスの許可ドメインは変えない"
+            },
+            {
+              "form": "WebFetch(domain:example.com)",
+              "meaning_ja": "ホスト名に一致（大文字小文字を区別しない）"
+            },
+            {
+              "form": "WebFetch(domain:*.example.com)",
+              "meaning_ja": "任意の深さのサブドメインに一致し、example.com 自身には一致しない"
+            },
+            {
+              "form": "WebFetch(domain:*)",
+              "meaning_ja": "全ドメインに一致し、サンドボックスの許可・拒否ドメインにも加わる"
+            }
+          ],
+          "notes_ja": "先頭の *. と単独の * 以外の位置の * はドット間の文字列にだけ一致する。domain: 形式の allow・deny 規則はサンドボックスの許可・拒否ドメインに統合される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/permissions.md",
+            "anchor": "#webfetch"
+          }
+        },
+        {
+          "id": "WebSearch",
+          "applies_to": [
+            "WebSearch"
+          ],
+          "rule_lists": [
+            "allow",
+            "ask",
+            "deny"
+          ],
+          "specifier_forms": [
+            {
+              "form": "WebSearch",
+              "meaning_ja": "specifier を取らない。ツール全体を許可または拒否する"
+            }
+          ],
+          "notes_ja": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": "#configure-tools-with-permission-rules-and-hooks"
+          }
+        },
+        {
+          "id": "Agent",
+          "applies_to": [
+            "Agent"
+          ],
+          "rule_lists": [
+            "allow",
+            "ask",
+            "deny"
+          ],
+          "specifier_forms": [
+            {
+              "form": "Agent(Explore)",
+              "meaning_ja": "サブエージェントの種類名に一致（組み込み・カスタムとも）"
+            }
+          ],
+          "notes_ja": "特定のサブエージェントを無効にするには deny に書くか --disallowedTools に渡す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/permissions.md",
+            "anchor": "#agent-subagents"
+          }
+        },
+        {
+          "id": "Skill",
+          "applies_to": [
+            "Skill"
+          ],
+          "rule_lists": [
+            "allow",
+            "ask",
+            "deny"
+          ],
+          "specifier_forms": [
+            {
+              "form": "Skill(deploy *)",
+              "meaning_ja": "skill の名前に一致"
+            }
+          ],
+          "notes_ja": "パラメーターで照合する形は permissions:rule-syntax/Tool(param:value) を参照。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": "#configure-tools-with-permission-rules-and-hooks"
+          }
+        },
+        {
+          "id": "mcp__<server>__<tool>",
+          "applies_to": [
+            "MCP のツール"
+          ],
+          "rule_lists": [
+            "allow",
+            "ask",
+            "deny"
+          ],
+          "specifier_forms": [
+            {
+              "form": "mcp__puppeteer",
+              "meaning_ja": "そのサーバーの全ツールに一致"
+            },
+            {
+              "form": "mcp__puppeteer__*",
+              "meaning_ja": "そのサーバーの全ツールに一致（ワイルドカード）"
+            },
+            {
+              "form": "mcp__puppeteer__puppeteer_navigate",
+              "meaning_ja": "そのサーバーの特定のツールに一致"
+            }
+          ],
+          "notes_ja": "サーバー名は Claude Code に設定した名前。allow のツール名グロブは mcp__<server>__ の後ろにだけ書け、サーバー名にグロブは書けない。設定ファイルでは括弧付きの mcp__ 規則は読み飛ばされる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/permissions.md",
+            "anchor": "#mcp"
+          }
+        },
+        {
+          "id": "Cd",
+          "applies_to": [
+            "/cd コマンド"
+          ],
+          "rule_lists": [
+            "allow",
+            "deny"
+          ],
+          "specifier_forms": [
+            {
+              "form": "Cd",
+              "meaning_ja": "deny で /cd を無効にする"
+            },
+            {
+              "form": "Cd(~/code/*)",
+              "meaning_ja": "ディレクトリのパス全体に対して照合。* は1セグメント、** はセグメントをまたぎ、末尾の /** は名前のルート自体にも一致"
+            }
+          ],
+          "notes_ja": "モデルが呼べるツールではなく、ユーザーが実行する /cd にだけ効く。Cd の allow 規則が1つでもあると /cd は allowlist モードになる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/permissions.md",
+            "anchor": "#cd"
+          }
+        },
+        {
+          "id": "*",
+          "applies_to": [
+            "ツール名の位置"
+          ],
+          "rule_lists": [
+            "ask",
+            "deny"
+          ],
+          "specifier_forms": [
+            {
+              "form": "*",
+              "meaning_ja": "全ツールに一致"
+            },
+            {
+              "form": "mcp__*",
+              "meaning_ja": "全サーバーの全 MCP ツールに一致"
+            }
+          ],
+          "notes_ja": "deny・ask ではツール名の位置にグロブを書ける（ツール名全体に一致する必要がある）。allow で mcp__<server>__ の接頭辞を持たないグロブ（*・B*・mcp__*）は警告つきで読み飛ばされ、何も自動承認しない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/permissions.md",
+            "anchor": "#tool-name-wildcards"
+          }
+        },
+        {
+          "id": "Tool(param:value)",
+          "applies_to": [
+            "組み込みツール全般"
+          ],
+          "rule_lists": [
+            "ask",
+            "deny"
+          ],
+          "specifier_forms": [
+            {
+              "form": "Agent(model:opus)",
+              "meaning_ja": "トップレベルの入力パラメーターがその値と完全一致する呼び出しに一致"
+            },
+            {
+              "form": "Agent(isolation:*)",
+              "meaning_ja": "値の * は任意の文字列。パラメーターが省略された呼び出しには一致しない"
+            },
+            {
+              "form": "Bash(run_in_background:true)",
+              "meaning_ja": "スカラーのパラメーターならどれでも使える"
+            }
+          ],
+          "notes_ja": "allow では使えない。1規則1パラメーター。主要な内容フィールド（Bash・PowerShell の command、Read・Edit・Write の file_path、Grep・Glob の path、NotebookEdit の notebook_path、WebFetch の url）には使えず、書くと無視されて起動時に警告が出る。MCP ツールのパラメーター照合は --disallowedTools でだけ指定できる。deny の Skill(skill:<name>) は別名や表示名を含むその skill のどの名前にも一致する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/permissions.md",
+            "anchor": "#match-by-input-parameter"
+          }
+        }
+      ]
+    },
+    "modes": {
+      "description": "permission モード（permissions.defaultMode・--permission-mode に書く値）。honored_from_project_settings はプロジェクトの .claude/settings.json・.claude/settings.local.json の defaultMode で効くか。protected_path_writes は保護パスへの書き込みの扱い（prompted・conditional・classifier・denied・allowed）。",
+      "complete": true,
+      "complete_basis": null,
+      "stated_total": null,
+      "items": [
+        {
+          "id": "default",
+          "aliases": [
+            "manual"
+          ],
+          "ui_label": "Manual",
+          "description_ja": "各ツールの初回使用時に許可を求める。CLI・VS Code・JetBrains・デスクトップでは Manual と表示され、manual を別名として受け付ける",
+          "runs_without_asking_ja": "読み取りだけ",
+          "best_for_ja": "すべての操作を自分で確認したいとき、機微な作業",
+          "section_anchor": "#available-modes",
+          "honored_from_project_settings": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/permission-modes.md",
+              "anchor": "#which-mode-a-session-starts-in"
+            }
+          },
+          "protected_path_writes": {
+            "value": "prompted",
+            "source": {
+              "url": "https://code.claude.com/docs/en/permission-modes.md",
+              "anchor": "#protected-paths"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/permission-modes.md",
+            "anchor": "#available-modes"
+          }
+        },
+        {
+          "id": "acceptEdits",
+          "aliases": [],
+          "ui_label": "Edit automatically",
+          "description_ja": "作業ディレクトリと additionalDirectories 内のファイル編集と、mkdir・touch・rm・rmdir・mv・cp・sed などの一般的なファイル操作コマンドを自動承認する",
+          "runs_without_asking_ja": "読み取り、ファイル編集、一般的なファイル操作コマンド",
+          "best_for_ja": "レビューしながらコードを反復するとき",
+          "section_anchor": "#auto-approve-file-edits-with-acceptedits-mode",
+          "honored_from_project_settings": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/permission-modes.md",
+              "anchor": "#which-mode-a-session-starts-in"
+            }
+          },
+          "protected_path_writes": {
+            "value": "prompted",
+            "source": {
+              "url": "https://code.claude.com/docs/en/permission-modes.md",
+              "anchor": "#protected-paths"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/permission-modes.md",
+            "anchor": "#available-modes"
+          }
+        },
+        {
+          "id": "plan",
+          "aliases": [],
+          "ui_label": "Plan",
+          "description_ja": "ファイルを読み、探索のためのシェルコマンドを実行して計画を書くが、ソースは編集しない。計画を承認するまで編集は止まる（バイパスが使える対話端末セッションを除く）",
+          "runs_without_asking_ja": "読み取り。auto モードが使えるときは分類器が承認したコマンドも",
+          "best_for_ja": "変更前にコードベースを探索するとき",
+          "section_anchor": "#analyze-before-you-edit-with-plan-mode",
+          "honored_from_project_settings": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/permission-modes.md",
+              "anchor": "#which-mode-a-session-starts-in"
+            }
+          },
+          "protected_path_writes": {
+            "value": "conditional",
+            "source": {
+              "url": "https://code.claude.com/docs/en/permission-modes.md",
+              "anchor": "#protected-paths"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/permission-modes.md",
+            "anchor": "#available-modes"
+          }
+        },
+        {
+          "id": "auto",
+          "aliases": [],
+          "ui_label": "Auto",
+          "description_ja": "定型の許可プロンプトなしで動き、シェルコマンドやネットワーク要求などの実行前に別モデルの分類器が依頼と整合するかを確かめる。対応モデル・組織設定などの利用条件がある",
+          "runs_without_asking_ja": "すべて（バックグラウンドの安全確認つき）",
+          "best_for_ja": "長いタスク、プロンプト疲れを減らしたいとき",
+          "section_anchor": "#eliminate-prompts-with-auto-mode",
+          "honored_from_project_settings": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/permission-modes.md",
+              "anchor": "#which-mode-a-session-starts-in"
+            }
+          },
+          "protected_path_writes": {
+            "value": "classifier",
+            "source": {
+              "url": "https://code.claude.com/docs/en/permission-modes.md",
+              "anchor": "#protected-paths"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/permission-modes.md",
+            "anchor": "#available-modes"
+          }
+        },
+        {
+          "id": "dontAsk",
+          "aliases": [],
+          "ui_label": null,
+          "description_ja": "プロンプトが出るはずの呼び出しをすべて自動で拒否する。承認不要の操作と、permissions.allow・PreToolUse フックで事前承認した呼び出しだけが動く。AskUserQuestion などユーザーの操作が要るツールは allow があっても拒否する。Shift+Tab の切り替えには出てこない",
+          "runs_without_asking_ja": "読み取りと事前承認したツール。プロンプトが出るものは拒否",
+          "best_for_ja": "ロックダウンした CI やスクリプト",
+          "section_anchor": "#allow-only-pre-approved-tools-with-dontask-mode",
+          "honored_from_project_settings": {
+            "value": true,
+            "source": {
+              "url": "https://code.claude.com/docs/en/permission-modes.md",
+              "anchor": "#which-mode-a-session-starts-in"
+            }
+          },
+          "protected_path_writes": {
+            "value": "denied",
+            "source": {
+              "url": "https://code.claude.com/docs/en/permission-modes.md",
+              "anchor": "#protected-paths"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/permission-modes.md",
+            "anchor": "#available-modes"
+          }
+        },
+        {
+          "id": "bypassPermissions",
+          "aliases": [],
+          "ui_label": "Bypass permissions",
+          "description_ja": "許可プロンプトと安全確認を飛ばしてツールを即時実行する（保護パスへの書き込みも含む）。どのモードでも自動承認しない操作は例外として残る。コンテナや VM などの隔離環境でだけ使う",
+          "runs_without_asking_ja": "すべて",
+          "best_for_ja": "隔離したコンテナや VM だけ",
+          "section_anchor": "#skip-all-checks-with-bypasspermissions-mode",
+          "honored_from_project_settings": {
+            "value": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/permission-modes.md",
+              "anchor": "#which-mode-a-session-starts-in"
+            }
+          },
+          "protected_path_writes": {
+            "value": "allowed",
+            "source": {
+              "url": "https://code.claude.com/docs/en/permission-modes.md",
+              "anchor": "#protected-paths"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/permission-modes.md",
+            "anchor": "#available-modes"
+          }
+        }
+      ]
+    },
+    "sandbox-keys": {
+      "description": "settings の sandbox 以下のキー（ドット区切り）。scope は settings-reference の Scope 欄（any-file・user-or-managed・managed）。limited_in_project_settings は Scope 欄が project・local 設定での制限（管理者必須のサンドボックス時など）を参照しているか。default の null は公式の「unset」（未設定）。credentials の各項目のフィールド（path・mode・injectHosts・extract など）と tlsTerminate の caCertPath・caKeyPath はキーではないので含めない。",
+      "complete": true,
+      "complete_basis": null,
+      "stated_total": null,
+      "items": [
+        {
+          "id": "sandbox",
+          "type": "object",
+          "scope": "any-file",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "サンドボックス設定の親オブジェクト。enabled で有効にし、filesystem・network・credentials で範囲を調整する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox"
+          }
+        },
+        {
+          "id": "sandbox.enabled",
+          "type": "boolean",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": false,
+          "description_ja": "Bash コマンドのサンドボックスを有効にする。/sandbox でモードを選ぶと .claude/settings.local.json に書かれる。サンドボックスが起動できないときは failIfUnavailable が無い限りサンドボックスなしで実行する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-enabled"
+          }
+        },
+        {
+          "id": "sandbox.failIfUnavailable",
+          "type": "boolean",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": false,
+          "description_ja": "enabled が true なのにサンドボックスを起動できない（依存の欠如・非対応プラットフォーム）とき、起動時にエラーで終了する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-failifunavailable"
+          }
+        },
+        {
+          "id": "sandbox.autoAllowBashIfSandboxed",
+          "type": "boolean",
+          "scope": "any-file",
+          "limited_in_project_settings": false,
+          "default": true,
+          "description_ja": "サンドボックス内で動く Bash コマンドを許可プロンプトなしで実行する（auto-allow モード）。deny 規則と内容を指定した ask 規則は効き、素の Bash の ask 規則はサンドボックス内のコマンドには飛ばされる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-autoallowbashifsandboxed"
+          }
+        },
+        {
+          "id": "sandbox.excludedCommands",
+          "type": "array<string>",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": null,
+          "description_ja": "サンドボックスの外で実行するコマンドのパターン。Bash(...) 規則の中身と同じ構文で、ワイルドカードの無いパターンは完全一致",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-excludedcommands"
+          }
+        },
+        {
+          "id": "sandbox.allowUnsandboxedCommands",
+          "type": "boolean",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": true,
+          "description_ja": "サンドボックスに止められたコマンドを dangerouslyDisableSandbox パラメーターでサンドボックス外で再試行できるか。false で strict sandbox mode になる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-allowunsandboxedcommands"
+          }
+        },
+        {
+          "id": "sandbox.filesystem",
+          "type": "object",
+          "scope": "any-file",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "サンドボックス内のコマンドが読み書きできるパスを決める親オブジェクト",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-filesystem"
+          }
+        },
+        {
+          "id": "sandbox.filesystem.allowWrite",
+          "type": "array<string>",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": null,
+          "description_ja": "作業ディレクトリ・ユーザーごとの一時ディレクトリ・追加ディレクトリのほかに書き込めるパスを足す",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-filesystem-allowwrite"
+          }
+        },
+        {
+          "id": "sandbox.filesystem.denyWrite",
+          "type": "array<string>",
+          "scope": "any-file",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "書き込み可能な領域の中でも書き込みを禁じるパス",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-filesystem-denywrite"
+          }
+        },
+        {
+          "id": "sandbox.filesystem.denyRead",
+          "type": "array<string>",
+          "scope": "any-file",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "読み取りを禁じるパス。既定の読み取り範囲は ~/.aws/credentials などの認証情報ファイルを含む",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-filesystem-denyread"
+          }
+        },
+        {
+          "id": "sandbox.filesystem.allowRead",
+          "type": "array<string>",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": null,
+          "description_ja": "denyRead が塞いだ領域の中で読み取りを再び許すパス。重なるときは狭い方のパスの規則が勝つ",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-filesystem-allowread"
+          }
+        },
+        {
+          "id": "sandbox.filesystem.allowManagedReadPathsOnly",
+          "type": "boolean",
+          "scope": "managed",
+          "limited_in_project_settings": false,
+          "default": false,
+          "description_ja": "managed 設定の allowRead だけを有効にする",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-filesystem-allowmanagedreadpathsonly"
+          }
+        },
+        {
+          "id": "sandbox.filesystem.disabled",
+          "type": "boolean",
+          "scope": "user-or-managed",
+          "limited_in_project_settings": false,
+          "default": false,
+          "description_ja": "ネットワーク隔離を残したままファイルシステム隔離を切る。project・local 設定からは設定できない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-filesystem-disabled"
+          }
+        },
+        {
+          "id": "sandbox.ignoreViolations",
+          "type": "object",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": null,
+          "description_ja": "想定内の拒否について違反の報告だけを抑える（アクセスは引き続き止める）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-ignoreviolations"
+          }
+        },
+        {
+          "id": "sandbox.enableWeakerNestedSandbox",
+          "type": "boolean",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": false,
+          "description_ja": "特権の無い Docker コンテナ内で Linux のサンドボックスを動かす。安全性が下がる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-enableweakernestedsandbox"
+          }
+        },
+        {
+          "id": "sandbox.enableWeakerNetworkIsolation",
+          "type": "boolean",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": false,
+          "description_ja": "macOS でシステムの TLS 信頼サービスへの到達を許す。データ持ち出しの経路を開くので安全性が下がる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-enableweakernetworkisolation"
+          }
+        },
+        {
+          "id": "sandbox.allowAppleEvents",
+          "type": "boolean",
+          "scope": "user-or-managed",
+          "limited_in_project_settings": false,
+          "default": false,
+          "description_ja": "macOS で Apple Events の送信を許す。コード実行の隔離が無くなる。project 設定からは有効にできない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-allowappleevents"
+          }
+        },
+        {
+          "id": "sandbox.ripgrep",
+          "type": "object",
+          "scope": "user-or-managed",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "サンドボックスが使う ripgrep のバイナリを指定する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-ripgrep"
+          }
+        },
+        {
+          "id": "sandbox.bwrapPath",
+          "type": "string",
+          "scope": "managed",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "PATH の外にある bubblewrap の絶対パス",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-bwrappath"
+          }
+        },
+        {
+          "id": "sandbox.socatPath",
+          "type": "string",
+          "scope": "managed",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "PATH の外にある socat の絶対パス",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-socatpath"
+          }
+        },
+        {
+          "id": "sandbox.credentials",
+          "type": "object",
+          "scope": "any-file",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "サンドボックス内のコマンドから守る認証情報ファイルと環境変数を宣言する親オブジェクト。mask・allowPlaintextInject・awsPairs・sigv4 は user・managed・--settings からだけ有効",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-credentials"
+          }
+        },
+        {
+          "id": "sandbox.credentials.files",
+          "type": "array<object>",
+          "scope": "any-file",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "守る認証情報ファイル。mode が deny なら読み取りを禁じ、mask ならセンチネルを見せてプロキシが実値を差し込む。project・local の mask 項目は捨てられる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-credentials-files"
+          }
+        },
+        {
+          "id": "sandbox.credentials.envVars",
+          "type": "array<object>",
+          "scope": "any-file",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "守る環境変数。mode が deny なら取り除き、mask ならセンチネルを見せる。project・local の mask 項目は捨てられる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-credentials-envvars"
+          }
+        },
+        {
+          "id": "sandbox.credentials.allowPlaintextInject",
+          "type": "boolean",
+          "scope": "user-or-managed",
+          "limited_in_project_settings": false,
+          "default": false,
+          "description_ja": "平文 HTTP の要求にも mask の差し込みを許す",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-credentials-allowplaintextinject"
+          }
+        },
+        {
+          "id": "sandbox.credentials.awsPairs",
+          "type": "array<object>",
+          "scope": "user-or-managed",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "非標準の名前の環境変数で1つの AWS 認証情報を組にし、SigV4 の再署名に使う",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-credentials-awspairs"
+          }
+        },
+        {
+          "id": "sandbox.credentials.sigv4",
+          "type": "object",
+          "scope": "user-or-managed",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "再署名できない AWS 要求の形式（streaming・presigned・sigv4a）の扱い。既定はすべて deny",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-credentials-sigv4"
+          }
+        },
+        {
+          "id": "sandbox.network",
+          "type": "object",
+          "scope": "any-file",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "サンドボックス内のコマンドが到達できるホスト・ポート・ソケットを決める親オブジェクト",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-network"
+          }
+        },
+        {
+          "id": "sandbox.network.allowUnixSockets",
+          "type": "array<string>",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": null,
+          "description_ja": "macOS で接続を許す Unix ソケットのパス。Linux・WSL2 では無視される",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-network-allowunixsockets"
+          }
+        },
+        {
+          "id": "sandbox.network.allowAllUnixSockets",
+          "type": "boolean",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": false,
+          "description_ja": "すべての Unix ソケットへの接続を許す。Linux・WSL2 で Unix ソケットを許す唯一の手段",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-network-allowallunixsockets"
+          }
+        },
+        {
+          "id": "sandbox.network.allowLocalBinding",
+          "type": "boolean",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": false,
+          "description_ja": "macOS でポートの待ち受けと localhost の任意のポートへの接続を許す",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-network-allowlocalbinding"
+          }
+        },
+        {
+          "id": "sandbox.network.allowMachLookup",
+          "type": "array<string>",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": null,
+          "description_ja": "macOS のサンドボックスが参照できる XPC・Mach サービス名を足す",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-network-allowmachlookup"
+          }
+        },
+        {
+          "id": "sandbox.network.allowedDomains",
+          "type": "array<string>",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": null,
+          "description_ja": "サンドボックスからの外向き通信を事前に許可するドメイン。*.example.com や :port を書ける。初期値は空",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-network-alloweddomains"
+          }
+        },
+        {
+          "id": "sandbox.network.deniedDomains",
+          "type": "array<string>",
+          "scope": "any-file",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "外向き通信を拒否するドメイン。allowedDomains に一致しても拒否が勝つ",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-network-denieddomains"
+          }
+        },
+        {
+          "id": "sandbox.network.strictAllowlist",
+          "type": "boolean",
+          "scope": "user-or-managed",
+          "limited_in_project_settings": false,
+          "default": false,
+          "description_ja": "許可リスト外のホストにプロンプトを出さず拒否する。リポジトリからは切り替えられない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-network-strictallowlist"
+          }
+        },
+        {
+          "id": "sandbox.network.allowManagedDomainsOnly",
+          "type": "boolean",
+          "scope": "managed",
+          "limited_in_project_settings": false,
+          "default": false,
+          "description_ja": "ネットワークの許可リストを managed 設定の値だけに固定する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-network-allowmanageddomainsonly"
+          }
+        },
+        {
+          "id": "sandbox.network.httpProxyPort",
+          "type": "number",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": null,
+          "description_ja": "組み込みのプロキシの代わりに使う自前の HTTP プロキシのローカルポート。設定するとドメインの一覧による制御はそのプロキシに委ねられる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-network-httpproxyport"
+          }
+        },
+        {
+          "id": "sandbox.network.socksProxyPort",
+          "type": "number",
+          "scope": "any-file",
+          "limited_in_project_settings": true,
+          "default": null,
+          "description_ja": "組み込みのプロキシの代わりに使う自前の SOCKS5 プロキシのローカルポート",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-network-socksproxyport"
+          }
+        },
+        {
+          "id": "sandbox.network.tlsTerminate",
+          "type": "object",
+          "scope": "user-or-managed",
+          "limited_in_project_settings": false,
+          "default": null,
+          "description_ja": "サンドボックスのプロキシで TLS を終端する（実験的）。認証情報の mask に必要",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#sandbox-network-tlsterminate"
+          }
+        }
+      ]
+    }
+  }
+}

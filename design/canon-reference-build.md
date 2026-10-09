@@ -188,6 +188,7 @@ audience: [ai, human]
 ```
 
 - **`items` の要素1つが1つの事実**（イベント1つ・フィールド1つ・ツール1つ）で、要素ごとに `source`（`url` と見出しの `anchor`）を持つ。要素の中の値はその `source` に従う。要素の中に別のページを根拠にする値があれば、その値をオブジェクトにして `source` を付ける。
+- `anchor` は、公開ページの HTML に実在する `id` を `#` 付きで書く（`.md` の見出しから推測しない。`.` は `-` になり、`’` などの記号は残る）。表の行に付く `id`（例: `settings-reference` のキーごとの `#sandbox-enabled`）も使ってよい。根拠が最初の見出しより前（ページの冒頭）にあるときは `""` にする。
 - `source.url` は `sources.json` の `pages` にあり `treatment` が `detailed` のページだけを指す。`insight` を `data/` の根拠にしない。
 - `id` はコレクションの中で一意にする。公式の名前があればそれを使う（イベント名・ツール名・キー名）。
 - **`complete`** は、公式が全件を列挙していて、それを全部収めたときだけ `true` にする。`false` のときは `complete_basis` に理由を書く（「公式が全件を列挙していない」「生成で使うものだけを選んだ。選んだ基準は…」のどちらか）。`false` のコレクションで見つからないものを「無い」と扱わない。
@@ -212,6 +213,8 @@ audience: [ai, human]
 | `models.json` | `aliases` | `id`（エイリアス）・`description_ja` | `model-config` |
 | `builtin-commands.json` | `commands` | `id`（`/` を除いた名前） | `commands` |
 | `env-vars.json` | `vars` | `id`・`description_ja`・`used_for` | `env-vars` |
+| `statusline.json` | `input-fields` | `id`（ドット区切りのフィールド名）・`type`・`description_ja` | `statusline` |
+| `mods.json` | `events`・`api` | `id`・`description_ja` | `plugins/mods/*` |
 
 - `settings.json` と `env-vars.json` は生成で使うものだけを選ぶので `complete: false` にし、選んだ基準を `complete_basis` に書く。
 - `data/settings.json` と `data/mcp.json` は Claude Code が読む設定ファイルではない（Claude Code が読むのは `.claude/settings.json` と `.mcp.json` だけ）。
@@ -309,11 +312,11 @@ sources: [<この機能が根拠にする spec ページの URL>]
 | # | 検査 | 方法 |
 |---|---|---|
 | 1 | `data/*.json` と `sources.json` がすべてパースできる | `JSON.parse` |
-| 2 | `data/` のすべての要素に `source.url` と `source.anchor` があり、`url` が `sources.json` の `detailed` のページを指す | スクリプト |
+| 2 | `data/` のすべての要素に `source.url` と `source.anchor` があり、`url` が `sources.json` の `detailed` のページを指し、空でない `anchor` が公開ページの HTML の `id` に実在する | スクリプト（HTML を `curl` で取得して `id="…"` と照合） |
 | 3 | `complete: false` のコレクションに `complete_basis` があり、`stated_total` があれば `items` の件数と一致する | スクリプト |
 | 4 | `sources.json` の `pages` が `llms.txt` の `/docs/en/` 配下の URL と過不足なく一致し、重複が無い | スクリプト |
 | 5 | `placeable_files` が `claude-directory` の File reference 表の全行と一致する | スクリプト |
-| 6 | `features/*.md` が §5.2 の8つの見出しをこの順で持つ | スクリプト |
+| 6 | `features/*.md` が §5.2 の8つの見出しをこの順で持つ（コードフェンスの中の行は数えない） | スクリプト |
 | 7 | 本文の `data/` 参照（`` `<id>:<collection>/<item>` ``）がすべて解決する | スクリプト |
 | 8 | `V-`・`Q-` の ID がファイルの中で連番になっていて、リファレンス全体で一意 | スクリプト |
 | 9 | 本文に日付の注記・「解決済」・取り消し線（`~~`）・独自のレイヤー用語（`L1`〜`L5`・`2層`・`3層`）が無い | grep |

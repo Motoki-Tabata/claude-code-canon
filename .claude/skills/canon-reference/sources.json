@@ -2350,5 +2350,211 @@
       }
     }
   ],
-  "unverified": []
+  "unverified": [
+    {
+      "where": "data/frontmatter.json",
+      "item": "output-style/name",
+      "what": "frontmatter に name を設定したあとも、ファイル名でスタイルを選べるかが公式に書かれていない"
+    },
+    {
+      "where": "references/features/output-styles.md",
+      "item": "同名の出力スタイルの優先順位",
+      "what": "managed・user・project に同名のスタイルがあるときの優先順位のうち、managed の位置が公式に書かれていない"
+    },
+    {
+      "where": "references/features/output-styles.md",
+      "item": "プラグインの出力スタイルの名前",
+      "what": "settings の outputStyle にプラグインのスタイルを書くとき <plugin>:<name> の形が要るかが公式に書かれていない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "rule/paths",
+      "what": "パターンをプロジェクトのルートとルールファイルの位置のどちらを基準に照合するかが明記されていない（表の例から読み取れるだけ）"
+    },
+    {
+      "where": "references/features/rules.md",
+      "item": "サブディレクトリの .claude/rules/",
+      "what": "入れ子の .claude/rules/ が読み込まれる条件の詳細が公式に書かれていない"
+    },
+    {
+      "where": "references/features/rules.md",
+      "item": "managed とプラグインのルール",
+      "what": "managed のルール用ディレクトリと、プラグインでルールを配布する手段が、取得した detailed のページに出てこない（無いとは断定しない）"
+    },
+    {
+      "where": "data/statusline.json",
+      "item": "input-fields/prompt_cache.last_miss_cause.causes",
+      "what": "キャッシュが外れた原因名は公式が例を挙げているだけで、全件が列挙されていない"
+    },
+    {
+      "where": "references/features/statusline.md",
+      "item": "statusLine の下位キー",
+      "what": "type・command・padding・refreshInterval・hideVimModeIndicator 以外のキーを拒否するかが明記されていない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "subagent/maxTurns の type",
+      "what": "公式の表に型の明記が無い。説明文から number とした"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "subagent/skills・subagent/mcpServers の type",
+      "what": "公式の例は YAML のリストだけで、カンマ区切りの文字列を受け付けるかが書かれていない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "subagent/background・subagent/omitClaudeMd の default",
+      "what": "既定値（false）が明記されていない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "subagent/initialPrompt・plugin-agent/initialPrompt",
+      "what": "sub-agents の表は「プラグインのサブエージェントでは無視」とするが、同じページの Note は hooks・mcpServers・permissionMode の3つしか挙げていない。表に従った"
+    },
+    {
+      "where": "data/mcp.json",
+      "item": "transports",
+      "what": "type の値の閉じた一覧は公式に無い。インストールの選択肢と sub-agents の列挙から complete と判断した"
+    },
+    {
+      "where": "data/mcp.json",
+      "item": "mcp-json-fields/mcpServers の予約名",
+      "what": "予約されたサーバー名は公式が including で例示しているだけで、全件ではない"
+    },
+    {
+      "where": "data/mcp.json",
+      "item": "mcp-json-fields/timeout の source",
+      "what": "定義が Tip の中にあり、見出しの anchor は直前の節を指している"
+    },
+    {
+      "where": "data/paths.json",
+      "item": "managed:managed-settings.json",
+      "what": "OS ごとの配置パスが detailed のページに書かれていない（正は out-of-scope の managed-settings ページ）。os_paths は null"
+    },
+    {
+      "where": "data/paths.json",
+      "item": "managed の skills・agents・output-styles",
+      "what": "managed settings directory の OS ごとの実体が detailed のページに書かれていない（skills の Linux の例 /etc/claude-code/ だけ）"
+    },
+    {
+      "where": "data/paths.json",
+      "item": "user:~/.claude/projects/<project>/memory/MEMORY.md の startup_load_limit",
+      "what": "公式の表記は 25KB で、25000 バイトか 25600 バイトかが書かれていない"
+    },
+    {
+      "where": "data/paths.json",
+      "item": "managed:CLAUDE.md",
+      "what": "managed settings directory の中に置くのかが memory に書かれていない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "skill・command の type",
+      "what": "多くのキーで型が明記されておらず、説明文から推定した（hooks を object とした点を含む）"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "skill/description の required",
+      "what": "公式の Required 列は Recommended。required: false と recommended: true で表した"
+    },
+    {
+      "where": "data/builtin-commands.json",
+      "item": "commands/plugin-authoring",
+      "what": "公式は built-in plugin が提供する skill と書くが、表に Skill の印が無い"
+    },
+    {
+      "where": "data/builtin-commands.json",
+      "item": "commands",
+      "what": "利用できるかはプラットフォーム・プラン・環境で変わると公式が書いている。表の全行を全件として扱った"
+    },
+    {
+      "where": "data/hook-events.json",
+      "item": "events/PostToolUseFailure の decision_fields",
+      "what": "Decision control の要約表はトップレベルの decision の行に載せるが、個別の節は additionalContext しか挙げていない。節に従った"
+    },
+    {
+      "where": "data/hook-events.json",
+      "item": "events/CwdChanged・events/FileChanged の watchPaths",
+      "what": "hookSpecificOutput の中に置くのかトップレベルに置くのかが書かれていない"
+    },
+    {
+      "where": "data/hook-events.json",
+      "item": "events/Setup の handler_types",
+      "what": "Prompt-based hooks の節は mcp_tool に対応するとし、Setup の節は mcp_tool は常に飛ばされると書いている"
+    },
+    {
+      "where": "data/hook-events.json",
+      "item": "handler-types の fields",
+      "what": "ハンドラーに未知のキーを書いたときの扱い（無視かエラーか）が書かれていない"
+    },
+    {
+      "where": "data/permissions.json",
+      "item": "rule-syntax の Artifact 規則",
+      "what": "permissions は Artifact 規則に触れるが、書式は out-of-scope の artifacts ページにしか無く、収めていない"
+    },
+    {
+      "where": "data/permissions.json",
+      "item": "rule-syntax/Bash の applies_to の Monitor",
+      "what": "Monitor(...) と書くのか、Bash(...) が Monitor にも効くのかが本文から読み取れない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "plugin-agent/description の required",
+      "what": "プラグインの agent で description を省いたときの扱いが書かれていない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "plugin-agent/skills・hooks・mcpServers・initialPrompt の type",
+      "what": "値の型が明記されていない"
+    },
+    {
+      "where": "data/marketplace.json",
+      "item": "source-types の plugin:url・plugin:git-subdir・plugin:npm・plugin:archive・plugin:command",
+      "what": "必須フィールドが明記されていない"
+    },
+    {
+      "where": "data/plugin-manifest.json",
+      "item": "fields/commands の entry_fields",
+      "what": "source と content のどちらか一方だけという規則で、個々の必須は決まらない"
+    },
+    {
+      "where": "data/mods.json",
+      "item": "api（documented: false の要素）",
+      "what": "公式の一覧に名前だけが載り、説明が無い"
+    },
+    {
+      "where": "data/mods.json",
+      "item": "api/$.fs.exists・api/$.fs.stat",
+      "what": "戻り値の形が書かれていない"
+    },
+    {
+      "where": "data/mods.json",
+      "item": "events の interface グループ",
+      "what": "ui.render 以外の hook が返せる値が示されていない"
+    },
+    {
+      "where": "data/mods.json",
+      "item": "events・api",
+      "what": "公式は TypeScript 宣言（spec ページではない）を完全なリファレンスとしている。spec ページの表との差は確かめていない"
+    },
+    {
+      "where": "data/models.json",
+      "item": "aliases の opusplan[1m]",
+      "what": "model-config の opusplan の節では有効な値だが、Model aliases の表に無いので要素にしていない"
+    },
+    {
+      "where": "data/settings.json",
+      "item": "permissions.disableAutoMode",
+      "what": "disableAutoMode の項目と permissions の Type では受け付けると書かれるが、Settings index に行が無い。disableAutoMode の notes_ja に書いた"
+    },
+    {
+      "where": "data/settings.json",
+      "item": "$schema",
+      "what": "settings のページは使い方を説明するが、Settings index に行が無い。キーとしては収めていない"
+    },
+    {
+      "where": "data/frontmatter.json",
+      "item": "command",
+      "what": "skills は commands/*.md が name と paths を除く skill のキーを受け付けるとし、plugins/components は skill と同じ frontmatter とだけ書いている。skills に従った"
+    }
+  ]
 }

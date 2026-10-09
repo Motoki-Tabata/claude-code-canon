@@ -1,0 +1,414 @@
+{
+  "id": "mcp",
+  "description": "MCP サーバーの transport・設定のスコープ・.mcp.json のフィールドの一覧。",
+  "collections": {
+    "transports": {
+      "description": "MCP サーバーの transport（設定の `type` の値）。",
+      "complete": true,
+      "complete_basis": "公式ページの Installing MCP servers が4つの transport（HTTP・SSE・stdio・WebSocket）を選択肢として列挙し、sdk を別に注記している。sub-agents のページも .mcp.json と同じスキーマのインライン定義が stdio・http・sse・ws に対応すると列挙している",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "stdio",
+          "type_values": [
+            "stdio"
+          ],
+          "type_omittable": true,
+          "remote": false,
+          "cli_add_transport": true,
+          "oauth": false,
+          "deprecated": false,
+          "configurable_in_mcp_json": true,
+          "description_ja": "ローカルのプロセスとして起動するサーバー。システムへの直接アクセスや独自スクリプトに向く。`type` を省いたエントリは stdio として読まれる。サーバーの環境には `CLAUDE_PROJECT_DIR` がプロジェクトのルートとして渡される。自動の再接続はしない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#option-3-add-a-local-stdio-server"
+          }
+        },
+        {
+          "id": "http",
+          "type_values": [
+            "http",
+            "streamable-http"
+          ],
+          "type_omittable": false,
+          "remote": true,
+          "cli_add_transport": true,
+          "oauth": true,
+          "deprecated": false,
+          "configurable_in_mcp_json": true,
+          "description_ja": "リモートの MCP サーバーへの接続に推奨される transport。JSON の `type` では `streamable-http` を `http` の別名として受け付ける。OAuth 2.0 の認証に対応する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#option-1-add-a-remote-http-server"
+          }
+        },
+        {
+          "id": "sse",
+          "type_values": [
+            "sse"
+          ],
+          "type_omittable": false,
+          "remote": true,
+          "cli_add_transport": true,
+          "oauth": true,
+          "deprecated": true,
+          "configurable_in_mcp_json": true,
+          "description_ja": "Server-Sent Events の transport。非推奨で、使えるなら HTTP を使う。`claude mcp add --transport http` で追加すると、HTTP を受け付けないサーバーには SSE に切り替えて接続する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#option-2-add-a-remote-sse-server"
+          }
+        },
+        {
+          "id": "ws",
+          "type_values": [
+            "ws"
+          ],
+          "type_omittable": false,
+          "remote": true,
+          "cli_add_transport": false,
+          "oauth": false,
+          "deprecated": false,
+          "configurable_in_mcp_json": true,
+          "description_ja": "WebSocket の transport。常時の双方向接続を保ち、サーバーから能動的にイベントを送る用途に向く。`claude mcp add --transport` では指定できず、`.mcp.json` か `claude mcp add-json` で設定する。OAuth は使えず、認証は `headers` か `headersHelper` のヘッダーだけ。`http` と同じ `url`・`headers`・`headersHelper`・`timeout`・`alwaysLoad` を受け付ける。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#option-4-add-a-remote-websocket-server"
+          }
+        },
+        {
+          "id": "sdk",
+          "type_values": [
+            "sdk"
+          ],
+          "type_omittable": false,
+          "remote": false,
+          "cli_add_transport": false,
+          "oauth": null,
+          "deprecated": false,
+          "configurable_in_mcp_json": false,
+          "description_ja": "SDK のホストアプリケーション（Agent SDK のアプリやデスクトップアプリ）だけが登録できるプロセス内サーバー。`.mcp.json`・`~/.claude.json`・settings に `\"type\": \"sdk\"` を書いても Claude Code は読み飛ばし、警告を出す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#option-1-add-a-remote-http-server"
+          }
+        }
+      ]
+    },
+    "scopes": {
+      "description": "MCP サーバーの設定を置くスコープ（`claude mcp add --scope` の値）。",
+      "complete": true,
+      "complete_basis": "公式ページが3つのスコープを表で列挙し、本文で three scopes と明記している",
+      "stated_total": 3,
+      "items": [
+        {
+          "id": "local",
+          "default": true,
+          "loads_in": "現在のプロジェクトだけ",
+          "shared_with_team": false,
+          "stored_in": "~/.claude.json",
+          "json_path": "projects[\"<プロジェクトのパス>\"].mcpServers",
+          "cli_flag": "--scope local",
+          "precedence_rank": 1,
+          "description_ja": "既定のスコープ。追加したプロジェクトでだけ読み込まれ、自分だけが使う。個人の開発用サーバー、試験的な設定、バージョン管理に入れたくない資格情報を持つサーバーに使う。settings の `.claude/settings.local.json` とは別物で、保存先はホームの `~/.claude.json`。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#local-scope"
+          }
+        },
+        {
+          "id": "project",
+          "default": false,
+          "loads_in": "現在のプロジェクトだけ",
+          "shared_with_team": true,
+          "stored_in": ".mcp.json（プロジェクトのルート）",
+          "json_path": "mcpServers",
+          "cli_flag": "--scope project",
+          "precedence_rank": 2,
+          "description_ja": "プロジェクトのルートの `.mcp.json` に置き、バージョン管理でチームと共有する。対話セッションでは、使う前に承認を求められる。`claude -p`・Agent SDK・クラウドのセッションでは承認を求めずに読み込む。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#project-scope"
+          }
+        },
+        {
+          "id": "user",
+          "default": false,
+          "loads_in": "自分のすべてのプロジェクト",
+          "shared_with_team": false,
+          "stored_in": "~/.claude.json",
+          "json_path": "mcpServers",
+          "cli_flag": "--scope user",
+          "precedence_rank": 3,
+          "description_ja": "すべてのプロジェクトで使える、自分だけのサーバー。個人用のユーティリティや、多くのプロジェクトで使うサービスに向く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#user-scope"
+          }
+        }
+      ]
+    },
+    "mcp-json-fields": {
+      "description": ".mcp.json（と ~/.claude.json の mcpServers）のサーバー設定のフィールド。",
+      "complete": false,
+      "complete_basis": "公式が全件を列挙していない。.mcp.json のスキーマの一覧表は無く、本文の各節で言及されたフィールドを集めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "mcpServers",
+          "path": "mcpServers",
+          "type": "object",
+          "applies_to": null,
+          "expands_env": false,
+          "plugin_wrapper_optional": {
+            "value": true,
+            "description_ja": "plugin のルートの `.mcp.json` では `mcpServers` の包みを省き、サーバー名を最上位に置いてもよい",
+            "source": {
+              "url": "https://code.claude.com/docs/en/plugins/components.md",
+              "anchor": "#mcp-servers"
+            }
+          },
+          "reserved_server_names": {
+            "names": [
+              "workspace",
+              "claude-in-chrome",
+              "computer-use",
+              "Claude Preview",
+              "Claude Browser"
+            ],
+            "complete": false,
+            "source": {
+              "url": "https://code.claude.com/docs/en/mcp.md",
+              "anchor": "#configuration-warnings"
+            }
+          },
+          "description_ja": "最上位のキー。サーバー名をキー、サーバーの設定を値とするオブジェクト。予約名（組み込みサーバーの名前）を使ったサーバーは読み込み時に読み飛ばされる。予約名は公式が「including」で例示しており、全件ではない。plugin の `.mcp.json` ではこの包みを省ける。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#project-scope"
+          }
+        },
+        {
+          "id": "type",
+          "path": "mcpServers.<name>.type",
+          "type": "string",
+          "applies_to": [
+            "stdio",
+            "http",
+            "sse",
+            "ws"
+          ],
+          "expands_env": false,
+          "allowed_values_ref": "mcp:transports（configurable_in_mcp_json が true のものの type_values）",
+          "required_when": "url を持つエントリ（http・sse・ws）。省くと stdio として読まれ、url を持つエントリは設定エラーとして読み飛ばされる",
+          "description_ja": "transport の種類。省いたエントリは stdio として扱われる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#option-1-add-a-remote-http-server"
+          }
+        },
+        {
+          "id": "command",
+          "path": "mcpServers.<name>.command",
+          "type": "string",
+          "applies_to": [
+            "stdio"
+          ],
+          "expands_env": true,
+          "description_ja": "サーバーの実行ファイルのパス。stdio のサーバーを起動するコマンド。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#expansion-locations"
+          }
+        },
+        {
+          "id": "args",
+          "path": "mcpServers.<name>.args",
+          "type": "string[]",
+          "applies_to": [
+            "stdio"
+          ],
+          "expands_env": true,
+          "description_ja": "サーバーに渡すコマンドライン引数。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#expansion-locations"
+          }
+        },
+        {
+          "id": "env",
+          "path": "mcpServers.<name>.env",
+          "type": "object（文字列の値）",
+          "applies_to": [
+            "stdio"
+          ],
+          "expands_env": true,
+          "description_ja": "サーバーに渡す環境変数。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#expansion-locations"
+          }
+        },
+        {
+          "id": "url",
+          "path": "mcpServers.<name>.url",
+          "type": "string",
+          "applies_to": [
+            "http",
+            "sse",
+            "ws"
+          ],
+          "expands_env": true,
+          "description_ja": "リモートサーバーのエンドポイント。空の `url` のサーバーは `not configured` と表示され、接続を試みない。リモートサーバーの `url` と `headers` では、Claude Code やクラウドプロバイダーの資格情報の変数は空として読まれる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#expansion-locations"
+          }
+        },
+        {
+          "id": "headers",
+          "path": "mcpServers.<name>.headers",
+          "type": "object（文字列の値）",
+          "applies_to": [
+            "http",
+            "sse",
+            "ws"
+          ],
+          "expands_env": true,
+          "description_ja": "リモートサーバーへのリクエストに付ける静的なヘッダー（認証など）。`Authorization` を設定したサーバーがそのヘッダーを拒むと、OAuth に切り替えず接続失敗として扱う。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#expansion-locations"
+          }
+        },
+        {
+          "id": "headersHelper",
+          "path": "mcpServers.<name>.headersHelper",
+          "type": "string（シェルコマンド）",
+          "applies_to": [
+            "http",
+            "sse",
+            "ws"
+          ],
+          "expands_env": false,
+          "description_ja": "接続のたびに実行し、標準出力の JSON オブジェクト（文字列のキーと値）を接続ヘッダーに合わせるコマンド。同名の静的な `headers` を上書きする。10秒で打ち切る。プロジェクトの `.mcp.json` と local スコープのサーバーでは、そのフォルダーを信頼するまで実行されない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#use-dynamic-headers-for-custom-authentication"
+          }
+        },
+        {
+          "id": "timeout",
+          "path": "mcpServers.<name>.timeout",
+          "type": "number（ミリ秒）",
+          "applies_to": [
+            "stdio",
+            "http",
+            "sse",
+            "ws"
+          ],
+          "expands_env": false,
+          "min_effective": 1000,
+          "description_ja": "そのサーバーのツール呼び出し1回あたりの実時間の上限。そのサーバーに限り `MCP_TOOL_TIMEOUT` を上書きする。1000 未満の値は無視される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#push-messages-with-channels"
+          }
+        },
+        {
+          "id": "alwaysLoad",
+          "path": "mcpServers.<name>.alwaysLoad",
+          "type": "boolean",
+          "applies_to": [
+            "stdio",
+            "http",
+            "sse",
+            "ws"
+          ],
+          "expands_env": false,
+          "description_ja": "`true` でそのサーバーのツールを tool search の遅延読み込みから外し、常にコンテキストに載せる。起動時にそのサーバーのツールを待つ。`false` では、サーバーの作者が先読みを指定したツールも含めて全ツールを遅延させる。すべてのサーバーの種類で使える。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#exempt-a-server-from-deferral"
+          }
+        },
+        {
+          "id": "oauth",
+          "path": "mcpServers.<name>.oauth",
+          "type": "object",
+          "applies_to": [
+            "http",
+            "sse"
+          ],
+          "expands_env": false,
+          "description_ja": "OAuth の設定。OAuth のフラグは HTTP と SSE の transport にだけ効き、stdio には効かない。client secret はここに書かず、`--client-secret` で渡してキーチェーンか資格情報ファイルに保存する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#use-pre-configured-oauth-credentials"
+          }
+        },
+        {
+          "id": "oauth.clientId",
+          "path": "mcpServers.<name>.oauth.clientId",
+          "type": "string",
+          "applies_to": [
+            "http",
+            "sse"
+          ],
+          "expands_env": false,
+          "description_ja": "事前に登録した OAuth アプリの client ID。Dynamic Client Registration に対応しないサーバーで使う。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#use-pre-configured-oauth-credentials"
+          }
+        },
+        {
+          "id": "oauth.callbackPort",
+          "path": "mcpServers.<name>.oauth.callbackPort",
+          "type": "number",
+          "applies_to": [
+            "http",
+            "sse"
+          ],
+          "expands_env": false,
+          "description_ja": "OAuth のコールバックのポートを固定する。事前登録したリダイレクト URI `http://localhost:PORT/callback` に合わせる。単独で指定すると、クライアントは自動登録される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#use-pre-configured-oauth-credentials"
+          }
+        },
+        {
+          "id": "oauth.authServerMetadataUrl",
+          "path": "mcpServers.<name>.oauth.authServerMetadataUrl",
+          "type": "string（https:// の URL）",
+          "applies_to": [
+            "http",
+            "sse"
+          ],
+          "expands_env": false,
+          "description_ja": "OAuth の認可サーバーのメタデータの URL を指定し、既定の探索を飛ばす。`https://` でなければならない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#override-oauth-metadata-discovery"
+          }
+        },
+        {
+          "id": "oauth.scopes",
+          "path": "mcpServers.<name>.oauth.scopes",
+          "type": "string（空白区切り）",
+          "applies_to": [
+            "http",
+            "sse"
+          ],
+          "expands_env": false,
+          "description_ja": "認可で要求するスコープを固定する。空白区切りの1つの文字列。`authServerMetadataUrl` やサーバーが示すスコープより優先する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/mcp.md",
+            "anchor": "#restrict-oauth-scopes"
+          }
+        }
+      ]
+    }
+  }
+}

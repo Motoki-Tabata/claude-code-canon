@@ -1,0 +1,887 @@
+{
+  "id": "paths",
+  "description": "Claude Code が読むカスタマイズのファイルとディレクトリの配置を、スコープごとに並べた一覧",
+  "collections": {
+    "files": {
+      "description": "配置パス1つが1要素。commit はプロジェクトのリポジトリ（plugin スコープはプラグインのリポジトリ）にコミットする前提かを表す。path の <name>・<subdir>・<project> は置き換える部分、* は任意のファイル名。managed の path は os_paths か managed settings directory からの相対で、location がその区別を表す。plugin の path はプラグインのルートからの相対",
+      "complete": false,
+      "complete_basis": "公式が全件を列挙していない。claude-directory の File reference 表の全行をスコープごとに展開し、memory・sub-agents・skills・output-styles・plugins/components に明記された配置（CLAUDE.local.md・AGENTS.md・managed・plugin の配置など）を足した。--add-dir のディレクトリ、サブディレクトリの .claude/skills などの入れ子の配置、managed-mcp.json などの管理系のファイル、~/.claude のアプリケーションデータは収めていない",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "project:CLAUDE.md",
+          "path": "CLAUDE.md",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "claude-md",
+          "description_ja": "プロジェクトの指示。作業ディレクトリとその上位にあるものは起動時に毎セッション読み込まれる。チームで共有する",
+          "recommended_max_lines": {
+            "value": 200,
+            "note_ja": "推奨の目安。超えるとコンテキストを多く使い、従われにくくなる",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#write-effective-instructions"
+            }
+          },
+          "max_load_size": {
+            "value": "4 MiB",
+            "note_ja": "これ以下なら全文を読み込み、超えるファイルは読み込まない",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#how-it-works"
+            }
+          },
+          "import_max_depth": {
+            "value": 4,
+            "note_ja": "@path の import の再帰の最大の深さ（hops）",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#import-additional-files"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "project:.claude/CLAUDE.md",
+          "path": ".claude/CLAUDE.md",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "claude-md",
+          "description_ja": "プロジェクトの指示の別の置き場所。./CLAUDE.md と同じ扱い",
+          "recommended_max_lines": {
+            "value": 200,
+            "note_ja": "推奨の目安。超えるとコンテキストを多く使い、従われにくくなる",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#write-effective-instructions"
+            }
+          },
+          "max_load_size": {
+            "value": "4 MiB",
+            "note_ja": "これ以下なら全文を読み込み、超えるファイルは読み込まない",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#how-it-works"
+            }
+          },
+          "import_max_depth": {
+            "value": 4,
+            "note_ja": "@path の import の再帰の最大の深さ（hops）",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#import-additional-files"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/memory.md",
+            "anchor": "#choose-where-to-put-claude-md-files"
+          }
+        },
+        {
+          "id": "project:<subdir>/CLAUDE.md",
+          "path": "<subdir>/CLAUDE.md",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "claude-md",
+          "description_ja": "作業ディレクトリ配下のサブディレクトリの CLAUDE.md。起動時には読まれず、Claude がそのサブディレクトリのファイルを読み書き・編集したときに読み込まれる",
+          "recommended_max_lines": {
+            "value": 200,
+            "note_ja": "推奨の目安。超えるとコンテキストを多く使い、従われにくくなる",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#write-effective-instructions"
+            }
+          },
+          "max_load_size": {
+            "value": "4 MiB",
+            "note_ja": "これ以下なら全文を読み込み、超えるファイルは読み込まない",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#how-it-works"
+            }
+          },
+          "import_max_depth": {
+            "value": 4,
+            "note_ja": "@path の import の再帰の最大の深さ（hops）",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#import-additional-files"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/memory.md",
+            "anchor": "#how-claude-md-files-load"
+          }
+        },
+        {
+          "id": "project:AGENTS.md",
+          "path": "AGENTS.md",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "claude-md",
+          "description_ja": "他のコーディングエージェント向けのプロジェクト指示。既定では作業ディレクトリとその上位に CLAUDE.md・.claude/CLAUDE.md・CLAUDE.local.md が無いときに CLAUDE.md の代わりに読まれる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/memory.md",
+            "anchor": "#when-claude-code-reads-agents-md"
+          }
+        },
+        {
+          "id": "project:.claude/AGENTS.md",
+          "path": ".claude/AGENTS.md",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "claude-md",
+          "description_ja": "AGENTS.md の別の置き場所。AGENTS.md と同じ条件で起動時に読まれる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/memory.md",
+            "anchor": "#when-claude-code-reads-agents-md"
+          }
+        },
+        {
+          "id": "project:<subdir>/AGENTS.md",
+          "path": "<subdir>/AGENTS.md",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "claude-md",
+          "description_ja": "サブディレクトリの AGENTS.md。AGENTS.md を読む条件のもとで、Claude がそのサブディレクトリのファイルを Read したとき、そこに CLAUDE.md 類が無ければ読まれる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/memory.md",
+            "anchor": "#when-claude-code-reads-agents-md"
+          }
+        },
+        {
+          "id": "project:.claude/rules/*.md",
+          "path": ".claude/rules/*.md",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "rules",
+          "description_ja": "トピックごとの指示。paths frontmatter で対象ファイルに絞れる。サブディレクトリも再帰的に探索される",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "project:.claude/settings.json",
+          "path": ".claude/settings.json",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "settings",
+          "description_ja": "チームで共有する設定（permissions・hooks・env・モデルの既定など）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "project:.mcp.json",
+          "path": ".mcp.json",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "mcp",
+          "description_ja": "チームで共有する MCP サーバー。プロジェクトのルートに置く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "project:.worktreeinclude",
+          "path": ".worktreeinclude",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "selection",
+          "description_ja": "新しい worktree にコピーする gitignore 済みのファイルのパターン。プロジェクトのルートに置く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "project:.claude/skills/<name>/SKILL.md",
+          "path": ".claude/skills/<name>/SKILL.md",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "skills",
+          "description_ja": "/name で呼ぶか自動で呼ばれる再利用可能なプロンプト",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "project:.claude/commands/*.md",
+          "path": ".claude/commands/*.md",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "skills",
+          "description_ja": "単一ファイルのプロンプト。skills と同じ仕組み",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "project:.claude/output-styles/*.md",
+          "path": ".claude/output-styles/*.md",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "output-styles",
+          "description_ja": "Claude の振る舞いを調整する独自の指示セット",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "project:.claude/agents/*.md",
+          "path": ".claude/agents/*.md",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "subagents",
+          "description_ja": "独自のプロンプトとツールを持つ subagent の定義",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "project:.claude/workflows/*.js",
+          "path": ".claude/workflows/*.js",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "selection",
+          "description_ja": "Claude が書き /workflows から保存する dynamic workflow のスクリプト。各ファイルが /<name> コマンドになる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "project:.claude/agent-memory/<name>/",
+          "path": ".claude/agent-memory/<name>/",
+          "kind": "dir",
+          "scope": "project",
+          "commit": true,
+          "feature": "subagents",
+          "description_ja": "memory: project の subagent の永続メモリ。チームで共有する前提",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "local:CLAUDE.local.md",
+          "path": "CLAUDE.local.md",
+          "kind": "file",
+          "scope": "local",
+          "commit": false,
+          "feature": "claude-md",
+          "description_ja": "このプロジェクトでの自分だけの指示。同じディレクトリの CLAUDE.md の後に連結される。手で作り .gitignore に足す",
+          "recommended_max_lines": {
+            "value": 200,
+            "note_ja": "推奨の目安。超えるとコンテキストを多く使い、従われにくくなる",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#write-effective-instructions"
+            }
+          },
+          "max_load_size": {
+            "value": "4 MiB",
+            "note_ja": "これ以下なら全文を読み込み、超えるファイルは読み込まない",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#how-it-works"
+            }
+          },
+          "import_max_depth": {
+            "value": 4,
+            "note_ja": "@path の import の再帰の最大の深さ（hops）",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#import-additional-files"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/memory.md",
+            "anchor": "#choose-where-to-put-claude-md-files"
+          }
+        },
+        {
+          "id": "local:<subdir>/CLAUDE.local.md",
+          "path": "<subdir>/CLAUDE.local.md",
+          "kind": "file",
+          "scope": "local",
+          "commit": false,
+          "feature": "claude-md",
+          "description_ja": "サブディレクトリの CLAUDE.local.md。同じディレクトリの CLAUDE.md と同じく、そのサブディレクトリで作業したときに読み込まれる",
+          "recommended_max_lines": {
+            "value": 200,
+            "note_ja": "推奨の目安。超えるとコンテキストを多く使い、従われにくくなる",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#write-effective-instructions"
+            }
+          },
+          "max_load_size": {
+            "value": "4 MiB",
+            "note_ja": "これ以下なら全文を読み込み、超えるファイルは読み込まない",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#how-it-works"
+            }
+          },
+          "import_max_depth": {
+            "value": 4,
+            "note_ja": "@path の import の再帰の最大の深さ（hops）",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#import-additional-files"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/memory.md",
+            "anchor": "#how-claude-md-files-load"
+          }
+        },
+        {
+          "id": "local:.claude/settings.local.json",
+          "path": ".claude/settings.local.json",
+          "kind": "file",
+          "scope": "local",
+          "commit": false,
+          "feature": "settings",
+          "description_ja": "このプロジェクトでの個人の上書き設定。Claude Code が保存するときに gitignore される",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "local:.claude/agent-memory-local/<name>/",
+          "path": ".claude/agent-memory-local/<name>/",
+          "kind": "dir",
+          "scope": "local",
+          "commit": false,
+          "feature": "subagents",
+          "description_ja": "memory: local の subagent の永続メモリ。バージョン管理に入れない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#enable-persistent-memory"
+          }
+        },
+        {
+          "id": "user:~/.claude/CLAUDE.md",
+          "path": "~/.claude/CLAUDE.md",
+          "kind": "file",
+          "scope": "user",
+          "commit": false,
+          "feature": "claude-md",
+          "description_ja": "全プロジェクトに効く個人の指示。毎セッション読み込まれる",
+          "recommended_max_lines": {
+            "value": 200,
+            "note_ja": "推奨の目安。超えるとコンテキストを多く使い、従われにくくなる",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#write-effective-instructions"
+            }
+          },
+          "max_load_size": {
+            "value": "4 MiB",
+            "note_ja": "これ以下なら全文を読み込み、超えるファイルは読み込まない",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#how-it-works"
+            }
+          },
+          "import_max_depth": {
+            "value": 4,
+            "note_ja": "@path の import の再帰の最大の深さ（hops）",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#import-additional-files"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "user:~/.claude/rules/*.md",
+          "path": "~/.claude/rules/*.md",
+          "kind": "file",
+          "scope": "user",
+          "commit": false,
+          "feature": "rules",
+          "description_ja": "全プロジェクトに効く個人の rules。プロジェクトの rules より先に読み込まれる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "user:~/.claude/settings.json",
+          "path": "~/.claude/settings.json",
+          "kind": "file",
+          "scope": "user",
+          "commit": false,
+          "feature": "settings",
+          "description_ja": "全プロジェクトに効く個人の既定の設定",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "user:~/.claude/skills/<name>/SKILL.md",
+          "path": "~/.claude/skills/<name>/SKILL.md",
+          "kind": "file",
+          "scope": "user",
+          "commit": false,
+          "feature": "skills",
+          "description_ja": "全プロジェクトで使える個人の skill",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "user:~/.claude/commands/*.md",
+          "path": "~/.claude/commands/*.md",
+          "kind": "file",
+          "scope": "user",
+          "commit": false,
+          "feature": "skills",
+          "description_ja": "全プロジェクトで使える個人の単一ファイルのコマンド",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "user:~/.claude/output-styles/*.md",
+          "path": "~/.claude/output-styles/*.md",
+          "kind": "file",
+          "scope": "user",
+          "commit": false,
+          "feature": "output-styles",
+          "description_ja": "全プロジェクトで使える個人の output style",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "user:~/.claude/agents/*.md",
+          "path": "~/.claude/agents/*.md",
+          "kind": "file",
+          "scope": "user",
+          "commit": false,
+          "feature": "subagents",
+          "description_ja": "全プロジェクトで使える個人の subagent",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "user:~/.claude/workflows/*.js",
+          "path": "~/.claude/workflows/*.js",
+          "kind": "file",
+          "scope": "user",
+          "commit": false,
+          "feature": "selection",
+          "description_ja": "全プロジェクトで使える個人の dynamic workflow",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "user:~/.claude/agent-memory/<name>/",
+          "path": "~/.claude/agent-memory/<name>/",
+          "kind": "dir",
+          "scope": "user",
+          "commit": false,
+          "feature": "subagents",
+          "description_ja": "memory: user の subagent の永続メモリ。全プロジェクトにまたがる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "user:~/.claude.json",
+          "path": "~/.claude.json",
+          "kind": "file",
+          "scope": "user",
+          "commit": false,
+          "feature": "settings",
+          "description_ja": "アプリの状態・OAuth・UI の切り替え・個人の MCP サーバー（local・user スコープ）。Claude Code が書く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "user:~/.claude/projects/<project>/memory/",
+          "path": "~/.claude/projects/<project>/memory/",
+          "kind": "dir",
+          "scope": "user",
+          "commit": false,
+          "feature": "claude-md",
+          "description_ja": "auto memory。Claude が自分で書くセッションをまたぐメモ。<project> は git リポジトリから決まり、worktree とサブディレクトリで共有される",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "user:~/.claude/projects/<project>/memory/MEMORY.md",
+          "path": "~/.claude/projects/<project>/memory/MEMORY.md",
+          "kind": "file",
+          "scope": "user",
+          "commit": false,
+          "feature": "claude-md",
+          "description_ja": "auto memory の索引。先頭 200 行か 25KB の早い方までがセッション開始時に読み込まれる。トピックファイルは必要時に読まれる",
+          "startup_load_limit": {
+            "lines": 200,
+            "size": "25KB",
+            "note_ja": "先に達した方まで。超えた部分はセッション開始時に読み込まれない"
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/memory.md",
+            "anchor": "#storage-location"
+          }
+        },
+        {
+          "id": "user:~/.claude/keybindings.json",
+          "path": "~/.claude/keybindings.json",
+          "kind": "file",
+          "scope": "user",
+          "commit": false,
+          "feature": "out-of-scope",
+          "description_ja": "独自のキーボードショートカット",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "user:~/.claude/themes/*.json",
+          "path": "~/.claude/themes/*.json",
+          "kind": "file",
+          "scope": "user",
+          "commit": false,
+          "feature": "out-of-scope",
+          "description_ja": "独自のカラーテーマ",
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "managed:CLAUDE.md",
+          "path": "CLAUDE.md",
+          "kind": "file",
+          "scope": "managed",
+          "commit": false,
+          "feature": "claude-md",
+          "description_ja": "組織が配布する CLAUDE.md。マシン上の全セッションに効き、個人の設定で除外できない。user・project の CLAUDE.md より先に読み込まれる",
+          "location": "os-specific",
+          "os_paths": {
+            "macos": "/Library/Application Support/ClaudeCode/CLAUDE.md",
+            "linux_wsl": "/etc/claude-code/CLAUDE.md",
+            "windows": "C:\\Program Files\\ClaudeCode\\CLAUDE.md"
+          },
+          "recommended_max_lines": {
+            "value": 200,
+            "note_ja": "推奨の目安。超えるとコンテキストを多く使い、従われにくくなる",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#write-effective-instructions"
+            }
+          },
+          "max_load_size": {
+            "value": "4 MiB",
+            "note_ja": "これ以下なら全文を読み込み、超えるファイルは読み込まない",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#how-it-works"
+            }
+          },
+          "import_max_depth": {
+            "value": 4,
+            "note_ja": "@path の import の再帰の最大の深さ（hops）",
+            "source": {
+              "url": "https://code.claude.com/docs/en/memory.md",
+              "anchor": "#import-additional-files"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/memory.md",
+            "anchor": "#choose-where-to-put-claude-md-files"
+          }
+        },
+        {
+          "id": "managed:managed-settings.json",
+          "path": "managed-settings.json",
+          "kind": "file",
+          "scope": "managed",
+          "commit": false,
+          "feature": "settings",
+          "description_ja": "組織が強制する設定。自分の設定ファイルや --settings では上書きできない（一部の例外を除く）。置き場所はシステムレベルで OS によって異なる",
+          "location": "os-specific",
+          "os_paths": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/claude-directory.md",
+            "anchor": "#what’s-not-shown"
+          }
+        },
+        {
+          "id": "managed:.claude/skills/<name>/SKILL.md",
+          "path": ".claude/skills/<name>/SKILL.md",
+          "kind": "file",
+          "scope": "managed",
+          "commit": false,
+          "feature": "skills",
+          "description_ja": "組織が配布する skill（Enterprise）。managed settings directory の中に置く",
+          "location": "managed-settings-directory",
+          "source": {
+            "url": "https://code.claude.com/docs/en/skills.md",
+            "anchor": "#where-skills-live"
+          }
+        },
+        {
+          "id": "managed:.claude/agents/*.md",
+          "path": ".claude/agents/*.md",
+          "kind": "file",
+          "scope": "managed",
+          "commit": false,
+          "feature": "subagents",
+          "description_ja": "組織が配布する subagent。managed settings directory の中に置き、同名の project・user の subagent より優先される",
+          "location": "managed-settings-directory",
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#choose-the-subagent-scope"
+          }
+        },
+        {
+          "id": "managed:.claude/output-styles/*.md",
+          "path": ".claude/output-styles/*.md",
+          "kind": "file",
+          "scope": "managed",
+          "commit": false,
+          "feature": "output-styles",
+          "description_ja": "組織が配布する output style。managed settings directory の中に置く",
+          "location": "managed-settings-directory",
+          "source": {
+            "url": "https://code.claude.com/docs/en/output-styles.md",
+            "anchor": "#create-a-custom-output-style"
+          }
+        },
+        {
+          "id": "plugin:.claude-plugin/plugin.json",
+          "path": ".claude-plugin/plugin.json",
+          "kind": "file",
+          "scope": "plugin",
+          "commit": true,
+          "feature": "plugins",
+          "description_ja": "プラグインの manifest。無くても読み込まれる。必須は name だけ",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#explore-the-plugin-directory"
+          }
+        },
+        {
+          "id": "plugin:skills/<name>/SKILL.md",
+          "path": "skills/<name>/SKILL.md",
+          "kind": "file",
+          "scope": "plugin",
+          "commit": true,
+          "feature": "skills",
+          "description_ja": "プラグインの skill。/<plugin>:<name> で呼ばれる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#skills"
+          }
+        },
+        {
+          "id": "plugin:SKILL.md",
+          "path": "SKILL.md",
+          "kind": "file",
+          "scope": "plugin",
+          "commit": true,
+          "feature": "skills",
+          "description_ja": "skills/ ディレクトリも skills の manifest キーも無いとき、プラグインのルートの SKILL.md が1つの skill として読み込まれる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#skills"
+          }
+        },
+        {
+          "id": "plugin:commands/*.md",
+          "path": "commands/*.md",
+          "kind": "file",
+          "scope": "plugin",
+          "commit": true,
+          "feature": "skills",
+          "description_ja": "プラグインのコマンド。/<plugin>:<file> になる。新しく作るなら skills を使う",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#commands"
+          }
+        },
+        {
+          "id": "plugin:agents/*.md",
+          "path": "agents/*.md",
+          "kind": "file",
+          "scope": "plugin",
+          "commit": true,
+          "feature": "subagents",
+          "description_ja": "プラグインの subagent。<plugin>:<name> で識別され、使える frontmatter は一部に限られる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#agents"
+          }
+        },
+        {
+          "id": "plugin:hooks/hooks.json",
+          "path": "hooks/hooks.json",
+          "kind": "file",
+          "scope": "plugin",
+          "commit": true,
+          "feature": "plugins",
+          "description_ja": "プラグインの hooks。settings.json の hooks と同じ形をトップレベルの hooks キーの下に書く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#hooks"
+          }
+        },
+        {
+          "id": "plugin:.mcp.json",
+          "path": ".mcp.json",
+          "kind": "file",
+          "scope": "plugin",
+          "commit": true,
+          "feature": "mcp",
+          "description_ja": "プラグインの MCP サーバー。プロジェクトの .mcp.json と同じ形",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#mcp-servers"
+          }
+        },
+        {
+          "id": "plugin:.lsp.json",
+          "path": ".lsp.json",
+          "kind": "file",
+          "scope": "plugin",
+          "commit": true,
+          "feature": "plugins",
+          "description_ja": "プラグインの LSP サーバー",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#lsp-servers"
+          }
+        },
+        {
+          "id": "plugin:monitors/monitors.json",
+          "path": "monitors/monitors.json",
+          "kind": "file",
+          "scope": "plugin",
+          "commit": true,
+          "feature": "plugins",
+          "description_ja": "セッション中バックグラウンドで動くシェルコマンド（monitor）の定義",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#monitors"
+          }
+        },
+        {
+          "id": "plugin:bin/",
+          "path": "bin/",
+          "kind": "dir",
+          "scope": "plugin",
+          "commit": true,
+          "feature": "plugins",
+          "description_ja": "プラグインが有効な間 Bash ツールのシェルの PATH に入る実行ファイル",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#executables"
+          }
+        },
+        {
+          "id": "plugin:settings.json",
+          "path": "settings.json",
+          "kind": "file",
+          "scope": "plugin",
+          "commit": true,
+          "feature": "settings",
+          "description_ja": "プラグインが有効な間の既定の設定。効くのは agent と subagentStatusLine だけ",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#default-settings"
+          }
+        },
+        {
+          "id": "plugin:output-styles/*.md",
+          "path": "output-styles/*.md",
+          "kind": "file",
+          "scope": "plugin",
+          "commit": true,
+          "feature": "output-styles",
+          "description_ja": "プラグインの output style。<plugin>:<name> として出る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#themes-and-output-styles"
+          }
+        },
+        {
+          "id": "plugin:themes/*.json",
+          "path": "themes/*.json",
+          "kind": "file",
+          "scope": "plugin",
+          "commit": true,
+          "feature": "out-of-scope",
+          "description_ja": "プラグインのカラーテーマ",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#themes-and-output-styles"
+          }
+        },
+        {
+          "id": "plugin:workflows/*.js",
+          "path": "workflows/*.js",
+          "kind": "file",
+          "scope": "plugin",
+          "commit": true,
+          "feature": "selection",
+          "description_ja": "プラグインの dynamic workflow。/<plugin>:<name> で動く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/components.md",
+            "anchor": "#explore-the-plugin-directory"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,1123 @@
+{
+  "id": "settings",
+  "description": "settings ファイル（~/.claude/settings.json・.claude/settings.json・.claude/settings.local.json・managed settings）のキーのうち、canon の生成と検証で使うものの一覧。",
+  "collections": {
+    "keys": {
+      "description": "settings のキー。id はドット区切りの公式キー名。scopes はそのキーを置けるファイル（user・project・local・managed）で、公式の Settings index の Scope 列を写したもの。precedence_ja は settings のガイドのページが述べる、そのキーの結合・優先の例外。",
+      "complete": false,
+      "complete_basis": "生成で使うものだけを選んだ。選んだ基準は、(1) canon が生成する設定（permissions・hooks・MCP の承認・プラグイン・status line・output style・モデル・env・skills・メモリ・git の帰属・worktree）を settings ファイルに書くときに使うキー（status line と並べて使う footerLinksRegexes、プラグインの mod の順序を決める prependPlugins・appendPlugins を含む）、(2) それらの生成物が効くかどうかを左右する managed のキー（allowManagedHooksOnly・allowManagedPermissionRulesOnly・allowManagedMcpServersOnly・strictKnownMarketplaces・strictPluginOnlyCustomization・disableSideloadFlags・claudeMd）。sandbox.* は permissions:sandbox-keys が持つので含めない。~/.claude.json にだけ置く Global config のキー、footerLinksRegexes 以外の表示・端末・通知・認証・更新・テレメトリのキーは含めない。",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "permissions",
+          "type": "object（allow・ask・deny・additionalDirectories・blockReadsOutsideWorkingDirectories・defaultMode・disableBypassPermissionsMode・disableAutoMode）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Permission settings",
+          "default": "unset",
+          "description_ja": "ツールを確認なしで使わせるか・常に確認するか・拒否するかと、セッション開始時の permission mode を決める。permissions.* のキーはすべてこのオブジェクトの下に置く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#permissions"
+          }
+        },
+        {
+          "id": "permissions.allow",
+          "type": "array（permission rule の文字列）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Permission settings",
+          "default": "unset",
+          "description_ja": "確認なしで承認するツールの使い方を列挙する。MCP のルールでは `*` は `mcp__<server>__` の後ろのツール名にだけ使え、サーバー名には使えない。",
+          "notes_ja": ".claude/settings.json の allow は、そのフォルダのワークスペース信頼を受け入れた後にだけ適用される。",
+          "session_override_ja": "`--allowedTools` が1セッション分の allow を足す。どの settings ファイルの deny も優先する。",
+          "precedence_ja": {
+            "value": "同じリストのキーを複数のファイルに置くと、1つを選ばずにリストを結合する。",
+            "source": {
+              "url": "https://code.claude.com/docs/en/settings.md",
+              "anchor": "#lists-merge-instead-of-overriding"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#permissions-allow"
+          }
+        },
+        {
+          "id": "permissions.ask",
+          "type": "array（permission rule の文字列）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Permission settings",
+          "default": "unset",
+          "description_ja": "本来なら承認される permission mode（acceptEdits・bypassPermissions など）でも確認を求めるツールの使い方を列挙する。dontAsk モードでは一致した呼び出しを確認せず拒否する。",
+          "precedence_ja": {
+            "value": "deny と ask のルールはワークスペース信頼を待たずに適用される。",
+            "source": {
+              "url": "https://code.claude.com/docs/en/settings.md",
+              "anchor": "#a-committed-key-doesn’t-reach-teammates"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#permissions-ask"
+          }
+        },
+        {
+          "id": "permissions.deny",
+          "type": "array（permission rule の文字列）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Permission settings",
+          "default": "unset",
+          "description_ja": "ブロックするツールの使い方を列挙する。秘密情報のファイルに使うと、ファイル探索・検索結果から除外され、読み取りと Edit・Write がブロックされる。ファイル名を指さないコマンド（`grep -r` など）や任意のサブプロセスには効かないので、OS レベルの強制は sandbox を使う。",
+          "notes_ja": "deny ルールは bypassPermissions を含むすべてのモードでブロックする。Bash の deny は Claude が書いたコマンドの文字列に一致させるだけで、`/usr/bin/curl` や `sh -c` 経由は止めない。",
+          "session_override_ja": "`--disallowedTools` が1セッション分の deny を足す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#permissions-deny"
+          }
+        },
+        {
+          "id": "permissions.additionalDirectories",
+          "type": "array（ディレクトリのパス）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Permission settings",
+          "default": "unset",
+          "description_ja": "起動したディレクトリの外のディレクトリに、追加の作業ディレクトリとしてファイルアクセスを与える。そこにある .claude/ の設定の大半は発見されない。",
+          "notes_ja": ".claude/settings.json の値は、ワークスペース信頼を受け入れた後にだけ適用される。",
+          "session_override_ja": "`--add-dir` と `/add-dir` が1セッション分を足す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#permissions-additionaldirectories"
+          }
+        },
+        {
+          "id": "permissions.blockReadsOutsideWorkingDirectories",
+          "type": "boolean",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Permission settings",
+          "default": "unset",
+          "description_ja": "Claude のファイルツール（Read・Grep・Glob・LSP）が、作業ディレクトリの外の読み取りを全 permission mode で拒否するようにする。",
+          "notes_ja": "どのファイルの true も適用されるので、リポジトリはブロックを有効にできるが、利用者のブロックを外せない。",
+          "precedence_ja": {
+            "value": "managed が false でも、どのスコープの true も尊重される。",
+            "source": {
+              "url": "https://code.claude.com/docs/en/settings.md",
+              "anchor": "#exceptions-to-managed-settings-precedence"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#permissions-blockreadsoutsideworkingdirectories"
+          }
+        },
+        {
+          "id": "permissions.defaultMode",
+          "type": "string（default・acceptEdits・plan・auto・dontAsk・bypassPermissions・manual のいずれか。manual は default の別名）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Permission settings",
+          "default": "unset",
+          "description_ja": "新しいセッションが始まる permission mode を決める。",
+          "notes_ja": "auto と bypassPermissions は project と local の settings からは効かない。user か managed に置く。",
+          "session_override_ja": "`--permission-mode`（bypassPermissions では同等の `--dangerously-skip-permissions`）が1セッション分このキーに優先する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#permissions-defaultmode"
+          }
+        },
+        {
+          "id": "permissions.disableBypassPermissionsMode",
+          "type": "string（\"disable\" のみ）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Permission settings",
+          "default": "unset",
+          "description_ja": "bypassPermissions モードに入れなくする。`--dangerously-skip-permissions` を拒否し、サブエージェント定義の `permissionMode: bypassPermissions` を無視する。",
+          "notes_ja": "通常は managed settings に置いて組織のポリシーを強制する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#permissions-disablebypasspermissionsmode"
+          }
+        },
+        {
+          "id": "disableAutoMode",
+          "type": "string（\"disable\" のみ）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Permission settings",
+          "default": "unset",
+          "description_ja": "auto モードを Shift+Tab の切り替えから外し、auto で始まるはずのセッションを default で始める。",
+          "notes_ja": "`permissions.disableAutoMode` としても受け付ける。managed に置くと利用者は上書きできない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#disableautomode"
+          }
+        },
+        {
+          "id": "allowManagedPermissionRulesOnly",
+          "type": "boolean",
+          "scopes": [
+            "managed"
+          ],
+          "scope_label": "Managed",
+          "topic": "Permission settings",
+          "default": "unset",
+          "description_ja": "permission rule の出どころを managed settings だけにする。user・project・local・`--settings` の allow・ask・deny と `--allowedTools` を無視し、新しいルールの保存も止める。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#allowmanagedpermissionrulesonly"
+          }
+        },
+        {
+          "id": "autoMode",
+          "type": "object（environment・allow・soft_deny・hard_deny の文章ルールの配列と、classifyAllShell の真偽）",
+          "scopes": [
+            "user",
+            "managed"
+          ],
+          "scope_label": "User or managed",
+          "topic": "Permission settings",
+          "default": "unset",
+          "description_ja": "auto モードの分類器が許可・ブロックする基準に独自のルールを足す。配列に文字列 \"$defaults\" を入れると組み込みのルールをその位置に残す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#automode"
+          }
+        },
+        {
+          "id": "hooks",
+          "type": "object（キーは hook のイベント名。値は { \"matcher\", \"hooks\" } のグループの配列で、hooks の各要素の type は command・prompt・agent・http・mcp_tool のいずれか）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Hooks and automation",
+          "default": "unset",
+          "description_ja": "ライフサイクルの各時点で、コマンド・プロンプト・エージェント・HTTP リクエスト・MCP ツールを hook として実行する。イベントと入力・終了コードは hooks のリファレンスが正。",
+          "notes_ja": "hooks はファイル間で置き換えではなく結合される。managed の hooks は他のファイルから取り除けない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#hooks"
+          }
+        },
+        {
+          "id": "disableAllHooks",
+          "type": "boolean",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Hooks and automation",
+          "default": "unset",
+          "description_ja": "hooks・独自の status line・独自の file suggestion コマンドをまとめて止める。設定を消さずに一時的に止めるのに使う。",
+          "notes_ja": "managed の hooks を止められるのは managed settings だけ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#disableallhooks"
+          }
+        },
+        {
+          "id": "allowManagedHooksOnly",
+          "type": "boolean",
+          "scopes": [
+            "managed"
+          ],
+          "scope_label": "Managed",
+          "topic": "Hooks and automation",
+          "default": "unset",
+          "description_ja": "hook の実行を、組織が配る hooks（と managed が強制有効化したプラグインの hooks・Agent SDK の hooks）だけに限る。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#allowmanagedhooksonly"
+          }
+        },
+        {
+          "id": "allowedHttpHookUrls",
+          "type": "array（URL のパターン。`*` がワイルドカード）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Hooks and automation",
+          "default": "unset（どの URL も可）",
+          "description_ja": "HTTP hook が送れる URL を制限する。定義すると一致しない HTTP hook は実行せずブロックし、空配列はすべての HTTP hook をブロックする。",
+          "notes_ja": "配列は settings ファイル間で結合される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#allowedhttphookurls"
+          }
+        },
+        {
+          "id": "httpHookAllowedEnvVars",
+          "type": "array（環境変数名）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Hooks and automation",
+          "default": "unset（各 hook の allowedEnvVars がそのまま効く）",
+          "description_ja": "HTTP hook がヘッダーに埋め込める環境変数の外枠を決める。hook 自身の allowedEnvVars とこのキーの両方に名前がある変数だけを使える。",
+          "notes_ja": "配列は settings ファイル間で結合される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#httphookallowedenvvars"
+          }
+        },
+        {
+          "id": "enableAllProjectMcpServers",
+          "type": "boolean",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "MCP",
+          "default": "unset（サーバーごとに承認を求める）",
+          "description_ja": "プロジェクトの .mcp.json に定義された MCP サーバーを、確認なしですべて承認する。承認ダイアログで全承認を選ぶと Claude Code が .claude/settings.local.json に書く。",
+          "notes_ja": "信頼していないフォルダでは、共有の .claude/settings.json のこのキーは無視され、user・managed・`--settings` の値だけが効く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#enableallprojectmcpservers"
+          }
+        },
+        {
+          "id": "enabledMcpjsonServers",
+          "type": "array（.mcp.json に書かれたサーバー名）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "MCP",
+          "default": "unset",
+          "description_ja": "プロジェクトの .mcp.json のうち、確認なしで接続するサーバーを個別に承認する。承認ダイアログで承認すると Claude Code が .claude/settings.local.json に書く。",
+          "notes_ja": "信頼していないフォルダでは、共有の .claude/settings.json のこのキーは無視される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#enabledmcpjsonservers"
+          }
+        },
+        {
+          "id": "disabledMcpjsonServers",
+          "type": "array（.mcp.json に書かれたサーバー名）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "MCP",
+          "default": "unset",
+          "description_ja": "プロジェクトの .mcp.json のうち、接続も承認の確認もしないサーバーを拒否する。",
+          "notes_ja": "どの settings ファイルの拒否も適用され、リポジトリにコミットした .claude/settings.json も含む。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#disabledmcpjsonservers"
+          }
+        },
+        {
+          "id": "allowedMcpServers",
+          "type": "array（serverName・serverCommand・serverUrl のいずれか1つだけを持つオブジェクト）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "MCP",
+          "default": "unset（すべて可。空配列は利用者が足すサーバーをすべてブロック）",
+          "description_ja": "利用者が追加できる MCP サーバーの許可リスト。一致しないサーバーは、プラグインのサーバー・`--mcp-config`・claude.ai のものを含め、どこで定義されていてもブロックする。",
+          "notes_ja": "全ファイルの値が1つの許可リストに結合される（allowManagedMcpServersOnly が無いとき）。組織で強制するなら managed に置く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#allowedmcpservers"
+          }
+        },
+        {
+          "id": "deniedMcpServers",
+          "type": "array（serverName・serverCommand・serverUrl のいずれか1つだけを持つオブジェクト）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "MCP",
+          "default": "unset",
+          "description_ja": "特定の MCP サーバーをブロックする。プラグイン・`--mcp-config`・managed-mcp.json・claude.ai のコネクタを含め、どこで定義されていても読み込まない。",
+          "notes_ja": "全ファイルの値が1つの拒否リストに結合され、allowManagedMcpServersOnly の影響を受けない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#deniedmcpservers"
+          }
+        },
+        {
+          "id": "allowManagedMcpServersOnly",
+          "type": "boolean",
+          "scopes": [
+            "managed"
+          ],
+          "scope_label": "Managed",
+          "topic": "MCP",
+          "default": "false",
+          "description_ja": "allowedMcpServers を managed settings からだけ読み、user・project・local の許可リストを無視する。deniedMcpServers は引き続き全スコープから結合される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#allowmanagedmcpserversonly"
+          }
+        },
+        {
+          "id": "enabledPlugins",
+          "type": "object（`plugin-name@marketplace-name` → boolean）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Plugins and skills",
+          "default": "unset（各プラグインの defaultEnabled に従う）",
+          "description_ja": "プラグインを個別に有効・無効にする。`/plugin` や `claude plugin enable` で切り替えると Claude Code が書く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#enabledplugins"
+          }
+        },
+        {
+          "id": "extraKnownMarketplaces",
+          "type": "object（マーケットプレイス名 → source オブジェクトと任意の autoUpdate を持つオブジェクト）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Plugins and skills",
+          "default": "unset",
+          "description_ja": "プラグインのマーケットプレイスを名前で登録し、リポジトリを開いた人（または managed が届く全員）が自分で追加せずに使えるようにする。",
+          "notes_ja": "リポジトリの .claude/settings.json・.claude/settings.local.json の値は、ワークスペース信頼を受け入れた後にだけ適用され、信頼前（`-p` を含む）は通知なしで無視される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#extraknownmarketplaces"
+          }
+        },
+        {
+          "id": "strictKnownMarketplaces",
+          "type": "array（マーケットプレイスの source オブジェクト）",
+          "scopes": [
+            "managed"
+          ],
+          "scope_label": "Managed",
+          "topic": "Plugins and skills",
+          "default": "unset（任意のマーケットプレイスを追加可。空配列は公式を含め全面禁止）",
+          "description_ja": "組織の利用者が追加・インストールできるマーケットプレイスの source を許可リストで制限する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#strictknownmarketplaces"
+          }
+        },
+        {
+          "id": "pluginConfigs",
+          "type": "object（プラグイン ID → options と任意の mcpServers を持つオブジェクト）",
+          "scopes": [
+            "user",
+            "managed"
+          ],
+          "scope_label": "User or managed",
+          "topic": "Plugins and skills",
+          "default": "unset",
+          "description_ja": "プラグインの userConfig ダイアログで入力した機密でない値を保存する。ダイアログに入力すると Claude Code が user settings に書くので、手で編集する必要はない。機密の値は OS のキーチェーン（無ければ ~/.claude/.credentials.json）に保存される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#pluginconfigs"
+          }
+        },
+        {
+          "id": "strictPluginOnlyCustomization",
+          "type": "true、または \"skills\"・\"agents\"・\"hooks\"・\"mcp\" を並べた配列",
+          "scopes": [
+            "managed"
+          ],
+          "scope_label": "Managed",
+          "topic": "Plugins and skills",
+          "default": "unset（何もロックしない）",
+          "description_ja": "user と project の出どころの skills・agents・hooks・MCP サーバーを止め、プラグインか managed settings からだけ来るようにする。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#strictpluginonlycustomization"
+          }
+        },
+        {
+          "id": "skillOverrides",
+          "type": "object（skill 名 → \"on\"・\"name-only\"・\"user-invocable-only\"・\"off\" のいずれか）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Plugins and skills",
+          "default": "unset（すべて \"on\"）",
+          "description_ja": "SKILL.md を編集せずに、skill を Claude から隠す・説明を省く・/ の補完から隠す。",
+          "notes_ja": "`/skills` メニューは .claude/settings.local.json に書く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#skilloverrides"
+          }
+        },
+        {
+          "id": "disableSkillShellExecution",
+          "type": "boolean",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Plugins and skills",
+          "default": "unset（インラインのシェルを実行する）",
+          "description_ja": "user・project・plugin・追加ディレクトリの skills と custom commands にある `` !`...` `` と ` ```! ` ブロックのシェル実行を止め、`[shell command execution disabled by policy]` に置き換える。",
+          "notes_ja": "managed の true は他の場所の false で上書きできない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#disableskillshellexecution"
+          }
+        },
+        {
+          "id": "disableBundledSkills",
+          "type": "boolean",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Plugins and skills",
+          "default": "unset（同梱の skills を読み込む）",
+          "description_ja": "Claude Code に同梱の skills と workflows を外す。/init などの組み込みコマンドは入力できるがモデルからは隠れる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#disablebundledskills"
+          }
+        },
+        {
+          "id": "skillListingBudgetFraction",
+          "type": "number（0 より大きく 1 以下の比率）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Memory and context",
+          "default": "0.01（コンテキストウィンドウの1%）",
+          "description_ja": "毎ターン Claude に見せる skill の一覧の上限を、コンテキストウィンドウに対する比率で決める。上限を超えると、使われていない skill から説明を落とし名前だけ残す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#skilllistingbudgetfraction"
+          }
+        },
+        {
+          "id": "skillListingMaxDescChars",
+          "type": "number（正の整数の文字数）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Memory and context",
+          "default": "1536",
+          "description_ja": "skill の一覧で、各 skill の description と when_to_use を何文字まで見せるかの上限。超えた分は切られる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#skilllistingmaxdescchars"
+          }
+        },
+        {
+          "id": "statusLine",
+          "type": "object（type: \"command\" と command 文字列。任意で padding・refreshInterval（秒、1以上）・hideVimModeIndicator）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Interface and terminal",
+          "default": "unset（status line なし）",
+          "description_ja": "独自のコマンドで、プロンプトの下に status line を描く。",
+          "notes_ja": "allowManagedHooksOnly が有効なとき、または managed 以外で disableAllHooks が設定されているときは、managed の値だけが実行される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#statusline"
+          }
+        },
+        {
+          "id": "subagentStatusLine",
+          "type": "object（type: \"command\" と command 文字列）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Interface and terminal",
+          "default": "unset（既定の行を描く）",
+          "description_ja": "サブエージェントの一覧表示の各行を、独自のコマンドで書き換える。",
+          "notes_ja": "statusLine と同じく、allowManagedHooksOnly・disableAllHooks の下では managed の値だけが実行される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#subagentstatusline"
+          }
+        },
+        {
+          "id": "outputStyle",
+          "type": "string（組み込みか独自の output style の名前）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Model and responses",
+          "default": "unset（既定のスタイル）",
+          "description_ja": "output style を名前で選ぶ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#outputstyle"
+          }
+        },
+        {
+          "id": "model",
+          "type": "string（モデルのエイリアスか完全なモデル ID）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Model and responses",
+          "default": "unset（アカウントの既定のモデル）",
+          "description_ja": "新しいセッションが使うモデルを決める。セッション中の切り替えは妨げない。",
+          "session_override_ja": "`--model` が `ANTHROPIC_MODEL` に優先し、両方がこのキー（managed の model を含む）に1セッション分優先する。availableModels の制約は残る。",
+          "precedence_ja": {
+            "value": "managed の model は開始時の既定にすぎず、選べるモデルを固定するのは availableModels と deniedModels。",
+            "source": {
+              "url": "https://code.claude.com/docs/en/settings.md",
+              "anchor": "#settings-precedence"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#model"
+          }
+        },
+        {
+          "id": "availableModels",
+          "type": "array（モデルのエイリアスか ID）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Model and responses",
+          "default": "unset（すべてのモデルを選べる）",
+          "description_ja": "メインセッション・サブエージェント・skills・advisor で選べるモデルを制限する。",
+          "notes_ja": "組織で強制するなら managed に置く。",
+          "precedence_ja": {
+            "value": "managed が定義していればそのリストがそのまま適用され、user・project・local で足した要素は無視される。managed 以外のスコープ間では配列が結合される。",
+            "source": {
+              "url": "https://code.claude.com/docs/en/settings.md",
+              "anchor": "#lists-merge-instead-of-overriding"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#availablemodels"
+          }
+        },
+        {
+          "id": "fallbackModel",
+          "type": "array（モデルのエイリアスか ID。\"default\" は既定のモデルに展開）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Model and responses",
+          "default": "unset",
+          "description_ja": "主モデルが過負荷・利用不可のときに順に試す予備のモデルを並べる。",
+          "session_override_ja": "`--fallback-model` が1セッション分このキーに優先する。",
+          "precedence_ja": {
+            "value": "位置に意味があるので結合されず、最も優先度の高いファイルの値がそのまま使われる。",
+            "source": {
+              "url": "https://code.claude.com/docs/en/settings.md",
+              "anchor": "#lists-merge-instead-of-overriding"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#fallbackmodel"
+          }
+        },
+        {
+          "id": "effortLevel",
+          "type": "string（low・medium・high・xhigh のいずれか）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Model and responses",
+          "default": "unset",
+          "description_ja": "レベルを保存していないモデルの既定の effort level を決める。",
+          "session_override_ja": "`--effort` がこのキーに1セッション分優先し、`CLAUDE_CODE_EFFORT_LEVEL` が両方に優先する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#effortlevel"
+          }
+        },
+        {
+          "id": "agent",
+          "type": "string（組み込みか独自のエージェントの名前）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Agents, sessions, and worktrees",
+          "default": "unset（既定のエージェント）",
+          "description_ja": "メインスレッドを名前付きのサブエージェントとして動かし、そのシステムプロンプト・ツールの制限・モデルをセッションに適用する。",
+          "session_override_ja": "`--agent` が1セッション分このキーに優先する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#agent"
+          }
+        },
+        {
+          "id": "language",
+          "type": "string（任意の言語名。検証されない）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Model and responses",
+          "default": "unset",
+          "description_ja": "Claude の既定の応答言語を決める。値はそのまま Claude への指示として渡される。音声入力とセッションのタイトルの言語にも使われる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#language"
+          }
+        },
+        {
+          "id": "env",
+          "type": "object（変数名 → 文字列の値）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Memory and context",
+          "default": "unset",
+          "description_ja": "セッションと、そこから起動するサブプロセスの環境変数を設定する。",
+          "notes_ja": "project と local の settings からは設定できない変数がある（CLAUDE_CONFIG_DIR、テレメトリの出力先など）。project と local の値はワークスペース信頼の後に適用される（安全と分類される変数を除く）。値は平文でファイルに残り、全サブプロセスに渡る。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#env"
+          }
+        },
+        {
+          "id": "claudeMdExcludes",
+          "type": "array（glob パターンか絶対パス）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Memory and context",
+          "default": "unset（見つけた CLAUDE.md をすべて読む）",
+          "description_ja": "メモリの読み込みで、特定の CLAUDE.md を飛ばす。パターンは絶対パスに対して一致させる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#claudemdexcludes"
+          }
+        },
+        {
+          "id": "autoMemoryEnabled",
+          "type": "boolean",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Memory and context",
+          "default": "true",
+          "description_ja": "auto memory を有効・無効にする。false では auto memory のディレクトリを読みも書きもしない。",
+          "session_override_ja": "`CLAUDE_CODE_DISABLE_AUTO_MEMORY` がどちらの向きでも1セッション分このキーに優先する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#automemoryenabled"
+          }
+        },
+        {
+          "id": "autoMemoryDirectory",
+          "type": "string（絶対パスか `~/` で始まるパス）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Memory and context",
+          "default": "unset（~/.claude/projects/<project>/memory/）",
+          "description_ja": "auto memory を既定とは別のディレクトリに置く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#automemorydirectory"
+          }
+        },
+        {
+          "id": "plansDirectory",
+          "type": "string（プロジェクトのルートからの相対パス）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Memory and context",
+          "default": "unset（~/.claude/plans）",
+          "description_ja": "plan モードで書くプランのファイルの置き場所を決める。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#plansdirectory"
+          }
+        },
+        {
+          "id": "claudeMd",
+          "type": "string（CLAUDE.md の本文）",
+          "scopes": [
+            "managed"
+          ],
+          "scope_label": "Managed",
+          "topic": "Memory and context",
+          "default": "unset",
+          "description_ja": "別ファイルを配らずに、組織の managed memory として CLAUDE.md 形式の指示を差し込む。user と project の CLAUDE.md より前に読み込まれる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#claudemd"
+          }
+        },
+        {
+          "id": "attribution",
+          "type": "object（commit・pr の文字列と sessionUrl の真偽）、または false（すべての帰属表示を消す）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Git and attribution",
+          "default": "unset（各サブキーの既定の表示）",
+          "description_ja": "git のコミットとプルリクエストに Claude Code が足す帰属表示を変える。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#attribution"
+          }
+        },
+        {
+          "id": "attribution.commit",
+          "type": "string",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Git and attribution",
+          "default": "unset（`Co-Authored-By: <name> <noreply@anthropic.com>`）",
+          "description_ja": "コミットに足す帰属のテキスト（trailer を含む）。空文字列で消す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#attribution-commit"
+          }
+        },
+        {
+          "id": "attribution.pr",
+          "type": "string",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Git and attribution",
+          "default": "unset（`🤖 Generated with [Claude Code](https://claude.com/claude-code)`）",
+          "description_ja": "プルリクエストの説明に足す帰属のテキスト。空文字列で消す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#attribution-pr"
+          }
+        },
+        {
+          "id": "includeGitInstructions",
+          "type": "boolean",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Git and attribution",
+          "default": "true",
+          "description_ja": "組み込みのコミット・PR の手順の指示と git status のスナップショットを Claude のコンテキストに含めるか。独自の git の手順を skill で与えるときに false にする。",
+          "session_override_ja": "`CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` が1セッション分このキーに優先する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#includegitinstructions"
+          }
+        },
+        {
+          "id": "worktree",
+          "type": "object（baseRef・symlinkDirectories・sparsePaths・bgIsolation）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Agents, sessions, and worktrees",
+          "default": "unset",
+          "description_ja": "`--worktree`・EnterWorktree ツール・隔離されたサブエージェントとバックグラウンドのセッションが作る git worktree の作り方を決める。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#worktree"
+          }
+        },
+        {
+          "id": "worktree.baseRef",
+          "type": "string（\"fresh\" か \"head\"）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Agents, sessions, and worktrees",
+          "default": "\"fresh\"",
+          "description_ja": "新しい worktree をどの ref から分岐させるか。\"fresh\" は `origin/<default-branch>`、\"head\" は手元の HEAD（未 push のコミットを含む）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#worktree-baseref"
+          }
+        },
+        {
+          "id": "worktree.symlinkDirectories",
+          "type": "array（リポジトリのルートからの相対パス）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Agents, sessions, and worktrees",
+          "default": "unset",
+          "description_ja": "メインのリポジトリのディレクトリを各 worktree にシンボリックリンクし、大きなディレクトリの複製を避ける。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#worktree-symlinkdirectories"
+          }
+        },
+        {
+          "id": "worktree.sparsePaths",
+          "type": "array（リポジトリのルートからの相対パス）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Agents, sessions, and worktrees",
+          "default": "unset（全体をチェックアウト）",
+          "description_ja": "git の sparse-checkout で、各 worktree に列挙したディレクトリ（とルートのファイル）だけを書き出す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#worktree-sparsepaths"
+          }
+        },
+        {
+          "id": "prependPlugins",
+          "type": "array<string>",
+          "scopes": [
+            "user",
+            "managed"
+          ],
+          "scope_label": "User or managed",
+          "topic": "Plugins and skills",
+          "default": "unset",
+          "description_ja": "組織が管理するプラグインのうち、利用者が入れたどの mod よりも先に動かす mod を持つものを、動かす順に `plugin-name@marketplace-name` で並べる。managed settings に書くときは、組み込みのガードを残すために `sec-default@builtin` を含める。",
+          "notes_ja": "User or managed: managed settings から読む。user settings から読むのは、managed settings の無いマシンで Team・Enterprise プランにサインインしていない利用者のときだけ。project・local settings と --settings のファイルでは無視される。 `appendPlugins` と両方に挙げた id は先に動かす側になる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#prependplugins"
+          }
+        },
+        {
+          "id": "appendPlugins",
+          "type": "array<string>",
+          "scopes": [
+            "user",
+            "managed"
+          ],
+          "scope_label": "User or managed",
+          "topic": "Plugins and skills",
+          "default": "unset",
+          "description_ja": "組織が管理するプラグインのうち、利用者が入れたどの mod よりも後に動かす mod を持つものを、動かす順に `plugin-name@marketplace-name` で並べる。",
+          "notes_ja": "User or managed: managed settings から読む。user settings から読むのは、managed settings の無いマシンで Team・Enterprise プランにサインインしていない利用者のときだけ。project・local settings と --settings のファイルでは無視される。 `prependPlugins` と両方に挙げた id は `prependPlugins` が優先する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#appendplugins"
+          }
+        },
+        {
+          "id": "disableSideloadFlags",
+          "type": "boolean",
+          "scopes": [
+            "managed"
+          ],
+          "scope_label": "Managed",
+          "topic": "Enterprise and managed settings",
+          "default": false,
+          "description_ja": "`true` にすると、起動時に `--plugin-dir`・`--plugin-url`・`--agents`・`--mcp-config` の CLI フラグを拒否し、拒否したフラグを示すエラーで終了する。`strictKnownMarketplaces` を1回の実行だけ迂回されるのを防ぐ。",
+          "notes_ja": "すべてが in-process の `type: \"sdk\"` のサーバーだけの `--mcp-config` は受け付ける。`claude mcp add` や `.mcp.json` でのサーバーの追加は止めない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#disablesideloadflags"
+          }
+        },
+        {
+          "id": "footerLinksRegexes",
+          "type": "array<object>",
+          "scopes": [
+            "user",
+            "managed"
+          ],
+          "scope_label": "User or managed",
+          "topic": "Interface and terminal",
+          "default": "unset",
+          "description_ja": "ターンの出力（ツールの結果・Claude の応答）に正規表現が一致したとき、入力欄の下のフッターにクリックできるリンクのバッジを出す。各要素は `type`（`\"regex\"`）・`pattern`・`url`・任意の `label` を持ち、`url` と `label` の `{name}` は `pattern` の名前付きキャプチャで埋まる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#footerlinksregexes"
+          }
+        }
+      ]
+    }
+  }
+}

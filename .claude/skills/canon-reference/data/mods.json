@@ -1,0 +1,2237 @@
+{
+  "id": "mods",
+  "description": "mod（plugin の hooks module）の hook が扱えるイベントと、hook が受け取る mods API（`$`）のメソッドの一覧。",
+  "collections": {
+    "events": {
+      "description": "`on(event, matcher?, hook)` の第1引数に書けるイベント。`kind: event` は個別のイベント、`kind: family` は名前の型で決まるイベントの族（settings hook イベントと mods API 呼び出し）。`group` は公式の表の分類、`returns` は hook が返せるもの（公式の略記のまま。interface のイベントは公式が返り値を示していないので null）。`can_block` は公式が拒否・中止の返り値を示しているイベントだけに付ける。",
+      "complete": false,
+      "complete_basis": "公式が全件を列挙していない。reference ページはイベントの表を載せているが、完全なリファレンスは Claude Code の TypeScript 宣言（spec ページではない）だとし、ページは特定の版の時点の内容だと断っている。表に載るものはすべて収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "tool.call",
+          "kind": "event",
+          "group": "tools",
+          "description_ja": "ツールが実行されようとするとき。サブエージェントの呼び出しと MCP ツールの呼び出しも含む。",
+          "returns": "`next(e)`、`{ deny: reason }`、`{ result }`",
+          "can_block": true,
+          "details": [
+            {
+              "text_ja": "`e.tool` がツール名で、ツールの引数は `e` のフィールド（Bash なら `e.command`）。`next(e)` を呼ぶと権限チェックのあとツールが実行される。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#guard-or-change-a-tool-call"
+              }
+            },
+            {
+              "text_ja": "`next` を呼ばずに `{ deny }` か `{ result }` を返すと、権限プロンプトは出ずツールは実行されない。Claude は `deny` の文をツールの結果として読む。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#guard-or-change-a-tool-call"
+              }
+            },
+            {
+              "text_ja": "managed settings の hook は、どの mod の `tool.call` hook より先に走り、そこでのブロックは最終になる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#guard-or-change-a-tool-call"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#tools"
+          }
+        },
+        {
+          "id": "tool.check",
+          "kind": "event",
+          "group": "tools",
+          "description_ja": "ツール呼び出しを実行してよいかを Claude Code が決めるとき。`tool.call` と `PreToolUse` hook のあとに発火し、`next(e)` はルール・permission mode・それらの hook が出した判定に解決する。",
+          "returns": "`{ decision }`（`allow`・`ask`・`deny`）",
+          "can_block": true,
+          "details": [
+            {
+              "text_ja": "`e.input` にツールの引数が入る。`e.agentId` はサブエージェントか in-process の teammate の呼び出しで設定され、`e.ceiling` は組織が `ask` にした connector ツールで `ask` になる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+                "anchor": "#agent-and-organization-fields-on-tool-check"
+              }
+            },
+            {
+              "text_ja": "固定のコマンドやパスには permission ルールを使い、その時点の状態（現在のブランチなど）で決まる判定にだけ `tool.check` を使う。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#approve-or-refuse-a-tool-call-before-the-user-is-asked"
+              }
+            },
+            {
+              "text_ja": "`next` が解決したあとに返した拒否も有効なので、`.catch` では `next.called` を見ずに `{ decision: 'deny', reason }` を返してよい。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#handle-a-hook-that-fails"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#tools"
+          }
+        },
+        {
+          "id": "tool.describe",
+          "kind": "event",
+          "group": "tools",
+          "description_ja": "ツールの説明が初めて Claude に送られるとき、ツールごとに1回。",
+          "returns": "`{ description }`。`isDeferred` を `true` にすると tool search の後ろに置き、`false` にすると最初から読み込ませる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#tools"
+          }
+        },
+        {
+          "id": "prompt.submit",
+          "kind": "event",
+          "group": "prompts",
+          "description_ja": "プロンプトが送信されるとき。`e.text` が入力された文。",
+          "returns": "`next({ ...e, text })`、`next({ ...e, context })`、`{ drop: reason }`",
+          "can_block": true,
+          "details": [
+            {
+              "text_ja": "`text` を書き換えると transcript のメッセージも新しい文になる。`context` に足した文は Claude だけが読む。`{ drop }` は送信を止める。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#rewrite-or-add-to-a-prompt"
+              }
+            },
+            {
+              "text_ja": "`next(e)` でプロンプトを通したあとに `drop` を返すと、ターンは走り、hook は失敗として扱われる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#rewrite-or-add-to-a-prompt"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#prompts-and-what-claude-reads"
+          }
+        },
+        {
+          "id": "prompt.fill",
+          "kind": "event",
+          "group": "prompts",
+          "description_ja": "テキストが下書きとしてプロンプト欄に入ろうとするとき。",
+          "returns": "テキストを変えた `next(e)`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#prompts-and-what-claude-reads"
+          }
+        },
+        {
+          "id": "prompt.suggest",
+          "kind": "event",
+          "group": "prompts",
+          "description_ja": "テキストが薄い提案としてプロンプト欄に入ろうとするとき。",
+          "returns": "テキストを変えた `next(e)`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#prompts-and-what-claude-reads"
+          }
+        },
+        {
+          "id": "prompt.edit",
+          "kind": "event",
+          "group": "prompts",
+          "description_ja": "ユーザーがプロンプト欄を編集するとき。",
+          "returns": "`next(e)`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#prompts-and-what-claude-reads"
+          }
+        },
+        {
+          "id": "prompt.compose",
+          "kind": "event",
+          "group": "prompts",
+          "description_ja": "Claude Code がシステムプロンプトを組み立てるとき。",
+          "returns": "`{ sections }`（送る順の `{ id, text, scope }` のリスト）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#prompts-and-what-claude-reads"
+          }
+        },
+        {
+          "id": "prompt.section",
+          "kind": "event",
+          "group": "prompts",
+          "description_ja": "システムプロンプトの名前付きセクションごとに1回。`e.name` は `prompt.compose` でのセクションの `id`。",
+          "returns": "`{ text }`、またはセクションを省く `{ text: null }`",
+          "details": [
+            {
+              "text_ja": "リクエストごとに変わる文をこの hook で返すとプロンプトキャッシュが無効になる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#rewrite-or-add-to-a-prompt"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#prompts-and-what-claude-reads"
+          }
+        },
+        {
+          "id": "prompt.context",
+          "kind": "event",
+          "group": "prompts",
+          "description_ja": "会話ごとに1回、最初のメッセージと一緒に送るコンテキストについて。",
+          "returns": "`{ blocks }`",
+          "details": [
+            {
+              "text_ja": "リクエストごとに変わる文をこの hook で返すとプロンプトキャッシュが無効になる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#rewrite-or-add-to-a-prompt"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#prompts-and-what-claude-reads"
+          }
+        },
+        {
+          "id": "prompt.attachment",
+          "kind": "event",
+          "group": "prompts",
+          "description_ja": "Claude Code がリマインダーなど自前のメッセージを Claude 向けに足すとき。`e.type` が種類、型が宣言している種類では `e.detail` に文の元になった事実が入る。",
+          "returns": "`{ text }`、または省く `{ text: null }`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#prompts-and-what-claude-reads"
+          }
+        },
+        {
+          "id": "prompt.mention",
+          "kind": "event",
+          "group": "prompts",
+          "description_ja": "プロンプトが @ で言及したファイルを Claude Code が読もうとするとき。",
+          "returns": "別のファイルを読ませる `next({ ...e, path })`、または `{ deny: reason }`",
+          "can_block": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#prompts-and-what-claude-reads"
+          }
+        },
+        {
+          "id": "skill.prompt",
+          "kind": "event",
+          "group": "prompts",
+          "description_ja": "Skill の本文が Claude 向けに展開されるとき。",
+          "returns": "`{ text }`",
+          "details": [
+            {
+              "text_ja": "リクエストごとに変わる文をこの hook で返すとプロンプトキャッシュが無効になる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#rewrite-or-add-to-a-prompt"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#prompts-and-what-claude-reads"
+          }
+        },
+        {
+          "id": "attribution.text",
+          "kind": "event",
+          "group": "prompts",
+          "description_ja": "Claude Code がコミットや pull request の attribution の文を組み立てるとき。",
+          "returns": "`{ text }`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#prompts-and-what-claude-reads"
+          }
+        },
+        {
+          "id": "command.run",
+          "kind": "event",
+          "group": "commands",
+          "description_ja": "コマンドが実行されようとするとき。",
+          "returns": "`{ text }`、`{}`、`next(e)`",
+          "details": [
+            {
+              "text_ja": "`e.args` はコマンド名のあとに入力された文（無ければ空文字列）。返した `text` は transcript に出て Claude も読む。何も出さないときは `{}` を返す。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#add-a-command"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#commands-and-configuration"
+          }
+        },
+        {
+          "id": "command.describe",
+          "kind": "event",
+          "group": "commands",
+          "description_ja": "コマンド一覧のために、コマンドごとに1回。",
+          "returns": "`{ description, argumentHint, isHidden }`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#commands-and-configuration"
+          }
+        },
+        {
+          "id": "config.set",
+          "kind": "event",
+          "group": "commands",
+          "description_ja": "`/config` の行が変わろうとするとき。",
+          "returns": "`next({ ...e, value })`、`{ deny: reason }`",
+          "can_block": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#commands-and-configuration"
+          }
+        },
+        {
+          "id": "config.describe",
+          "kind": "event",
+          "group": "commands",
+          "description_ja": "`/config` の行ごとに1回。",
+          "returns": "`{ label, description, isHidden }`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#commands-and-configuration"
+          }
+        },
+        {
+          "id": "turn.start",
+          "kind": "event",
+          "group": "turns",
+          "description_ja": "ターンが始まるとき。",
+          "returns": "`next(e)`",
+          "details": [
+            {
+              "text_ja": "`e.turnId` は同じターンの `turn.step`・`turn.complete` でターンを識別する。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#follow-a-turn"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#turns"
+          }
+        },
+        {
+          "id": "turn.step",
+          "kind": "event",
+          "group": "turns",
+          "description_ja": "1つのリクエストがモデルに送られようとするとき。ツール呼び出しのあるターンでは複数回発火する。",
+          "returns": "`yield* next(e)`、または `next({ ...e, model })`・`next({ ...e, effort })`",
+          "generator": true,
+          "details": [
+            {
+              "text_ja": "ストリームするイベントなので hook は async generator で書く。`yield* next(e)` が応答を流しつつ完了した結果に評価される。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#follow-a-turn"
+              }
+            },
+            {
+              "text_ja": "`e.agentId` はサブエージェントのリクエストで設定される。結果の `usage` にトークン数（`input_tokens`・`output_tokens`・`cache_read_input_tokens`・`cache_creation_input_tokens`）と応答した `model` が入る。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#follow-a-turn"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#turns"
+          }
+        },
+        {
+          "id": "turn.complete",
+          "kind": "event",
+          "group": "turns",
+          "description_ja": "ターンが終わったとき。ユーザーが中断したターンも含む（`e.isAborted` が `true`）。",
+          "returns": "`next(e)`、または回答の下に1行出す `{ text }`",
+          "details": [
+            {
+              "text_ja": "`e.answer` は Claude の最終の文、`e.durationMs` は所要時間、`e.usage` はターンのトークン合計。サブエージェントのターンでは `e.agentId` が設定される。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#follow-a-turn"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#turns"
+          }
+        },
+        {
+          "id": "session.start",
+          "kind": "event",
+          "group": "session",
+          "description_ja": "読み込まれた mod ごとに1回、最初のプロンプトの前と、その mod の再読み込みのあと。`/clear`・`/resume`・`/branch` のあとには発火しない。",
+          "returns": "`next(e)`",
+          "details": [
+            {
+              "text_ja": "Claude Code は最初のプロンプトの前にこの hook を待つので、コマンドとツールはここで登録する。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#add-a-command-or-a-tool"
+              }
+            },
+            {
+              "text_ja": "マッチャー無しで同じイベントを2回 `on` すると module の読み込みが失敗する。セッション開始時の処理は1つの hook にまとめる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#filter-which-events-a-hook-handles"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#session"
+          }
+        },
+        {
+          "id": "session.end",
+          "kind": "event",
+          "group": "session",
+          "description_ja": "セッションが終わるとき、または `/clear`・`/resume`・`/branch` が走るとき。`e.reason` は `clear`・`resume`・`logout`・`prompt_input_exit`・`other`（`/branch` は `resume`）。",
+          "returns": "`next(e)`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#session"
+          }
+        },
+        {
+          "id": "session.compact",
+          "kind": "event",
+          "group": "session",
+          "description_ja": "会話が compact されようとするとき。",
+          "returns": "`{ skip: reason }`",
+          "can_block": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#session"
+          }
+        },
+        {
+          "id": "session.receive",
+          "kind": "event",
+          "group": "session",
+          "description_ja": "他のエージェントやセッションからメッセージが届くとき（Claude が読む前）。",
+          "returns": "`{ consumed: reason }`",
+          "can_block": true,
+          "details": [
+            {
+              "text_ja": "`e.origin.kind` は `peer`・`peer-send-message`・`task-notification`・`scheduled-trigger` など。送り手の名前は送り手が書いたものなので判定に使わない。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#send-and-receive-messages-between-sessions"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#session"
+          }
+        },
+        {
+          "id": "session.send",
+          "kind": "event",
+          "group": "session",
+          "description_ja": "他のエージェントやセッションへメッセージが出ようとするとき（SendMessage ツールか mod から）。",
+          "returns": "`{ isDelivered: false, reason }`",
+          "can_block": true,
+          "details": [
+            {
+              "text_ja": "`e.to`・`e.text` と、`model` か `plugin` の `e.origin.kind` を持つ。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#send-and-receive-messages-between-sessions"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#session"
+          }
+        },
+        {
+          "id": "session.append",
+          "kind": "event",
+          "group": "session",
+          "description_ja": "会話が保持する行（プロンプト・応答ブロック・ツール結果・通知など）ごとに、保存される前に1回。",
+          "returns": "行の `content` を書き換える `next({ ...e, message })`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#session"
+          }
+        },
+        {
+          "id": "session.attach",
+          "kind": "event",
+          "group": "session",
+          "description_ja": "別のアプリがセッションに接続するとき。",
+          "returns": "`next(e)`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#session"
+          }
+        },
+        {
+          "id": "session.detach",
+          "kind": "event",
+          "group": "session",
+          "description_ja": "別のアプリがセッションから切断するとき。",
+          "returns": "`next(e)`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#session"
+          }
+        },
+        {
+          "id": "session.measure",
+          "kind": "event",
+          "group": "session",
+          "description_ja": "各ターンのあとと、プランの上限の使用率が変わったとき。",
+          "returns": "`next(e)`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#session"
+          }
+        },
+        {
+          "id": "agent.offer",
+          "kind": "event",
+          "group": "subagents",
+          "description_ja": "サブエージェントの種類が Claude に提示されるとき。",
+          "returns": "提示をやめる `{ isOffered: false }`",
+          "can_block": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#subagents"
+          }
+        },
+        {
+          "id": "agent.spawn",
+          "kind": "event",
+          "group": "subagents",
+          "description_ja": "サブエージェントか agent team の teammate が始まろうとするとき。teammate では `e.isTeammate` が `true`。",
+          "returns": "モデルを選ぶ `next({ ...e, model })`、または `{ deny: reason }`",
+          "can_block": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#subagents"
+          }
+        },
+        {
+          "id": "ui.render",
+          "kind": "event",
+          "group": "interface",
+          "description_ja": "render site が描画されようとするとき。",
+          "returns": "要素のツリー、または `next(e)`（`next(e)` は Claude Code の描画への参照に解決する）",
+          "details": [
+            {
+              "text_ja": "`e.component` が site、`e.surface` が描画しているアプリ、`e.props` が site のデータ。Pane では `e.requestId` が `$.ui.open` の `id`。マッチャー `{ component: '...' }` で site を絞る。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#pick-where-to-draw"
+              }
+            },
+            {
+              "text_ja": "アプリに無い要素・要素が取らない prop・子を置けない場所の子を含むツリーを返すと、Claude Code は自前の描画に戻す。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#build-a-tree-from-elements"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#interface"
+          }
+        },
+        {
+          "id": "ui.resolve",
+          "kind": "event",
+          "group": "interface",
+          "description_ja": "mod の読み込み時に、アプリ・render site・mod ごとに1回。結果が `$.ui.resolve(e)` の読む要素の表になる。",
+          "returns": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#interface"
+          }
+        },
+        {
+          "id": "ui.press",
+          "kind": "event",
+          "group": "interface",
+          "description_ja": "mod が描いた `Button` が使われたとき。",
+          "returns": null,
+          "details": [
+            {
+              "text_ja": "要素の `key` は `e.element` に入る。他の mod の hook がコールバックより先に走るので、見たり置き換えたりできる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#respond-to-presses-and-typing"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#interface"
+          }
+        },
+        {
+          "id": "ui.input",
+          "kind": "event",
+          "group": "interface",
+          "description_ja": "mod が描いた `Input` が使われたとき。",
+          "returns": null,
+          "details": [
+            {
+              "text_ja": "要素の `key` は `e.element` に入る。他の mod の hook がコールバックより先に走るので、入力を見たり変えたりできる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#respond-to-presses-and-typing"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#interface"
+          }
+        },
+        {
+          "id": "ui.select",
+          "kind": "event",
+          "group": "interface",
+          "description_ja": "mod が描いた `Select` が使われたとき。",
+          "returns": null,
+          "details": [
+            {
+              "text_ja": "要素の `key` は `e.element` に入る。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#respond-to-presses-and-typing"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#interface"
+          }
+        },
+        {
+          "id": "ui.focus",
+          "kind": "event",
+          "group": "interface",
+          "description_ja": "ペインかバンドのフォーカスされたコントロールが変わろうとするとき。",
+          "returns": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#interface"
+          }
+        },
+        {
+          "id": "ui.scroll",
+          "kind": "event",
+          "group": "interface",
+          "description_ja": "ペインかバンドのスクロール位置が変わろうとするとき。",
+          "returns": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#interface"
+          }
+        },
+        {
+          "id": "ui.close",
+          "kind": "event",
+          "group": "interface",
+          "description_ja": "ペインが閉じようとするとき。`e.id` がペイン、`e.origin.kind` は `plugin`・`person`・`unload`。",
+          "returns": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#interface"
+          }
+        },
+        {
+          "id": "ui.message",
+          "kind": "event",
+          "group": "interface",
+          "description_ja": "`Client` 要素が自分の mod にデータを送ったとき。",
+          "returns": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#interface"
+          }
+        },
+        {
+          "id": "ui.fault",
+          "kind": "event",
+          "group": "interface",
+          "description_ja": "mod が描いた `Client` 要素が読み込み・描画・実行に失敗したとき。`e.phase` は `load`・`render`・`run`、`e.reason` はエラーメッセージ。",
+          "returns": null,
+          "details": [
+            {
+              "text_ja": "mod がこのイベントを扱うと、Claude Code は `ui.fault` hook が返ったあと site をもう一度描画する。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#redraw-when-something-changes"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#interface"
+          }
+        },
+        {
+          "id": "plugin.register",
+          "kind": "event",
+          "group": "other-mods",
+          "description_ja": "hooks module が読み込まれようとするとき。`e.uses` に、その module のイベント・mods API 呼び出し（`$.` 無し、例 `fs.read`）・環境変数・state が `claude plugin validate` の出力と同じ形で入る。",
+          "returns": "`{ refuse: reason }`",
+          "can_block": true,
+          "details": [
+            {
+              "text_ja": "`next` が解決したあとに返した `{ refuse }` も有効。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#handle-a-hook-that-fails"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#other-mods"
+          }
+        },
+        {
+          "id": "engine.create",
+          "kind": "event",
+          "group": "other-mods",
+          "description_ja": "その mod 向けの mods API が組み立てられるとき。",
+          "returns": "名前空間を足した mods API。`user` tier 以外の mod は名前空間を差し控えることもできる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#other-mods"
+          }
+        },
+        {
+          "id": "telemetry.log",
+          "kind": "event",
+          "group": "telemetry",
+          "description_ja": "テレメトリーの記録が記録されようとするとき。",
+          "returns": "`next(e)`、`{ deny: reason }`",
+          "can_block": true,
+          "matcher_required": {
+            "value": "{ to: 'collector' }",
+            "note_ja": "インストールする mod でこのフィルター無しに hook すると `claude plugin validate` が失敗する。`*` はこのイベントに一致しない。"
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#telemetry"
+          }
+        },
+        {
+          "id": "telemetry.mark",
+          "kind": "event",
+          "group": "telemetry",
+          "description_ja": "機能の利用1回が記録されようとするとき。",
+          "returns": "`next(e)`、`{ deny: reason }`",
+          "can_block": true,
+          "matcher_required": {
+            "value": "{ to: 'collector' }",
+            "note_ja": "インストールする mod でこのフィルター無しに hook すると `claude plugin validate` が失敗する。`*` はこのイベントに一致しない。"
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#telemetry"
+          }
+        },
+        {
+          "id": "classic.<Event>",
+          "kind": "family",
+          "group": "settings-hook-events",
+          "description_ja": "settings hook のイベントそれぞれに対応するイベント（例 `classic.Stop`・`classic.PostToolUse`）。`e` は settings hook が stdin で受け取る JSON。`<Event>` は `hook-events:events` の `id`。",
+          "returns": null,
+          "details": [
+            {
+              "text_ja": "`'classic.*'` はすべての settings hook イベントに一致する。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#filter-which-events-a-hook-handles"
+              }
+            },
+            {
+              "text_ja": "`classic.SessionStart` は `/clear`・`/resume`・`/branch` のあとにも発火し、`e.source` は `clear`・`resume`・`fork`（起動時と compact 後にも発火する）。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#load-a-saved-value-again-after-clear"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#settings-hook-events"
+          }
+        },
+        {
+          "id": "<namespace>.<method>",
+          "kind": "family",
+          "group": "mods-api-calls",
+          "description_ja": "mods API のメソッドの呼び出しそれぞれに対応するイベント（例 `fs.read`・`model.complete`・`ui.open`）。名前は `api` コレクションの `id` から `$.` を除いたもの。hook はチェーンで後ろにある mod の呼び出しを横取りする。",
+          "returns": "`next(e)`、`{ deny: reason }`、`{ value }`",
+          "can_block": true,
+          "details": [
+            {
+              "text_ja": "チェーンで前にある mod が後ろの mod の呼び出しを見る・書き換える・拒否できる。組織が mod の到達範囲を制限する仕組み。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-calls"
+          }
+        }
+      ]
+    },
+    "api": {
+      "description": "hook の第1引数 `$` の名前空間ごとのメソッドと、`claude-code` から import する `$.state` のヘルパー。`id` は `$.<namespace>.<method>`（ヘルパーは関数名）。`documented: false` は公式の一覧に名前だけが載り説明が無いもの。`kind: helper` は `$` のメソッドではなく `claude-code` からの import。",
+      "complete": false,
+      "complete_basis": "公式が全件を列挙していない。reference ページは名前空間ごとにメソッド名を並べているが、完全なリファレンスは Claude Code の TypeScript 宣言（spec ページではない）だとしている。表に載るものはすべて収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "$.plugin.name",
+          "kind": "method",
+          "namespace": "$.plugin",
+          "description_ja": "この plugin の名前。",
+          "documented": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.plugin.root",
+          "kind": "method",
+          "namespace": "$.plugin",
+          "description_ja": "この plugin のディレクトリ。",
+          "documented": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.resolve",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "描画中のアプリで使える要素の関数（`Box`・`Text`・`Button` など）を返す。`ui.render` hook の中で `$.ui.resolve(e)` と呼ぶ。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "要素はグローバルではなく、`$.ui.resolve(e)` から得る。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#build-a-tree-from-elements"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.invalidate",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "`ui.render` hook を再実行させて site を描き直す（`$.ui.invalidate('ui.render')`）。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "Claude Code は module の変数の変化を検知しないので、自分のデータが変わったら呼ぶ。`$.state` の値はこの呼び出し無しで描き直される。描き直しは間引かれ、間に来た呼び出しはまとめられる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#redraw-when-something-changes"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.open",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "`id` を指定してペインを開く。`title`・`focus`・`closeOnEscape`・`holdToasts`・`rows`・`columns` を任意で取る。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`focus`・`closeOnEscape`・`holdToasts` は `true` だけを受け付け、`false` を渡すと例外になる。付けないときはフィールドごと省く。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#open-a-pane-at-the-right-time"
+              }
+            },
+            {
+              "text_ja": "ユーザーの操作で開いたペインは幅を問わず出る。mod が自分から開いたペインは狭い端末では出ず、`{ isPlaced: false, reason }` に解決する。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#open-a-pane-at-the-right-time"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.close",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "`$.ui.open` と同じ `id` を渡してペインを閉じる。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`$.ui.close({ id })` の形で呼ぶ。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#open-a-pane-at-the-right-time"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.panes",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.focus",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.scroll",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.toast",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "mod の名前付きのトースト通知を出す。数秒で消える。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "既定で4秒表示する（`{ timeoutMs }` で変える）。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+                "anchor": "#limits"
+              }
+            },
+            {
+              "text_ja": "ターンを始めずにユーザーへ何かを見せる手段の1つ。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#show-something-without-starting-a-turn"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.status",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "プロンプトの下に、変えるまで残る1行を出す。`⚠` と mod の名前で始まる。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "ターンを始めずにユーザーへ何かを見せる手段の1つ。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#show-something-without-starting-a-turn"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.log",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "transcript に薄い1行を足す。Claude はこの行を読まない。`●` と mod の名前で始まる。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "ターンを始めずにユーザーへ何かを見せる手段の1つ。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#show-something-without-starting-a-turn"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.notice",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.ask",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "Claude が質問に使うダイアログで、質問と番号付きの選択肢を出し、ユーザーが選んだラベル（または入力した文）に解決する。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "ユーザーが閉じたとき・**Chat about this** を選んだとき・`claude -p` の実行では reject する。待つ時間は hook の制限時間に数えない。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/events.md",
+                "anchor": "#hold-a-tool-call-until-the-user-decides"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.copy",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "details": [
+            {
+              "text_ja": "テストの stub の表では `{ isCopied: true }` に解決する形で答える。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/test.md",
+                "anchor": "#look-up-what-a-stub-returns"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.selection",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.ui.blit",
+          "kind": "method",
+          "namespace": "$.ui",
+          "description_ja": "画面に出ている `Raster` 1つを、`ui.render` hook を再実行せずに新しいセルで描き直す（ペインの `id` を `requestId`、`Raster` の `key`、同じ大きさを渡す）。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`Raster` のアニメーションに使う。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#draw-a-grid-of-colored-cells"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.command.register",
+          "kind": "method",
+          "namespace": "$.command",
+          "description_ja": "ユーザーが実行するコマンドを登録する（`name`・`description`・任意で `argumentHint`・`immediate`）。処理は `command.run` hook で書く。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`session.start` hook で登録する。組み込みコマンドと同じ名前は例外になり、その hook の残りが走らない。`immediate: true` で Claude の作業中にも実行できる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#add-a-command"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.command.run",
+          "kind": "method",
+          "namespace": "$.command",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.command.list",
+          "kind": "method",
+          "namespace": "$.command",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.tool.register",
+          "kind": "method",
+          "namespace": "$.tool",
+          "description_ja": "Claude が呼ぶツールを登録する（`name`・Claude が読む `description`・入力の JSON Schema の `inputSchema`）。Claude には `mcp__<plugin 名>__<name>` の名前で見え、その名前に絞った `tool.call` hook で処理する。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`session.start` hook で登録する。MCP tool search で遅延されると Claude は説明を検索するまで見ない。毎ターン検討させるなら `isDeferred: false` を付ける。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#add-a-tool"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.tool.call",
+          "kind": "method",
+          "namespace": "$.tool",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.tool.check",
+          "kind": "method",
+          "namespace": "$.tool",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.tool.list",
+          "kind": "method",
+          "namespace": "$.tool",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.agent.register",
+          "kind": "method",
+          "namespace": "$.agent",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.agent.spawn",
+          "kind": "method",
+          "namespace": "$.agent",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.agent.list",
+          "kind": "method",
+          "namespace": "$.agent",
+          "description_ja": "このセッションのサブエージェントと teammate を返す。それぞれ `status`（`pending`・`running`・`waiting`・`idle`・`completed`・`failed`・`killed`）を持つ。",
+          "documented": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.model.complete",
+          "kind": "method",
+          "namespace": "$.model",
+          "description_ja": "セッションの資格情報で1つのプロンプトをモデルに送り、返答に解決する。会話の履歴は含まない。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`maxTokens` は既定 1024、上限は 64,000 かモデルの出力上限。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+                "anchor": "#limits"
+              }
+            },
+            {
+              "text_ja": "Claude API の失敗では reject しないので `r.isAnswered` を確かめ、`false` なら `r.reason` を読む。組織が禁じたモデルなど Claude Code が送らないリクエストでは reject する。ユーザーのプランか API キーを使う。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#call-a-model"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.model.fork",
+          "kind": "method",
+          "namespace": "$.model",
+          "description_ja": "現在の会話の上で1つ質問する（同じモデルとシステムプロンプトなので大半がプロンプトキャッシュから出る）。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "ユーザーのプランか API キーを使う。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#call-a-model"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.model.classify",
+          "kind": "method",
+          "namespace": "$.model",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.prompt.submit",
+          "kind": "method",
+          "namespace": "$.prompt",
+          "description_ja": "プロンプトを送ってターンを始める。既定では mod を送り手と名乗る1文のあとに Claude が読む。`asUser: true` でユーザー自身の言葉として送る。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "セッションが空くまで待ち、ターンが始まると解決する。Claude の作業中に走る handler では `await` しない。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#start-a-turn-from-a-background-job"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.prompt.read",
+          "kind": "method",
+          "namespace": "$.prompt",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "details": [
+            {
+              "text_ja": "テストの stub の表では `{ text, cursor }` に解決する形で答える。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/test.md",
+                "anchor": "#look-up-what-a-stub-returns"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.prompt.fill",
+          "kind": "method",
+          "namespace": "$.prompt",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.prompt.suggest",
+          "kind": "method",
+          "namespace": "$.prompt",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.prompt.compose",
+          "kind": "method",
+          "namespace": "$.prompt",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.turn.abort",
+          "kind": "method",
+          "namespace": "$.turn",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.session.messages",
+          "kind": "method",
+          "namespace": "$.session",
+          "description_ja": "transcript を `{ role, text, toolUses }` のリストで返す。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "新しい 4,096 件までを返す。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+                "anchor": "#limits"
+              }
+            },
+            {
+              "text_ja": "`$.session` は作業ディレクトリ・モデルなども返す。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.session.cwd",
+          "kind": "method",
+          "namespace": "$.session",
+          "description_ja": "セッションの作業ディレクトリ。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`$.session` が作業ディレクトリを返すことの記述。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.session.root",
+          "kind": "method",
+          "namespace": "$.session",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.session.model",
+          "kind": "method",
+          "namespace": "$.session",
+          "description_ja": "セッションのモデル。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`$.session` がモデルを返すことの記述。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.session.turns",
+          "kind": "method",
+          "namespace": "$.session",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.session.id",
+          "kind": "method",
+          "namespace": "$.session",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "details": [
+            {
+              "text_ja": "テストの stub の表では文字列（例 `'abc123'`）に解決する形で答える。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/test.md",
+                "anchor": "#look-up-what-a-stub-returns"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.session.repo",
+          "kind": "method",
+          "namespace": "$.session",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.session.surfaces",
+          "kind": "method",
+          "namespace": "$.session",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.session.usage",
+          "kind": "method",
+          "namespace": "$.session",
+          "description_ja": "`{ startedAt, context, rateLimits, cost }` を返す。`context` は `tokens`・`window`・`percent`、`rateLimits` は `{ kind, percentUsed, resetsAt }` のリスト。",
+          "documented": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.session.version",
+          "kind": "method",
+          "namespace": "$.session",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.session.compact",
+          "kind": "method",
+          "namespace": "$.session",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.session.send",
+          "kind": "method",
+          "namespace": "$.session",
+          "description_ja": "別のセッション（`{ sessionId }`）・サブエージェントか teammate（`{ agentId }`）・受け取ったメッセージの送り手（文字列のアドレス）に平文のメッセージを送る。SendMessage ツールと同じ配送。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "キューに入ると `{ isDelivered: true }`、届かなければ `{ isDelivered: false, reason }` に解決する。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#send-and-receive-messages-between-sessions"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.session.append",
+          "kind": "method",
+          "namespace": "$.session",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "details": [
+            {
+              "text_ja": "テストの `mock.session(on)` は、mod が `$.session.append` で会話に足した行を古い順に返す。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/test.md",
+                "anchor": "#stub-what-claude-code-would-answer"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.session.authorize",
+          "kind": "method",
+          "namespace": "$.session",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.config.list",
+          "kind": "method",
+          "namespace": "$.config",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.config.set",
+          "kind": "method",
+          "namespace": "$.config",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.settings.read",
+          "kind": "method",
+          "namespace": "$.settings",
+          "description_ja": "settings ファイルと managed policy の内容を読む。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`$.settings` の説明。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.env.get",
+          "kind": "method",
+          "namespace": "$.env",
+          "description_ja": "環境変数を読む。名前は文字列リテラルで書く。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`$.env` の説明。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.env.set",
+          "kind": "method",
+          "namespace": "$.env",
+          "description_ja": "環境変数を設定する。名前は文字列リテラルで書く。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`$.env` の説明。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.fs.read",
+          "kind": "method",
+          "namespace": "$.fs",
+          "description_ja": "ファイルを読む（`read(path)`）。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "相対パスはセッションの作業ディレクトリを基準に解決する。ユーザーと同じ権限で動く。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            },
+            {
+              "text_ja": "1ファイル 4 MiB まで。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+                "anchor": "#limits"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.fs.write",
+          "kind": "method",
+          "namespace": "$.fs",
+          "description_ja": "ファイルに書く（`write(path, text)`）。原子的ではなく内容をその場で置き換えるので、複数のセッションが変えるデータは `$.store` に置く。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "相対パスはセッションの作業ディレクトリを基準に解決する。ユーザーと同じ権限で動く。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            },
+            {
+              "text_ja": "1ファイル 4 MiB まで。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+                "anchor": "#limits"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.fs.list",
+          "kind": "method",
+          "namespace": "$.fs",
+          "description_ja": "1つのディレクトリの項目を `{ name, kind, size, isLink }` で返す。再帰しない。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "相対パスはセッションの作業ディレクトリを基準に解決する。ユーザーと同じ権限で動く。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.fs.exists",
+          "kind": "method",
+          "namespace": "$.fs",
+          "description_ja": "`exists(path)` の形でファイルとディレクトリに使う。戻り値の形は公式に記述が無い。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "相対パスはセッションの作業ディレクトリを基準に解決する。ユーザーと同じ権限で動く。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.fs.stat",
+          "kind": "method",
+          "namespace": "$.fs",
+          "description_ja": "`stat(path)` の形でファイルとディレクトリに使う。戻り値の形は公式に記述が無い。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "相対パスはセッションの作業ディレクトリを基準に解決する。ユーザーと同じ権限で動く。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.fs.ancestors",
+          "kind": "method",
+          "namespace": "$.fs",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.store.get",
+          "kind": "method",
+          "namespace": "$.store",
+          "description_ja": "キーの値か `undefined` に解決する。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "マシン上のすべてのセッションが1つの `$.store` を共有し、`get` のあとの `set` は原子的ではない。項目ごとにキーを分け、書く直前に読み直す。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#save-from-more-than-one-session"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.store.set",
+          "kind": "method",
+          "namespace": "$.store",
+          "description_ja": "キーに任意の JSON の値を保存する。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "マシン上のすべてのセッションが1つの `$.store` を共有し、`get` のあとの `set` は原子的ではない。項目ごとにキーを分け、書く直前に読み直す。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#save-from-more-than-one-session"
+              }
+            },
+            {
+              "text_ja": "store は plugin ごとの JSON ファイルとして `~/.claude/plugins/store/` の下に保存され、mod が消すか、どのセッションも `cleanupPeriodDays` の間読み書きしないまで残る。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#keep-state"
+              }
+            },
+            {
+              "text_ja": "合計 4 MiB の JSON まで。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+                "anchor": "#limits"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.store.delete",
+          "kind": "method",
+          "namespace": "$.store",
+          "description_ja": "キーを消す。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "マシン上のすべてのセッションが1つの `$.store` を共有し、`get` のあとの `set` は原子的ではない。項目ごとにキーを分け、書く直前に読み直す。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#save-from-more-than-one-session"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.store.keys",
+          "kind": "method",
+          "namespace": "$.store",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.state.get",
+          "kind": "method",
+          "namespace": "$.state",
+          "description_ja": "reactive な state の値を読む。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`$.state` は reactive な state。`ui.render` hook が読んだ値を書くとその site が描き直される。値はセッションが終わるか `/clear`・`/resume`・`/branch` まで残り、module の再読み込みでは消えない。値は型宣言ファイルの `PluginState` に宣言し、manifest の `types` でそのファイルを指す。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#keep-a-value-in-$-state"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.state.set",
+          "kind": "method",
+          "namespace": "$.state",
+          "description_ja": "reactive な state の値を書く。`ui.render` hook の中からは書けない。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`$.state` は reactive な state。`ui.render` hook が読んだ値を書くとその site が描き直される。値はセッションが終わるか `/clear`・`/resume`・`/branch` まで残り、module の再読み込みでは消えない。値は型宣言ファイルの `PluginState` に宣言し、manifest の `types` でそのファイルを指す。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#keep-a-value-in-$-state"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.clock.now",
+          "kind": "method",
+          "namespace": "$.clock",
+          "description_ja": "現在時刻をミリ秒で返す（`await $.clock.now()`）。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "hook の制限時間に数えるのは `$.clock.sleep` だけで、ほかの mods API 呼び出しを待つ時間は数えない。タイマーは module の再読み込みで止まる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#run-work-in-the-background"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.clock.sleep",
+          "kind": "method",
+          "namespace": "$.clock",
+          "description_ja": "待つ。mods API 呼び出しのうち、この待ち時間だけは hook の制限時間に数える。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "hook の制限時間に数えるのは `$.clock.sleep` だけで、ほかの mods API 呼び出しを待つ時間は数えない。タイマーは module の再読み込みで止まる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#run-work-in-the-background"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.clock.after",
+          "kind": "method",
+          "namespace": "$.clock",
+          "description_ja": "`setTimeout` の代わり。`$.clock.after(ms, fn)` で一度だけ呼ぶ。`cancel()` を持つタイマーを返す。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "hook の制限時間に数えるのは `$.clock.sleep` だけで、ほかの mods API 呼び出しを待つ時間は数えない。タイマーは module の再読み込みで止まる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#run-work-in-the-background"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.clock.every",
+          "kind": "method",
+          "namespace": "$.clock",
+          "description_ja": "`setInterval` の代わり。`$.clock.every(ms, fn)` で繰り返し呼ぶ。`cancel()` を持つタイマーを返す。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "hook の制限時間に数えるのは `$.clock.sleep` だけで、ほかの mods API 呼び出しを待つ時間は数えない。タイマーは module の再読み込みで止まる。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#run-work-in-the-background"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.http.fetch",
+          "kind": "method",
+          "namespace": "$.http",
+          "description_ja": "`http` か `https` で `fetch(url, init)` する。本文を読み終えると `{ status, ok, headers, text }` に解決する。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`$.http` の説明。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.process.run",
+          "kind": "method",
+          "namespace": "$.process",
+          "description_ja": "引数のリスト（例 `['git', 'status']`）でコマンドを起動し、終了で解決する。シェルを使わない。終了コードにかかわらず `{ exitCode, stdout, stderr }` に解決し、起動できないかタイムアウトまで走り続けると reject する。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "タイムアウトは既定30秒、最大10分。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+                "anchor": "#limits"
+              }
+            },
+            {
+              "text_ja": "reject に備えて `try`・`catch` で包む。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.process.spawn",
+          "kind": "method",
+          "namespace": "$.process",
+          "description_ja": "長く走るコマンドの出力をストリームする。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "チェーンの前の mod は、コマンドが出力したり終了したりしたあとでこの呼び出しを拒否でき、コマンドがしたことは元に戻らない。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.mcp.call",
+          "kind": "method",
+          "namespace": "$.mcp",
+          "description_ja": "接続中の MCP サーバーのツールを呼ぶ。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`$.mcp` の説明。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/api.md",
+                "anchor": "#reach-files-processes-and-the-network"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.mcp.connect",
+          "kind": "method",
+          "namespace": "$.mcp",
+          "description_ja": "自分の plugin の manifest が挙げる MCP サーバーを接続する（`connect(server)`）。",
+          "documented": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.audio.play",
+          "kind": "method",
+          "namespace": "$.audio",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.audio.speak",
+          "kind": "method",
+          "namespace": "$.audio",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.telemetry.log",
+          "kind": "method",
+          "namespace": "$.telemetry",
+          "description_ja": "テレメトリーの記録を出す。記録が送られるのは Claude Code か組み込みの mod が呼んだときだけ。",
+          "documented": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "$.telemetry.mark",
+          "kind": "method",
+          "namespace": "$.telemetry",
+          "description_ja": "機能の利用を1回記録する。記録が送られるのは Claude Code か組み込みの mod が呼んだときだけ。",
+          "documented": true,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "atom",
+          "kind": "helper",
+          "namespace": "claude-code",
+          "description_ja": "state の値に名前（`{ plugin, key }`）と既定値を付ける。`plugin` と `key` は文字列リテラルで書き、結果は `const` に持つ。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`$.state.get`・`$.state.set` を代わりに呼ぶヘルパー。`claude-code` から import する。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#define-read-and-write-a-value"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "read",
+          "kind": "helper",
+          "namespace": "claude-code",
+          "description_ja": "`atom` で定義した値を読む（`read($, atom)`）。`$` を渡せる import の1つ。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`$.state.get`・`$.state.set` を代わりに呼ぶヘルパー。`claude-code` から import する。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#define-read-and-write-a-value"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "update",
+          "kind": "helper",
+          "namespace": "claude-code",
+          "description_ja": "`atom` で定義した値を古い値から書く（`update($, atom, fn)`）。`$` を渡せる import の1つ。",
+          "documented": true,
+          "details": [
+            {
+              "text_ja": "`$.state.get`・`$.state.set` を代わりに呼ぶヘルパー。`claude-code` から import する。",
+              "source": {
+                "url": "https://code.claude.com/docs/en/plugins/mods/interface.md",
+                "anchor": "#define-read-and-write-a-value"
+              }
+            }
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "derive",
+          "kind": "helper",
+          "namespace": "claude-code",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        },
+        {
+          "id": "memberOf",
+          "kind": "helper",
+          "namespace": "claude-code",
+          "description_ja": "公式の一覧に名前だけが載り、説明は無い。挙動はビルドの型定義（`.claude-plugin/types/claude-code/index.d.ts`）で確かめる。",
+          "documented": false,
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#mods-api-methods"
+          }
+        }
+      ]
+    }
+  }
+}

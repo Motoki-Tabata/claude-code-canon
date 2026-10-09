@@ -1,0 +1,123 @@
+{
+  "id": "models",
+  "description": "model-config の Model aliases の表にある、model の設定値に使えるエイリアスと特別な値の一覧。",
+  "collections": {
+    "aliases": {
+      "description": "id はエイリアス名。kind は alias（モデルのエイリアス）か special（表にあるがエイリアスではない特別な値）。pinned_by_env はそのエイリアスが解決するモデル ID を固定する環境変数。エイリアスが解決するモデルの版はプロバイダーと時期で変わるので持たない。",
+      "complete": true,
+      "complete_basis": "公式の Model aliases の表の全行を収めた。",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "default",
+          "kind": "special",
+          "description_ja": "モデルの上書きを解除し、アカウントの実行時の既定に戻す特別な値。公式は「それ自体はモデルのエイリアスではない」と明記している。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/model-config.md",
+            "anchor": "#model-aliases"
+          }
+        },
+        {
+          "id": "best",
+          "kind": "alias",
+          "description_ja": "Fable が使える環境では fable と同じモデル、使えなければ opus と同じモデルを使う。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/model-config.md",
+            "anchor": "#model-aliases"
+          }
+        },
+        {
+          "id": "fable",
+          "kind": "alias",
+          "description_ja": "プロバイダーの Fable モデルを使う。最も難しく長時間かかる作業向け。",
+          "pinned_by_env": {
+            "name": "ANTHROPIC_DEFAULT_FABLE_MODEL",
+            "source": {
+              "url": "https://code.claude.com/docs/en/env-vars.md",
+              "anchor": "#variables"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/model-config.md",
+            "anchor": "#model-aliases"
+          }
+        },
+        {
+          "id": "sonnet",
+          "kind": "alias",
+          "description_ja": "最新の Sonnet モデルを使う。日常のコーディング向け。",
+          "pinned_by_env": {
+            "name": "ANTHROPIC_DEFAULT_SONNET_MODEL",
+            "source": {
+              "url": "https://code.claude.com/docs/en/env-vars.md",
+              "anchor": "#variables"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/model-config.md",
+            "anchor": "#model-aliases"
+          }
+        },
+        {
+          "id": "opus",
+          "kind": "alias",
+          "description_ja": "最新の Opus モデルを使う。複雑な推論向け。",
+          "pinned_by_env": {
+            "name": "ANTHROPIC_DEFAULT_OPUS_MODEL",
+            "source": {
+              "url": "https://code.claude.com/docs/en/env-vars.md",
+              "anchor": "#variables"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/model-config.md",
+            "anchor": "#model-aliases"
+          }
+        },
+        {
+          "id": "haiku",
+          "kind": "alias",
+          "description_ja": "高速で効率のよい Haiku モデルを使う。単純な作業向け。",
+          "pinned_by_env": {
+            "name": "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+            "source": {
+              "url": "https://code.claude.com/docs/en/env-vars.md",
+              "anchor": "#variables"
+            }
+          },
+          "source": {
+            "url": "https://code.claude.com/docs/en/model-config.md",
+            "anchor": "#model-aliases"
+          }
+        },
+        {
+          "id": "sonnet[1m]",
+          "kind": "alias",
+          "description_ja": "Sonnet を100万トークンのコンテキストウィンドウで使う。sonnet がもともと1Mのウィンドウを持つモデルに解決されるときは効果がない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/model-config.md",
+            "anchor": "#model-aliases"
+          }
+        },
+        {
+          "id": "opus[1m]",
+          "kind": "alias",
+          "description_ja": "Opus を100万トークンのコンテキストウィンドウで使う。opus がもともと1Mのウィンドウを持つモデルに解決されるときは効果がない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/model-config.md",
+            "anchor": "#model-aliases"
+          }
+        },
+        {
+          "id": "opusplan",
+          "kind": "alias",
+          "description_ja": "plan モードでは opus、実行では sonnet に切り替える特別なモード。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/model-config.md",
+            "anchor": "#model-aliases"
+          }
+        }
+      ]
+    }
+  }
+}

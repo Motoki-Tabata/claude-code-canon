@@ -1,0 +1,495 @@
+{
+  "id": "tools",
+  "description": "Claude Code の組み込みツールの正規名（permission 規則・サブエージェントの tools・Hook の matcher に書く名前）の一覧。",
+  "collections": {
+    "tools": {
+      "description": "tools-reference 冒頭の表に載る組み込みツール。permission_required は Manual モードで作業ディレクトリ内のパスに対してプロンプトを出すか（表の Permission required 列）。rule_format は specifier の書式を決める permissions:rule-syntax の要素の id で、bare-only は specifier を取らずツール名だけを書けるもの。behavior_anchor は同じページ内の挙動の節。",
+      "complete": true,
+      "complete_basis": null,
+      "stated_total": null,
+      "items": [
+        {
+          "id": "Agent",
+          "permission_required": false,
+          "rule_format": "Agent",
+          "description_ja": "独自のコンテキストウィンドウを持つサブエージェントを起動する。agent teams が有効なとき、name 付きの呼び出しはチームメイトを起動できる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#agent-tool-behavior"
+        },
+        {
+          "id": "Artifact",
+          "permission_required": true,
+          "rule_format": "bare-only",
+          "description_ja": "HTML または Markdown のファイルを claude.ai 上の artifact として公開する。Pro・Max・Team・Enterprise プランと /login 認証が要る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "AskUserQuestion",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "要件の収集や曖昧さの解消のために選択式の質問をする。既定では回答されるまで質問は開いたまま",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#askuserquestion-tool-behavior"
+        },
+        {
+          "id": "Bash",
+          "permission_required": true,
+          "rule_format": "Bash",
+          "description_ja": "シェルコマンドを実行する。組み込みの読み取り専用コマンドはプロンプトなしで実行する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#bash-tool-behavior"
+        },
+        {
+          "id": "CronCreate",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "現在のセッション内で、繰り返しまたは一回限りのプロンプトを予約する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "CronDelete",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "予約したタスクを ID で取り消す",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "CronList",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "セッション内の予約タスクを一覧する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "Edit",
+          "permission_required": true,
+          "rule_format": "Edit",
+          "description_ja": "ファイルの特定箇所を文字列置換で編集する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#edit-tool-behavior"
+        },
+        {
+          "id": "EndConversation",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "持続的な悪用入力がある稀な場合などにセッションを終了する。ほかに使えるツールが残る限り deny・ask 規則の対象にならない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#endconversation-tool-behavior"
+        },
+        {
+          "id": "EnterPlanMode",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "コーディング前に方針を設計するため plan モードに切り替える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "EnterWorktree",
+          "permission_required": true,
+          "rule_format": "bare-only",
+          "description_ja": "隔離した git worktree を作成して移る。path 指定で既存の worktree に移る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "ExitPlanMode",
+          "permission_required": true,
+          "rule_format": "bare-only",
+          "description_ja": "計画を承認に出し、plan モードを抜ける",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "ExitWorktree",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "worktree セッションを抜けて元のディレクトリに戻る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "Glob",
+          "permission_required": false,
+          "rule_format": "Read",
+          "description_ja": "名前のパターンでファイルを探す。macOS・Linux・WSL では既定のツールセットに含まれない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#glob-tool-behavior"
+        },
+        {
+          "id": "Grep",
+          "permission_required": false,
+          "rule_format": "Read",
+          "description_ja": "ファイル内容をパターンで検索する（ripgrep 準拠）。macOS・Linux・WSL では既定のツールセットに含まれない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#grep-tool-behavior"
+        },
+        {
+          "id": "ListAgents",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "SendMessage で送れる相手（サブエージェント・チームメイト・他のセッション）を一覧する。cross-session messaging が有効なセッションにだけ現れる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "ListMcpResourcesTool",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "接続中の MCP サーバーが公開するリソースを一覧する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "LSP",
+          "permission_required": false,
+          "rule_format": "Read",
+          "description_ja": "言語サーバーによるコードインテリジェンス（定義ジャンプ・参照検索・型エラー報告）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#lsp-tool-behavior"
+        },
+        {
+          "id": "Monitor",
+          "permission_required": true,
+          "rule_format": "Bash",
+          "description_ja": "コマンドをバックグラウンドで実行し、出力行をイベントとして Claude に返す。WebSocket も開ける",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#monitor-tool"
+        },
+        {
+          "id": "NotebookEdit",
+          "permission_required": true,
+          "rule_format": "Edit",
+          "description_ja": "Jupyter ノートブックのセルを変更する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#notebookedit-tool-behavior"
+        },
+        {
+          "id": "PowerShell",
+          "permission_required": true,
+          "rule_format": "PowerShell",
+          "description_ja": "PowerShell コマンドをネイティブに実行する。Linux・macOS・WSL では opt-in",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#powershell-tool"
+        },
+        {
+          "id": "PushNotification",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "デスクトップ通知（Remote Control 接続時は電話へのプッシュも）を送る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "Read",
+          "permission_required": false,
+          "rule_format": "Read",
+          "description_ja": "ファイルの内容を読む",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#read-tool-behavior"
+        },
+        {
+          "id": "ReadMcpResourceTool",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "URI を指定して MCP リソースを読む",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "RemoteTrigger",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "claude.ai 上の Routines を作成・更新・実行・一覧する。/schedule の実体",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "ReportFindings",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "コードレビューの指摘を構造化した一覧として報告する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "ScheduleWakeup",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "自己ペースの /loop の次の反復の時刻を決め直す",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "SendFeedback",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "Claude Code についてのフィードバック報告を下書きし、ユーザーの確認待ちとして手元に置く",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#sendfeedback-tool-behavior"
+        },
+        {
+          "id": "SendMessage",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "別のエージェント（チームメイト・再開するサブエージェント・自分の他のセッション）にメッセージを送る",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "SendUserFile",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "セッションからユーザーの端末へファイルを送る。Remote Control 接続時かクラウドセッションで使える",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "ShareOnboardingGuide",
+          "permission_required": true,
+          "rule_format": "bare-only",
+          "description_ja": "ONBOARDING.md をアップロードして共有リンクを返す。/team-onboarding から呼ばれる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "Skill",
+          "permission_required": true,
+          "rule_format": "Skill",
+          "description_ja": "メインの会話の中で skill を実行する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "SubagentHandback",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "サブエージェントの最終報告を、その結果を受け取る会話に渡す。auto モードでローカル実行のサブエージェント（fork を除く）にだけ与えられる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "TaskCreate",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "タスクリストに新しいタスクを作る。既定で使えるモデルが限られる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#task-tool-availability"
+        },
+        {
+          "id": "TaskGet",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "特定のタスクの詳細を取得する。既定で使えるモデルが限られる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#task-tool-availability"
+        },
+        {
+          "id": "TaskList",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "タスクを状態つきで一覧する。既定で使えるモデルが限られる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#task-tool-availability"
+        },
+        {
+          "id": "TaskOutput",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "バックグラウンドタスクの出力を取得する。非推奨で、タスクの出力ファイルを Read で読む方式に置き換わった",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "TaskStop",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "実行中のバックグラウンドタスクを ID で止める。チームメイトや名前付きバックグラウンドエージェントも止められる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "TaskUpdate",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "タスクの状態・依存・詳細を更新、または削除する。既定で使えるモデルが限られる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#task-tool-availability"
+        },
+        {
+          "id": "TodoWrite",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "セッションのタスクチェックリストを管理する。既定では無効で、Task 系ツールに置き換わっている",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#task-tool-availability"
+        },
+        {
+          "id": "ToolSearch",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "tool search が有効なとき、遅延ロードされたツールを検索して読み込む",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "WaitForMcpServers",
+          "permission_required": false,
+          "rule_format": "bare-only",
+          "description_ja": "バックグラウンドで接続中の MCP サーバーを待つ。tool search が無効なときだけ現れる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "WebFetch",
+          "permission_required": true,
+          "rule_format": "WebFetch",
+          "description_ja": "指定した URL の内容を取得する",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#webfetch-tool-behavior"
+        },
+        {
+          "id": "WebSearch",
+          "permission_required": true,
+          "rule_format": "WebSearch",
+          "description_ja": "Web 検索を行う",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#websearch-tool-behavior"
+        },
+        {
+          "id": "Workflow",
+          "permission_required": true,
+          "rule_format": "bare-only",
+          "description_ja": "多数のサブエージェントをバックグラウンドで束ねる動的ワークフローのスクリプトを実行し、まとめた結果を返す",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          }
+        },
+        {
+          "id": "Write",
+          "permission_required": true,
+          "rule_format": "Edit",
+          "description_ja": "ファイルを作成または上書きする",
+          "source": {
+            "url": "https://code.claude.com/docs/en/tools-reference.md",
+            "anchor": ""
+          },
+          "behavior_anchor": "#write-tool-behavior"
+        }
+      ]
+    }
+  }
+}

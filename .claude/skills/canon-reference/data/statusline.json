@@ -1,0 +1,783 @@
+{
+  "id": "statusline",
+  "description": "status line（settings の statusLine）のコマンドが標準入力で受け取る JSON のフィールドの一覧。",
+  "collections": {
+    "input-fields": {
+      "description": "status line のコマンドが標準入力で受け取る JSON のフィールド。id はドット区切りのフィールド名。`Available data` の表の各フィールドと、`context_window.current_usage`・`prompt_cache`・`prompt_cache.last_miss_cause` の下位フィールドを収める。`may_be_absent` は JSON に現れないことがあるフィールド、`nullable` は値が null になりうるフィールドを示す。",
+      "complete": true,
+      "complete_basis": "公式ページの Available data の表と Full JSON schema、Context window fields・Prompt cache fields・Last miss cause の節が、入力のフィールドを列挙している。そのすべてを収めた（`prompt_cache.last_miss_cause.causes` の原因名と `prompt_cache.miss_causes` のキーは公式が例示だけなので値は列挙していない）",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "model.id",
+          "type": "string",
+          "description_ja": "現在のモデルの識別子。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "model.display_name",
+          "type": "string",
+          "description_ja": "現在のモデルの表示名。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "cwd",
+          "type": "string",
+          "description_ja": "現在の作業ディレクトリ。`workspace.current_dir` と同じ値。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "workspace.current_dir",
+          "type": "string",
+          "description_ja": "現在の作業ディレクトリ。`cwd` と同じ値で、`workspace.project_dir` との一貫性のためこちらが推奨される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "workspace.project_dir",
+          "type": "string",
+          "description_ja": "Claude Code を起動したディレクトリ。セッション中に作業ディレクトリが変わると `cwd` と異なりうる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "workspace.added_dirs",
+          "type": "array",
+          "description_ja": "`/add-dir` または `--add-dir` で追加したディレクトリ。追加が無ければ空配列。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "workspace.git_worktree",
+          "type": "string",
+          "description_ja": "現在のディレクトリが `git worktree add` で作った linked worktree の中にあるときの worktree 名。メインの作業ツリーでは存在しない。`worktree.*` と違い、worktree セッションでなくても値が入る。",
+          "may_be_absent": true,
+          "absent_when_ja": "現在のディレクトリが linked worktree の中に無いとき",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "workspace.repo.host",
+          "type": "string",
+          "description_ja": "`origin` リモートから解析したリポジトリの host（例: `\"github.com\"`）。",
+          "may_be_absent": true,
+          "absent_when_ja": "git リポジトリの外、または `origin` リモートが無いとき",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "workspace.repo.owner",
+          "type": "string",
+          "description_ja": "`origin` リモートから解析したリポジトリの owner（例: `\"anthropics\"`）。 gitlab.com のサブグループ配下のプロジェクトでは、名前空間の全パス（例: `group/subgroup`）が入る。",
+          "may_be_absent": true,
+          "absent_when_ja": "git リポジトリの外、または `origin` リモートが無いとき",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "workspace.repo.name",
+          "type": "string",
+          "description_ja": "`origin` リモートから解析したリポジトリの name（例: `\"claude-code\"`）。",
+          "may_be_absent": true,
+          "absent_when_ja": "git リポジトリの外、または `origin` リモートが無いとき",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "cost.total_cost_usd",
+          "type": "number",
+          "description_ja": "セッションの推定コスト（USD）。クライアント側で定価から計算する（`modelPricing` の表が有効ならその単価）。実際の請求額と異なりうる。`/clear` で新しいセッションが始まると 0 に戻る。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "cost.total_duration_ms",
+          "type": "number",
+          "description_ja": "セッションの実行時間（壁時計、ミリ秒）。resume をまたいで累積し、セッションが動いていない時間は含まない。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "cost.total_api_duration_ms",
+          "type": "number",
+          "description_ja": "API の応答待ちに費やした合計時間（ミリ秒）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "cost.total_lines_added",
+          "type": "number",
+          "description_ja": "変更で追加したコードの行数。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "cost.total_lines_removed",
+          "type": "number",
+          "description_ja": "変更で削除したコードの行数。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "context_window.total_input_tokens",
+          "type": "number",
+          "description_ja": "直近の API 応答時点でコンテキストウィンドウにある入力トークン数。`input_tokens`・`cache_creation_input_tokens`・`cache_read_input_tokens` の和。最初の API 応答の前は `0`。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "context_window.total_output_tokens",
+          "type": "number",
+          "description_ja": "直近の応答の出力トークン数。最初の API 応答の前は `0`。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "context_window.context_window_size",
+          "type": "number",
+          "description_ja": "コンテキストウィンドウの最大サイズ（トークン）。既定は 200000、拡張コンテキストのモデルでは 1000000。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "context_window.used_percentage",
+          "type": "number",
+          "description_ja": "コンテキストウィンドウの使用率（計算済み）。入力トークン（`input_tokens + cache_creation_input_tokens + cache_read_input_tokens`）だけから計算し、`output_tokens` を含まない。",
+          "nullable": true,
+          "null_when_ja": "セッションの初期",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "context_window.remaining_percentage",
+          "type": "number",
+          "description_ja": "コンテキストウィンドウの残り率（計算済み）。",
+          "nullable": true,
+          "null_when_ja": "セッションの初期",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "context_window.current_usage",
+          "type": "object",
+          "description_ja": "直前の API 呼び出しのトークン数を種類別に分けたもの。キャッシュヒットを新規の入力と分けて見たいときに使う。",
+          "nullable": true,
+          "null_when_ja": "セッションの最初の API 呼び出しの前と、`/compact` の直後から次の API 呼び出しまで",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "context_window.current_usage.input_tokens",
+          "type": "number",
+          "description_ja": "現在のコンテキストにある入力トークン数。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#context-window-fields"
+          }
+        },
+        {
+          "id": "context_window.current_usage.output_tokens",
+          "type": "number",
+          "description_ja": "生成した出力トークン数。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#context-window-fields"
+          }
+        },
+        {
+          "id": "context_window.current_usage.cache_creation_input_tokens",
+          "type": "number",
+          "description_ja": "キャッシュに書き込んだトークン数。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#context-window-fields"
+          }
+        },
+        {
+          "id": "context_window.current_usage.cache_read_input_tokens",
+          "type": "number",
+          "description_ja": "キャッシュから読んだトークン数。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#context-window-fields"
+          }
+        },
+        {
+          "id": "exceeds_200k_tokens",
+          "type": "boolean",
+          "description_ja": "直近の API 応答の合計トークン数（入力・キャッシュ・出力の合算）が 200k を超えるか。実際のコンテキストウィンドウのサイズに関係なく固定のしきい値。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "fast_mode",
+          "type": "boolean",
+          "description_ja": "セッションで fast mode が有効か。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "effort.level",
+          "type": "string",
+          "description_ja": "現在の reasoning effort。セッション中の `/effort` による変更も反映した値。",
+          "allowed_values": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ],
+          "may_be_absent": true,
+          "absent_when_ja": "現在のモデルが effort パラメーターに対応していないとき（`effort` ごと存在しない）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "thinking.enabled",
+          "type": "boolean",
+          "description_ja": "セッションで extended thinking が有効か。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "rate_limits.five_hour.used_percentage",
+          "type": "number",
+          "description_ja": "5時間のレート制限の消費率（0〜100）。",
+          "may_be_absent": true,
+          "absent_when_ja": "`rate_limits` は claude.ai の Pro・Max の契約者か、spend limit を設定する Claude apps gateway の配下で、かつセッションの最初の API 応答の後にだけ現れる。各ウィンドウ（`five_hour`・`seven_day`・`spend_limit`）は個別に欠けうる。`resets_at` を過ぎたウィンドウは落とされる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "rate_limits.five_hour.resets_at",
+          "type": "number",
+          "description_ja": "5時間のレート制限ウィンドウがリセットされる時刻（Unix エポック秒）。",
+          "may_be_absent": true,
+          "absent_when_ja": "`rate_limits` は claude.ai の Pro・Max の契約者か、spend limit を設定する Claude apps gateway の配下で、かつセッションの最初の API 応答の後にだけ現れる。各ウィンドウ（`five_hour`・`seven_day`・`spend_limit`）は個別に欠けうる。`resets_at` を過ぎたウィンドウは落とされる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "rate_limits.seven_day.used_percentage",
+          "type": "number",
+          "description_ja": "7日間のレート制限の消費率（0〜100）。",
+          "may_be_absent": true,
+          "absent_when_ja": "`rate_limits` は claude.ai の Pro・Max の契約者か、spend limit を設定する Claude apps gateway の配下で、かつセッションの最初の API 応答の後にだけ現れる。各ウィンドウ（`five_hour`・`seven_day`・`spend_limit`）は個別に欠けうる。`resets_at` を過ぎたウィンドウは落とされる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "rate_limits.seven_day.resets_at",
+          "type": "number",
+          "description_ja": "7日間のレート制限ウィンドウがリセットされる時刻（Unix エポック秒）。",
+          "may_be_absent": true,
+          "absent_when_ja": "`rate_limits` は claude.ai の Pro・Max の契約者か、spend limit を設定する Claude apps gateway の配下で、かつセッションの最初の API 応答の後にだけ現れる。各ウィンドウ（`five_hour`・`seven_day`・`spend_limit`）は個別に欠けうる。`resets_at` を過ぎたウィンドウは落とされる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "rate_limits.spend_limit.used_percentage",
+          "type": "number",
+          "description_ja": "Claude apps gateway の配下で、spend limit の使用率。0〜100 で、上限を超えると 100 を超える。`spend_limit` があるときは常にある。",
+          "may_be_absent": true,
+          "absent_when_ja": "`rate_limits` は claude.ai の Pro・Max の契約者か、spend limit を設定する Claude apps gateway の配下で、かつセッションの最初の API 応答の後にだけ現れる。各ウィンドウ（`five_hour`・`seven_day`・`spend_limit`）は個別に欠けうる。`resets_at` を過ぎたウィンドウは落とされる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#spend-limit-fields"
+          }
+        },
+        {
+          "id": "rate_limits.spend_limit.resets_at",
+          "type": "number",
+          "description_ja": "spend limit の期間がリセットされる時刻（Unix エポック秒）。`spend_limit` があるときは常にある。",
+          "may_be_absent": true,
+          "absent_when_ja": "`rate_limits` は claude.ai の Pro・Max の契約者か、spend limit を設定する Claude apps gateway の配下で、かつセッションの最初の API 応答の後にだけ現れる。各ウィンドウ（`five_hour`・`seven_day`・`spend_limit`）は個別に欠けうる。`resets_at` を過ぎたウィンドウは落とされる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#spend-limit-fields"
+          }
+        },
+        {
+          "id": "rate_limits.spend_limit.used_usd",
+          "type": "number",
+          "description_ja": "推定の支出額（USD）。gateway がトークン数から計算した推定で、請求額ではない。約5分ごとに別のリクエストで取得するため、`used_percentage` より古いことがある。",
+          "may_be_absent": true,
+          "absent_when_ja": "`spend_limit` があっても欠けうる。使用率より後に別のリクエストで届き、`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` を設定すると届かない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#spend-limit-fields"
+          }
+        },
+        {
+          "id": "rate_limits.spend_limit.limit_usd",
+          "type": "number",
+          "description_ja": "spend limit の上限額（USD）。",
+          "may_be_absent": true,
+          "absent_when_ja": "`spend_limit` があっても欠けうる。使用率より後に別のリクエストで届き、`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` を設定すると届かない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#spend-limit-fields"
+          }
+        },
+        {
+          "id": "rate_limits.spend_limit.period",
+          "type": "string",
+          "description_ja": "上限がかかる期間。",
+          "allowed_values": [
+            "daily",
+            "weekly",
+            "monthly"
+          ],
+          "may_be_absent": true,
+          "absent_when_ja": "`spend_limit` があっても欠けうる。使用率より後に別のリクエストで届き、`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` を設定すると届かない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#spend-limit-fields"
+          }
+        },
+        {
+          "id": "prompt_cache",
+          "type": "object",
+          "description_ja": "メインの会話の prompt cache の統計（ヒット率・ミス・warm かどうか）。API 応答のキャッシュのトークン数から計算するので、どのプロバイダーでも使える。subagent のリクエストは数えない。",
+          "may_be_absent": true,
+          "absent_when_ja": "メインの会話の最初の API 応答の前",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.warm",
+          "type": "boolean",
+          "description_ja": "キャッシュ済みの prefix が TTL 内か。直前の応答がキャッシュのトークンを報告しなかったときは、`caching_observed` が `true` でも `false`。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.caching_observed",
+          "type": "boolean",
+          "description_ja": "このセッションのいずれかの応答がキャッシュのトークンを報告したか。`false` は prompt caching が無効か、プロバイダーや gateway が報告しないことを示す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.ttl",
+          "type": "string",
+          "description_ja": "現在のキャッシュ済み prefix の寿命。",
+          "allowed_values": [
+            "5m",
+            "1h"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.expires_at",
+          "type": "number",
+          "description_ja": "キャッシュ済み prefix が TTL を過ぎて cold になる時刻（エポック秒）。",
+          "nullable": true,
+          "null_when_ja": "直前の応答がキャッシュのトークンを報告しなかったとき",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.requests",
+          "type": "number",
+          "description_ja": "このセッションでメインの会話について記録した API リクエスト数。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.misses",
+          "type": "number",
+          "description_ja": "キャッシュが保持していた内容を再処理したリクエスト数（キャッシュから読めた量の 5% 超かつ 2,000 トークン以上で、compaction や tool result の消去で説明できないもの）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.expected_rebuilds",
+          "type": "number",
+          "description_ja": "compaction または古い tool result の消去に続いたキャッシュの再構築の数。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.hit_ratio",
+          "type": "number",
+          "description_ja": "このセッションの全入力トークンに対するキャッシュ読み取りトークンの割合（0〜1）。分母はキャッシュ読み取り・キャッシュ書き込み・キャッシュされない入力。",
+          "nullable": true,
+          "null_when_ja": "それらの数がすべて 0 のあいだ",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.cache_write_tokens",
+          "type": "number",
+          "description_ja": "このセッションでキャッシュに書き込んだ全トークン数（最初のリクエストの書き込みを含む）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.miss_recache_tokens",
+          "type": "number",
+          "description_ja": "ミスと数えたリクエストがキャッシュに書き込んだトークン数。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.last_miss_at",
+          "type": "number",
+          "description_ja": "最後のミスの時刻（エポック秒）。",
+          "nullable": true,
+          "null_when_ja": "セッションにミスが無いあいだ",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.last_miss_cause",
+          "type": "object",
+          "description_ja": "最後のミスの原因として Claude Code が推定したもの。",
+          "nullable": true,
+          "null_when_ja": "セッションの最初のミスまでと、直近のミスの原因を特定できなかったとき",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.miss_causes",
+          "type": "object",
+          "description_ja": "このセッションで診断したミスを原因ごとに数えたもの。キーは `last_miss_cause` と同じ原因名。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.recache_tokens_if_cold",
+          "type": "number",
+          "description_ja": "次のリクエストまでにキャッシュが cold になっていたら再キャッシュするトークン数。",
+          "nullable": true,
+          "null_when_ja": "compaction または古い tool result の消去の直後から、次のリクエストが書き換え後の会話のサイズを記録するまで",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#prompt-cache-fields"
+          }
+        },
+        {
+          "id": "prompt_cache.last_miss_cause.causes",
+          "type": "array",
+          "description_ja": "原因名の配列（1つ以上）。例: `tools_changed`・`system_prompt_changed`・`ttl_expired_5m`・`likely_server_side`（公式は例として挙げており、全件の列挙ではない）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#last-miss-cause"
+          }
+        },
+        {
+          "id": "prompt_cache.last_miss_cause.tools_added",
+          "type": "number",
+          "description_ja": "原因が `tools_changed` のとき、リクエストに追加されたツールの数。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#last-miss-cause"
+          }
+        },
+        {
+          "id": "prompt_cache.last_miss_cause.tools_removed",
+          "type": "number",
+          "description_ja": "原因が `tools_changed` のとき、リクエストから削除されたツールの数。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#last-miss-cause"
+          }
+        },
+        {
+          "id": "prompt_cache.last_miss_cause.system_char_delta",
+          "type": "number",
+          "description_ja": "原因が `system_prompt_changed` のとき、system prompt の長さの変化（文字数）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#last-miss-cause"
+          }
+        },
+        {
+          "id": "session_id",
+          "type": "string",
+          "description_ja": "セッションの一意な識別子。セッションの間は変わらず、セッションごとに異なる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "session_name",
+          "type": "string",
+          "description_ja": "セッション名。`--name` か `/rename` で付けた名前があればそれ、無ければ AI が生成したセッションのタイトル。既定の表示名（例: `my-app-3f`）は入らない。",
+          "may_be_absent": true,
+          "absent_when_ja": "カスタム名も AI 生成のタイトルも無いとき",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "prompt_id",
+          "type": "string",
+          "description_ja": "処理中のユーザープロンプトを識別する UUID。OpenTelemetry のイベントの `prompt.id` 属性と一致する。",
+          "may_be_absent": true,
+          "absent_when_ja": "最初のユーザー入力の前",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "transcript_path",
+          "type": "string",
+          "description_ja": "会話の transcript ファイルのパス。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "version",
+          "type": "string",
+          "description_ja": "Claude Code の版。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "output_style.name",
+          "type": "string",
+          "description_ja": "現在の output style の名前。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "vim.mode",
+          "type": "string",
+          "description_ja": "vim mode が有効なときの現在のモード。",
+          "allowed_values": [
+            "NORMAL",
+            "INSERT",
+            "VISUAL",
+            "VISUAL LINE"
+          ],
+          "may_be_absent": true,
+          "absent_when_ja": "vim mode が無効のとき（`vim` ごと存在しない）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "agent.name",
+          "type": "string",
+          "description_ja": "`--agent` フラグか agent の設定で動いているときの agent 名。",
+          "may_be_absent": true,
+          "absent_when_ja": "`--agent` も agent の設定も無いとき（`agent` ごと存在しない）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "pr.number",
+          "type": "number",
+          "description_ja": "現在のブランチの open な pull request の番号。GitLab のリモートでは merge request の番号。フッターの PR バッジと同じ。",
+          "may_be_absent": true,
+          "absent_when_ja": "git リポジトリの外、pull request か merge request が見つかるまで、またはマージかクローズの後（`pr` ごと存在しない）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "pr.url",
+          "type": "string",
+          "description_ja": "現在のブランチの open な pull request（GitLab では merge request）の URL。",
+          "may_be_absent": true,
+          "absent_when_ja": "git リポジトリの外、pull request か merge request が見つかるまで、またはマージかクローズの後（`pr` ごと存在しない）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "pr.review_state",
+          "type": "string",
+          "description_ja": "open な PR のレビュー状態。merge request では、GitLab がマージ可能と報告すれば `approved`、それ以外の open は `pending`、draft は `draft`。",
+          "allowed_values": [
+            "approved",
+            "pending",
+            "changes_requested",
+            "draft"
+          ],
+          "may_be_absent": true,
+          "absent_when_ja": "`pr` があっても個別に欠けうる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "pr.kind",
+          "type": "string",
+          "description_ja": "`pr` が GitLab の merge request を表すとき `mr`。GitHub の pull request では存在しない。",
+          "allowed_values": [
+            "mr"
+          ],
+          "may_be_absent": true,
+          "absent_when_ja": "GitHub の pull request のとき。`pr` があっても個別に欠けうる",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "worktree.name",
+          "type": "string",
+          "description_ja": "有効な worktree の名前。worktree セッションの間だけ存在する。",
+          "may_be_absent": true,
+          "absent_when_ja": "worktree セッションでないとき（`worktree` ごと存在しない）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "worktree.path",
+          "type": "string",
+          "description_ja": "worktree のディレクトリの絶対パス。",
+          "may_be_absent": true,
+          "absent_when_ja": "worktree セッションでないとき（`worktree` ごと存在しない）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "worktree.branch",
+          "type": "string",
+          "description_ja": "worktree の git ブランチ名（例: `\"worktree-my-feature\"`）。",
+          "may_be_absent": true,
+          "absent_when_ja": "worktree セッションでないとき。hook ベースの worktree のとき",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "worktree.original_cwd",
+          "type": "string",
+          "description_ja": "worktree に入る前に Claude がいたディレクトリ。",
+          "may_be_absent": true,
+          "absent_when_ja": "worktree セッションでないとき（`worktree` ごと存在しない）",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        },
+        {
+          "id": "worktree.original_branch",
+          "type": "string",
+          "description_ja": "worktree に入る前にチェックアウトしていた git ブランチ。",
+          "may_be_absent": true,
+          "absent_when_ja": "worktree セッションでないとき。hook ベースの worktree のとき",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#available-data"
+          }
+        }
+      ]
+    }
+  }
+}
