@@ -19,3 +19,18 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 ```
 
 ---
+
+## 2026-10-10 生成規約の「ルールには理由を添える」が正典 skills §4 の「理由の語りは入れない」と食い違う（保守作業・S8 の持ち越し）
+- 種別: 規律昇華
+- 何が起きたか: `.claude/skills/generation/references/no-leaks.md:20` は「ルールには理由を添える」とし、`canon-reference/references/features/skills.md:156` は「経緯や理由の語りは入れない」とする。S8 の run では verify も reviewer も指摘せず、生成したルール（`esm-src.md` など）には理由の文が入った。どちらが正かを決めていない。
+- 提案: 正典 §4 の範囲（Skill 本文か、ルールや CLAUDE.md を含むか）を確かめ、no-leaks.md か契約語の検査のどちらかを揃える。
+
+## 2026-10-10 V4 の Agent Teams 検査と V9 の experimental 検出に data の根拠が無い（保守作業・S2 の持ち越し）
+- 種別: 規律昇華
+- 何が起きたか: `v4-security.js:20,41`（`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` の開示検査）と V9 の `CLAUDE_CODE_EXPERIMENTAL_*`・`isolation: subagent` の検出は、canon-reference の data（`env-vars`、`isolation` は `worktree` のみ）に根拠が無く、「canon 独自の規則」と明記して残してある。廃止するかが未決。
+- 提案: 正典の最新版で env-vars と isolation の値を確かめ、根拠が無いままなら該当検査を廃止して canon-reference の V- ID だけに揃える。
+
+## 2026-10-10 Phase ごとに別セッションで /canon-a〜/canon-d を起動する実経路が未検証（run 20261010_014620・Phase D）
+- 種別: 規律昇華
+- 何が起きたか: S8 の run は1セッションで各 SKILL.md の手順を代行した。`disable-model-invocation` の挙動、セッション分離、B〜D の開始手順（`canon_commit` の比較・`approvals check`）は通していない。Hook の発火も未検証（この run は Hook を生成していない）。
+- 提案: 小さな対象で `/canon-a`〜`/canon-d` を別セッションで通し、手順の抜けを本台帳に起票する。1セッション通しで検証するときに省いてよい手順は SKILL.md に書かない（実運用の経路と混ざるため）。
