@@ -30,7 +30,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { findHeading, sectionSlice } from '../../../../lib/markdown.js';
-import { parseExistingDisposition, DesignMapError, h2SectionText, LAYER_SECTIONS } from '../../../../lib/design-map.js';
+import { parseExistingDisposition, DesignMapError, h2SectionText, FEATURE_SECTIONS } from '../../../../lib/design-map.js';
 import { parseFrontmatter } from '../../../../lib/artifact.js';
 import { parseExisting } from '../../../../lib/investigation.js';
 import { workDir, outputDir, readHandoff, resolveTargetRoot, isMainModule, isValidTs } from '../../../../lib/run.js';
@@ -240,7 +240,7 @@ export function findReferencesToTarget(generatedRoot, target) {
 function renderExistingRecord(rec) {
   if (!rec) return null;
   const out = [`path: ${rec.path}`];
-  if (rec.layer) out.push(`layer: ${rec.layer}`);
+  if (rec.feature) out.push(`feature: ${rec.feature}`);
   if (rec.kind) out.push(`kind: ${rec.kind}`);
   if (rec.strength) out.push(`strength: ${rec.strength}`);
   out.push(`customization_refs: [${rec.customization_refs.join(', ')}]`);
@@ -325,12 +325,12 @@ export function buildKeepReviewBundles({ ts, write = true, roots = {} }) {
 // ---------------------------------------------------------------------------
 
 /**
- * reviewer に渡す design-map の節（設計意図）。層の節（`## L1`〜`## L5`）はこの後に足す。
- * `## メタ`（層数の rationale）と `## 既存判定`（keep_conditions・rationale・manifest_note）は入れない。
+ * reviewer に渡す design-map の節（設計意図）。機能の節（`## <機能>`）はこの後に足す。
+ * `## メタ`（patterns の rationale）と `## 既存判定`（keep_conditions・rationale・manifest_note）は入れない。
  */
 export const REVIEWER_DESIGN_SECTIONS = [
   'Used Features',
-  'レイヤー構成',
+  '構成と責務',
   'Write Scopes',
   'Model Assignments',
   'Interface Contracts',
@@ -372,7 +372,7 @@ export function renderReviewerDesign(designMapText, records) {
   const out = ['# reviewer 判定入力: 設計意図（design-map の抜粋）', ''];
   out.push('> design-map の `rationale`・`keep_conditions`・`manifest_note` は意図的に伏せてある。設計者の正当化は判定材料にならない。');
   out.push('');
-  for (const name of [...REVIEWER_DESIGN_SECTIONS, ...LAYER_SECTIONS.map((l) => l.heading)]) {
+  for (const name of [...REVIEWER_DESIGN_SECTIONS, ...FEATURE_SECTIONS.map((l) => l.heading)]) {
     const body = h2SectionText(lines, name);
     if (body) out.push(stripRationale(body), '');
   }

@@ -353,7 +353,7 @@ test('design Skill の keep 条件の説明が interface_change 機構に追従�
 });
 
 // ── モデルルーティング ─────────────────────────
-// ネイティブ起動で Agent の model 引数を渡すと frontmatter を上書きする（正典 L3 §2.1）。
+// ネイティブ起動で Agent の model 引数を渡すと frontmatter を上書きする（canon-reference の features/subagents.md §3）。
 // オーケストレーターの定義が例示で固定のモデル名を渡すと LLM が真似て、ワーカーが frontmatter と
 // 違うモデルで走る。ネイティブ起動の例示に model 引数を書かない。
 const ORCHESTRATOR_DOCS = [

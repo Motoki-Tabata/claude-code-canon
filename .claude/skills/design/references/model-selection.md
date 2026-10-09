@@ -4,7 +4,7 @@
 
 ## 語彙
 
-`opus`・`sonnet`・`haiku`・`fable`（公式のエイリアス）・完全なモデル ID・`inherit`。各エイリアスの解決先（プロバイダごとに違う）は `docs/BEST_PRACTICES.md` §3.3 と `docs/L3_AGENTS.md` §2.1 が出典なので、ここには写さない。既定は `inherit`。Subagent は、親のコストティアを超えない。
+`opus`・`sonnet`・`haiku`・`fable`（公式のエイリアス）・完全なモデル ID・`inherit`。各エイリアスの解決先（プロバイダごとに違う）は `canon-reference/data/models.json`（`models:aliases`）と `canon-reference/references/features/subagents.md` §3 が出典なので、ここには写さない。既定は `inherit`。Subagent は、親のコストティアを超えない。
 
 ## ティアの選び方
 
@@ -18,7 +18,7 @@
 ## haiku を使える3条件（すべて満たすとき）
 
 1. 設計判断や文脈の推論を伴わない（テンプレートの機械的な充填・固定書式の出力に限る）。
-2. 正典 `docs/` を参照せずに完結する（生成や判断の Skill を preload しない）。
+2. `canon-reference` を参照せずに完結する（生成や判断の Skill を preload しない）。
 3. 失敗のコストが低い（後段の工程かレビューが出力を検証する）。
 
 1つでも欠ければ `sonnet` 以上にする。安易に haiku へ落とすと、文脈の推論を要する作業で品質が下がり、手戻りのほうが高くつく。

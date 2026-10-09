@@ -18,7 +18,7 @@ user-invocable: false
 
 ## 三段の責務分離
 
-調査は判定しない → spec は方向づけまで → design-map が確定する。spec-writer は「既存の何を残すか」「どの層に置くか」を決めない。判定を design-map の一か所に集めるためで、spec が判定まで踏み込むと designer の判断と二重になり、食い違ったときの根拠が失われる。
+調査は判定しない → spec は方向づけまで → design-map が確定する。spec-writer は「既存の何を残すか」「どの機能に置くか」を決めない。判定を design-map の一か所に集めるためで、spec が判定まで踏み込むと designer の判断と二重になり、食い違ったときの根拠が失われる。
 
 ## 共通の規律
 

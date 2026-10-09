@@ -13,12 +13,11 @@
 | `.github/` 配下の設定 | `.claude/` |
 | `.vscode/mcp.json` の `"servers"` キー | `.mcp.json` の `"mcpServers"` キー |
 
-## レイヤーの取り違え
+## 機能の取り違え
 
-- 「Custom Instructions と Instructions files は別物」→ Claude Code ではどちらも L1（CLAUDE.md と Rules）。
-- 「Prompt Files は別のレイヤー」→ Claude Code では L2（Skills）。
-- 「2層」「3層」「L1〜L5」は claude-canon 独自の整理で、公式の用語ではない。ユーザーが公式用語として使っていたら、独自の整理であることを伝える。
-  - L1＝CLAUDE.md・Rules／L2＝Skills／L3＝Subagents／L4＝Hooks・MCP／L5＝Plugins。
+- 「Custom Instructions と Instructions files は別物」→ Claude Code ではどちらも claude-md と rules（`canon-reference/references/features/`）。
+- 「Prompt Files は別の機能」→ Claude Code では skills。
+- 「2層」「3層」「L1〜L5」は旧 claude-canon の整理で、公式の用語でも現在の canon の語でもない。ユーザーが使っていたら、機能名（claude-md・rules・skills・subagents・hooks・mcp・plugins など）に写し、写し方を確かめる。
 
 ## 強度の言い方
 

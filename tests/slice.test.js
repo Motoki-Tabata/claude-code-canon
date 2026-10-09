@@ -30,7 +30,7 @@ meta
 ## Used Features
 - Skills
 
-## レイヤー構成
+## 構成と責務
 ### Responsibility Map
 - s: 責務1文
 
@@ -54,14 +54,14 @@ existing_disposition:
     disposition: retire
 \`\`\`
 
-## L1
+## claude-md
 ### \`CLAUDE.md\`（modify）
 
-## L2
+## skills
 ### \`.claude/skills/s/SKILL.md\`（modify）
 ### \`.claude/skills/kept/SKILL.md\`（keep）
 
-## L3
+## subagents
 ### \`fresh\`
 
 ## Model Assignments
@@ -71,16 +71,16 @@ mm
 これは builder 向けの制約かもしれない
 `;
 
-test('層ごとのスライスにはその層の節と modify レコードだけが入り、keep・retire は disposition-other へ', () => {
+test('担当ごとのスライスにはその担当の節と modify レコードだけが入り、keep・retire は disposition-other へ', () => {
   const { files } = buildSlices(SYNTH);
-  assert.match(files['l1.md'], /### `CLAUDE\.md`/);
-  assert.match(files['l1.md'], /path: CLAUDE\.md/);
-  assert.doesNotMatch(files['l1.md'], /skills\/s\/SKILL\.md/, '別の層のレコードが混ざっている');
+  assert.match(files['claude-md.md'], /### `CLAUDE\.md`/);
+  assert.match(files['claude-md.md'], /path: CLAUDE\.md/);
+  assert.doesNotMatch(files['claude-md.md'], /skills\/s\/SKILL\.md/, '別の担当のレコードが混ざっている');
   assert.match(files['skills.md'], /path: \.claude\/skills\/s\/SKILL\.md/);
-  assert.doesNotMatch(files['skills.md'], /path: \.claude\/skills\/kept/, 'keep は builder が生成しないのでレイヤースライスに入れない');
+  assert.doesNotMatch(files['skills.md'], /path: \.claude\/skills\/kept/, 'keep は builder が生成しないので担当のスライスに入れない');
   assert.match(files['disposition-other.md'], /kept\/SKILL\.md/);
   assert.match(files['disposition-other.md'], /agents\/old\/old\.md/);
-  assert.match(files['agents.md'], /### `fresh`/);
+  assert.match(files['subagents.md'], /### `fresh`/);
 });
 
 test('未知の節は other-sections.md へ入り、黙って落ちない（違反注入: 設計者が足した節）', () => {
@@ -89,11 +89,11 @@ test('未知の節は other-sections.md へ入り、黙って落ちない（違�
   assert.match(files['other-sections.md'], /builder 向けの制約かもしれない/);
 });
 
-test('宣言された成果物の一覧（targets-*）は layer ごとに分かれ、retire は含まない', () => {
+test('宣言された成果物の一覧（targets-*）は担当ごとに分かれ、retire は含まない', () => {
   const { files, counts } = buildSlices(SYNTH);
-  assert.equal(files['targets-l1.txt'], 'CLAUDE.md\n');
-  assert.equal(files['targets-l2.txt'], '.claude/skills/kept/SKILL.md\n.claude/skills/s/SKILL.md\n');
-  assert.equal(files['targets-l3.txt'], '.claude/agents/fresh/fresh.md\n');
+  assert.equal(files['targets-claude-md.txt'], 'CLAUDE.md\n');
+  assert.equal(files['targets-skills.txt'], '.claude/skills/kept/SKILL.md\n.claude/skills/s/SKILL.md\n');
+  assert.equal(files['targets-subagents.txt'], '.claude/agents/fresh/fresh.md\n');
   assert.equal(counts.all, 4);
   assert.doesNotMatch(files['targets-all.txt'], /old/);
 });
@@ -119,12 +119,12 @@ test('実 fixture（constrained）: 全 H2 節がいずれかのスライスに�
   }
 });
 
-test('括弧書き付きの層見出し（## L1（builder））でも targets に宣言が入る（V8 と同じ照合）', () => {
-  const text = SYNTH.replace('## L1\n', '## L1（builder）\n').replace('## L2\n', '## L2（builder）\n').replace('## L3\n', '## L3（builder）\n');
+test('括弧書き付きの機能見出し（## claude-md（builder））でも targets に宣言が入る（V8 と同じ照合）', () => {
+  const text = SYNTH.replace('## claude-md\n', '## claude-md（builder）\n').replace('## skills\n', '## skills（builder）\n').replace('## subagents\n', '## subagents（builder）\n');
   const { files, counts } = buildSlices(text);
-  assert.equal(files['targets-l3.txt'], '.claude/agents/fresh/fresh.md\n', '新規（disposition に無い）の宣言が落ちている');
+  assert.equal(files['targets-subagents.txt'], '.claude/agents/fresh/fresh.md\n', '新規（disposition に無い）の宣言が落ちている');
   assert.equal(counts.all, 4);
-  assert.match(files['l1.md'], /### `CLAUDE\.md`/);
+  assert.match(files['claude-md.md'], /### `CLAUDE\.md`/);
 });
 
 // ---- CLI ----
@@ -150,12 +150,12 @@ test('CLI: design-map が無ければ拒否し、有れば slices/ を書く。�
   assert.equal(JSON.parse(ok.stdout).declared.all, 4);
 });
 
-// ---- 層に属さないパス（A9・A10） ----
+// ---- 担当に属さないパス（A9・A10） ----
 
-const OTHER_MAP = `# dm — 層外
+const OTHER_MAP = `# dm — 担当外
 
 ## Used Features
-- Plugin
+- plugins
 
 ## 既存判定
 
@@ -174,38 +174,38 @@ existing_disposition:
     superseded_by: docs/notes.md
 \`\`\`
 
-## L1
+## claude-md
 ### \`CLAUDE.md\`（新規）
 
-## L5
+## plugins
 ### \`plugin/.claude-plugin/plugin.json\`（新規）
 ### \`.claude/README.md\`（modify）
 `;
 
-test('plugin/ のレコードは L5 に属し、l5.md と targets-l5.txt に入る', () => {
+test('plugin/ のレコードは plugins 担当に属し、plugins.md と targets-plugins.txt に入る', () => {
   const { files } = buildSlices(OTHER_MAP);
-  assert.match(files['l5.md'], /path: plugin\/x\.json/);
-  assert.match(files['targets-l5.txt'], /^plugin\/x\.json$/m);
+  assert.match(files['plugins.md'], /path: plugin\/x\.json/);
+  assert.match(files['targets-plugins.txt'], /^plugin\/x\.json$/m);
   assert.doesNotMatch(files['targets-other.txt'], /plugin\//);
   assert.doesNotMatch(files['disposition-other.md'], /plugin\/x\.json/);
 });
 
-test('層に属さない modify・merge のレコードは disposition-other.md に入り、どのスライスからも落ちない', () => {
+test('担当に属さない modify・merge のレコードは disposition-other.md に入り、どのスライスからも落ちない', () => {
   const { files } = buildSlices(OTHER_MAP);
   assert.match(files['disposition-other.md'], /path: docs\/notes\.md/);
   assert.match(files['disposition-other.md'], /path: docs\/old\.md/);
-  for (const name of ['l1.md', 'skills.md', 'agents.md', 'l4.md', 'l5.md']) {
-    assert.doesNotMatch(files[name], /path: docs\//, `${name} に層外のレコードが混ざった`);
+  for (const name of ['claude-md.md', 'rules.md', 'skills.md', 'subagents.md', 'settings.md', 'mcp.md', 'plugins.md', 'output-styles.md']) {
+    assert.doesNotMatch(files[name], /path: docs\//, `${name} に担当外のレコードが混ざった`);
   }
   assert.match(files['targets-other.txt'], /^docs\/notes\.md$/m, 'modify の宣言は targets-other に出る（既存どおり）');
 });
 
-test('.claude/README.md は層に属さない: targets-*.txt に出ず、レコードは disposition-other.md に入る', () => {
+test('.claude/README.md は担当に属さない: targets-*.txt に出ず、レコードは disposition-other.md に入る', () => {
   const { files } = buildSlices(OTHER_MAP);
   for (const name of Object.keys(files).filter((n) => n.startsWith('targets-'))) {
     assert.doesNotMatch(files[name], /\.claude\/README\.md/, `${name} に emit-manifest が作る README が入っている`);
   }
-  assert.doesNotMatch(files['l5.md'], /path: \.claude\/README\.md/);
+  assert.doesNotMatch(files['plugins.md'], /path: \.claude\/README\.md/);
   assert.match(files['disposition-other.md'], /path: \.claude\/README\.md/);
   assert.ok(!listDeclaredArtifacts(OTHER_MAP).some((d) => d.path === '.claude/README.md'), 'V8 の宣言源にも入れない（emit-manifest が必ず書く）');
 });
@@ -218,7 +218,7 @@ test('slice.js は import しただけでは実行されない（main ガード�
   assert.equal(out.trim(), 'imported');
 });
 
-// ---- skills 層の分割（SKILLS_SLICE_SIZE 件超）と参照元からのコピー ----
+// ---- skills の分割（SKILLS_SLICE_SIZE 件超）と参照元からのコピー ----
 
 /** skill を n 個、1つにつき files 件（SKILL.md ＋ scripts/f<i>.sh）宣言する design-map。偶数番目の skill は modify レコードを持つ。 */
 function bigSkillsMap(n, filesPer) {
@@ -240,8 +240,8 @@ existing_disposition:
 ${recs.join('\n')}
 \`\`\`
 
-## L2
-L2 の前置き（全 builder 共通）
+## skills
+skills の前置き（全 builder 共通）
 
 ${decl.join('\n本文\n')}
 本文
@@ -262,31 +262,31 @@ test('chunkSkills: 件数がしきい値以下なら分割しない。超えた�
   assert.deepEqual(chunkSkills(big).map((c) => c.length), [1, 1]);
 });
 
-test('buildSlices: L2 が21件以上なら skills-<k>.md・targets-l2-<k>.txt に分かれ、全宣言がちょうど1つに入る', () => {
+test('buildSlices: skills が21件以上なら skills-<k>.md・targets-skills-<k>.txt に分かれ、全宣言がちょうど1つに入る', () => {
   const small = buildSlices(bigSkillsMap(10, 2)); // 20件
   assert.equal(small.counts.skills_slices, 0);
   assert.equal(Object.keys(small.files).some((f) => /^skills-\d+\.md$/.test(f)), false, '20件ちょうどでは分割ファイルを作らない');
 
   const { files, counts } = buildSlices(bigSkillsMap(11, 2)); // 22件
-  assert.equal(counts.l2, 22);
+  assert.equal(counts.skills, 22);
   assert.ok(counts.skills_slices >= 2);
   // 全体のスライスは残る
-  assert.equal(files['targets-l2.txt'].trim().split('\n').length, 22);
+  assert.equal(files['targets-skills.txt'].trim().split('\n').length, 22);
   assert.match(files['skills.md'], /s11\/SKILL\.md/);
   // 分割後の和集合＝全体、かつ重複なし
   const seen = [];
   for (let k = 1; k <= counts.skills_slices; k++) {
-    const paths = files[`targets-l2-${k}.txt`].trim().split('\n');
+    const paths = files[`targets-skills-${k}.txt`].trim().split('\n');
     assert.ok(paths.length <= SKILLS_SLICE_SIZE, `チャンク${k}が${paths.length}件`);
     seen.push(...paths);
     // 宣言の見出しは、そのチャンクの targets にあるものだけがスライスに入る
     const decls = [...files[`skills-${k}.md`].matchAll(/^### `([^`]+)`/gm)].map((m) => m[1]).sort();
-    assert.deepEqual(decls, [...paths].sort(), `skills-${k}.md の宣言と targets-l2-${k}.txt が一致しない`);
-    assert.match(files[`skills-${k}.md`], /L2 の前置き/, '前置きが全チャンクに入る');
+    assert.deepEqual(decls, [...paths].sort(), `skills-${k}.md の宣言と targets-skills-${k}.txt が一致しない`);
+    assert.match(files[`skills-${k}.md`], /skills の前置き/, '前置きが全チャンクに入る');
     // disposition レコードは、そのチャンクの skill のものだけ
     for (const m of files[`skills-${k}.md`].matchAll(/path: (\.claude\/skills\/[^\n]+)/g)) assert.ok(paths.includes(m[1]), `${m[1]} が別のチャンクのレコード`);
   }
-  assert.deepEqual([...seen].sort(), files['targets-l2.txt'].trim().split('\n'));
+  assert.deepEqual([...seen].sort(), files['targets-skills.txt'].trim().split('\n'));
   // modify レコード（偶数番目の5件）は全体でちょうど1回ずつ現れる
   const recs = Array.from({ length: counts.skills_slices }, (_, i) => files[`skills-${i + 1}.md`]).join('').match(/disposition: modify/g) ?? [];
   assert.equal(recs.length, 5);
@@ -306,4 +306,70 @@ test('参照元からのコピーの節は common.md に入り、builder に渡�
   const { files } = buildSlices(bigSkillsMap(1, 1));
   assert.match(files['common.md'], /## 参照元からのコピー/);
   assert.doesNotMatch(files['other-sections.md'], /参照元からのコピー/);
+});
+
+// ---- 担当（--unit）と、複数の機能を受け持つ担当 ----
+
+const MULTI_MAP = `# dm — 複数機能
+
+## Used Features
+builder を起動する機能: settings・hooks・statusline・plugins・plugin-mods・output-styles
+
+## settings
+### \`.claude/settings.json\`（新規）
+
+## hooks
+### \`.claude/hooks/block.sh\`（新規）
+
+## statusline
+### \`.claude/statusline.sh\`（新規）
+
+## plugins
+### \`plugin/.claude-plugin/plugin.json\`（新規）
+
+## plugin-mods
+### \`plugin/mods/index.js\`（新規）
+
+## output-styles
+### \`.claude/output-styles/terse.md\`（新規）
+`;
+
+test('settings 担当は settings・hooks・statusline の節を、plugins 担当は plugins・plugin-mods の節をまとめて受け取る', () => {
+  const { files, counts } = buildSlices(MULTI_MAP);
+  for (const h of ['## settings', '## hooks', '## statusline']) assert.ok(files['settings.md'].includes(h), `settings.md に ${h} が無い`);
+  for (const h of ['## plugins', '## plugin-mods']) assert.ok(files['plugins.md'].includes(h), `plugins.md に ${h} が無い`);
+  assert.doesNotMatch(files['plugins.md'], /## hooks/);
+  assert.equal(files['targets-settings.txt'], '.claude/hooks/block.sh\n.claude/settings.json\n.claude/statusline.sh\n');
+  assert.equal(files['targets-plugins.txt'], 'plugin/.claude-plugin/plugin.json\nplugin/mods/index.js\n');
+  assert.equal(files['targets-output-styles.txt'], '.claude/output-styles/terse.md\n');
+  assert.equal(counts.other, 0, '機能の節に宣言した生成物が other に落ちた');
+  // 節の無い担当は「節は無い」と明示したスライスになる（空ファイルを黙って作らない）
+  assert.match(files['mcp.md'], /## mcp 節は無い/);
+  // どの節も、いずれかのスライスに入る（黙って落ちない）
+  const all = Object.values(files).join('\n');
+  for (const m of MULTI_MAP.matchAll(/^## (.+)$/gm)) assert.ok(all.includes(`## ${m[1]}`), m[1]);
+});
+
+test('CLI --unit: 指定した担当のスライスと宣言件数に絞って出力し、書き出しは全部。不正な担当は exit 2', (t) => {
+  const ts = tsFor(import.meta.url, 2);
+  cleanupTs(t, ts);
+  mkdirSync(outputDir(ts), { recursive: true });
+  writeFileSync(path.join(outputDir(ts), 'design-map.md'), MULTI_MAP);
+
+  const r = runScript('canon-c', 'slice.js', [ts, '--unit', 'settings']);
+  assert.equal(r.code, 0, r.stderr);
+  const summary = JSON.parse(r.stdout);
+  assert.equal(summary.unit, 'settings');
+  assert.deepEqual(summary.files, ['settings.md', 'targets-settings.txt']);
+  assert.equal(summary.declared, 3);
+  assert.ok(existsSync(path.join(workDir(ts), 'slices', 'plugins.md')), '--unit を付けても書き出しは全部');
+
+  // 引数の順序に依存しない
+  assert.equal(runScript('canon-c', 'slice.js', ['--unit', 'plugins', ts]).code, 0);
+
+  for (const bad of [['--unit', 'l1'], ['--unit', 'hooks'], ['--unit']]) {
+    const e = runScript('canon-c', 'slice.js', [ts, ...bad]);
+    assert.equal(e.code, 2, `${bad.join(' ')} が通った`);
+    assert.match(e.stderr, /不正な --unit/);
+  }
 });

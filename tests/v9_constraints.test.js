@@ -238,12 +238,12 @@ test('V9: mcp 禁止 × frontmatter tools の mcp__ ツール名を検出', (t) 
   assert.ok(r.violations.some((v) => v.includes('mcp__')));
 });
 
-test('V9: plugins 禁止 × plugin/ 配下の生成物を検出（管理パス集合の L5 パターン）', (t) => {
+test('V9: plugins 禁止 × plugin/ 配下の生成物を検出（管理パス集合の plugin パターン）', (t) => {
   const c = setupSampleRepo(t, 'constrained', nextTs());
   write(c, 'plugin/skills/packaged/SKILL.md', '---\nname: packaged\ndescription: x\n---\n本文\n');
   const r = v9(c.ts);
   assert.equal(r.ok, false);
-  assert.ok(r.violations.some((v) => v.includes('L5 plugin 配布物')));
+  assert.ok(r.violations.some((v) => v.includes('plugin 配布物')));
 });
 
 // ---------------------------------------------------------------------------

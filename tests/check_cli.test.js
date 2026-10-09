@@ -52,10 +52,10 @@ const SPEC = `## §8 受入基準
 const DM = `# design-map.md
 
 ## Used Features
-- Rules（L1）: 使う。
-- Skills（L2）: 使う。
-- MCP（L4）: N/A
-- builder を起動する層: L1・L2
+- rules: 使う。
+- skills: 使う。
+- mcp: N/A
+- builder を起動する機能: rules・skills
 
 ## Write Scopes
 N/A（役割分担なし）
@@ -74,11 +74,11 @@ existing_disposition:
     rationale: "x"
 \`\`\`
 
-## L1（Rules）
+## rules（builder）
 ### \`.claude/rules/a.md\`（keep）
 指示
 
-## L2（Skills）
+## skills（builder）
 ### \`.claude/skills/s/SKILL.md\`（新規）
 指示
 
@@ -102,7 +102,7 @@ existing_disposition:
 
 const EXISTING = `## レコード
 - path: .claude/rules/a.md
-  layer: L1
+  feature: rules
 `;
 
 const names = (items) => items.filter((i) => !i.ok).map((i) => i.name);
@@ -155,13 +155,18 @@ test('design-map: 故意の違反をそれぞれ NG にする', () => {
   // mandatory が対応表から漏れる
   assert.deepEqual(run(DM.replace('A1-1〜A1-2・', '')), ['spec §8 の [mandatory] の対応']);
   // existing に有って既存判定に無いファイル
-  assert.deepEqual(run(DM, { existing: `${EXISTING}- path: .claude/rules/b.md\n  layer: L1\n` }), ['existing.md との件数照合']);
+  assert.deepEqual(run(DM, { existing: `${EXISTING}- path: .claude/rules/b.md\n  feature: rules\n` }), ['existing.md との件数照合']);
   // Write Scopes が無い
   assert.deepEqual(run(DM.replace('## Write Scopes\nN/A（役割分担なし）\n', '')), ['## Write Scopes']);
-  // 使う層の節に宣言が無い
-  assert.deepEqual(run(DM.replace('### `.claude/skills/s/SKILL.md`（新規）', '')), ['## L2 の節と宣言']);
+  // 使う機能の節に宣言が無い
+  assert.deepEqual(run(DM.replace('### `.claude/skills/s/SKILL.md`（新規）', '')), ['## skills の節と宣言']);
+  // 使う機能と書いたのに節が無い（mcp は N/A の行はあるが、起動する機能に挙げた）
+  assert.deepEqual(run(DM.replace('builder を起動する機能: rules・skills', 'builder を起動する機能: rules・skills・mcp')), ['## mcp の節と宣言']);
+  // 起動する機能の行が旧形式（層）のまま・機能名でない語だけ
+  assert.deepEqual(run(DM.replace('builder を起動する機能: rules・skills', 'builder を起動する層: L1・L2')).slice(0, 1), ['## Used Features']);
+  assert.deepEqual(run(DM.replace('builder を起動する機能: rules・skills', 'builder を起動する機能: l1・l2')).slice(0, 1), ['## Used Features']);
   // allowed: false の mcp を宣言した
-  assert.deepEqual(run(DM.replace('## L2（Skills）', '## L4（settings）\n### `.mcp.json`\nx\n\n## L2（Skills）')), ['allowed: false の機能']);
+  assert.deepEqual(run(DM.replace('## skills（builder）', '## mcp\n### `.mcp.json`\nx\n\n## skills（builder）')), ['allowed: false の機能']);
   // 管理パス外の変更が outside_managed の範囲外・根拠が試行待ち
   assert.deepEqual(run(DM.replace('`docs/x.md`', '`src/x.md`')), ['管理パス外の変更']);
   assert.deepEqual(run(DM.replace('根拠: 変えない', '根拠: 試行待ち')), ['管理パス外の変更']);
@@ -175,12 +180,12 @@ test('design-map: 参照元からのコピーの書式・宣言・配下を点�
   assert.deepEqual(run(withCopy(`${REF}/a.sh → .claude/skills/s/SKILL.md`)), [], '正しい行は OK');
   assert.deepEqual(run(withCopy('矢印の無い行')), ['## 参照元からのコピーの書式']);
   assert.deepEqual(run(withCopy(`${REF}/a.sh → docs/a.sh`)), ['## 参照元からのコピーの書式']);
-  assert.deepEqual(run(withCopy(`${REF}/a.sh → .claude/skills/s/other.sh`)), ['参照元からのコピーの生成先が層の節に宣言されている']);
+  assert.deepEqual(run(withCopy(`${REF}/a.sh → .claude/skills/s/other.sh`)), ['参照元からのコピーの生成先が機能の節に宣言されている']);
   assert.deepEqual(run(withCopy('/elsewhere/a.sh → .claude/skills/s/SKILL.md')), ['コピー元が requirements.md の `## 参照元` の配下']);
 });
 
 test('design-map: 既存が0件（new）なら既存判定の節が無くてよい。既存があるのに無ければ NG', () => {
-  const noDisp = DM.replace(/## 既存判定[\s\S]*?(?=## L1)/, '').replace('### `.claude/rules/a.md`（keep）', '### `.claude/rules/a.md`（新規）');
+  const noDisp = DM.replace(/## 既存判定[\s\S]*?(?=## rules)/, '').replace('### `.claude/rules/a.md`（keep）', '### `.claude/rules/a.md`（新規）');
   assert.deepEqual(names(checkDesignMap(noDisp, { spec: SPEC, existing: '## サマリ\n総数 0\n', requirements: REQ })), []);
   assert.deepEqual(names(checkDesignMap(noDisp, { spec: SPEC, existing: EXISTING, requirements: REQ })), ['## 既存判定']);
 });

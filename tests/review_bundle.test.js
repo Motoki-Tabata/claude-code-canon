@@ -194,10 +194,10 @@ test('caseId の衝突（foo-bar.md と foo_bar.md）は決定論的な連番で
 const DM_REVIEWER = [
   '# dm',
   '## メタ',
-  'layers: 2層',
-  'rationale: 層数の自己弁護',
+  'patterns: 委譲',
+  'rationale: 型の自己弁護',
   '## Used Features',
-  'L1 L3',
+  'builder を起動する機能: claude-md・rules・subagents',
   '## 既存判定',
   '```yaml',
   'existing_disposition:',
@@ -219,11 +219,11 @@ const DM_REVIEWER = [
   '    superseded_by: .claude/rules/keep.md',
   '    manifest_note: "統合の正当化"',
   '```',
-  '## L1（CLAUDE.md・Rules）',
+  '## claude-md（builder）',
   '### `CLAUDE.md`（新規）',
   '常に読む規約を書く',
-  '  rationale: 層の節に紛れた自己弁護',
-  '## L3',
+  '  rationale: 機能の節に紛れた自己弁護',
+  '## subagents',
   '### `a`（modify）',
   'tools は最小にする',
   '',
@@ -279,7 +279,7 @@ test('reviewer: INDEX は generated/ の全ファイルを処遇と security の
 });
 
 test('reviewer: new モード（既存判定の節が無い）でも作れる', (t) => {
-  const dm = '# dm\n## Used Features\nL1\n## L1\n### `CLAUDE.md`\n書く\n';
+  const dm = '# dm\n## Used Features\nclaude-md\n## claude-md\n### `CLAUDE.md`\n書く\n';
   const { texts } = buildR(reviewerRun(t, { designMap: dm, generated: { 'CLAUDE.md': '# c\n' } }));
   assert.match(texts['design.md'], /## 既存判定（処遇だけ）\n\nなし/);
 });

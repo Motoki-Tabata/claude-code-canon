@@ -22,12 +22,12 @@ function v8(ts) {
   return { ...r, ok: r.violations.length === 0 };
 }
 
-/** 層の節に `.claude/skills/<name>/SKILL.md` を宣言した最小の design-map を書く。 */
+/** 機能の節に `.claude/skills/<name>/SKILL.md` を宣言した最小の design-map を書く。 */
 function writeDesignMap(ts, names = ['s']) {
   mkdirSync(out(ts), { recursive: true });
   writeFileSync(
     path.join(out(ts), 'design-map.md'),
-    ['# dm', '## L2', ...names.map((n) => `### \`.claude/skills/${n}/SKILL.md\`（新規）`), ''].join('\n')
+    ['# dm', '## skills', ...names.map((n) => `### \`.claude/skills/${n}/SKILL.md\`（新規）`), ''].join('\n')
   );
 }
 
@@ -214,6 +214,33 @@ test('V8: .claude/hooks/ の hook ハンドラ実体は管理パス集合内、.
   assert.ok(r.violations.some((v) => v.includes('hooks/stray.sh')), r.violations.join(' / '));
 });
 
+test('V8: AGENTS.md・commands・output-styles は管理パス集合内、サブディレクトリの AGENTS.md は集合外', (t) => {
+  const ts = tsFor(import.meta.url, 14);
+  cleanupTs(t, ts);
+  const G = gen(ts);
+  skill(ts, 's');
+  writeDesignMap(ts);
+  mkdirSync(path.join(G, '.claude', 'commands'), { recursive: true });
+  mkdirSync(path.join(G, '.claude', 'output-styles'), { recursive: true });
+  mkdirSync(path.join(out(ts), 'deploy'), { recursive: true });
+  writeFileSync(path.join(G, 'AGENTS.md'), '# agents\n');
+  writeFileSync(path.join(G, '.claude', 'commands', 'deploy.md'), '---\ndescription: d\n---\nデプロイする\n');
+  writeFileSync(path.join(G, '.claude', 'output-styles', 'terse.md'), '---\nname: terse\ndescription: t\n---\n短く答える\n');
+  writeManifest(ts);
+  writeFileSync(
+    path.join(out(ts), 'deploy', 'managed-paths.list'),
+    '.claude/skills/s/SKILL.md\nAGENTS.md\n.claude/commands/deploy.md\n.claude/output-styles/terse.md\n'
+  );
+  assert.equal(v8(ts).ok, true, v8(ts).violations.join(' / '));
+
+  // 故意の違反注入: サブディレクトリの AGENTS.md は集合外のまま
+  mkdirSync(path.join(G, 'sub'), { recursive: true });
+  writeFileSync(path.join(G, 'sub', 'AGENTS.md'), '# sub\n');
+  const r = v8(ts);
+  assert.equal(r.ok, false);
+  assert.ok(r.violations.some((v) => v.includes('sub/AGENTS.md')), r.violations.join(' / '));
+});
+
 // ---- MANIFEST ⇔ generated/ と design-map ⇒ generated/ ----
 
 /** V8 が他の項目で落ちないよう、最小の正常な出力（skill 1件・design-map・list）を用意する。 */
@@ -257,11 +284,11 @@ test('V8 design-map（違反注入）: 宣言した成果物が generated/ に�
     path.join(out(ts), 'design-map.md'),
     [
       '# dm',
-      '## L2',
+      '## skills',
       '### `.claude/skills/s/SKILL.md`（新規）',
       '### `.claude/skills/dropped/SKILL.md`（新規）', // 脱落したファイル
       '### `.claude/skills/old/SKILL.md`（retire）', // 廃止は generated/ に無くてよい
-      '## L3',
+      '## subagents',
       '### `lost-agent`', // 名前だけの見出し → .claude/agents/lost-agent/lost-agent.md
       '',
     ].join('\n')
@@ -276,34 +303,34 @@ test('V8 design-map（違反注入）: 宣言した成果物が generated/ に�
 test('V8 design-map: 宣言がすべて実在すれば通過（対照。上の違反が vacuous でない証拠）', (t) => {
   const ts = baseline(t, 44);
   writeManifest(ts);
-  writeFileSync(path.join(out(ts), 'design-map.md'), '# dm\n## L2\n### `.claude/skills/s/SKILL.md`（新規）\n');
+  writeFileSync(path.join(out(ts), 'design-map.md'), '# dm\n## skills\n### `.claude/skills/s/SKILL.md`（新規）\n');
   assert.equal(v8(ts).ok, true, violationsOf(ts));
 });
 
-test('V8 design-map: 括弧書き付きの層見出し（## L2（builder））からも宣言を拾い、脱落を検出する', (t) => {
-  // designer は `## L1（builder）` のように括弧書きを付けて書く。完全一致だけだと宣言0件で vacuous pass する。
+test('V8 design-map: 括弧書き付きの機能見出し（## skills（builder））からも宣言を拾い、脱落を検出する', (t) => {
+  // designer は `## rules（builder）` のように括弧書きを付けて書く。完全一致だけだと宣言0件で vacuous pass する。
   const ts = baseline(t, 45);
   writeManifest(ts);
   writeFileSync(
     path.join(out(ts), 'design-map.md'),
-    ['# dm', '## L2（builder）', '### `.claude/skills/s/SKILL.md`（新規）', '### `.claude/skills/dropped/SKILL.md`（新規）', ''].join('\n')
+    ['# dm', '## skills（builder）', '### `.claude/skills/s/SKILL.md`（新規）', '### `.claude/skills/dropped/SKILL.md`（新規）', ''].join('\n')
   );
   const v = violationsOf(ts);
-  assert.match(v, /skills\/dropped\/SKILL\.md（L2 の見出し）/);
-  assert.doesNotMatch(v, /層の節/);
+  assert.match(v, /skills\/dropped\/SKILL\.md（skills の見出し）/);
+  assert.doesNotMatch(v, /機能の節/);
 });
 
-test('V8 design-map（違反注入）: 層の節が無いのに新規の生成物があれば違反。disposition だけの設計は通す', (t) => {
+test('V8 design-map（違反注入）: 機能の節が無いのに新規の生成物があれば違反。disposition だけの設計は通す', (t) => {
   const ts = baseline(t, 46);
   writeManifest(ts);
   writeFileSync(path.join(out(ts), 'design-map.md'), '# dm\n## スキル群\n### `.claude/skills/s/SKILL.md`（新規）\n');
-  assert.match(violationsOf(ts), /層の節/);
-  // 対照: 生成物が disposition（keep/modify）だけなら層の節が無くてよい
+  assert.match(violationsOf(ts), /機能の節/);
+  // 対照: 生成物が disposition（keep/modify）だけなら機能の節が無くてよい
   writeFileSync(
     path.join(out(ts), 'design-map.md'),
     '# dm\n## 既存判定\n```yaml\nexisting_disposition:\n  - path: .claude/skills/s/SKILL.md\n    disposition: modify\n    interface_change: none\n```\n'
   );
-  assert.doesNotMatch(violationsOf(ts), /層の節/);
+  assert.doesNotMatch(violationsOf(ts), /機能の節/);
 });
 
 test('V8 managed-paths.list（違反注入）: generated/ にあるのに list に無いファイルは違反（配置されない生成物）', (t) => {
