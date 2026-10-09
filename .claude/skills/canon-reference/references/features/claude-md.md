@@ -146,7 +146,7 @@ AGENTS.md を import する例:
 - **V-claude-md-10**: `settings:keys/pluginConfigs` の `cc-plugin-agents-md@builtin` の項目が、project・local の設定ファイル（`paths:files/project:.claude/settings.json`・`paths:files/local:.claude/settings.local.json`）に無い。[仕様]
 - **V-claude-md-11**: `settings:keys/pluginConfigs` の `cc-plugin-agents-md@builtin` の `options.instructionFiles` の値は、`claude-md-or-agents-md`・`claude-md-and-agents-md`・`claude-md`・`managed-only` のどれかである。[仕様]
 - **V-claude-md-12**: `settings:keys/autoMemoryDirectory` の値は、絶対パスか `~/` で始まる。[仕様]
-- **V-claude-md-13**: 生成物に `paths:files/user:~/.claude/projects/<project>/memory/` の下のファイルを含まない。[仕様]（canon の規律。§5）
+- **V-claude-md-13**: 生成物に `paths:files/user:~/.claude/projects/<project>/memory/` の下のファイルを含まない。（canon の規律で、公式の仕様ではない。§5）
 
 ## 7. 品質基準
 

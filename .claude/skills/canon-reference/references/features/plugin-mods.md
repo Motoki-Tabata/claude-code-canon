@@ -181,13 +181,13 @@ on('tool.call', { tool: 'Bash' }, guard).catch(async ($, e, next) => {
 
 ## 6. 検証ルール
 
-`mods:events` と `mods:api` は `complete: false` なので、名前が data に一致しないことだけでは不合格にしない。一致しない名前は「未判定」として、`claude plugin validate` の結果か型宣言で確かめる。
+`mods:events` と `mods:api` は `complete: false` なので、名前の照合で一致しないときは `quality.md` の V-common-01 に従う（違反とせず未判定にする）。未判定の名前は、`claude plugin validate` の結果か型宣言で確かめる。
 
 - **V-plugin-mods-01**: mod の plugin は `hooks/hooks.json` を持ち、その `modules` は要素がちょうど1つの配列である。[仕様]
 - **V-plugin-mods-02**: `modules` の要素が指すファイルは `hooks/hooks.json` からの相対パスで存在し、拡張子は `.js`・`.mjs`・`.cjs`・`.jsx`・`.ts`・`.mts`・`.cts`・`.tsx` のいずれかである。[仕様]
 - **V-plugin-mods-03**: hooks module が `register` を export している。[仕様]
-- **V-plugin-mods-04**: `on` の第1引数は文字列リテラルで、`mods:events` の `kind: event` の `id`、`classic.` に `hook-events:events` の `id` を付けたもの、`mods:api` の `kind: method` の `id` から `$.` を除いたもの、`*`、`classic.*` のいずれかに一致する。一致しないものは未判定とする。[仕様]
-- **V-plugin-mods-05**: `$.<namespace>.<method>` の形の呼び出しは、`mods:api` の `kind: method` の `id` のいずれかに一致する。一致しないものは未判定とする。[仕様]
+- **V-plugin-mods-04**: `on` の第1引数は文字列リテラルで、`mods:events` の `kind: event` の `id`、`classic.` に `hook-events:events` の `id` を付けたもの、`mods:api` の `kind: method` の `id` から `$.` を除いたもの、`*`、`classic.*` のいずれかに一致する。[仕様]
+- **V-plugin-mods-05**: `$.<namespace>.<method>` の形の呼び出しは、`mods:api` の `kind: method` の `id` のいずれかに一致する。[仕様]
 - **V-plugin-mods-06**: `telemetry.log`・`telemetry.mark` への `on` は、`mods:events/telemetry.log`・`mods:events/telemetry.mark` の `matcher_required` が示す `{ to: 'collector' }` のマッチャーを持つ。[仕様]
 - **V-plugin-mods-07**: `mods:events` で `generator: true` のイベント（`mods:events/turn.step`）への hook は async generator 関数（`async function*`）である。[仕様]
 - **V-plugin-mods-08**: 1つの module の中で、同じイベント名への `on` をマッチャー無しで2回以上呼んでいない（`mods:events`）。[仕様]

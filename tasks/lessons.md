@@ -27,13 +27,8 @@ claude-canon 本体（`.claude/**`・`lib/`・`gates/`・`tools/`・`design/`・
 
 ## 2026-10-09 正典リファレンスの data の規約に、解釈の割れる箇所がある（保守作業）
 - 種別: 欠陥修正
-- 何が起きたか: 手順3で担い手ごとに解釈が分かれた。`complete: true` のときの `complete_basis`、数字を使わない件数の表現（"the only field"）を `stated_total` にするか、同じページの別 anchor の値をオブジェクトにするか、公式の "Recommended" の表し方（今は `recommended: true`）、`marketplace:source-types` の `required` の意味、`paths:files` の `commit` の意味、`models:aliases` に公式が「エイリアスではない」とする `default` を含めるか。
+- 何が起きたか: 手順3で担い手ごとに解釈が分かれた。`complete: true` のときの `complete_basis`、数字を使わない件数の表現（"the only field"）を `stated_total` にするか、同じページの別 anchor の値をオブジェクトにするか、公式の "Recommended" の表し方（今は `recommended: true`）、`marketplace:source-types` の `required` の意味、`paths:files` の `commit` の意味。
 - 提案: `design/canon-reference-build.md` §4.1・§4.2 にそれぞれの決まりを1行ずつ足す。
-
-## 2026-10-09 正典リファレンスの機能ファイルの規約に、決めていない扱いがある（保守作業）
-- 種別: 欠陥修正
-- 何が起きたか: 手順3で、data に参照先の無い検証ルール（ファイル構成・canon の規律・CLI の終了コード）、`complete: false` のコレクションとの名前照合で一致しないときの判定（plugin-mods は「未判定」とした）、`selection-only` の spec ページを [仕様] の根拠にしてよいか、が担い手の判断になった。
-- 提案: `design/canon-reference-build.md` §5.1・§5.2 に扱いを足す。名前照合の扱いは `quality.md` の共通の検証ルールにする案もある。
 
 ## 2026-10-09 正典リファレンスの検査9の grep が普通の語に当たる（保守作業）
 - 種別: 欠陥修正
