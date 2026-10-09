@@ -1,6 +1,6 @@
 {
   "id": "settings",
-  "description": "settings ファイル（~/.claude/settings.json・.claude/settings.json・.claude/settings.local.json・managed settings）のキーのうち、canon の生成と検証で使うものの一覧。",
+  "description": "settings ファイル（~/.claude/settings.json・.claude/settings.json・.claude/settings.local.json・managed settings）のキーのうち canon の生成と検証で使うものと、settings ファイルでは無視され ~/.claude.json にだけ置く Global config のキーの一覧。",
   "collections": {
     "keys": {
       "description": "settings のキー。id はドット区切りの公式キー名。scopes はそのキーを置けるファイル（user・project・local・managed）で、公式の Settings index の Scope 列を写したもの。precedence_ja は settings のガイドのページが述べる、そのキーの結合・優先の例外。",
@@ -1115,6 +1115,122 @@
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference.md",
             "anchor": "#footerlinksregexes"
+          }
+        }
+      ]
+    },
+    "global-config-keys": {
+      "description": "`~/.claude.json` にだけ置くキー（Scope が Global config）。settings ファイルに書いても無視される。`kind: removed` は公式が削除済みと書くキー。",
+      "complete": true,
+      "complete_basis": "公式の Global config settings の節が全件を列挙しており、全部を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "autoConnectIde",
+          "kind": "current",
+          "description_ja": "外部の端末から起動したとき、動いている IDE に自動で接続する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#autoconnectide"
+          }
+        },
+        {
+          "id": "autoInstallIdeExtension",
+          "kind": "current",
+          "description_ja": "VS Code の端末から起動したとき、IDE の拡張を自動でインストールする。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#autoinstallideextension"
+          }
+        },
+        {
+          "id": "claudeInChromeDefaultEnabled",
+          "kind": "current",
+          "description_ja": "対話の CLI のセッションを Chrome 連携を有効にして始める。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#claudeinchromedefaultenabled"
+          }
+        },
+        {
+          "id": "copyFullResponse",
+          "kind": "current",
+          "description_ja": "`/copy` がコードブロックの選択を出さずに応答の全体をコピーする。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#copyfullresponse"
+          }
+        },
+        {
+          "id": "copyOnSelect",
+          "kind": "current",
+          "description_ja": "fullscreen rendering と agent view で、マウスで選んだテキストを自動でクリップボードにコピーする。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#copyonselect"
+          }
+        },
+        {
+          "id": "defaultToAgentsView",
+          "kind": "current",
+          "description_ja": "引数なしの `claude` で新しい会話ではなく agent view を開く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#defaulttoagentsview"
+          }
+        },
+        {
+          "id": "diffTool",
+          "kind": "current",
+          "description_ja": "IDE が接続しているとき、Edit・Write の差分を IDE の差分ビューアに開くか端末に留めるか。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#difftool"
+          }
+        },
+        {
+          "id": "externalEditorContext",
+          "kind": "current",
+          "description_ja": "Ctrl+G で外部エディタを開くとき、Claude の直前の応答をコメントとして入れる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#externaleditorcontext"
+          }
+        },
+        {
+          "id": "leftArrowOpensAgents",
+          "kind": "current",
+          "description_ja": "空のプロンプトで `←` を押すとセッションを background にして agent view を開く。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#leftarrowopensagents"
+          }
+        },
+        {
+          "id": "permissionExplainerEnabled",
+          "kind": "removed",
+          "description_ja": "削除済み。シェルの permission prompt でのコマンドの説明の表示を切り替えていた。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#permissionexplainerenabled"
+          }
+        },
+        {
+          "id": "prStatusFooterEnabled",
+          "kind": "current",
+          "description_ja": "プロンプトのフッターに現在のブランチの pull request の状態のバッジを出す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#prstatusfooterenabled"
+          }
+        },
+        {
+          "id": "teammateDefaultModel",
+          "kind": "removed",
+          "description_ja": "削除済み。agent team の teammate の既定のモデルを決めていた。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#teammatedefaultmodel"
           }
         }
       ]

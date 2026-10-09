@@ -6,6 +6,7 @@ sources:
   - https://code.claude.com/docs/en/commands.md
   - https://code.claude.com/docs/en/model-config.md
   - https://code.claude.com/docs/en/tools-reference.md
+  - https://code.claude.com/docs/en/sub-agents.md
 ---
 
 # Skills（Skill とコマンドファイル）
@@ -115,8 +116,8 @@ sources:
 
 ### 3.5 引数と文字列の置換
 
-- `$ARGUMENTS` は渡された引数の全体、`$ARGUMENTS[N]` と `$N` は0始まりの位置引数、`$name` は `arguments` で宣言した名前付きの引数である。どの置換先にも引数が入らないときは、本文の末尾に `ARGUMENTS: <value>` が足される。[仕様]
-- `${CLAUDE_SKILL_DIR}`（`SKILL.md` のあるディレクトリ）と `${CLAUDE_PROJECT_DIR}`（プロジェクトのルート）は、本文と `allowed-tools` の Bash ルールの両方で置換される。`${CLAUDE_PLUGIN_ROOT}` と `${CLAUDE_PLUGIN_DATA}` は、Plugin の Skill でだけ置換される。ほかに `${CLAUDE_SESSION_ID}` と `${CLAUDE_EFFORT}` がある。[仕様]
+- 置換される変数は `builtins:skill-substitutions` を見る。`scope: plugin` の変数は Plugin の Skill でだけ置換される。どの置換先にも引数が入らないときは、本文の末尾に `ARGUMENTS: <value>` が足される。[仕様]
+- `${CLAUDE_SKILL_DIR}` と `${CLAUDE_PROJECT_DIR}`（Plugin の Skill では `${CLAUDE_PLUGIN_ROOT}` と `${CLAUDE_PLUGIN_DATA}` も）は、本文と `allowed-tools` の Bash ルールの両方で置換される。[仕様]
 
 ### 3.6 動的なコンテキストの注入
 
@@ -135,7 +136,7 @@ sources:
 
 - `agent` で指定した種類の新しいサブエージェントを起動し、Skill の本文をそのプロンプトにする。`agent` を省略すると `general-purpose` になる。[仕様]
 - 既定ではバックグラウンドで動く。`background: false` にすると、呼んだターンの中で結果を待つ。バックグラウンドの fork は、バックグラウンドのサブエージェント向けの狭いツールの組で動く。また、セッションの checkpoint の外で編集するので、`/rewind` では戻らない。[仕様]
-- 組み込みの `Explore` と `Plan` は CLAUDE.md と git status を読み込まない。[仕様]
+- 組み込みのサブエージェントは `builtins:subagents` を見る。`skips_claude_md` が `true` のもの（`Explore` と `Plan`）は CLAUDE.md と git status を読み込まない。[仕様]
 
 ### 3.9 セッション中の変更と組み込みコマンド
 
@@ -267,7 +268,7 @@ sources:
 - **V-skills-06**: `allowed_values` を持つフィールド（`frontmatter:skill/effort`・`frontmatter:skill/context`・`frontmatter:skill/shell`）の値は、その `allowed_values` のいずれかである。[仕様]
 - **V-skills-07**: `type` が `boolean` のフィールド（`frontmatter:skill/disable-model-invocation`・`frontmatter:skill/user-invocable`・`frontmatter:skill/background`）の値は、`true`・`false`・`yes`・`no`・`on`・`off`・`1`・`0` のいずれかである（大文字小文字を問わない）。[仕様]
 - **V-skills-08**: `frontmatter:skill/agent` と `frontmatter:skill/background` は、`context: fork` と一緒にだけ書かれている。[仕様]
-- **V-skills-09**: `frontmatter:skill/agent` の値は、`Explore`・`Plan`・`general-purpose`、または対象のプロジェクトに定義されたサブエージェントの名前のいずれかである。[仕様]
+- **V-skills-09**: `frontmatter:skill/agent` の値は、`builtins:subagents` のいずれかの `id`、または対象のプロジェクトに定義されたサブエージェントの名前のいずれかである。[仕様]
 - **V-skills-10**: `description` と `when_to_use` の文字数の合計が 1,536 以下である。[仕様]
 - **V-skills-11**: `frontmatter:skill/compatibility` は 500 文字以下である。[仕様]
 - **V-skills-12**: Skill のフォルダ名は、大文字小文字を問わず `synced` ではない。Plugin の外の Skill のフォルダ名・コマンドファイル名・`name` は、`anthropic-skills` でなく、`anthropic-skills:` で始まらない。[仕様]
@@ -302,6 +303,7 @@ sources:
 - https://code.claude.com/docs/en/commands.md
 - https://code.claude.com/docs/en/model-config.md
 - https://code.claude.com/docs/en/tools-reference.md
+- https://code.claude.com/docs/en/sub-agents.md
 
 **insight**
 

@@ -69,9 +69,9 @@ Claude Code のカスタマイズについて、canon が機能選定・設計�
 |---|---|---|
 | `paths.json` | カスタマイズのファイルとディレクトリの配置（スコープごと） | `files` |
 | `frontmatter.json` | 各ファイルの種類が受け付ける frontmatter のキー | `skill`・`command`・`subagent`・`plugin-agent`・`rule`・`output-style` |
-| `hook-events.json` | Hook のイベント・ハンドラーの種別・exit code・共通の入出力 | `events`・`handler-types`・`exit-codes`・`common-input`・`common-output` |
+| `hook-events.json` | Hook のイベント・ハンドラーの種別と共通のフィールド・exit code・共通の入出力 | `events`・`handler-types`・`handler-common-fields`・`exit-codes`・`common-input`・`common-output` |
 | `tools.json` | 組み込みツールの正規名 | `tools` |
-| `settings.json` | settings ファイルのキー（canon が使うもの） | `keys` |
+| `settings.json` | settings ファイルのキー（canon が使うもの）と、`~/.claude.json` にだけ置く Global config のキー | `keys`・`global-config-keys` |
 | `permissions.json` | permission 規則の書式・モード・サンドボックスのキー | `rule-syntax`・`modes`・`sandbox-keys` |
 | `plugin-manifest.json` | プラグインの manifest のフィールドとコンポーネント | `fields`・`components` |
 | `marketplace.json` | マーケットプレイスのフィールドとソースの種別 | `fields`・`source-types` |
@@ -79,16 +79,17 @@ Claude Code のカスタマイズについて、canon が機能選定・設計�
 | `models.json` | モデルのエイリアスと特別な値 | `aliases` |
 | `builtin-commands.json` | 組み込みのコマンド・bundled skill・bundled workflow | `commands` |
 | `env-vars.json` | 環境変数（canon の生成物が参照しうるもの） | `vars` |
-| `statusline.json` | status line のコマンドが受け取る JSON のフィールド | `input-fields` |
-| `mods.json` | Mods のイベントと mods API | `events`・`api` |
+| `statusline.json` | status line のコマンドが受け取る JSON のフィールドと、subagent status line の `tasks` の要素のフィールド | `input-fields`・`subagent-task-fields` |
+| `mods.json` | Mods のイベント・mods API・ファイルの構成・描画の site と要素・上限 | `events`・`api`・`files`・`render-sites`・`elements`・`limits` |
+| `builtins.json` | Claude Code が組み込みで持つ名前（出力スタイル・サブエージェントの種類・Skill の置換変数） | `output-styles`・`subagents`・`skill-substitutions` |
 
 `data/settings.json` と `data/mcp.json` は、Claude Code が読む設定ファイルではない。
 
 ### コレクションの読み方
 
 - **`complete`**: `true` なら、公式が列挙した全件を収めている。`false` なら一部だけで、理由が `complete_basis` にある。`false` のコレクションに無い名前を「存在しない」と扱わない（`references/quality.md` の V-common-01）。
-- **`stated_total`**: 公式ページが件数を本文に明記しているときだけ値がある。
-- **`source`**: 要素ごとに、根拠のページ（`url`）と見出しの `anchor` を持つ。要素の中で別のページを根拠にする値は、その値自身が `source` を持つ。
+- **`stated_total`**: 公式ページが件数を本文に明記しているとき（"the only field" のように語で述べるときを含む）だけ値がある。
+- **`source`**: 要素ごとに、根拠のページ（`url`）と見出しの `anchor` を持つ。要素の中で別のページか同じページの別の見出しを根拠にする値は、その値自身が `source` を持つ。
 - **`kind`**: 同じ表に性質の違う値が並ぶコレクションでは、要素の `kind` で区別する（例: `models:aliases/default` は `kind: special`）。意味はコレクションの `description` にある。
 - 説明の文は `description_ja` にある。
 

@@ -51,6 +51,7 @@ audience: [ai, human]
 | `statusline.md` | status line の設定とスクリプト | `statusline` |
 
 - 表に無い行（例: `workflows/*.js`・`.worktreeinclude`・`keybindings.json`・`themes/*.json`・`~/.claude.json`）は、既存の機能ファイルに含めるか、新しい機能ファイルを作るか、選定ガイドに選択肢として載せるだけにするか、扱わないかを決め、理由を `placeable_files` に書く。新しい機能ファイルを作るときは、構築を始める前に人の承認を取る。
+- `placeable_files` の範囲は File reference 表の行だけにする。プラグインにしか無いファイル（`.claude-plugin/plugin.json`・`hooks/hooks.json`・`.lsp.json`・`monitors/monitors.json`・`bin/` など）は `placeable_files` に入れず、`paths:files` に `scope: plugin`・`feature: plugins` の行として置く。中身の書式は `plugins.md` から各機能ファイル（`hooks.md` など）を参照する。
 - 1ファイルが大きすぎるときは、公式の章立てに合わせて分割してよい（例: `plugins.md` → `plugins.md` と `plugin-marketplace.md`）。分割したら `SKILL.md` の索引と `sources.json` の割り当てを合わせる。
 - 運用の機能（routines・scheduled tasks・channels・agent teams・worktrees・GitHub Actions など）は機能ファイルを作らず、`selection.md` に選択肢として載せる。
 
@@ -81,10 +82,11 @@ audience: [ai, human]
 |---|---|---|
 | `spec` | `https://code.claude.com/docs/llms.txt` に載る `https://code.claude.com/docs/en/` 配下の全ページ | 一覧は `llms.txt`。本文は各ページの `.md` 版を `curl -sSL <url>` で取得する |
 | `version` | `https://code.claude.com/docs/en/changelog.md`・`https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md`・`whats-new/*` | `curl -sSL` |
-| `insight` | Anthropic が発信する設計の知見（下の一覧） | `.md` 版があればそれを `curl` で、無ければ WebFetch |
+| `insight` | Anthropic が発信する設計の知見（下の一覧） | `.md` 版があればそれを `curl` で取る。無ければ HTML を `curl` で取り、タグを除いたテキストにする |
 
 - 本文は **WebFetch ではなく `curl` で `.md` 版を全文取得する**。WebFetch は長い表を途中で落とすことがあり、同じページでも取得のたびに結果が変わる。`.md` 版は数百KB のページ（`hooks`・`env-vars` など）でも途切れない。
 - `llms.txt` の `## Indexes` 節にある `https://code.claude.com/docs/_llms/<言語>.md` は翻訳版の索引なので分類の対象にしない。対象は `/docs/en/` 配下だけで、ページ数は一意な URL で数える。
+- `insight` の引用は、取得した原文（HTML から作ったテキストを含む）に grep で照合してから書く。WebFetch の要約を引用の根拠にしない。
 - 取得物は scratchpad に置き、リポジトリには入れない。
 
 `insight` の候補は次のとおり。ほかの Anthropic 発信の情報を使うときも、発信元が Anthropic であることを確かめてから `sources.json` の `insights` に足す。コミュニティの情報は使わない。
@@ -187,12 +189,13 @@ audience: [ai, human]
 }
 ```
 
-- **`items` の要素1つが1つの事実**（イベント1つ・フィールド1つ・ツール1つ）で、要素ごとに `source`（`url` と見出しの `anchor`）を持つ。要素の中の値はその `source` に従う。要素の中に別のページを根拠にする値があれば、その値をオブジェクトにして `source` を付ける。
+- **`items` の要素1つが1つの事実**（イベント1つ・フィールド1つ・ツール1つ）で、要素ごとに `source`（`url` と見出しの `anchor`）を持つ。要素の中の値はその `source` に従う。要素の中に別のページ、または同じページの別の `anchor` を根拠にする値があれば、その値をオブジェクトにして `source` を付ける。
 - `anchor` は、公開ページの HTML に実在する `id` を `#` 付きで書く（`.md` の見出しから推測しない。`.` は `-` になり、`’` などの記号は残る）。表の行に付く `id`（例: `settings-reference` のキーごとの `#sandbox-enabled`）も使ってよい。根拠が最初の見出しより前（ページの冒頭）にあるときは `""` にする。
 - `source.url` は `sources.json` の `pages` にあり `treatment` が `detailed` のページだけを指す。`insight` を `data/` の根拠にしない。
 - `id` はコレクションの中で一意にする。公式の名前があればそれを使う（イベント名・ツール名・キー名）。
-- **`complete`** は、公式が全件を列挙していて、それを全部収めたときだけ `true` にする。`false` のときは `complete_basis` に理由を書く（「公式が全件を列挙していない」「生成で使うものだけを選んだ。選んだ基準は…」のどちらか）。`false` のコレクションで見つからないものを「無い」と扱わない。
-- **`stated_total`** は、公式ページが件数を本文に明記しているときだけその数を入れる。入れたら `items` の件数と一致させる。
+- **`complete`** は、公式が全件を列挙していて、それを全部収めたときだけ `true` にする。`complete_basis` は `true` でも `false` でも書く。`true` なら全件だと言える根拠（どの表・節が列挙しているか）を、`false` なら理由（「公式が全件を列挙していない」「生成で使うものだけを選んだ。選んだ基準は…」のどちらか）を書く。`false` のコレクションで見つからないものを「無い」と扱わない。
+- **`stated_total`** は、公式ページが件数を本文に明記しているときだけその数を入れる。数字でなく語で述べるとき（"the only field"・"three scopes"）も明記に数える。入れたら `items` の件数と一致させる。
+- 公式が "Recommended" と書く値は、要素に `recommended: true` を持たせて表す。
 - 時点の情報（日付・版番号）は書かない（§10）。
 - 公式の同じ表に並ぶが性質の違う値（例: Model aliases の表の `default`。公式は「エイリアスではない」と明記する）は、コレクションに含めてよい。含めたら要素に `kind` を持たせて区別し、その意味をコレクションの `description` に書く。
 
@@ -204,9 +207,9 @@ audience: [ai, human]
 |---|---|---|---|
 | `paths.json` | `files` | `id`・`path`・`kind`（`file`/`dir`）・`scope`（`managed`/`user`/`project`/`local`/`plugin`）・`commit`（真偽）・`feature` | `claude-directory`・`settings`・`memory` |
 | `frontmatter.json` | `skill`・`command`・`subagent`・`plugin-agent`・`rule`・`output-style` | `id`（キー）・`type`・`required`・`default`・`allowed_values`・`description_ja` | `skills`・`sub-agents`・`plugins/components`・`memory`・`output-styles` |
-| `hook-events.json` | `events`・`handler-types`・`exit-codes`・`common-input`・`common-output` | events: `id`・`matcher_target`・`can_block`・`input_fields`・`decision_fields` | `hooks` |
+| `hook-events.json` | `events`・`handler-types`・`handler-common-fields`・`exit-codes`・`common-input`・`common-output` | events: `id`・`matcher_target`・`can_block`・`input_fields`・`decision_fields` | `hooks` |
 | `tools.json` | `tools` | `id`（正規のツール名）・`permission_required`・`description_ja` | `tools-reference` |
-| `settings.json` | `keys` | `id`（ドット区切りのキー）・`type`・`scopes`・`description_ja` | `settings-reference` |
+| `settings.json` | `keys`・`global-config-keys` | keys: `id`（ドット区切りのキー）・`type`・`scopes`・`description_ja`。global-config-keys: `id`・`kind`（`current`/`removed`）・`description_ja` | `settings-reference` |
 | `permissions.json` | `rule-syntax`・`modes`・`sandbox-keys` | rule-syntax: `id`（ツール）・`specifier_forms`。modes: `id`・`description_ja` | `permissions`・`permission-modes`・`sandboxing` |
 | `plugin-manifest.json` | `fields`・`components` | `id`・`type`・`required`・`description_ja` | `plugins/manifest-reference`・`plugins/components` |
 | `marketplace.json` | `fields`・`source-types` | `id`・`type`・`required`・`description_ja` | `plugins/marketplace-reference` |
@@ -214,10 +217,15 @@ audience: [ai, human]
 | `models.json` | `aliases` | `id`（エイリアス）・`description_ja` | `model-config` |
 | `builtin-commands.json` | `commands` | `id`（`/` を除いた名前） | `commands` |
 | `env-vars.json` | `vars` | `id`・`description_ja`・`used_for` | `env-vars` |
-| `statusline.json` | `input-fields` | `id`（ドット区切りのフィールド名）・`type`・`description_ja` | `statusline` |
-| `mods.json` | `events`・`api` | `id`・`description_ja` | `plugins/mods/*` |
+| `statusline.json` | `input-fields`・`subagent-task-fields` | `id`（ドット区切りのフィールド名）・`type`・`description_ja`（subagent-task-fields は `optional` も） | `statusline` |
+| `mods.json` | `events`・`api`・`files`・`render-sites`・`elements`・`limits` | `id`・`description_ja`（render-sites と elements は `description_ja` の代わりに公式の列の `props`・`surfaces`、limits は `target`・`value`） | `plugins/mods/*` |
+| `builtins.json` | `output-styles`・`subagents`・`skill-substitutions` | `id`（Claude Code が組み込みで持つ名前）・`description_ja` | `output-styles`・`sub-agents`・`skills` |
 
 - `settings.json` と `env-vars.json` は生成で使うものだけを選ぶので `complete: false` にし、選んだ基準を `complete_basis` に書く。
+- `builtins.json` は、Claude Code が組み込みで持つ名前のうち、ほかのファイルの主題に収まらないもの（出力スタイル・サブエージェントの種類・Skill の置換変数）を置く。組み込みのツールとコマンドは `tools.json`・`builtin-commands.json` に置く。
+- hook の matcher の評価規則は名前の一覧ではなく規則なので、`data/` に置かず `hooks.md` の本文に書く。
+- `marketplace:source-types` の `required` は、公式が必須と明記したフィールドの `id` の配列にする。明記が無ければ `null` にする。
+- `paths:files` の `commit` は、そのリポジトリ（`scope: plugin` はプラグインのリポジトリ）にコミットして共有する前提かを表す。
 - `data/settings.json` と `data/mcp.json` は Claude Code が読む設定ファイルではない（Claude Code が読むのは `.claude/settings.json` と `.mcp.json` だけ）。
 
 ---
@@ -306,6 +314,7 @@ sources: [<この機能が根拠にする spec ページの URL>]
 
 - 手順4は機能ごとに独立しているので、機能ごとにサブエージェントを1つずつ、1ターンで並列に起動する。
 - 委譲のプロンプトには、本書の該当節（§4・§5.1〜§5.3・§10）、担当の機能と書いてよい `data/` のコレクション、担当のページの URL と取得の仕方（§3.1）、**日本語で書くこと**を明記する。
+- 委譲のプロンプトには、ファイルは Write で書くこと、シェルで書くならヒアドキュメントの区切りを引用符で囲むこと（`<<'EOF'`）も明記する。引用符が無いと本文のバッククォートが展開され、コマンドが実行される。
 - サブエージェントは自分の担当以外のファイルを書かない。担当外の不足に気づいたら、報告に書く。
 
 ---
@@ -324,7 +333,7 @@ sources: [<この機能が根拠にする spec ページの URL>]
 | 6 | `features/*.md` が §5.2 の8つの見出しをこの順で持つ（コードフェンスの中の行は数えない） | スクリプト |
 | 7 | 本文の `data/` 参照（`` `<id>:<collection>/<item>` ``）がすべて解決する | スクリプト |
 | 8 | `V-`・`Q-` の ID がファイルの中で連番になっていて、リファレンス全体で一意 | スクリプト |
-| 9 | 本文に日付の注記・「解決済」・取り消し線（`~~`）・独自のレイヤー用語（`L1`〜`L5`・`2層`・`3層`）が無い | grep |
+| 9 | 本文に日付の注記・「解決済」・取り消し線（`~~`）・独自のレイヤー用語が無い | grep。レイヤー用語は語の境界付きの `L[1-5]`（`WSL2` に当てない）と、`N層構成`・`N層の` のような独自の用語の形に絞る（「3層下まで」のような普通の言い回しに当てない） |
 | 10 | 件数を持つコレクションが、独立した2回の取得で一致している（§6） | 手順5の結果 |
 | 11 | `SKILL.md` の索引が全ての `references/` のファイルを指し、リンクが解決する | スクリプト |
 | 12 | `npm test` が通る | `npm test` |

@@ -1348,7 +1348,7 @@
       ]
     },
     "handler-types": {
-      "description": "ハンドラーの種別（handler の type の値）。fields は共通のフィールド（common: true）と種別固有のフィールドを持つ。",
+      "description": "ハンドラーの種別（handler の type の値）。fields は種別固有のフィールドで、すべての種別に共通のフィールドは hook-events:handler-common-fields にある。",
       "complete": true,
       "complete_basis": "公式ページが種別を5つと明記して列挙している",
       "stated_total": 5,
@@ -1359,63 +1359,28 @@
           "default_timeout_sec": 600,
           "fields": [
             {
-              "id": "type",
-              "required": true,
-              "common": true,
-              "description_ja": "ハンドラーの種別。hook-events:handler-types の id のどれか"
-            },
-            {
-              "id": "if",
-              "required": false,
-              "common": true,
-              "description_ja": "permission rule の構文でツール名と引数を絞る条件。規則は1つだけ書ける。ツールのイベント（PreToolUse・PostToolUse・PostToolUseFailure・PermissionRequest・PermissionDenied）でだけ評価され、ほかのイベントで書くとそのハンドラーは動かない"
-            },
-            {
-              "id": "timeout",
-              "required": false,
-              "common": true,
-              "description_ja": "取り消すまでの秒数"
-            },
-            {
-              "id": "statusMessage",
-              "required": false,
-              "common": true,
-              "description_ja": "ハンドラーが動いている間に出すスピナーの文言"
-            },
-            {
-              "id": "once",
-              "required": false,
-              "common": true,
-              "description_ja": "true なら最初に成功した後で外す。skill の frontmatter で宣言したフックでだけ効き、settings と agent の frontmatter では無視される"
-            },
-            {
               "id": "command",
               "required": true,
-              "common": false,
               "description_ja": "実行するシェルコマンド。args があるときは直接起動する実行ファイル"
             },
             {
               "id": "args",
               "required": false,
-              "common": false,
               "description_ja": "引数の配列。あるとシェルを通さず command を実行ファイルとして直接起動する（exec form）"
             },
             {
               "id": "async",
               "required": false,
-              "common": false,
               "description_ja": "true ならバックグラウンドで動かし、ブロックしない"
             },
             {
               "id": "asyncRewake",
               "required": false,
-              "common": false,
               "description_ja": "true ならバックグラウンドで動かし、exit 2 で Claude を起こす"
             },
             {
               "id": "shell",
               "required": false,
-              "common": false,
               "description_ja": "使うシェル。\"bash\" か \"powershell\"。args があるときは無視される"
             }
           ],
@@ -1431,51 +1396,18 @@
           "default_timeout_sec": 600,
           "fields": [
             {
-              "id": "type",
-              "required": true,
-              "common": true,
-              "description_ja": "ハンドラーの種別。hook-events:handler-types の id のどれか"
-            },
-            {
-              "id": "if",
-              "required": false,
-              "common": true,
-              "description_ja": "permission rule の構文でツール名と引数を絞る条件。規則は1つだけ書ける。ツールのイベント（PreToolUse・PostToolUse・PostToolUseFailure・PermissionRequest・PermissionDenied）でだけ評価され、ほかのイベントで書くとそのハンドラーは動かない"
-            },
-            {
-              "id": "timeout",
-              "required": false,
-              "common": true,
-              "description_ja": "取り消すまでの秒数"
-            },
-            {
-              "id": "statusMessage",
-              "required": false,
-              "common": true,
-              "description_ja": "ハンドラーが動いている間に出すスピナーの文言"
-            },
-            {
-              "id": "once",
-              "required": false,
-              "common": true,
-              "description_ja": "true なら最初に成功した後で外す。skill の frontmatter で宣言したフックでだけ効き、settings と agent の frontmatter では無視される"
-            },
-            {
               "id": "url",
               "required": true,
-              "common": false,
               "description_ja": "POST する URL"
             },
             {
               "id": "headers",
               "required": false,
-              "common": false,
               "description_ja": "追加の HTTP ヘッダー。値に $VAR_NAME・${VAR_NAME} を書けるが、allowedEnvVars にある変数だけが展開される"
             },
             {
               "id": "allowedEnvVars",
               "required": false,
-              "common": false,
               "description_ja": "ヘッダーの値に展開してよい環境変数名の一覧。無いと環境変数は展開されない"
             }
           ],
@@ -1492,51 +1424,18 @@
           "default_timeout_sec": 600,
           "fields": [
             {
-              "id": "type",
-              "required": true,
-              "common": true,
-              "description_ja": "ハンドラーの種別。hook-events:handler-types の id のどれか"
-            },
-            {
-              "id": "if",
-              "required": false,
-              "common": true,
-              "description_ja": "permission rule の構文でツール名と引数を絞る条件。規則は1つだけ書ける。ツールのイベント（PreToolUse・PostToolUse・PostToolUseFailure・PermissionRequest・PermissionDenied）でだけ評価され、ほかのイベントで書くとそのハンドラーは動かない"
-            },
-            {
-              "id": "timeout",
-              "required": false,
-              "common": true,
-              "description_ja": "取り消すまでの秒数"
-            },
-            {
-              "id": "statusMessage",
-              "required": false,
-              "common": true,
-              "description_ja": "ハンドラーが動いている間に出すスピナーの文言"
-            },
-            {
-              "id": "once",
-              "required": false,
-              "common": true,
-              "description_ja": "true なら最初に成功した後で外す。skill の frontmatter で宣言したフックでだけ効き、settings と agent の frontmatter では無視される"
-            },
-            {
               "id": "server",
               "required": true,
-              "common": false,
               "description_ja": "設定済みの MCP サーバー名。プラグイン同梱のサーバーは plugin:<plugin-name>:<server-name>"
             },
             {
               "id": "tool",
               "required": true,
-              "common": false,
               "description_ja": "そのサーバーで呼ぶツール名"
             },
             {
               "id": "input",
               "required": false,
-              "common": false,
               "description_ja": "ツールに渡す引数。文字列の値に ${path} でフックの JSON 入力を差し込める（例: ${tool_input.file_path}）"
             }
           ],
@@ -1552,39 +1451,8 @@
           "default_timeout_sec": 30,
           "fields": [
             {
-              "id": "type",
-              "required": true,
-              "common": true,
-              "description_ja": "ハンドラーの種別。hook-events:handler-types の id のどれか"
-            },
-            {
-              "id": "if",
-              "required": false,
-              "common": true,
-              "description_ja": "permission rule の構文でツール名と引数を絞る条件。規則は1つだけ書ける。ツールのイベント（PreToolUse・PostToolUse・PostToolUseFailure・PermissionRequest・PermissionDenied）でだけ評価され、ほかのイベントで書くとそのハンドラーは動かない"
-            },
-            {
-              "id": "timeout",
-              "required": false,
-              "common": true,
-              "description_ja": "取り消すまでの秒数"
-            },
-            {
-              "id": "statusMessage",
-              "required": false,
-              "common": true,
-              "description_ja": "ハンドラーが動いている間に出すスピナーの文言"
-            },
-            {
-              "id": "once",
-              "required": false,
-              "common": true,
-              "description_ja": "true なら最初に成功した後で外す。skill の frontmatter で宣言したフックでだけ効き、settings と agent の frontmatter では無視される"
-            },
-            {
               "id": "prompt",
               "required": true,
-              "common": false,
               "description_ja": "モデルに送るプロンプト。$ARGUMENTS がフックの入力 JSON に置き換わる。無ければ入力 JSON を末尾に足す",
               "source": {
                 "url": "https://code.claude.com/docs/en/hooks.md",
@@ -1594,13 +1462,11 @@
             {
               "id": "model",
               "required": false,
-              "common": false,
               "description_ja": "判定に使うモデル。既定はバックグラウンドの機能に使うモデル"
             },
             {
               "id": "continueOnBlock",
               "required": false,
-              "common": false,
               "description_ja": "対応するイベントで、ok: false の理由を Claude に返してターンを続ける。既定は false",
               "source": {
                 "url": "https://code.claude.com/docs/en/hooks.md",
@@ -1620,45 +1486,13 @@
           "default_timeout_sec": 60,
           "fields": [
             {
-              "id": "type",
-              "required": true,
-              "common": true,
-              "description_ja": "ハンドラーの種別。hook-events:handler-types の id のどれか"
-            },
-            {
-              "id": "if",
-              "required": false,
-              "common": true,
-              "description_ja": "permission rule の構文でツール名と引数を絞る条件。規則は1つだけ書ける。ツールのイベント（PreToolUse・PostToolUse・PostToolUseFailure・PermissionRequest・PermissionDenied）でだけ評価され、ほかのイベントで書くとそのハンドラーは動かない"
-            },
-            {
-              "id": "timeout",
-              "required": false,
-              "common": true,
-              "description_ja": "取り消すまでの秒数"
-            },
-            {
-              "id": "statusMessage",
-              "required": false,
-              "common": true,
-              "description_ja": "ハンドラーが動いている間に出すスピナーの文言"
-            },
-            {
-              "id": "once",
-              "required": false,
-              "common": true,
-              "description_ja": "true なら最初に成功した後で外す。skill の frontmatter で宣言したフックでだけ効き、settings と agent の frontmatter では無視される"
-            },
-            {
               "id": "prompt",
               "required": true,
-              "common": false,
               "description_ja": "サブエージェントに渡すプロンプト。$ARGUMENTS がフックの入力 JSON に置き換わる"
             },
             {
               "id": "model",
               "required": false,
-              "common": false,
               "description_ja": "使うモデル。既定はバックグラウンドの機能に使うモデル"
             }
           ],
@@ -1666,6 +1500,59 @@
           "source": {
             "url": "https://code.claude.com/docs/en/hooks.md",
             "anchor": "#prompt-and-agent-hook-fields"
+          }
+        }
+      ]
+    },
+    "handler-common-fields": {
+      "description": "すべてのハンドラーの種別に共通のフィールド。",
+      "complete": true,
+      "complete_basis": "公式の Common fields の表が全件を列挙しており、全部を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "type",
+          "required": true,
+          "description_ja": "ハンドラーの種別。hook-events:handler-types の id のどれか",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-fields"
+          }
+        },
+        {
+          "id": "if",
+          "required": false,
+          "description_ja": "permission rule の構文でツール名と引数を絞る条件。規則は1つだけ書ける。ツールのイベント（PreToolUse・PostToolUse・PostToolUseFailure・PermissionRequest・PermissionDenied）でだけ評価され、ほかのイベントで書くとそのハンドラーは動かない",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-fields"
+          }
+        },
+        {
+          "id": "timeout",
+          "required": false,
+          "description_ja": "取り消すまでの秒数",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-fields"
+          }
+        },
+        {
+          "id": "statusMessage",
+          "required": false,
+          "description_ja": "ハンドラーが動いている間に出すスピナーの文言",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-fields"
+          }
+        },
+        {
+          "id": "once",
+          "required": false,
+          "description_ja": "true なら最初に成功した後で外す。skill の frontmatter で宣言したフックでだけ効き、settings と agent の frontmatter では無視される",
+          "source": {
+            "url": "https://code.claude.com/docs/en/hooks.md",
+            "anchor": "#common-fields"
           }
         }
       ]

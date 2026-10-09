@@ -1,6 +1,6 @@
 {
   "id": "statusline",
-  "description": "status line（settings の statusLine）のコマンドが標準入力で受け取る JSON のフィールドの一覧。",
+  "description": "status line（settings の statusLine）のコマンドが標準入力で受け取る JSON のフィールドと、subagentStatusLine のコマンドが受け取る tasks 配列の要素のフィールドの一覧。",
   "collections": {
     "input-fields": {
       "description": "status line のコマンドが標準入力で受け取る JSON のフィールド。id はドット区切りのフィールド名。`Available data` の表の各フィールドと、`context_window.current_usage`・`prompt_cache`・`prompt_cache.last_miss_cause` の下位フィールドを収める。`may_be_absent` は JSON に現れないことがあるフィールド、`nullable` は値が null になりうるフィールドを示す。",
@@ -775,6 +775,154 @@
           "source": {
             "url": "https://code.claude.com/docs/en/statusline.md",
             "anchor": "#available-data"
+          }
+        }
+      ]
+    },
+    "subagent-task-fields": {
+      "description": "subagentStatusLine のコマンドが標準入力で受け取る `tasks` 配列の要素（エージェントパネルのサブエージェントの1行）のフィールド。`optional: true` のフィールドは値が無いと省かれる。",
+      "complete": true,
+      "complete_basis": "公式の Task fields の表が全件を列挙しており、全部を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "id",
+          "type": "string",
+          "optional": false,
+          "description_ja": "タスクの識別子。書き戻す行の `id` にこの値を入れる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#task-fields"
+          }
+        },
+        {
+          "id": "name",
+          "type": "string",
+          "optional": true,
+          "description_ja": "サブエージェントを呼ぶときの名前（あるとき）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#task-fields"
+          }
+        },
+        {
+          "id": "type",
+          "type": "string",
+          "optional": false,
+          "description_ja": "タスクの種類。`local_agent`。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#task-fields"
+          }
+        },
+        {
+          "id": "agentType",
+          "type": "string",
+          "optional": false,
+          "description_ja": "タスクが動くサブエージェントの種類（組み込みの `Explore` やカスタムの `code-reviewer` など）。hooks が `agent_type` として受け取る値と同じ。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#task-fields"
+          }
+        },
+        {
+          "id": "status",
+          "type": "string",
+          "optional": false,
+          "description_ja": "タスクの状態（`running`・`completed`・`failed`・`killed` など）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#task-fields"
+          }
+        },
+        {
+          "id": "description",
+          "type": "string",
+          "optional": false,
+          "description_ja": "タスクの短い説明（Claude が起動時に付けたものなど）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#task-fields"
+          }
+        },
+        {
+          "id": "label",
+          "type": "string",
+          "optional": false,
+          "description_ja": "進み具合の短い要約。無ければ `description` と同じ文。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#task-fields"
+          }
+        },
+        {
+          "id": "startTime",
+          "type": "number",
+          "optional": false,
+          "description_ja": "開始時刻（Unix エポックからのミリ秒）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#task-fields"
+          }
+        },
+        {
+          "id": "model",
+          "type": "string",
+          "optional": true,
+          "description_ja": "解決済みのモデルの ID。解決するまで省かれる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#task-fields"
+          }
+        },
+        {
+          "id": "effort",
+          "type": "string or number",
+          "optional": true,
+          "description_ja": "定義の frontmatter か呼び出しで設定した effort（`low`〜`max` か数値のトークン予算）。設定値であり、実際に効く値とは違うことがある。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#task-fields"
+          }
+        },
+        {
+          "id": "contextWindowSize",
+          "type": "number",
+          "optional": true,
+          "description_ja": "`model` のコンテキストウィンドウのトークン数。`model` が無ければ省かれる。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#task-fields"
+          }
+        },
+        {
+          "id": "tokenCount",
+          "type": "number",
+          "optional": false,
+          "description_ja": "サブエージェントの累計トークン数。既定の行が表示する値。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#task-fields"
+          }
+        },
+        {
+          "id": "tokenSamples",
+          "type": "array of numbers",
+          "optional": false,
+          "description_ja": "直近最大16回の `tokenCount`（古い順で、最後が現在の値）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#task-fields"
+          }
+        },
+        {
+          "id": "cwd",
+          "type": "string",
+          "optional": false,
+          "description_ja": "サブエージェントの作業ディレクトリ（独自のディレクトリ、たとえば隔離された worktree で動くならそれ）。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/statusline.md",
+            "anchor": "#task-fields"
           }
         }
       ]

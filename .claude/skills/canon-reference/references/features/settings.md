@@ -36,7 +36,7 @@ settings は、Claude Code の振る舞いを変える JSON のキーである�
 
 - **Claude への指示**は settings では書けない。Claude Code のシステムプロンプトは公開されておらず、常に効く指示は CLAUDE.md（または `--append-system-prompt`）で与える。CLAUDE.md は Claude が読む指示であり、settings はクライアントが強制する設定である。
 - **チームで共有する MCP サーバーの定義**は settings ではなく、プロジェクトのルートの `.mcp.json` に置く。settings に置くのは、その承認と許可・拒否のリストである。個人の MCP サーバーは `~/.claude.json` に入る。
-- **Global config のキー**（`autoConnectIde` など）は `~/.claude.json` にだけ置く。settings ファイルに書いても無視される。
+- **Global config のキー**（`settings:global-config-keys`）は `~/.claude.json` にだけ置く。settings ファイルに書いても無視される。
 - **1セッションだけ試す**なら、ファイルを書かずに `--settings`、キーごとのフラグ（`--model` など）、対になる環境変数を使う。
 
 ## 3. 仕様の要約
@@ -76,7 +76,7 @@ settings は、Claude Code の振る舞いを変える JSON のキーである�
 
 [仕様] `.claude/settings.json` にコミットしたキーが全員に効かない理由は2つある。
 
-- **リポジトリのファイルでは無視されるキー**: Scope が `User, local, or managed`・`User or managed`・`Managed`・`Global config` のキー。`permissions.defaultMode` の `auto` と `bypassPermissions` も、project と local の settings からは効かない。`env` の中では、一部の変数（`env-vars:vars/CLAUDE_CONFIG_DIR` やテレメトリの出力先など）が project と local から無視される。
+- **リポジトリのファイルでは無視されるキー**: Scope が `User, local, or managed`・`User or managed`・`Managed` のキーと、Global config のキー（`settings:global-config-keys`。どの settings ファイルでも無視される）。`permissions.defaultMode` の `auto` と `bypassPermissions` も、project と local の settings からは効かない。`env` の中では、一部の変数（`env-vars:vars/CLAUDE_CONFIG_DIR` やテレメトリの出力先など）が project と local から無視される。
 - **信頼を待つキー**: `permissions.allow`・`permissions.additionalDirectories`・`extraKnownMarketplaces`・`env` の大半の値は、各自がフォルダを信頼した後にだけ効く。`deny` と `ask` はすぐに効く。
 
 ### 3.4 書式と検証

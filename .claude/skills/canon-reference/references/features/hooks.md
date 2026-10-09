@@ -54,7 +54,7 @@ sources:
 
 ハンドラー:
 
-- 種別ごとのフィールドと既定のタイムアウトは `hook-events:handler-types` を見る。どの種別を使えるかはイベントごとに違う（`hook-events:events` の `handler_types`）。`agent` は experimental である。[仕様]
+- すべての種別に共通のフィールドは `hook-events:handler-common-fields` を、種別ごとのフィールドと既定のタイムアウトは `hook-events:handler-types` を見る。どの種別を使えるかはイベントごとに違う（`hook-events:events` の `handler_types`）。`agent` は experimental である。[仕様]
 - 一致したハンドラーはすべて並列に動く。同じハンドラーを複数の settings ファイルに書いても1回しか動かない。設定のレベルをまたいで、Hook の定義は置き換わらずにマージされる。[仕様]
 - `command` ハンドラーは、`args` があれば exec form（シェルを通さず直接起動する）で、無ければ shell form（macOS と Linux では `sh -c`）で動く。パスのプレースホルダー `${CLAUDE_PROJECT_DIR}`・`${CLAUDE_PLUGIN_ROOT}`・`${CLAUDE_PLUGIN_DATA}` はどちらの形でも使え、環境変数としても渡る。[仕様]
 - `async: true` の command ハンドラーはバックグラウンドで動く。決定のフィールドは効かず、結果は次のターンで届く。[仕様]
@@ -105,7 +105,7 @@ sources:
 - JSON は `jq -n` などのエンコーダーで組み立て、文字列の連結で作らない。[仕様]
 - stdout には JSON 以外を書かない。シェルの起動時に何かを出力するプロファイルは、JSON の解釈を壊す。[仕様]
 - macOS と Linux では、スクリプトに実行権限を付ける（`chmod +x`）。[仕様]
-- `once` は skill の frontmatter でだけ、`async`・`asyncRewake`・`args`・`shell` は `command` でだけ書く（`hook-events:handler-types` の `fields`）。[仕様]
+- `once`（`hook-events:handler-common-fields/once`）は skill の frontmatter でだけ、`async`・`asyncRewake`・`args`・`shell` は `command` でだけ書く（`hook-events:handler-types/command` の `fields`）。[仕様]
 
 最小の例（`.claude/settings.json`）。`Bash` の `rm` を含むコマンドの前にだけ、スクリプトを動かす。[仕様]
 
@@ -154,11 +154,11 @@ fi
 - **V-hooks-02**: 各イベントの値は matcher group の配列で、各 matcher group は配列の `hooks` を持つ。[仕様]
 - **V-hooks-03**: ハンドラーの `type` は、`hook-events:handler-types` のいずれかの `id` と一致する。[仕様]
 - **V-hooks-04**: ハンドラーの `type` は、そのハンドラーを置いたイベントの `hook-events:events` の `handler_types` に含まれる。[仕様]
-- **V-hooks-05**: ハンドラーは、その `type` の `hook-events:handler-types` の `fields` で `required: true` のフィールドをすべて持つ。[仕様]
-- **V-hooks-06**: ハンドラーのキーは、その `type` の `hook-events:handler-types` の `fields` の `id` のどれかである。[仕様]
+- **V-hooks-05**: ハンドラーは、`hook-events:handler-common-fields` と、その `type` の `hook-events:handler-types` の `fields` で `required: true` のフィールドをすべて持つ。[仕様]
+- **V-hooks-06**: ハンドラーのキーは、`hook-events:handler-common-fields` の `id` か、その `type` の `hook-events:handler-types` の `fields` の `id` のどれかである。[仕様]
 - **V-hooks-07**: `matcher` を持つ matcher group は、`matcher_target` が `null` でないイベント（`hook-events:events`）の下にだけある。[仕様]
 - **V-hooks-08**: `if` を持つハンドラーは、`if_supported` が `true` のイベント（`hook-events:events`）の下にだけある。[仕様]
-- **V-hooks-09**: `once`（`hook-events:handler-types/command` などの `fields`）を持つハンドラーは、skill の frontmatter（`frontmatter:skill/hooks`）にだけある。[仕様]
+- **V-hooks-09**: `once`（`hook-events:handler-common-fields/once`）を持つハンドラーは、skill の frontmatter（`frontmatter:skill/hooks`）にだけある。[仕様]
 - **V-hooks-10**: `shell` の値は `"bash"` か `"powershell"` である（`hook-events:handler-types/command`）。[仕様]
 - **V-hooks-11**: ツールのイベント（`hook-events:events` で `if_supported` が `true`）の `matcher` が `mcp__` で始まり、英数字・`_`・`-`・空白・`,`・`|` だけから成るなら、`mcp__` の後に `__` を含む（ツール名まで書いた完全一致になっている）。[仕様]
 - **V-hooks-12**: `args` を持たない `command` ハンドラー（`hook-events:handler-types/command`）の `command` に `${CLAUDE_PROJECT_DIR}`・`${CLAUDE_PLUGIN_ROOT}`・`${CLAUDE_PLUGIN_DATA}` があれば、二重引用符の中にある。[仕様]

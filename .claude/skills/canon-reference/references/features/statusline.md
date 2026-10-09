@@ -18,7 +18,7 @@ status line は、Claude Code の画面下部に出る1行（または複数行�
 
   > "The status line runs locally and does not consume API tokens."
 
-- 関連する設定として `subagentStatusLine`（`settings:keys/subagentStatusLine`）があり、エージェントパネルの subagent の各行を自前のコマンドで書き換える。入力は hooks の共通入力フィールド・`columns`・`tasks` 配列で、出力は行ごとに `{"id": "<task id>", "content": "<row body>"}` の JSON を1行ずつ書く。[仕様]
+- 関連する設定として `subagentStatusLine`（`settings:keys/subagentStatusLine`）があり、エージェントパネルの subagent の各行を自前のコマンドで書き換える。入力は hooks の共通入力フィールド（`hook-events:common-input`）・`columns`・`tasks` 配列（要素のフィールドは `statusline:subagent-task-fields`）で、出力は行ごとに `{"id": "<task id>", "content": "<row body>"}` の JSON を1行ずつ書く。[仕様]
 
 ## 2. 使う場面・使わない場面
 

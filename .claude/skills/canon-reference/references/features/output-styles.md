@@ -56,7 +56,7 @@ sources:
 
 - 選ぶ手段は `/output-style <style>` コマンド・`/config` のメニュー・VS Code 拡張のメニュー・settings の `outputStyle`（`settings:keys/outputStyle`）。コマンドとメニューは選択を `.claude/settings.local.json` に保存する。[仕様]
 - `outputStyle` の値は大文字小文字を区別する。スタイル名と完全に一致しない値（例: `explanatory`）は Default スタイルになる。`/output-style` コマンドは大文字小文字を無視する。[仕様]
-- 組み込みの名前は `Proactive`・`Concise`・`Explanatory`・`Learning` と書く。スタイルを選ばない状態が Default で、`/output-style` の一覧には `default` として出る。[仕様]
+- 組み込みのスタイルの名前は `builtins:output-styles` を見る。スタイルを選ばない状態が Default（`builtins:output-styles/Default`）で、`/output-style` の一覧には `default` として出る。[仕様]
 - 全プロジェクトの既定にするには `~/.claude/settings.json` に `outputStyle` を置く。プロジェクトの settings はそれより優先する。[仕様]
 
 ### トークン
@@ -105,7 +105,7 @@ When explaining code, architecture, or data flow, start with a Mermaid diagram s
 - **V-output-styles-04**: `frontmatter:output-style/force-for-plugin` は、`applies_to` に含まれるスコープ（プラグイン）のスタイルファイルにだけ現れる。[仕様]
 - **V-output-styles-05**: プロジェクト・ユーザーの出力スタイルのファイルは `paths:files/project:.claude/output-styles/*.md` か `paths:files/user:~/.claude/output-styles/*.md` の `path` に一致する場所にあり、拡張子が `.md` である。[仕様]
 - **V-output-styles-06**: プラグインの出力スタイルは、プラグインのルートの `output-styles/` にあるか、manifest の `plugin-manifest:fields/outputStyles` に列挙したパスにある。`outputStyles` を設定したときは既定の `output-styles/` は走査されないので、`output-styles/` だけに置いたファイルは読まれない。[仕様]
-- **V-output-styles-07**: 生成した settings の `settings:keys/outputStyle` の値は、組み込みのスタイル名（`Proactive`・`Concise`・`Explanatory`・`Learning`）か、同じ生成物にあるカスタムスタイルの名前（`frontmatter:output-style/name` の値、無ければ拡張子を除いたファイル名）のいずれかと、大文字小文字まで完全に一致する。[仕様]
+- **V-output-styles-07**: 生成した settings の `settings:keys/outputStyle` の値は、組み込みのスタイル名（`builtins:output-styles` の `kind: builtin` の `id`）か、同じ生成物にあるカスタムスタイルの名前（`frontmatter:output-style/name` の値、無ければ拡張子を除いたファイル名）のいずれかと、大文字小文字まで完全に一致する。[仕様]
 
 ## 7. 品質基準
 

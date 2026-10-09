@@ -360,7 +360,7 @@
     "modes": {
       "description": "permission モード（permissions.defaultMode・--permission-mode に書く値）。honored_from_project_settings はプロジェクトの .claude/settings.json・.claude/settings.local.json の defaultMode で効くか。protected_path_writes は保護パスへの書き込みの扱い（prompted・conditional・classifier・denied・allowed）。",
       "complete": true,
-      "complete_basis": null,
+      "complete_basis": "公式の Available modes の表が全モードを列挙しており、全部を収めた",
       "stated_total": null,
       "items": [
         {
@@ -532,7 +532,7 @@
     "sandbox-keys": {
       "description": "settings の sandbox 以下のキー（ドット区切り）。scope は settings-reference の Scope 欄（any-file・user-or-managed・managed）。limited_in_project_settings は Scope 欄が project・local 設定での制限（管理者必須のサンドボックス時など）を参照しているか。default の null は公式の「unset」（未設定）。credentials の各項目のフィールド（path・mode・injectHosts・extract など）と tlsTerminate の caCertPath・caKeyPath はキーではないので含めない。",
       "complete": true,
-      "complete_basis": null,
+      "complete_basis": "公式の settings-reference の Sandbox settings の節が sandbox 以下のキーを全件列挙しており、全部を収めた",
       "stated_total": null,
       "items": [
         {

@@ -1,6 +1,6 @@
 {
   "id": "mods",
-  "description": "mod（plugin の hooks module）の hook が扱えるイベントと、hook が受け取る mods API（`$`）のメソッドの一覧。",
+  "description": "mod（plugin の hooks module）の hook が扱えるイベント、hook が受け取る mods API（`$`）のメソッド、mod のファイル構成、描画の site と要素、上限の一覧。",
   "collections": {
     "events": {
       "description": "`on(event, matcher?, hook)` の第1引数に書けるイベント。`kind: event` は個別のイベント、`kind: family` は名前の型で決まるイベントの族（settings hook イベントと mods API 呼び出し）。`group` は公式の表の分類、`returns` は hook が返せるもの（公式の略記のまま。interface のイベントは公式が返り値を示していないので null）。`can_block` は公式が拒否・中止の返り値を示しているイベントだけに付ける。",
@@ -2229,6 +2229,569 @@
           "source": {
             "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
             "anchor": "#mods-api-methods"
+          }
+        }
+      ]
+    },
+    "files": {
+      "description": "mod の plugin ディレクトリが持つファイル。`required` は true・false か、必要になる条件の文。",
+      "complete": true,
+      "complete_basis": "公式の Files の表が mod のディレクトリのファイルを列挙しており、全部を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": ".claude-plugin/plugin.json",
+          "required": true,
+          "description_ja": "plugin の manifest。mod のために足す必須のフィールドは無い。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#files"
+          }
+        },
+        {
+          "id": "hooks/hooks.json",
+          "required": true,
+          "description_ja": "`modules`: hooks module へのパス（このファイルからの相対）を1つだけ持つ配列。settings hook を `hooks` に同居させてもよい。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#files"
+          }
+        },
+        {
+          "id": "hooks module",
+          "required": true,
+          "description_ja": "mod の入口（例: `hooks/register.js`）。`register(on, options)` を export する ES module。拡張子は `.js`・`.mjs`・`.cjs`・`.jsx`・`.ts`・`.mts`・`.cts`・`.tsx`。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#files"
+          }
+        },
+        {
+          "id": "types/index.d.ts",
+          "required": "mod が `$.state` を使うか、mods API に名前空間を足すとき",
+          "description_ja": "`PluginState` の値と、mod が足す名前空間を宣言する。manifest の `types` で名前を指す。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#files"
+          }
+        },
+        {
+          "id": "*.test.ts・*.test.tsx",
+          "required": false,
+          "description_ja": "`claude plugin test` が動かすテスト。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#files"
+          }
+        }
+      ]
+    },
+    "render-sites": {
+      "description": "`ui.render` hook の `e.component` の値（Claude Code の画面の拡張点）。`props` は `e.props` のフィールド（公式の書き方のまま）、`request_id` は `e.requestId` が何か、`surfaces` は描画されるアプリ。公式の表で1行にまとめた `ToolUse`・`ToolResult`・`ToolGroup` は1つずつ要素にした。",
+      "complete": true,
+      "complete_basis": "公式の Render sites の表が全件を列挙しており、全部を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "Pane",
+          "props": "`title`, `isFocused`, `bodyColumns`, `placement`, `scroll`, `view`",
+          "request_id": "The pane's `id`",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        },
+        {
+          "id": "AbovePrompt",
+          "props": "`hasSurvey`, `isWorking`, `maxRows`, `bodyColumns`, `scroll`, `view`",
+          "request_id": "One instance",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        },
+        {
+          "id": "UserMessage",
+          "props": "`text`, `origin`, `isExpanded`, and `task` or `from` by origin",
+          "request_id": "The message id",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        },
+        {
+          "id": "AssistantMessage",
+          "props": "The reply's text",
+          "request_id": "The message id",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        },
+        {
+          "id": "ToolUse",
+          "props": "The tool's name, input, and result",
+          "request_id": "The tool call id",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        },
+        {
+          "id": "ToolResult",
+          "props": "The tool's name, input, and result",
+          "request_id": "The tool call id",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        },
+        {
+          "id": "ToolGroup",
+          "props": "The tool's name, input, and result",
+          "request_id": "The tool call id",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        },
+        {
+          "id": "CommandOutput",
+          "props": "`command`, `text`",
+          "request_id": "The message id",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        },
+        {
+          "id": "AskUserQuestion",
+          "props": "The question and options",
+          "request_id": "The tool call id",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        },
+        {
+          "id": "ToolProgress",
+          "props": "`kind`",
+          "request_id": "The tool call id",
+          "surfaces": [
+            "terminal"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        },
+        {
+          "id": "Spinner",
+          "props": "`word`, `message`, `suffix`, `mode`",
+          "request_id": "The agent id",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        },
+        {
+          "id": "TurnDuration",
+          "props": "`word`, `durationMs`",
+          "request_id": "The message id",
+          "surfaces": [
+            "terminal"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        },
+        {
+          "id": "InfoNotice",
+          "props": "`text`, `command`",
+          "request_id": "The message id",
+          "surfaces": [
+            "terminal"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        },
+        {
+          "id": "SessionMode",
+          "props": "`modes`",
+          "request_id": "One instance",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        },
+        {
+          "id": "PromptHint",
+          "props": "`isDraft`, `isWorking`, `hint`",
+          "request_id": "One instance",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#render-sites"
+          }
+        }
+      ]
+    },
+    "elements": {
+      "description": "`ui.render` hook が返す木の要素（`$.ui.resolve(e)` から得る）。`props` は主な props（公式の書き方のまま）、`surfaces` はその要素を描けるアプリ。",
+      "complete": false,
+      "complete_basis": "公式が全件を列挙していない。reference ページは要素の表を載せているが、完全なリファレンスは Claude Code の TypeScript 宣言（spec ページではない）だとしている。表に載るものはすべて収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "Box",
+          "props": "`key`, flex layout, `gap`, `padding`, `margin`, `width`, `height`, `borderStyle`, `backgroundColor`, `position`, `hover`",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#elements"
+          }
+        },
+        {
+          "id": "Text",
+          "props": "`color`, `backgroundColor`, `bold`, `italic`, `underline`, `dimColor`, `inverse`, `wrap`",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#elements"
+          }
+        },
+        {
+          "id": "Button",
+          "props": "`key`, `label`, `onPress`, `hotkey`, `plain`, `dimColor`, `autoFocus`, `action`",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#elements"
+          }
+        },
+        {
+          "id": "Link",
+          "props": "`href`, `label`",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#elements"
+          }
+        },
+        {
+          "id": "Code",
+          "props": "`source`, `language`, `path`, `startLine`, `format`, `wrap`",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#elements"
+          }
+        },
+        {
+          "id": "Markdown",
+          "props": "`text`, `key`, `dimColor`, `onLinkPress`, `pressableLinks`",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#elements"
+          }
+        },
+        {
+          "id": "Input",
+          "props": "`key`, `label`, `placeholder`, `value`, `submitLabel`, `onSubmit`, `onInput`, `autoFocus`",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#elements"
+          }
+        },
+        {
+          "id": "Select",
+          "props": "`key`, `label`, `options`, `value`, `onSelect`, `autoFocus`",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#elements"
+          }
+        },
+        {
+          "id": "Svg",
+          "props": "An SVG document, up to 131,072 characters",
+          "surfaces": [
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#elements"
+          }
+        },
+        {
+          "id": "Client",
+          "props": "`module`, `key`",
+          "surfaces": [
+            "terminal",
+            "desktop"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#elements"
+          }
+        },
+        {
+          "id": "Raster",
+          "props": "`key`, `columns` up to 512, `rows` up to 256, `cells`",
+          "surfaces": [
+            "terminal"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#elements"
+          }
+        },
+        {
+          "id": "Image",
+          "props": "PNG or RGBA bytes up to 2 MiB, or a file path, `columns` and `rows` up to 255, and `alt` text",
+          "surfaces": [
+            "terminal"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#elements"
+          }
+        }
+      ]
+    },
+    "limits": {
+      "description": "hook と mods API 呼び出しの時間・大きさの上限。id は canon が付けた名前、`target` は公式の Limit の列、`value` は公式の Value の列（原文のまま）。時間の上限を超えた hook は飛ばされる。",
+      "complete": true,
+      "complete_basis": "公式の Limits の表が全件を列挙しており、全部を収めた",
+      "stated_total": null,
+      "items": [
+        {
+          "id": "hook-execution-time",
+          "target": "A hook's own execution time for one event, not counting time inside `next` or a mods API call other than `$.clock.sleep`",
+          "value": "10 seconds, or 50 milliseconds for a `prompt.edit` hook",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "catch-handler-time",
+          "target": "A `.catch` handler's execution time",
+          "value": "1 second",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "session-end-hooks-time",
+          "target": "All `session.end` hooks together",
+          "value": "As long as the SessionEnd hook budget, 1.5 seconds unless you change it, counted from when your settings `SessionEnd` hooks finish",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "process-run-timeout",
+          "target": "`$.process.run` timeout",
+          "value": "30 seconds by default, 10 minutes at most",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "model-complete-max-tokens",
+          "target": "`$.model.complete` `maxTokens`",
+          "value": "1024 by default, up to 64,000 or the model's output limit",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "fs-file-size",
+          "target": "`$.fs.read` and `$.fs.write`",
+          "value": "4 MiB for one file",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "drop-deny-reason-length",
+          "target": "A hook's `drop` reason or `config.set` `deny` reason",
+          "value": "4,096 characters. The end of a longer reason is cut, and the drop or deny still applies.",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "tree-text-length",
+          "target": "Text in one tree",
+          "value": "The first 100,000 characters are drawn",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "element-string-length",
+          "target": "A `Code`'s `language` or `path`, a `Select` option's `value`, or a `Client`'s `module`",
+          "value": "10,000 characters. If one is longer, Claude Code draws its own version of the site.",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "link-href-length",
+          "target": "A `Link`'s `href`",
+          "value": "2,048 characters. A longer `href` keeps the whole tree from drawing.",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "store-size",
+          "target": "`$.store`",
+          "value": "4 MiB of JSON in total",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "session-messages-count",
+          "target": "`$.session.messages()`",
+          "value": "The newest 4,096 entries",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "invalidate-redraw-rate",
+          "target": "`$.ui.invalidate('ui.render')` redraws",
+          "value": "Throttled to 10 a second, or 30 in the terminal for the visible pane, the expanded band, and the hint line under the prompt. Calls that come sooner are coalesced.",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "toast-duration",
+          "target": "`$.ui.toast`",
+          "value": "Shown for 4 seconds unless you pass `{ timeoutMs }`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "unrequested-pane-width",
+          "target": "A pane opened without the user asking",
+          "value": "Placed from 144 terminal columns, 110 after they've opened it once",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "name-format",
+          "target": "Command, tool, subagent type, and pane names",
+          "value": "Letters, digits, `_`, and `-`, up to 64 characters",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
+          }
+        },
+        {
+          "id": "plugin-test-time",
+          "target": "One `claude plugin test` test",
+          "value": "5 seconds unless the test sets `timeoutMs`",
+          "source": {
+            "url": "https://code.claude.com/docs/en/plugins/mods/reference.md",
+            "anchor": "#limits"
           }
         }
       ]

@@ -52,17 +52,11 @@ sources:
 
 ## 3. 仕様の要約
 
-正は `data/mods.json`。イベントは `mods:events`、mods API は `mods:api` を参照する。両方とも `complete: false` で、公式は完全なリファレンスを Claude Code の TypeScript 宣言としている。data に無い名前を「存在しない」と扱わない。[仕様]
+正は `data/mods.json`。イベントは `mods:events`、mods API は `mods:api`、ファイルの構成は `mods:files`、描画の site は `mods:render-sites`、要素は `mods:elements`、時間と大きさの上限は `mods:limits` を参照する。`mods:events`・`mods:api`・`mods:elements` は `complete: false` で、公式は完全なリファレンスを Claude Code の TypeScript 宣言としている。data に無い名前を「存在しない」と扱わない。[仕様]
 
 ### ファイルの構成 [仕様]
 
-| ファイル | 必須 | 内容 |
-|---|---|---|
-| `.claude-plugin/plugin.json` | はい | plugin の manifest。mod のための必須フィールドは無い |
-| `hooks/hooks.json` | はい | `modules`: hooks module へのパスを1つだけ持つ配列（このファイルからの相対）。settings hook を `hooks` に同居させてもよい |
-| hooks module（例 `hooks/register.js`） | はい | `register(on, options)` を export する ES module。拡張子は `.js`・`.mjs`・`.cjs`・`.jsx`・`.ts`・`.mts`・`.cts`・`.tsx` |
-| `types/index.d.ts`（manifest の `types` が指す） | `$.state` を使うか mods API に名前空間を足すとき | `PluginState` の値と、足す名前空間を宣言する |
-| `*.test.ts`・`*.test.tsx` | いいえ | `claude plugin test` が走らせるテスト |
+- mod の plugin が持つファイルと、それぞれが必須かは `mods:files` を見る。入口は `hooks/hooks.json` の `modules`（要素1つ）が指す hooks module で、`types/index.d.ts` は `$.state` を使うか mods API に名前空間を足すときに要る。
 
 - `register` の `options` には、manifest が宣言する `userConfig` の値が既定値を埋めて入る。[仕様]
 - Node.js・バンドラー・ビルドは要らない。Claude Code が `.js` と `.ts` を直接読む。[仕様]
@@ -94,7 +88,7 @@ sources:
 - 同じイベントの hook は1つのミドルウェアのチェーンを作り、先頭の mod がいちばん外側になる。順は、組み込みのガード `sec-default@builtin`（読み込まれる場合）と組織の `prependPlugins` などの組織の mod → ユーザーがインストールした mod → 組織の `appendPlugins` → その他の組み込み mod。ユーザーの mod の中では、manifest の `dependencies` に挙げた mod より先に走る。1つの module の中では `on` を呼んだ順に走る。
 - settings の `PreToolUse` hook は、managed settings のものが最初の mod の `tool.call` より前（そこでのブロックは最終）、それ以外の settings ファイルと plugin の `hooks/hooks.json` のものは最後の mod が `next` を呼んだあと（Claude Code 自身の振る舞いの一部）に走る。`tool.check` はそれらの判定のあとに発火する（`hook-events:events/PreToolUse`）。
 - `.catch` の無い hook が例外・タイムアウト・形の違う結果で失敗すると、`next` を呼ぶ前ならその hook を飛ばして次が走り、`next` が解決したあとならその結果が残る。拒否する hook を fail closed にするには `.catch` で拒否を返す。
-- hook 自身の実行時間には上限があり、`next` や mods API 呼び出しを待つ時間は数えない（`$.clock.sleep` は数える）。上限・サイズの制限の値は公式 reference の Limits の表が正。
+- hook 自身の実行時間には上限があり、`next` や mods API 呼び出しを待つ時間は数えない（`$.clock.sleep` は数える）。上限・サイズの制限の値は `mods:limits` を見る（`mods:limits/hook-execution-time` など）。
 
 ### 読み込み・確認・テスト [仕様]
 
@@ -120,7 +114,7 @@ sources:
 - **コマンドとツールは `session.start` で登録する**: Claude Code は最初のプロンプトの前にこの hook を待つ。組み込みコマンドと同じ名前の登録は例外になり、その hook の残りが走らないので、登録は hook の最後に置くか `try`・`catch` で包む（`mods:api/$.command.register`）。[仕様]
 - **Claude が読む文を最小にする**: `deny` や `drop` の理由は Claude がツールの結果として読むので、Claude が次に取れる行動を書く。リクエストごとに変わる文を `prompt.section`・`prompt.context`・`skill.prompt` で返すとプロンプトキャッシュが無効になる。[仕様]
 - **他の mod と並ぶことを前提にする**: 同じイベントの hook は順に連なり、前の mod は後の mod の呼び出しまで観察・拒否できる。拒否する hook には `.catch` を付けて fail closed にする。[仕様]
-- **描画は site の寸法に合わせる**: 幅は `e.props.bodyColumns` に合わせ、高さは `placement` と `scroll.bodyRows` で決める。データの変化で描き直すときは `$.ui.invalidate('ui.render')` を呼び、描き直しは間引かれる前提にする。[仕様] terminal では絵文字ではなく1セル幅の記号を使う。[知見]
+- **描画は site の寸法に合わせる**（site は `mods:render-sites`）: 幅は `e.props.bodyColumns` に合わせ、高さは `placement` と `scroll.bodyRows` で決める。データの変化で描き直すときは `$.ui.invalidate('ui.render')` を呼び、描き直しは間引かれる前提にする。[仕様] terminal では絵文字ではなく1セル幅の記号を使う。[知見]
 
 ## 5. 生成の規約
 
@@ -132,8 +126,8 @@ sources:
   - import はファイル先頭の `import` 宣言で、plugin ディレクトリ内の相対パスだけにする。bare import は `claude-code` だけ。動的 `import()` と `require` は使わない。
   - `$.env` の変数名と、`atom` の `plugin`・`key` は文字列リテラルで書き、`atom` の結果は `const` に持つ。
 - `$.state` を使うときは、`types/index.d.ts` の `PluginState` に plugin 名をキーにして値を宣言し、manifest の `types` でそのファイルを指す（`plugin-manifest:fields/types`）。[仕様]
-- コマンド・ツール・サブエージェントの種類・ペインの名前は、英字・数字・`_`・`-` で64文字以内にする。登録したツールは `mcp__<plugin 名>__<name>` の名前で `tool.call` を絞る。[仕様]
-- 要素は `$.ui.resolve(e)` から得る。`Markdown` は内容を `children` ではなく `text` prop で渡す。[仕様]
+- コマンド・ツール・サブエージェントの種類・ペインの名前は、`mods:limits/name-format` の形（英字・数字・`_`・`-`）と長さに収める。登録したツールは `mcp__<plugin 名>__<name>` の名前で `tool.call` を絞る。[仕様]
+- 要素（`mods:elements`）は `$.ui.resolve(e)` から得る。アプリごとに描ける要素が違う（`surfaces`）。`Markdown` は内容を `children` ではなく `text` prop で渡す。[仕様]
 - `$.ui.open` の `focus`・`closeOnEscape`・`holdToasts` と、コントロールの `autoFocus` は `true` だけを受け付けるので、付けないときは省く（`mods:api/$.ui.open`）。[仕様]
 - plugin の `name` は `claude-` で始まるなど Anthropic のものに見える名前にしない（`claude plugin validate` が失敗する）。README には検証した Claude Code の版を書く。[仕様]
 
@@ -195,7 +189,7 @@ on('tool.call', { tool: 'Bash' }, guard).catch(async ($, e, next) => {
 - **V-plugin-mods-10**: `$.ui.open` の引数で `focus`・`closeOnEscape`・`holdToasts` に `false` を渡していない（`mods:api/$.ui.open`）。[仕様]
 - **V-plugin-mods-11**: `mods:api/$.state.get`・`mods:api/$.state.set` か `mods:api/atom` を使う mod は、manifest に `types`（`plugin-manifest:fields/types`）を持ち、その指すファイルが存在する。[仕様]
 - **V-plugin-mods-12**: `$.tool.register` に渡した `name` を持つ mod では、そのツールを処理する `tool.call` hook のマッチャーの `tool` が `mcp__<plugin の name>__<name>` である（`mods:api/$.tool.register`）。[仕様]
-- **V-plugin-mods-13**: `$.command.register`・`$.tool.register` に渡す `name` と、`$.ui.open` の `id` は、`^[A-Za-z0-9_-]{1,64}$` に一致する（`mods:api/$.command.register`・`mods:api/$.tool.register`・`mods:api/$.ui.open`）。[仕様]
+- **V-plugin-mods-13**: `$.command.register`・`$.tool.register` に渡す `name` と、`$.ui.open` の `id` は、`^[A-Za-z0-9_-]{1,64}$` に一致する（`mods:limits/name-format`・`mods:api/$.command.register`・`mods:api/$.tool.register`・`mods:api/$.ui.open`）。[仕様]
 - **V-plugin-mods-14**: 生成物に `.claude-plugin/types/` が含まれていない（canon の規律で、公式の仕様ではない）。
 - **V-plugin-mods-15**: `claude plugin validate <dir>` が終了コード0で終わる。[仕様]
 
@@ -207,7 +201,7 @@ on('tool.call', { tool: 'Bash' }, guard).catch(async ($, e, next) => {
 - **Q-plugin-mods-04**: `deny`・`drop`・`tool.call` の `result` の文が、Claude が次に取る行動を示す指示になっている。[仕様]
 - **Q-plugin-mods-05**: `tool.check` で `allow` を返す箇所が要件で正当化されている。ask ルール・`PreToolUse` hook のブロック・auto mode の分類器・（環境によっては）deny ルールを越えることを踏まえている。[仕様]
 - **Q-plugin-mods-06**: 状態の寿命の要件に合う置き場所（module の変数・`$.state`・`$.store`）を選び、`$.store` から `$.state` に写す値は `/clear`・`/resume`・`/branch` のあとにも写し直している。複数のセッションが書く値は、キーを分けるか書く直前に読み直している。[仕様]
-- **Q-plugin-mods-07**: 描画する mod が、描画が出ない場所（VS Code 拡張・`claude -p`・cloud セッション）と、アプリが描けない要素（`Raster`・`Image`・`Svg`）について代わりの出力を持つ。[仕様]
+- **Q-plugin-mods-07**: 描画する mod が、描画が出ない場所（VS Code 拡張・`claude -p`・cloud セッション）と、アプリが描けない要素（`mods:elements` の `surfaces` が片方だけのもの）について代わりの出力を持つ。[仕様]
 - **Q-plugin-mods-08**: hook の中で長く待つ処理が mods API 呼び出しの中にあり、自前の promise の待ちで制限時間を使い切って hook が飛ばされる経路が無い。長い処理には `next.signal` を渡している。[仕様]
 - **Q-plugin-mods-09**: リクエストごとに変わる文を `prompt.section`・`prompt.context`・`skill.prompt` で返していない（返すならキャッシュの無効化を受け入れる理由がある）。[仕様]
 - **Q-plugin-mods-10**: mod が届く範囲（ファイル・プロセス・ネットワーク・秘密・Claude のモデル呼び出しによる利用量）が要件に必要な範囲に限られ、`claude plugin validate` の `calls:` の行が要件から説明できる。[仕様]
