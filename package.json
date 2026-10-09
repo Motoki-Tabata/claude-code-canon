@@ -38,6 +38,7 @@
     "tokens": "node tools/token-usage.js",
     "check": "node tools/check.js",
     "handoff": "node tools/handoff.js",
+    "reference-check": "node .claude/skills/canon-update/scripts/check.js",
     "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\""
   },
   "comments": {
