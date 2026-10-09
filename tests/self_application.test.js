@@ -175,7 +175,8 @@ test('Agent は description に委譲条件（Delegate when）を持ち、本文
 });
 
 test('知識 Skill は5件ちょうどで、user-invocable: false・本文500行未満・disable-model-invocation なし', () => {
-  const skillDirs = readdirSync(path.join(SELF, 'skills')).filter((n) => !/^canon-[a-d]$/.test(n)).sort();
+  // canon-reference は正典リファレンスで、旧体系の知識 Skill とは別に検査する
+  const skillDirs = readdirSync(path.join(SELF, 'skills')).filter((n) => !/^canon-[a-d]$/.test(n) && n !== 'canon-reference').sort();
   assert.deepEqual(skillDirs, [...KNOWLEDGE_SKILLS].sort(), '旧知識 Skill の残存、または新 Skill の欠落');
   for (const name of KNOWLEDGE_SKILLS) {
     const text = readFileSync(path.join(SELF, 'skills', name, 'SKILL.md'), 'utf8');
