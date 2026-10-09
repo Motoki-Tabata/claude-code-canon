@@ -15,8 +15,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        # windows-latest の既定シェルは pwsh。以下のステップは POSIX（git diff | grep・if [ -n ... ]）
-        # なので、Windows ランナー同梱の git-bash を明示的に使う。
+        # windows-latest の既定シェルは pwsh。以下のステップは POSIX sh の記法で書くので、
+        # Windows ランナー同梱の git-bash を明示的に使う。
         shell: bash
     steps:
       - uses: actions/checkout@v7

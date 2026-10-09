@@ -82,7 +82,7 @@ claude --model opus      # Phase B
 | C | `claude --model sonnet` | `/canon-c <ts>` | P4 生成物とレビュー |
 | D | `claude --model sonnet` | `/canon-d <ts>` | P5 配置 |
 
-各 Phase の開始時に、handoff の `canon_commit` と現在の canon のコミットを比べます。run の途中で canon 本体（`.claude/`・`lib/`・`gates/`・`tools/`・`docs/`・`design/`・`guide/`）を直していれば、差分を示して続けてよいかを尋ねます。run の途中で canon を改修するときは、この警告を目安に、続けるか run を作り直すかを判断してください。
+各 Phase の開始時に、handoff の `canon_commit` と現在の canon のコミットを比べます。run の途中で canon 本体（`.claude/`・`lib/`・`tools/`・`design/`・`guide/`）を直していれば、差分を示して続けてよいかを尋ねます。run の途中で canon を改修するときは、この警告を目安に、続けるか run を作り直すかを判断してください。
 
 推奨モデルは強制ではありません。判断の精度が要る Phase（ヒアリング・spec・keep と retire の議論）を opus、委譲と機械的な手順が中心の Phase を sonnet にしています。Subagent のモデルは各定義の frontmatter で決まり、セッションのモデルには左右されません。
 
@@ -158,9 +158,9 @@ rm -rf work/<ts> output/<ts>
 | `npm run tokens -- <session-id \| jsonl のパス>` | セッションのトークン消費を集計する（Phase D の終わりの振り返りでも使う） | 保守 |
 | `npm test` | テスト | 保守 |
 
-## 7. 正典 `docs/` の更新
+## 7. 正典 `canon-reference` の更新
 
-正典を更新する専用のコマンドはありません。保守のセッションで `docs/SOURCES.md` の一次ソース一覧と調査手順に沿って公式ドキュメントと突き合わせ、`docs/` を直したら `npm test` を通し、PR で main に入れます。規律は `.claude/rules/canon-docs.md` にあります。
+正典を更新する専用のコマンドはありません。保守のセッションで `design/canon-reference-build.md` の手順に沿って公式ドキュメントと突き合わせ、`.claude/skills/canon-reference/`（`references/`・`data/`・`sources.json`）を直したら `npm test` を通し、PR で main に入れます。規律は `.claude/rules/canon-reference.md` にあります。
 
 ## トラブルシューティング
 

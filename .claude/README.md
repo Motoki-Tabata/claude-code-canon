@@ -48,7 +48,7 @@ claude-canon 本体を保守するときの規律です。run の生成物には
 |---|---|---|
 | `workflow` | 常に | 日本語で応答する・申し送りを裏取りする・件数を数え直す・承認ゲートを縮めない・削除の前に参照を確かめる・canon への改修要求を `tasks/lessons.md` に起票する |
 | `gates-and-tests` | `lib/**`・`.claude/skills/*/scripts/**`・`tools/**`・`tests/**` を扱うとき | 検査対象ゼロを合格にしない・禁止リストを能力で書く・判定ロジックを複製しない、など検査とテストの書き方 |
-| `canon-docs` | `docs/**` を扱うとき | 正典を一次ソースで更新する・ページに無いことと存在しないことを区別する |
+| `canon-reference` | `.claude/skills/canon-reference/**` を扱うとき | 正典を一次ソースで更新する・ページに無いことと存在しないことを区別する |
 | `worker-definitions` | `.claude/agents/**`・`.claude/skills/**`・`.claude/settings.json` を扱うとき | 検査の変更をワーカー定義に追従させる・値の書式を実例で示す・応答を逐語で書き出す |
 
 ## 4. 前提のセットアップ

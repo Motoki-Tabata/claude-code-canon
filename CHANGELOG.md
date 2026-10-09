@@ -3,8 +3,8 @@
 このファイルは [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) の形式に、
 [Semantic Versioning](https://semver.org/lang/ja/) を準拠のバージョニング規約として従います。
 
-> **運用ルール**: 正典 `docs/` の更新履歴（Claude Code 公式仕様の確認バージョン・調査日）は
-> `docs/SOURCES.md` が権威であり、本ファイルには書きません。本ファイルが記録するのは
+> **運用ルール**: 正典 `canon-reference` の更新履歴（Claude Code 公式仕様の確認バージョン・生成日）は
+> `.claude/skills/canon-reference/sources.json` が権威であり、本ファイルには書きません。本ファイルが記録するのは
 > claude-canon 自身の変更だけです。
 
 ## [Unreleased]
@@ -65,6 +65,10 @@
 
 ### Changed
 
+- **正典を `canon-reference` に切り替え**: 正典（SSoT）を旧 `docs/` から Skill `canon-reference`（`references/`・`data/`・`sources.json`）に移しました。verify は `data/*.json` を `lib/tables.js` 経由で直接読み、`data` が未提供の検査は違反にせず「未判定」と報告します（exit code には影響しません）。`canon_version` の出典は `sources.json` の `claude_code_version`（`v` なし）です。
+- **層の語彙を機能単位に**: L1〜L5・`2層|3層`・パターン A〜F をやめました。design-map の節は `## <機能>`（12機能）、`## メタ` の `layers` は `patterns`（委譲・並列・強制・配布）、`## レイヤー構成` は `## 構成と責務` になりました。builder は8担当（`claude-md`・`rules`・`skills`・`subagents`・`settings`・`mcp`・`plugins`・`output-styles`）で、スライスは `<担当>.md`・`targets-<担当>.txt` です。管理パス集合に `AGENTS.md`・`.claude/commands/**`・`.claude/output-styles/**` を加えました。
+- **知識 Skill とルール**: design・generation・review・requirements・investigation は正典の内容を写さず `canon-reference` の該当節を参照します。generation の `references/` は担当単位の8ファイルです。ルール `canon-docs` を `canon-reference`（`.claude/skills/canon-reference/**` を扱うときに読み込む）に置き換えました。設計書2冊とガイドも新しい語彙に合わせました。
+
 - **生成物の README の「使用例」**: spec の受入基準 A1 の転記をやめ、利用者が起動する Skill の起動行
   （`/名前 <argument-hint>`）を並べます。受入基準は run の道具で、配置後の README に置くと古いパスや番号を指したまま残るためです。
 - **keep の K3（依存健全）**: keep にするテストが、同じ run で変える同梱データの件数や内容を固定していないかを
@@ -89,6 +93,10 @@
 - **ヒアリングの選択肢**: ワーカーの分け方を尋ねるときは、分割軸（領域 × 実装とテストの分離）の組み合わせを網羅します。
 - **工程8 の裏取り**: コマンドの挙動を根拠にした reviewer の指摘は、オーケストレーターが一時ディレクトリで実行して確かめ、
   コマンド行と出力を添えて示します。
+
+### Removed
+
+- **旧 `docs/`（正典9ファイルと `SOURCES.md`）と判定表の仕組み**: `gates/`・`npm run build:tables`・CI の判定表の鮮度検査を削除しました。旧 `docs/` は git 履歴に残っています。
 
 ### Fixed
 
