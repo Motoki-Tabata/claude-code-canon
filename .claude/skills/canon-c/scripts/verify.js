@@ -3,7 +3,7 @@
  * verify.js（npm run verify -- <ts>）— 工程7 の検証 CLI（artifacts.md §8）。
  *
  * V1〜V9 を1本で実行し、`output/<ts>/verify-report.md` を書く。違反が1件でもあれば exit 1、
- * 無ければ exit 0、引数が不正（<ts> の形式違い・output/<ts>/ が無い）なら exit 2。
+ * 無ければ exit 0、output/<ts>/ が無ければ何も作らず exit 1、引数が不正（<ts> の形式違い）なら exit 2。
  *
  * - **1回の走査**: generated/ を1回だけ歩き、各ファイルを1回だけ読む（buildContext）。ファイルごとに
  *   V1〜V5 を当て、全体に V6〜V9 を当てる。各検査は同じツリーを読み直さない。output/ は gitignore の
@@ -227,9 +227,9 @@ export function verify(ts, { now = new Date() } = {}) {
 if (isMainModule(import.meta.url)) {
   const ts = readTsArg('npm run verify -- <ts>');
   if (!existsSync(outputDir(ts))) {
-    // 存在しない <ts> は引数の誤り。report を書くために output/<ts>/ を作ってはならない。
+    // 入力不在は exit 1（CLI 共通の規約）。report を書くために output/<ts>/ を作ってはならない。
     process.stderr.write(`[verify] output/${ts}/ が無い。<ts> を確かめること（npm run verify -- <ts>）。\n`);
-    process.exit(2);
+    process.exit(1);
   }
   const r = verify(ts);
   const summary = CHECKS.map(([id]) => `${id}:${statusOf(r.results[id])}`).join(' ');

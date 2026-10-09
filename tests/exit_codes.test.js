@@ -38,8 +38,9 @@ test('引数不正は exit 2（deploy・pre-deploy-check・emit-run-manifest・s
   assert.equal(tok.code, 2, tok.stderr);
 });
 
-test('入力不在・実行時の失敗は exit 1（slice・copy-keep・review-bundle・token-usage・deploy 系）', (t) => {
+test('入力不在・実行時の失敗は exit 1（verify・slice・copy-keep・review-bundle・token-usage・deploy 系）', (t) => {
   for (const [phase, script] of [
+    ['canon-c', 'verify.js'],
     ['canon-c', 'slice.js'],
     ['canon-c', 'copy-keep.js'],
     ['canon-c', 'review-bundle.js'],

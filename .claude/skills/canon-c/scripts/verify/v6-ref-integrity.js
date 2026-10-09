@@ -51,6 +51,7 @@ import { cite } from '../../../../../lib/reference-data.js';
 import { skillPathRole, violation, splitListValue } from '../../../../../lib/artifact.js';
 import { isManaged } from '../../../../../lib/managed-paths.js';
 import { computeFenceMask } from '../../../../../lib/markdown.js';
+import { parseExistingDisposition, parseReferenceCopies, DesignMapError } from '../../../../../lib/design-map.js';
 import { splitBySeverity } from './format.js';
 
 const CHECK = 'V6';
@@ -409,10 +410,22 @@ const BACKTICK_RE = /`([^`\n]+)`/g;
 const LINE_REF_RE = /^((?:[\w.-]+\/)*[\w.-]+\.[A-Za-z0-9]{1,6}):(\d+)(?:-(\d+))?$/;
 
 /**
- * 対象の台帳（tasks/lessons.md）のバイト単位のコピー。内容は対象プロジェクトの記述で、
- * バイト一致が照合の前提（V8・lessons-ledger）なので、中身の行番号引用は直せず、V6-7 の対象にしない。
+ * design-map がバイト単位のコピーと宣言したファイル（keep の対象と `## 参照元からのコピー` の生成先）。
+ * copy-keep が sha256 を照合して写し、V7 がバイト一致を前提にするので、中身の行番号引用は直せず、
+ * V6-7 の対象にしない。`## 既存判定` が無い・壊れている design-map では keep を足さない
+ * （節の欠けは V7 と `npm run check` が見る）。
  */
-const VERBATIM_COPY_PATHS = new Set(['.claude/skills/lessons-ledger/ledger-snapshot.txt']);
+function byteCopyPaths(ctx) {
+  const text = ctx.designMapText;
+  if (!text) return new Set();
+  const paths = parseReferenceCopies(text).flatMap((c) => (c.to ? [c.to] : []));
+  try {
+    for (const r of parseExistingDisposition(text)) if (r.disposition === 'keep') paths.push(r.path);
+  } catch (e) {
+    if (!(e instanceof DesignMapError)) throw e;
+  }
+  return new Set(paths);
+}
 
 /** テキスト中のバッククォート囲みトークンから「パス:行番号」形の参照だけを抽出する。 */
 function extractLineNumberRefs(text) {
@@ -437,9 +450,10 @@ function extractLineNumberRefs(text) {
 function checkUnmanagedLineRefs(ctx) {
   const violations = [];
   let checked = 0;
+  const copies = byteCopyPaths(ctx);
   for (const f of ctx.files) {
     if (!isManaged(f.rel)) continue; // 集合外の生成物は V8 が違反にする
-    if (VERBATIM_COPY_PATHS.has(f.rel)) continue; // 逐語コピーの中身は生成物の記述ではない
+    if (copies.has(f.rel)) continue; // バイト単位のコピーの中身は生成物の記述ではない
     for (const { token, refPath } of extractLineNumberRefs(f.text)) {
       checked++;
       if (isManaged(refPath)) continue; // 生成物同士の行番号参照は正当

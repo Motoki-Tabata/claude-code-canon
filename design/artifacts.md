@@ -480,7 +480,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 `npm run verify -- <ts>`（`canon-c/scripts/verify.js`）は、V1〜V9 を1本の CLI で実行する。
 
 - **1回の走査**: generated/ を1回だけ走査し、ファイルごとに V1〜V5 を当て、全体に V6〜V9 を当てる。検査ごとに同じツリーを読み直さない。
-- **出力**: `output/<ts>/verify-report.md` を書き、違反が1件でもあれば exit 1、無ければ exit 0 を返す。`<ts>` の形式違い、または `output/<ts>/` が無いときは何も作らず exit 2 を返す。想定外の例外で検査が中断しても、その検査の違反として report に載せる。report には、検査ごとの結果（pass／違反の一覧／warning の一覧／未判定の一覧／「対象なし」とその理由）、検査した generated/ のハッシュ（architecture.md §6.2 と同じ計算）、実行時刻を載せる。
+- **出力**: `output/<ts>/verify-report.md` を書き、違反が1件でもあれば exit 1、無ければ exit 0 を返す。`<ts>` の形式違いは exit 2、`output/<ts>/` が無いときは何も作らず exit 1 を返す（入力不在は exit 1。CLI 共通の規約）。想定外の例外で検査が中断しても、その検査の違反として report に載せる。report には、検査ごとの結果（pass／違反の一覧／warning の一覧／未判定の一覧／「対象なし」とその理由）、検査した generated/ のハッシュ（architecture.md §6.2 と同じ計算）、実行時刻を載せる。
 - **検査対象ゼロは違反**: generated/ が無い・空、design-map・requirements.md が無い、など判定の入力が揃わないときは、合格にせず違反にする。「対象なし」と書けるのは、定義上対象が無いと確定する場合（new モードの V7 など）だけで、その理由を report に明記する。
 - **error と warning**: 正典に MUST の明文があるか、規則として確定したものは error（違反）、正典が観測されたパターンとしてしか示していないものは warning（報告のみ）にする。warning も黙って捨てない。
 - **未判定**: `complete: false` のコレクション（全件を収めていない一覧）と照合して一致しなかった名前は、違反にも合格にもせず未判定として report に載せる（`canon-reference` の V-common-01）。warning と同じく exit code には影響しない。
@@ -535,7 +535,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
    - **warning**: それ以外のトークンは、skill ディレクトリ → generated/ のルート → 対象のルートの順に解決を試み、どこでも解決できないものだけを報告する（リポジトリ相対の地の文の参照や、一般名詞としてのファイル名を違反にしない）。パスを含まないファイル名は、generated/ 全体の basename 一致でも解決とみなす。未解決は1ファイルにつき1件の warning にまとめ、件数と代表例（先頭の5件）を載せる。
 5. plugin.json の `skills`・`commands`・`agents`・`hooks`・`mcpServers`・`outputStyles`・`lspServers`・`experimental.themes`・`experimental.monitors` のパスが plugin のルート相対で実在する（`canon-reference` の `features/plugins.md`）。
 6. skill パッケージに定義ファイル `SKILL.md` が実在する。V1 が supporting files を許す以上、ここで明示的に確かめないと、`Skill.md` のような綴り違いで Skill が読み込まれない失敗が検査をすり抜ける。
-7. **非管理ファイルへの行番号引用の禁止**（本書由来の規律）: 生成物が、管理パス集合（§10.1）に属さない対象プロジェクトのファイル（`README.md`・`contracts/README.md` など）を `` `path:N` `` や `` `path:N-M` `` の形で行番号引用していたら error。行番号は対象側の編集で黙ってずれ、生成物の側にはずれを検知する手段が無い。節見出しで参照させる（例: `` `README.md` の「main への直接 push を防ぐ」節 ``）。見出しと行番号の併記も不可。走査するのは generated/ だけで、spec・design-map・review（調査の根拠を行番号で記録する正当な場所）は対象外。管理ファイル同士（生成物同士）の行番号参照は、同じ run で一括生成されてずれる余地が無いので許す。対象の台帳のバイト単位のコピー（`.claude/skills/lessons-ledger/ledger-snapshot.txt`）は、中身が対象プロジェクトの記述で直せない（バイト一致が V8・照合の前提）ので検査から除く。
+7. **非管理ファイルへの行番号引用の禁止**（本書由来の規律）: 生成物が、管理パス集合（§10.1）に属さない対象プロジェクトのファイル（`README.md`・`contracts/README.md` など）を `` `path:N` `` や `` `path:N-M` `` の形で行番号引用していたら error。行番号は対象側の編集で黙ってずれ、生成物の側にはずれを検知する手段が無い。節見出しで参照させる（例: `` `README.md` の「main への直接 push を防ぐ」節 ``）。見出しと行番号の併記も不可。走査するのは generated/ だけで、spec・design-map・review（調査の根拠を行番号で記録する正当な場所）は対象外。管理ファイル同士（生成物同士）の行番号参照は、同じ run で一括生成されてずれる余地が無いので許す。design-map がバイト単位のコピーと宣言したファイル（keep の対象と `## 参照元からのコピー` の生成先）は、中身が原本の記述で直せない（copy-keep と V7 がバイト一致を前提にする）ので検査から除く。
 
 **V7 keep**（design-map の `existing_disposition` と investigation を読む）
 1. **非回帰**: disposition が keep のファイルがすべて output にあり、対象の原本 `<target>/<パス>` と `generated/<パス>` の sha256 が一致する。

@@ -72,11 +72,11 @@ test('verify CLI: 引数が無い・形式違いなら exit 2（report を書か
   assert.match(bad.stderr, /npm run verify -- <ts>/);
 });
 
-test('verify CLI: 存在しない <ts>（output/<ts>/ が無い）は引数不正の exit 2 で、output/<ts>/ を作らない', (t) => {
+test('verify CLI: 存在しない <ts>（output/<ts>/ が無い）は入力不在の exit 1 で、output/<ts>/ を作らない', (t) => {
   const ts = nextTs();
   cleanupTs(t, ts);
   const r = verifyCli(ts);
-  assert.equal(r.code, 2, r.stdout + r.stderr);
+  assert.equal(r.code, 1, r.stdout + r.stderr);
   assert.match(r.stderr, /output\/.*が無い/);
   assert.ok(!existsSync(outputDir(ts)), 'verify が output/<ts>/ を作った');
 });

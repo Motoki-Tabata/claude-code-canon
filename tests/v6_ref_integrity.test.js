@@ -256,31 +256,28 @@ test('V6 V6-7: 生成物同士（管理ファイル間）の行番号参照は�
   assert.ok(r.checked >= 2, '走査件数が見えること（0件を合格と誤認しない）');
 });
 
-test('V6 V6-7: 台帳の逐語コピー（ledger-snapshot.txt）の中身は検査せず、他のファイルは引き続き検出する', (t) => {
+test('V6 V6-7: design-map がバイト単位のコピーと宣言したファイル（keep・参照元からのコピー）の中身は検査せず、他のファイルは引き続き検出する', (t) => {
   const ts = tsFor(import.meta.url, 23);
   setup(t, ts);
   const gen = path.join(out(ts), 'generated');
-  const ledgerDir = path.join(gen, '.claude', 'skills', 'lessons-ledger');
-  mkdirSync(ledgerDir, { recursive: true });
-  writeFileSync(path.join(ledgerDir, 'SKILL.md'), '---\nname: lessons-ledger\ndescription: x\n---\n本文\n');
-  // 対象の台帳には旧文書名の行番号引用が残りうる。コピーは直せないので違反にしない。
+  const skillDir = path.join(gen, '.claude', 'skills', 'ledger');
+  mkdirSync(skillDir, { recursive: true });
+  writeFileSync(path.join(skillDir, 'SKILL.md'), '---\nname: ledger\ndescription: x\n---\n本文\n');
+  // 原本には対象側の行番号引用が残りうる。コピーは直せないので、宣言されていれば違反にしない。
+  const cite = '- 何が起きたか: `tsod-design/SKILL.md:12` が古い。\n';
+  writeFileSync(path.join(skillDir, 'kept.txt'), cite);
+  writeFileSync(path.join(skillDir, 'copied.txt'), cite);
+  writeFileSync(path.join(skillDir, 'undeclared.txt'), cite);
   writeFileSync(
-    path.join(ledgerDir, 'ledger-snapshot.txt'),
-    '## 2026-01-01 例\n- 何が起きたか: `tsod-design/SKILL.md:12` が古い。\n'
-  );
-  assert.equal(v6(ts).ok, true, '逐語コピーの行番号引用は違反にならないこと');
-
-  // 同じ記述を生成物が自分で書いたら、従来どおり違反になる（除外はコピーのパスに限る）。
-  const rules = path.join(gen, '.claude', 'rules');
-  mkdirSync(rules, { recursive: true });
-  writeFileSync(
-    path.join(rules, 'own.md'),
-    '---\npaths: ["**"]\n---\n' + '出典: `tsod-design/SKILL.md:12`。\n'
+    path.join(out(ts), 'design-map.md'),
+    '## 既存判定\n\n```yaml\nexisting_disposition:\n  - path: .claude/skills/ledger/kept.txt\n    disposition: keep\n```\n\n' +
+      '## 参照元からのコピー\n\n- `/abs/ref/notes.txt` → `.claude/skills/ledger/copied.txt`\n'
   );
   const r = v6(ts);
-  assert.equal(r.ok, false, '生成物自身の行番号引用は違反のまま');
-  assert.ok(r.violations.some((v) => v.includes('own.md')), JSON.stringify(r.violations));
-  assert.ok(!r.violations.some((v) => v.includes('ledger-snapshot.txt')), 'コピーは違反に含めない');
+  assert.ok(!r.violations.some((v) => v.includes('kept.txt')), `keep のコピーは違反に含めない: ${JSON.stringify(r.violations)}`);
+  assert.ok(!r.violations.some((v) => v.includes('copied.txt')), `参照元からのコピーは違反に含めない: ${JSON.stringify(r.violations)}`);
+  // 宣言の無いファイルは、同じ記述でも違反のまま（除外は宣言されたパスに限る）。
+  assert.ok(r.violations.some((v) => v.includes('undeclared.txt')), JSON.stringify(r.violations));
 });
 
 // ---------------------------------------------------------------------------
