@@ -155,7 +155,7 @@ function setupComponents(t, { experimental = false } = {}) {
   const ts = nextTs();
   cleanupTs(t, ts);
   const g = genDir(ts);
-  writeFileSync(path.join(mkdirp(outputDir(ts)), 'design-map.md'), '# dm\n## Used Features\nL1 L2 L3 L4\n');
+  writeFileSync(path.join(mkdirp(outputDir(ts)), 'design-map.md'), '# dm\n## Used Features\nclaude-md skills subagents settings\n');
   writeHandoff(ts, { target: workDir(ts), mode: 'new' });
   write(
     workDir(ts),

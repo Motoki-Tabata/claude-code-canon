@@ -3,9 +3,9 @@
  *
  * 全量スナップショット方式では「generated/ ＝ design-map の射影」であり、配置は管理パス集合の全置換で
  * 行われる。ゆえに次を機械照合する:
- *   1. design-map の宣言 ⇒ generated/: 層の節（`## L1`〜`## L5`）の見出しと keep・modify のレコードが
+ *   1. design-map の宣言 ⇒ generated/: 機能の節（`## <機能>`）の見出しと keep・modify のレコードが
  *      宣言した生成物が、すべて generated/ に実在する（宣言源は slice の `targets-all.txt` と同じ
- *      `listDeclaredArtifacts`）。層の節が1つも無いのに disposition に無いファイルがあれば違反
+ *      `listDeclaredArtifacts`）。機能の節が1つも無いのに disposition に無いファイルがあれば違反
  *      （宣言0件で素通りさせない）。照合元は design-map で、builder や MANIFEST の自己申告ではない。
  *   2. MANIFEST ⇔ generated/: MANIFEST の `## 全ファイル` 節が generated/ の実ファイル集合と双方向に
  *      一致する。存在だけを見ると、1行欠けた MANIFEST が素通りする。
@@ -19,7 +19,7 @@
 
 import { isManaged, checkConcreteEntries } from '../../../../../lib/managed-paths.js';
 import { parseManifestFiles, MANIFEST_FILES_HEADING } from '../../../../../lib/manifest.js';
-import { listDeclaredArtifacts, countLayerSections } from '../../../../../lib/design-map.js';
+import { listDeclaredArtifacts, countFeatureSections } from '../../../../../lib/design-map.js';
 
 const CHECK = 'V8';
 
@@ -96,12 +96,12 @@ function checkDeclared(ctx, actual, violations) {
     return 0;
   }
   const declared = listDeclaredArtifacts(ctx.designMapText);
-  if (countLayerSections(ctx.designMapText) === 0) {
+  if (countFeatureSections(ctx.designMapText) === 0) {
     const declaredSet = new Set(declared.map((d) => d.path));
     const undeclared = [...actual].filter((f) => /\.md$|^\.mcp\.json$/.test(f) && !declaredSet.has(f));
     if (undeclared.length > 0) {
       violations.push(
-        `${CHECK}: design-map に層の節（## L1〜## L5 で始まる見出し）が1つも無いのに、disposition に無い生成物がある` +
+        `${CHECK}: design-map に機能の節（機能名で始まる ## 見出し）が1つも無いのに、disposition に無い生成物がある` +
           `（例: ${undeclared.slice(0, 3).join(', ')}）。新規ファイルの宣言を抽出できず、脱落の照合が空振りする。`
       );
     }
@@ -109,7 +109,7 @@ function checkDeclared(ctx, actual, violations) {
   for (const d of declared) {
     if (!actual.has(d.path)) {
       violations.push(
-        `${CHECK}: design-map が宣言した ${d.path}（${d.source === 'layer-heading' ? `${d.layer} の見出し` : `disposition: ${d.annotation}`}）` +
+        `${CHECK}: design-map が宣言した ${d.path}（${d.source === 'feature-heading' ? `${d.feature} の見出し` : `disposition: ${d.annotation}`}）` +
           'が generated/ に実在しない（builder が1件落とした疑い）。'
       );
     }

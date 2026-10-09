@@ -20,11 +20,11 @@ import {
 } from '../lib/managed-paths.js';
 import { sampleRepoDir as fixtureCase, scratchDir } from './helpers/fixtures.js';
 
-test('MANAGED_PATTERNS: base 集合の9パターン（artifacts.md §10.1）', () => {
+test('MANAGED_PATTERNS: base 集合の12パターン（artifacts.md §10.1）', () => {
   // `.claude/hooks/**`（hook ハンドラ実体）を含む。
   // 件数を固定するのは、集合の拡大が「気づかれずに」起きないようにするため——集合が
   // 広がることは退避スワップが破壊しうる範囲が広がることと同義である（列挙の網羅性が単一障害点）。
-  assert.equal(MANAGED_PATTERNS.length, 9);
+  assert.equal(MANAGED_PATTERNS.length, 12);
 });
 
 test('isManaged: 集合内は true', () => {
@@ -39,6 +39,9 @@ test('isManaged: 集合内は true', () => {
     '.claude/hooks/nested/format.mjs',
     '.mcp.json',
     'plugin/x.js',
+    'AGENTS.md',
+    '.claude/commands/deploy.md',
+    '.claude/output-styles/terse.md',
   ]) {
     assert.equal(isManaged(rel), true, rel);
   }
@@ -51,6 +54,8 @@ test('isManaged: 集合外（不可侵）は false', () => {
     'hooks/stray.sh', // `.claude/` の外の hooks/ は集合外のまま（拡張しすぎていないこと）
     '.claude/EXTRA.md', // §10.1 に無い `.claude/<名前>.md` は集合外（.claude/README.md だけが集合内）
     '.claude/CLAUDE.md',
+    'sub/AGENTS.md', // AGENTS.md はルート直下だけ（サブディレクトリの同名は集合外）
+    '.claude/commands', // ディレクトリ自身は対象外
     '.claude/hooks', // ディレクトリ自身は対象外（`.+` が要る）
     'src/.claude/hooks/x.sh', // 集合パターンは先頭アンカー。サブツリーの同名は拾わない
     'src/app.js',
@@ -140,7 +145,7 @@ function eaccesOnSockets(p, ...rest) {
 test('managedRoots: MANAGED_PATTERNS から機械導出する（走査根を二重管理しない）', () => {
   // 走査根を手書きの第二リストとして持つと、パターンだけ足して走査根を足し忘れた瞬間
   // walkManaged が黙って列挙漏れを起こす（列挙の網羅性が単一障害点）。導出であることを固定する。
-  assert.deepEqual([...managedRoots()].sort(), ['.claude', '.mcp.json', 'CLAUDE.md', 'plugin']);
+  assert.deepEqual([...managedRoots()].sort(), ['.claude', '.mcp.json', 'AGENTS.md', 'CLAUDE.md', 'plugin']);
 });
 
 test('walkManaged: stat 不能なエントリ（EACCES socket）が在っても走査全体が落ちない', (t) => {

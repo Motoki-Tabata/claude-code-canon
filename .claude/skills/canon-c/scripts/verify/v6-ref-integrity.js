@@ -294,7 +294,7 @@ const PLUGIN_MANIFEST = `${PLUGIN_ROOT}/.claude-plugin/plugin.json`;
 function checkPluginReferences(ctx) {
   const violations = [];
   const file = ctx.byRel.get(PLUGIN_MANIFEST);
-  if (!file) return { violations, checked: 0 }; // plugin 未使用は正当（L5 を使うかは設計次第）
+  if (!file) return { violations, checked: 0 }; // plugin 未使用は正当（plugins を使うかは設計次第）
 
   let manifest;
   try {

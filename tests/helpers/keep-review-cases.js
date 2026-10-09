@@ -32,7 +32,7 @@ existing_disposition:
 
 ## レコード（1ファイル1件）
 - path: .claude/skills/secret-hygiene/SKILL.md
-  layer: L2
+  feature: skills
   kind: skill
   strength: advisory
   depends_on:
@@ -105,7 +105,7 @@ existing_disposition:
 
 ## レコード（1ファイル1件）
 - path: .claude/skills/db-migration/SKILL.md
-  layer: L2
+  feature: skills
   kind: skill
   strength: advisory
   depends_on:

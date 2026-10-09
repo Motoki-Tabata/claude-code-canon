@@ -278,11 +278,11 @@ description: 新規追加されるスキル（disposition:新規・deploy で対
     "expected-work/investigation/existing.md": `# existing.md（fixture）
 
 ## サマリ
-総数 4 / L2 4 / 正典逸脱の疑い: なし
+総数 4 / skills 4 / 正典逸脱の疑い: なし
 
 ## レコード（1ファイル1件）
 - path: .claude/skills/kept-skill/SKILL.md
-  layer: L2
+  feature: skills
   kind: skill
   strength: medium
   depends_on:
@@ -295,7 +295,7 @@ description: 新規追加されるスキル（disposition:新規・deploy で対
     tool_names_valid: true
     deprecated_notation: []
 - path: .claude/skills/legacy-skill/SKILL.md
-  layer: L2
+  feature: skills
   kind: skill
   strength: low
   depends_on:
@@ -307,7 +307,7 @@ description: 新規追加されるスキル（disposition:新規・deploy で対
     tool_names_valid: true
     deprecated_notation: []
 - path: .claude/skills/merge-a/SKILL.md
-  layer: L2
+  feature: skills
   kind: skill
   strength: low
   depends_on:
@@ -319,7 +319,7 @@ description: 新規追加されるスキル（disposition:新規・deploy で対
     tool_names_valid: true
     deprecated_notation: []
 - path: .claude/skills/merge-b/SKILL.md
-  layer: L2
+  feature: skills
   kind: skill
   strength: low
   depends_on:
@@ -408,8 +408,8 @@ CLAUDE.md
     "expected-output/MANIFEST.md": `# MANIFEST（constrained シナリオ・fixture）
 
 ## 新規
-- CLAUDE.md（L1・プロジェクト規約）
-- .claude/rules/schema-review.md（L1 Rules・R1 の advisory 縮退先）
+- CLAUDE.md（claude-md・プロジェクト規約）
+- .claude/rules/schema-review.md（rules・R1 の advisory 縮退先）
 - .claude/README.md（使い方）
 
 ## 維持（keep）
@@ -428,17 +428,17 @@ CLAUDE.md
     "expected-output/design-map.md": `# design-map（constrained シナリオ・fixture）
 
 対象: 代表シナリオ(3)「制約強め」。constraints（hooks / mcp / plugins / experimental すべて禁止）で
-機能選択を事前刈り込みした設計。R1 は deterministic を実現できないため L1 Rules（advisory）へ縮退する。
+機能選択を事前刈り込みした設計。R1 は deterministic を実現できないため rules（advisory）へ縮退する。
 
 ## Used Features
-L1: CLAUDE.md ＋ Rules（縮退先） / L2: Skills（既存 keep）
-L4 Hooks・MCP: N/A（constraints で禁止） / L5 Plugin: N/A（constraints で禁止）
+builder を起動する機能: claude-md・rules・skills
+hooks・mcp・plugins: N/A（constraints で禁止）
 
 ## レイヤー構成
-L1: CLAUDE.md（プロジェクト規約）＋ .claude/rules/schema-review.md（R1 の縮退先・paths で src へ接地）
-L2: .claude/skills/style-guide/SKILL.md（既存を keep）
-L4: 不使用（hooks・mcp とも constraints で禁止）
-L5: 不使用（plugins は constraints で禁止）
+claude-md: CLAUDE.md（プロジェクト規約）
+rules: .claude/rules/schema-review.md（R1 の縮退先・paths で src へ接地）
+skills: .claude/skills/style-guide/SKILL.md（既存を keep）
+hooks・mcp・plugins: 不使用（constraints で禁止）
 
 ## 既存判定
 
@@ -464,24 +464,22 @@ existing_disposition:
     manifest_note: "experimental 禁止により context:fork 依存の fork-runner は廃止"
 \`\`\`
 
-## L1（builder）
+## claude-md（builder）
 ### \`CLAUDE.md\`（新規）
 プロジェクト規約。
+
+## rules（builder）
 ### \`.claude/rules/schema-review.md\`（新規・R1 の縮退先）
 \`paths:\` で \`src/**/*.js\` に接地する advisory rule。
 
-## L2（keep を verbatim コピー）
+## skills（keep を verbatim コピー）
 ### \`.claude/skills/style-guide/SKILL.md\`（keep）
-
-## L4（不使用）
-## L5（emit-manifest.js）
-### \`.claude/README.md\`（新規）
 
 ## Model Assignments
 N/A（本 fixture は Subagent を生成しない）
 
 ## Interface Contracts
-schema-review（L1 Rules）は src/**/*.js の編集時に自動ロードされ、style-guide（L2）は必要時に参照される。
+schema-review（rules）は src/**/*.js の編集時に自動ロードされ、style-guide（skills）は必要時に参照される。
 
 ## Experimental Dependencies
 なし（experimental は constraints で禁止。context:fork / Agent Teams / Channels / Monitors / Themes とも不使用）
@@ -498,9 +496,9 @@ nesting: 1段 / isolation:worktree: 不要
 
 | コンポーネント | 層 | 起動方式 | 用途 |
 |---|---|---|---|
-| CLAUDE.md | L1 | 常時ロード | プロジェクト規約の入口 |
-| schema-review | L1 Rules | 自動ロード（paths: src/**/*.js に一致する編集時） | スキーマ変更時のレビュー観点（R1 の縮退先） |
-| style-guide | L2 Skill | 「規約に沿っているか」と依頼すると自動発動。\`/style-guide\` でも起動可 | コーディング規約の参照（既存を維持） |
+| CLAUDE.md | claude-md | 常時ロード | プロジェクト規約の入口 |
+| schema-review | rules | 自動ロード（paths: src/**/*.js に一致する編集時） | スキーマ変更時のレビュー観点（R1 の縮退先） |
+| style-guide | skills | 「規約に沿っているか」と依頼すると自動発動。\`/style-guide\` でも起動可 | コーディング規約の参照（既存を維持） |
 
 ## 注意
 
@@ -541,7 +539,7 @@ ESM のみの小さな API プロジェクト。テストは \`node --test\`。
 ## この構成について
 
 組織ポリシーにより Hooks / MCP / Plugin / 実験機能は使用しない。
-自動実行による機械強制の代わりに、L1 Rules（自動ロードされる規約）で運用する。
+自動実行による機械強制の代わりに、rules（自動ロードされる規約）で運用する。
 
 - スキーマ変更時のレビュー観点は \`.claude/rules/schema-review.md\` が担う（R1 の縮退先）。
 - コーディング規約は既存の style-guide Skill を維持している。
@@ -549,11 +547,11 @@ ESM のみの小さな API プロジェクト。テストは \`node --test\`。
     "expected-work/investigation/existing.md": `# existing.md（fixture・制約強め）
 
 ## サマリ
-総数 3 / L2 2 / L4 1 / 正典逸脱の疑い: fork-runner が experimental 依存
+総数 3 / skills 2 / settings 1 / 正典逸脱の疑い: fork-runner が experimental 依存
 
 ## レコード（1ファイル1件）
 - path: .claude/skills/style-guide/SKILL.md
-  layer: L2
+  feature: skills
   kind: skill
   strength: medium
   depends_on:
@@ -566,7 +564,7 @@ ESM のみの小さな API プロジェクト。テストは \`node --test\`。
     tool_names_valid: true
     deprecated_notation: []
 - path: .claude/skills/fork-runner/SKILL.md
-  layer: L2
+  feature: skills
   kind: skill
   strength: low
   depends_on:
@@ -578,7 +576,7 @@ ESM のみの小さな API プロジェクト。テストは \`node --test\`。
     tool_names_valid: true
     deprecated_notation: []
 - path: .claude/settings.json
-  layer: L4
+  feature: settings
   kind: settings
   strength: high
   depends_on:
@@ -640,7 +638,7 @@ constraints:
 conflicts:
   - requirement: R1（deterministic 希望）
     constraint: hooks 禁止
-    note: Hooks が使えないため deterministic は実現できない。L1 Rules による advisory へ格下げする（P1 で合意）。
+    note: Hooks が使えないため deterministic は実現できない。rules による advisory へ格下げする（P1 で合意）。
 `,
     "package.json": `{
   "name": "constrained-app",

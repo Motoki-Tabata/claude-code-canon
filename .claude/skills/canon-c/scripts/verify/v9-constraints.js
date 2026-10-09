@@ -35,7 +35,7 @@
 import path from 'node:path';
 import { collection } from '../../../../../lib/tables.js';
 import { parseRequirementsDoc, RequirementsError } from '../../../../../lib/requirements.js';
-import { L5_PLUGIN_PATTERN } from '../../../../../lib/managed-paths.js';
+import { PLUGIN_PATTERN } from '../../../../../lib/managed-paths.js';
 import { findHeading, sectionSlice, mentionsIdentifier } from '../../../../../lib/markdown.js';
 
 const CHECK = 'V9';
@@ -113,7 +113,7 @@ const ev = (file, evidence) => ({ file, evidence });
 
 const CAPABILITY_DETECTORS = {
   /**
-   * Hooks（L4）。settings.json だけを見ない: plugin 同梱 hooks・hook スクリプトの実体配置も
+   * hooks。settings.json だけを見ない: plugin 同梱 hooks・hook スクリプトの実体配置も
    * 同じ能力の別経路である。イベント名は正典 hooks.json の全集合と照合する。
    */
   hooks(files) {
@@ -136,7 +136,7 @@ const CAPABILITY_DETECTORS = {
           }
         }
       }
-      // 経路④: frontmatter の hooks 宣言（agent・skill がライフサイクルフックを自前で持てる・L2/L3 の完全リファレンス）
+      // 経路④: frontmatter の hooks 宣言（agent・skill がライフサイクルフックを自前で持てる）
       if (f.frontmatter && fraw(f.frontmatter, 'hooks') !== undefined) {
         hits.push(ev(f.rel, 'frontmatter に hooks 宣言がある'));
       }
@@ -149,7 +149,7 @@ const CAPABILITY_DETECTORS = {
     return hits;
   },
 
-  /** MCP（L4）。.mcp.json の実在・frontmatter 宣言・mcp__ ツール名・settings の有効化。 */
+  /** mcp。.mcp.json の実在・frontmatter 宣言・mcp__ ツール名・settings の有効化。 */
   mcp(files) {
     const hits = [];
     for (const f of files) {
@@ -176,12 +176,12 @@ const CAPABILITY_DETECTORS = {
     return hits;
   },
 
-  /** Plugins（L5）。管理パス集合の L5 パターン・マニフェスト・settings の有効化。 */
+  /** plugins。管理パス集合の plugin パターン・マニフェスト・settings の有効化。 */
   plugins(files) {
     const hits = [];
     for (const f of files) {
-      if (L5_PLUGIN_PATTERN.test(f.rel)) {
-        hits.push(ev(f.rel, 'L5 plugin 配布物（管理パス集合の plugin/ パターン）が生成されている'));
+      if (PLUGIN_PATTERN.test(f.rel)) {
+        hits.push(ev(f.rel, 'plugin 配布物（管理パス集合の plugin/ パターン）が生成されている'));
       }
       const base = path.basename(f.rel);
       if (base === 'plugin.json' || base === 'marketplace.json' || f.rel.includes('.claude-plugin/')) {

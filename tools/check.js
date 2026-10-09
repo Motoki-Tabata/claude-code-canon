@@ -14,8 +14,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { CANON_ROOT } from '../lib/canon.js';
 import {
-  LAYER_SECTIONS,
-  layerSection,
+  FEATURE_SECTIONS,
+  featureSection,
   listDeclaredArtifacts,
   parseExistingDisposition,
   parseOutsideChanges,
@@ -24,6 +24,7 @@ import {
   DesignMapError,
 } from '../lib/design-map.js';
 import { parseExisting } from '../lib/investigation.js';
+import { FEATURES } from '../lib/features.js';
 import { isManaged } from '../lib/managed-paths.js';
 import { computeFenceMask, findHeading, sectionSlice } from '../lib/markdown.js';
 import { parseReferenceSources, parseRequirementsDoc, RequirementsError } from '../lib/requirements.js';
@@ -160,16 +161,17 @@ export function mentionedIds(text) {
 // design-map
 // ---------------------------------------------------------------------------
 
-const LAYER_LABELS = { L1: /CLAUDE\.md|Rules/i, L2: /Skills/i, L3: /Subagents/i, L4: /Hooks|settings|MCP/i, L5: /Plugins/i };
+/** `## Used Features` の、使う機能を書く行（`builder を起動する機能: rules・skills・hooks`）。 */
+const USED_FEATURES_LINE = /builder を起動する機能\s*[:：]\s*(.+)/;
 
-/** `## Used Features` で builder を起動すると書かれた層（`builder を起動する層: L1・L2・L3` の行）。 */
-function builderLayers(featuresText) {
-  const m = featuresText.match(/builder を起動する層\s*[:：]\s*(.+)/);
+/** `## Used Features` で builder を起動すると書かれた機能（機能名は `FEATURES`）。行が無ければ null。 */
+function builderFeatures(featuresText) {
+  const m = featuresText.match(USED_FEATURES_LINE);
   if (!m) return null;
-  // 「L5 は起動しない」のような否定の節は除く。
+  // 「plugins は起動しない」のような否定の節は除く。
   const head = m[1].split(/[。]/)[0];
-  const set = new Set([...head.matchAll(/L[1-5]/g)].map((x) => x[0]));
-  return set;
+  const names = head.match(/(?<![A-Za-z0-9-])[a-z]+(?:-[a-z]+)*(?![A-Za-z0-9-])/g) ?? [];
+  return new Set(names.filter((n) => FEATURES.includes(n)));
 }
 
 export function checkDesignMap(text, { spec = null, existing = null, requirements = null } = {}) {
@@ -179,26 +181,26 @@ export function checkDesignMap(text, { spec = null, existing = null, requirement
 
   // Used Features
   const feat = h2Section(lines, 'Used Features', mask);
-  let layers = null;
+  let used = null;
   if (!feat) {
     items.push(ng('## Used Features', '節が無い（Phase C は builder を起動する層をこの節で決める）'));
   } else {
     const body = lines.slice(feat.start + 1, feat.end).join('\n');
-    layers = builderLayers(body);
-    items.push(cond('## Used Features', layers && layers.size > 0,
-      `builder を起動する層: ${[...(layers ?? [])].join('・')}`, '「builder を起動する層: L1・L2…」の行が無い'));
+    used = builderFeatures(body);
+    items.push(cond('## Used Features', used && used.size > 0,
+      `builder を起動する機能: ${[...(used ?? [])].join('・')}`, '「builder を起動する機能: rules・skills…」の行が無い（機能名は12機能のどれか）'));
   }
 
-  // 層の節と宣言
+  // 機能の節と宣言
   const declared = listDeclaredArtifacts(text);
-  for (const sec of LAYER_SECTIONS) {
-    const used = layers ? layers.has(sec.layer) : null;
-    const range = layerSection(lines, sec.heading, mask);
-    const n = declared.filter((d) => d.layer === sec.layer).length;
-    if (used === false && !range) continue;
-    if (used === true || range) {
+  for (const sec of FEATURE_SECTIONS) {
+    const isUsed = used ? used.has(sec.feature) : null;
+    const range = featureSection(lines, sec.heading, mask);
+    const n = declared.filter((d) => d.feature === sec.feature).length;
+    if (isUsed === false && !range) continue;
+    if (isUsed === true || range) {
       items.push(cond(`## ${sec.heading} の節と宣言`, !!range && n > 0, `${n}件を宣言`,
-        range ? '生成物の宣言（### `パス`）が0件' : '使う層なのに節が無い'));
+        range ? '生成物の宣言（### `パス`）が0件' : '使う機能なのに節が無い'));
     }
   }
 
@@ -243,7 +245,7 @@ export function checkDesignMap(text, { spec = null, existing = null, requirement
     items.push(cond('## 参照元からのコピーの書式', bad.length === 0, `${copies.length}件（<絶対パス> → <管理パス内の相対パス>）`,
       `書式不正・生成先が管理パス外: ${bad.map((c) => `L${c.line}`).join('・')}`));
     const undeclared = copies.filter((c) => c.to && isManaged(c.to) && !declaredSet.has(c.to));
-    items.push(cond('参照元からのコピーの生成先が層の節に宣言されている', undeclared.length === 0, '全件が宣言されている',
+    items.push(cond('参照元からのコピーの生成先が機能の節に宣言されている', undeclared.length === 0, '全件が宣言されている',
       `未宣言（V8 が止める）: ${undeclared.map((c) => c.to).join('・')}`));
     if (requirements !== null) {
       const roots = parseReferenceSources(requirements).map((s) => s.path).filter(Boolean).map((p) => path.resolve(p));
@@ -292,7 +294,7 @@ export function checkDesignMap(text, { spec = null, existing = null, requirement
       const decl = (re) => declared.filter((d) => re.test(d.path)).map((d) => d.path);
       if (denied.includes('hooks')) hits.push(...decl(/^\.claude\/hooks\//).map((p) => `hooks 禁止: ${p}`));
       if (denied.includes('mcp')) hits.push(...decl(/(^|\/)\.mcp\.json$/).map((p) => `mcp 禁止: ${p}`));
-      if (denied.includes('plugins')) hits.push(...declared.filter((d) => d.layer === 'L5' || /^plugin\//.test(d.path)).map((d) => `plugins 禁止: ${d.path}`));
+      if (denied.includes('plugins')) hits.push(...declared.filter((d) => d.feature === 'plugins' || d.feature === 'plugin-mods' || /^plugin\//.test(d.path)).map((d) => `plugins 禁止: ${d.path}`));
       const expSec = h2Section(lines, 'Experimental Dependencies', mask);
       if (denied.includes('experimental') && expSec) {
         const b = lines.slice(expSec.start + 1, expSec.end).join('\n').trim();
