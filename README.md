@@ -7,8 +7,8 @@ Claude Code のカスタマイズ一式（`CLAUDE.md`・Rules・Skills・Subagen
 対象プロジェクトごとに**半自律で構築するメタジェネレータ**です。工程ごとに人間の承認を挟み、
 無人で最後まで走らせることはしません。
 
-- **SSoT**: 正典 `docs/`（Claude Code の公式仕様を整理したリファレンス9ファイルと、一次ソースの一覧
-  `docs/SOURCES.md`）。生成物の検査は `.claude/skills/canon-reference/data/` を直接読みます。
+- **SSoT**: 正典リファレンス `.claude/skills/canon-reference/`（Claude Code の公式仕様を12機能ごとに整理した
+  `references/`、機械可読の一覧 `data/`、一次ソースと版 `sources.json`）。生成物の検査は `data/` を直接読みます。
 - **成果物**: 対象プロジェクトに配置するファイル一式と、なぜその構成にしたかの記録（spec・design-map・
   MANIFEST）、使い方の説明（README）、配置の手順と照合結果。
 - **既存のカスタマイズがある場合**: 差分パッチではなく、既存と新しい要件から全体を設計し直し、
@@ -57,8 +57,7 @@ npm test               # 検査・スクリプト・自己適用のテスト
 
 ## ディレクトリ構成
 
-- `docs/` — 正典（SSoT）。判定表の生成元
-- `.claude/` — 本体。Phase Skill `canon-a`〜`canon-d`（`scripts/` を含む）、知識 Skill 5件、Subagent 8体、
+- `.claude/` — 本体。Phase Skill `canon-a`〜`canon-d`（`scripts/` を含む）、知識 Skill 5件と正典リファレンス `canon-reference`、Subagent 8体、
   保守用の Rule、`settings.json`（permissions だけ）。使い方は [.claude/README.md](.claude/README.md)
 - `lib/` — スクリプトが共有するパーサと管理パス集合
 - `tools/` — `approvals.js`（承認の記録と照合）・`check.js`（requirements・spec・design-map の機械点検）・`handoff.js`（handoff.md の更新）・`token-usage.js`（セッションのトークン消費の集計）
@@ -67,7 +66,7 @@ npm test               # 検査・スクリプト・自己適用のテスト
 - `guide/` — セットアップと運用の手順
 - `tasks/lessons.md` — claude-canon 本体への改修要求の台帳
 - `work/`・`output/` — run の中間物と成果物（gitignore）
-- `.github/workflows/` — CI（判定表の鮮度の検査と `npm test`）
+- `.github/workflows/` — CI（`npm test`）
 
 ## ライセンス
 

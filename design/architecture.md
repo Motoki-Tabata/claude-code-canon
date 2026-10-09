@@ -26,7 +26,7 @@ frontmatter の `canon_version` は、本書を書いたときに参照してい
 
 claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules・Skills・Subagents・MCP・Hooks・必要なら Plugin）を、対象プロジェクトごとに**半自律で構築するメタジェネレータ**である。工程ごとに人間の承認を挟み、無人で最後まで走らせることはしない。
 
-- **SSoT**: 正典 `docs/`（`00_INDEX`・`L1_CONTEXT_MANAGEMENT`・`L2_SKILLS`・`L3_AGENTS`・`L4_AUTOMATION`・`L5_DISTRIBUTION`・`ORCHESTRATION`・`TOOLS`・`BEST_PRACTICES` の9ファイルと、一次ソースの一覧 `SOURCES.md`）。生成物の正しさの基準はすべてここから導く。
+- **SSoT**: 正典リファレンス `.claude/skills/canon-reference/`（12機能ごとの `references/features/*.md`、選び方 `selection.md`・パターン `patterns.md`・品質基準 `quality.md`、機械可読の一覧 `data/*.json`、一次ソースと版 `sources.json`）。生成物の正しさの基準はすべてここから導く。
 - **成果物**: 対象プロジェクトに配置できるファイル一式（`output/<ts>/generated/`）と、なぜその構成にしたかの記録（spec・design-map・MANIFEST）、使い方の説明（README）、配置の手順と照合結果。
 
 ### 1.2 2つのモード
@@ -40,7 +40,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 | 柱 | 内容 |
 |---|---|
-| 正典駆動 | `docs/` を唯一の参照源にする。verify は `.claude/skills/canon-reference/data/` を直接読んで判定する |
+| 正典駆動 | `canon-reference` を唯一の参照源にする。verify は `canon-reference/data/` を直接読んで判定する |
 | 責任の局所化 | Agent と Skill はそれぞれ1文で言える責任を持つ。判定は design-map を作る工程5に集める（調査は判定しない → spec は方向づけまで → design-map が確定する） |
 | 決定論と意味判断の分離 | 機械的に真偽が決まる検査（verify の V1〜V9）と、意味の判断を要するレビュー（reviewer・keep-reviewer・標準 Skill のレビュー）を別系統に置く。レビューの非決定性で決定論の判定を汚さず、レビューは verify が見た項目を判定し直さない |
 
@@ -66,7 +66,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 - **セッション＝Phase**: 1つのセッションで全工程を回すと、メインの会話履歴を毎ターン読み直すコストが積み上がり、利用枠を使い切る。状態はすべてファイル（handoff.md と各成果物）が持つので、Phase の境界でセッションを切っても失うものは無い。
 - **spec を Phase A に置く**: 「何を作るか」を A で確定し、B は承認済みの spec を唯一の入力にする。B を始めた時点で要件の議論が終わっていれば、設計の議論が要件に戻って発散することがない。
-- **ヒアリング（工程2）はワーカーに任せない**: ヒアリングは人間との往復そのものである。Subagent や `context: fork` に隔離すると、会話履歴を継承しないため往復が成立しない（`docs/L2_SKILLS.md`）。オーケストレーター（inline のメイン Claude）が調査結果を示しながら直接対話し、合意した内容を自分で `requirements.md` に書く。
+- **ヒアリング（工程2）はワーカーに任せない**: ヒアリングは人間との往復そのものである。Subagent や `context: fork` に隔離すると、会話履歴を継承しないため往復が成立しない（`canon-reference` の skills.md・subagents.md）。オーケストレーター（inline のメイン Claude）が調査結果を示しながら直接対話し、合意した内容を自分で `requirements.md` に書く。
 - **検証（工程7）と品質検査（工程8）を分ける**: レビューの非決定性で決定論の検査を汚さないため。検証が通ってから品質検査に進む。
 - **調査を2段にする**: 調査①は浅く広く（要件の前）、調査②は確定した要件に関係する箇所だけを深く（spec の前）。要件が調査の範囲を絞るので、調査の読み込みすぎを防げる。全量スナップショット方式では既存の取りこぼしが配置時の消失につながるため、調査①の既存カスタマイズ棚卸しは省略できない。
 
@@ -87,15 +87,15 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 ### 3.2 Phase B（工程5・P3）
 
-1. **工程5 機能選定と設計**: designer を spawn する。入力は承認済みの spec・requirements・investigation の3ファイル。designer は design Skill（機能選定フローチャート・層数と責務・オーケストレーションのパターン・モデル割当・既存の処遇）に従って `output/<ts>/design-map.md` を書く。
+1. **工程5 機能選定と設計**: designer を spawn する。入力は承認済みの spec・requirements・investigation の3ファイル。designer は design Skill（機能選定・構成と責務・機能の組み合わせ方・モデル割当・既存の処遇）に従って `output/<ts>/design-map.md` を書く。
 2. **P3**: 提示の重点は artifacts.md §6.5 に従う（retire の全件、意味の判断に疑いがある keep、merge の統合先）。
 3. 承認を記録し、Phase C を案内する。
 
 ### 3.3 Phase C（工程6〜8・P4）
 
 1. **準備**: `canon-c/scripts/copy-keep.js` が keep の既存実体を output へバイト単位でコピーし、`slice.js` が design-map をワーカー別のスライスに切り出す（artifacts.md §5.4）。
-2. **工程6 生成**: design-map の Used Features にある層ごとに builder を同一 turn で並列 spawn する（層は引数で渡す）。各 builder は自分の層のスライスと共通スライスを読み、`output/<ts>/generated/` の担当範囲だけを書く。L2 を書く builder は skill-creator の執筆指針に従う（§8）。全 builder が終わったら `emit-manifest.js` が MANIFEST・README・`deploy/*.list` を決定論で生成する（artifacts.md §7）。
-3. **工程7 検証**: `npm run verify -- <ts>` が V1〜V9 を実行し、`output/<ts>/verify-report.md` と exit code を返す（artifacts.md §8）。違反があれば、該当する層の builder を新規 spawn して直させ、verify を再実行する。
+2. **工程6 生成**: design-map の Used Features の `builder を起動する機能` が決める担当（`claude-md`・`rules`・`skills`・`subagents`・`settings`・`mcp`・`plugins`・`output-styles` の8通り）ごとに builder を同一 turn で並列 spawn する（担当は引数で渡す）。各 builder は自分の担当のスライスと共通スライスを読み、`output/<ts>/generated/` の担当範囲だけを書く。Skill を書く builder は `canon-reference` の skills §4 の執筆指針に従う（§8）。全 builder が終わったら `emit-manifest.js` が MANIFEST・README・`deploy/*.list` を決定論で生成する（artifacts.md §7）。
+3. **工程7 検証**: `npm run verify -- <ts>` が V1〜V9 を実行し、`output/<ts>/verify-report.md` と exit code を返す（artifacts.md §8）。違反があれば、該当する担当の builder を新規 spawn して直させ、verify を再実行する。
 4. **工程8 品質検査**: 次を行う。
    - `review-bundle.js` で判定入力を作る（artifacts.md §9）。
    - reviewer を spawn する（correctness・security・正典の意図・context の4観点）。refactor モードでは keep-reviewer も spawn する（K2・K4 と merge 先の妥当性）。両者は同一 turn で並列に動かす。
@@ -136,15 +136,16 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 - builder は層ごとにオーケストレーターが直接起動する。builder をまとめる中継役は置かない（§5.1）。
 - 調査を担う investigator・session-analyst の書き込みは、自分の成果物ファイルに限る（定義で書込先を明示する）。investigator には Edit も与える。調査結果は数十KBになり、差し戻しや自己確認で直すたびに全文を Write し直すと、出力が重複するためである。session-analyst は差し戻しを受けないので Edit を与えない。session-analyst が自分で書くのは、分析の応答をメインが逐語で書き写すと、転記だけにメインの出力トークンを使うためである。
 
-### 4.2 Skill（9件）
+### 4.2 Skill（10件）
 
 | Skill | 種別 | 内容 |
 |---|---|---|
 | `canon-a`〜`canon-d` | Phase オーケストレーター（4件） | `disable-model-invocation: true`（ユーザーが `/名前` で起動したときだけ動く）。本文は500行未満。入口スクリプトは各 Skill の `scripts/` に置く。`context: fork` は付けない（ヒアリングが成り立たなくなる・§2.2） |
 | `investigation` | 知識（investigator が preload） | 3モードのテンプレートと値の語彙（artifacts.md §2） |
 | `requirements` | 知識（spec-writer が preload。Phase A のオーケストレーターも参照する） | ヒアリングの質問セット・用語の誤マッピング一覧・requirements と spec のテンプレート |
-| `design` | 知識（designer が preload） | 機能選定フローチャート・層数と責務・オーケストレーションのパターン・モデル割当・既存の処遇（K1〜K5）・design-map のテンプレート。それぞれ `references/` に分ける |
-| `generation` | 知識（builder が preload） | L1・Skills・Agents・L4・L5 の生成規約（`references/`）、skill-creator の使い方、「読み手が解決できない参照・作者向けの編集メモ・経緯を示す ID を書かない」規約 |
+| `design` | 知識（designer が preload） | 機能選定（12機能）・構成と責務・機能の組み合わせ方（パターン）・モデル割当・既存の処遇（K1〜K5）・design-map のテンプレート。それぞれ `references/` に分ける |
+| `generation` | 知識（builder が preload） | 担当単位（8ファイル）の生成規約（`references/`。正典は `canon-reference` の §5 を参照させ、canon 固有の契約だけを持つ）、「読み手が解決できない参照・作者向けの編集メモ・経緯を示す ID を書かない」規約 |
+| `canon-reference` | 正典リファレンス（SSoT） | `user-invocable: false`。12機能の `references/features/*.md`・`selection.md`・`patterns.md`・`quality.md` と、機械可読の `data/*.json`・`sources.json`。知識 Skill は本文に正典を写さず、該当ファイル・節をパスで参照させる（ワーカーへの届け方は preload のまま） |
 | `review` | 知識（reviewer・keep-reviewer が preload） | 観点の定義、verify との境界、出力の契約 |
 
 - 知識 Skill はユーザーが直接起動するものではないので `user-invocable: false` を明示する。
@@ -282,15 +283,14 @@ Anthropic が提供する Skill を、プラグインへの依存として取り
 
 | 情報源 | 役割 |
 |---|---|
-| `docs/`（正典） | 何が正しいか（スキーマ・フィールド・制約） |
-| `skill-creator` | 良い Skill の書き方 |
+| `canon-reference`（正典） | 何が正しいか（スキーマ・フィールド・制約）と、良い Skill の書き方（skills §4） |
 | `generation/references/` | canon 固有の契約（design-map を入力にする・書込先・編集メモを書かない） |
 
-Agent・L1・L4・L5 は `generation/references/` だけで生成する。
+全担当は、`generation/references/<担当>.md` が指す `canon-reference` の該当節と、その canon 固有の契約で生成する。
 
 ### 8.2 skill-creator を preload しない理由
 
-Agent の frontmatter `skills:` にプラグインの Skill を指定したときの名前の解決は、公式ドキュメントに明記が無く、見つからない Skill は警告だけでスキップされる（失敗に気づけない）。skill-creator の本文の大半は eval の実行手順で、builder が毎回読む必要も無い。そこで builder には preload させず、執筆指針の要約を `generation/references/skill-writing.md` に置いている。
+Agent の frontmatter `skills:` にプラグインの Skill を指定したときの名前の解決は、公式ドキュメントに明記が無く、見つからない Skill は警告だけでスキップされる（失敗に気づけない）。skill-creator の本文の大半は eval の実行手順で、builder が毎回読む必要も無い。そこで builder には preload させず、執筆指針は `canon-reference` の skills §4 を `generation/references/skills.md` から読ませている。
 
 ---
 
@@ -336,9 +336,9 @@ claude-canon 自身の運用にはフック（`.claude/settings.json` の hooks�
 
 ```text
 claude-canon/
-├─ docs/                  正典（SSoT）。判定表の生成元
 ├─ .claude/
 │   ├─ skills/
+│   │   ├─ canon-reference/        正典リファレンス（SSoT。references/・data/・sources.json）
 │   │   ├─ canon-a/ … canon-d/     Phase オーケストレーター（scripts/ を含む）
 │   │   └─ investigation/ requirements/ design/ generation/ review/   知識 Skill（references/ を含む）
 │   ├─ agents/            investigator・session-analyst・spec-writer・designer・builder・reviewer・keep-reviewer・prompt-auditor
@@ -355,5 +355,5 @@ claude-canon/
 └─ package.json・CHANGELOG.md・README.md
 ```
 
-- **`canon-reference/data/` が verify の SSoT の実装である**。verify は `lib/tables.js` を通して data を直接読む。判定表の生成の仕組みは無い。
+- **`canon-reference/data/` が verify の SSoT の実装である**。verify は `lib/tables.js` を通して data を直接読む。
 - **work/・output/ を gitignore にする理由**: 実行結果は claude-canon 本体の版とは別物である。成果物は最終的に対象プロジェクトの側で版管理される。

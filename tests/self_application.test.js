@@ -293,7 +293,7 @@ test('Phase Skill に旧体系の用語・番号が残っていない（SendMess
 
 /**
  * run の worktree 方式（run ごとの worktree・run ブランチ・成果物の強制追加・handoff の課題候補の転記）の
- * 語が canon 本体に残っていないか。run は canon のルートで行う（architecture.md §7）。旧 docs/（PR3 で廃止）と
+ * 語が canon 本体に残っていないか。run は canon のルートで行う（architecture.md §7）。旧 docs/ と
  * 過去の版を記録する CHANGELOG.md、検出器自身を含む tests/ は対象外。
  */
 const RUN_WORKTREE_TERMS = /canon-runs|run ブランチ|run\/<ts>|git add -f|canon 課題候補/;
