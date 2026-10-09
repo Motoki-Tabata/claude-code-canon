@@ -14,6 +14,7 @@ skills: [generation]
 - `unit`: `claude-md`・`rules`・`skills`・`subagents`・`settings`・`mcp`・`plugins`・`output-styles` のどれか1つ
 - `output/<ts>/` と `work/<ts>/slices/` の絶対パス
 - `skills` が分割されたときだけ: 担当するスライス `skills-<k>.md` と宣言一覧 `targets-skills-<k>.txt`（他の skill は別の builder が書く。担当外の skill には書かない）
+- 対象プロジェクトのルートの絶対パス（読み取り専用。ルールや Skill に載せる見本コードは、ここの実物から写す。読めない・実在しないときは見本を書かない）
 - 参照元があるときだけ: requirements.md の `## 参照元` の `path`（移植の基準。読み取り専用。生成物には参照元のパスや名前を書かない）
 - 管理パス外の変更を書くときだけ（`unit` が `claude-md`）: `output/<ts>/outside-managed/` のうち書くファイルのパス（オーケストレーターが対象の現物をコピー済み。無ければ新規作成）と、`common.md` の `## 管理パス外の変更` の該当項目
 - 差し戻しのときだけ: 直すファイルと指摘（handoff.md の「差し戻し」の逐語）

@@ -53,7 +53,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
    | output-styles | `output-styles` | `output-styles.md` | `targets-output-styles.txt` |
 
    `work/<ts>/slices/` に `skills-<k>.md`・`targets-skills-<k>.txt` があるとき（skills の宣言が20件を超えた）は、skills の builder を k ごとに1体、合計で分割数だけ起動し、それぞれに担当の `skills-<k>.md` と `targets-skills-<k>.txt` を渡す（`skills.md` は渡さない）。分割が無ければ1体。同じ担当に属する複数の機能（例: settings と hooks）は1体の builder が書く。
-2. 使う担当の builder を、**1つのメッセージで並列に**起動する。渡すもの: `unit`・ts・`output/<ts>/` と `work/<ts>/slices/` の絶対パス。`work/<ts>/requirements.md` に `## 参照元` があれば、その `path` の一覧も渡す（読み取り専用の移植の基準。`npm run check -- <ts> requirements` で確かめられる）。
+2. 使う担当の builder を、**1つのメッセージで並列に**起動する。渡すもの: `unit`・ts・`output/<ts>/` と `work/<ts>/slices/` の絶対パス・handoff の `target`（読み取り専用）。`work/<ts>/requirements.md` に `## 参照元` があれば、その `path` の一覧も渡す（読み取り専用の移植の基準。`npm run check -- <ts> requirements` で確かめられる）。
 3. 全員が終わったら、担当ごとに宣言一覧（skills は `targets-skills.txt` の全体）の各パスが `generated/` に実在するかを確かめる。参照元からコピーしたファイルは `copy-keep` の出力の `ref_copied` と一致していること、builder に打ち直されていないこと（参照元との差分が、指示した箇所だけであること）も確かめる。欠けていれば、その担当の builder を新しく起動し、欠けたパスを渡して書かせる。`targets-other.txt` が空でなければ、どの担当にも属さない宣言があるので、内容を示して扱いを決める。 `.claude/README.md` は担当に属さず工程6-4 の emit-manifest が書くので、`targets-*.txt` に出ず存在確認の対象にもしない（design-map が modify と宣言していても `disposition-other.md` にレコードが入るだけ）。担当に属さない modify・merge のレコードも `disposition-other.md` に入る。
 4. **管理パス外の変更の変更後のファイルを作る**: `common.md` の `## 管理パス外の変更` に項目があれば、項目ごとに次を行う（項目が無い、または「なし」ならこの手順は飛ばす）。変更後のファイルは `output/<ts>/outside-managed/<対象パス>` に置き、P4 の承認が generated/ と一緒に束縛する（承認後に変わると P4 が無効になる）。
    1. 項目の見出しの対象パスが対象に実在するなら、現物を `output/<ts>/outside-managed/<対象パス>` にコピーする（`mkdir -p` してから `cp`。書き写させない）。実在しない新規ファイルはコピーしない。

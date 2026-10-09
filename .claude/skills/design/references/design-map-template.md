@@ -6,7 +6,7 @@
 
 - 機能ごとの節の見出しは `## <機能>` で**始める**。`<機能>` は `canon-reference/references/features/*.md` のファイル名の12通り（claude-md・rules・skills・subagents・hooks・mcp・settings・permissions・statusline・plugins・plugin-mods・output-styles）。括弧書きの補足は可: `## skills（手順）`。`## スキル群` のような別の語にすると、宣言が0件になって検査が止まる。
 - 使わない機能の節は置かなくてよい（`## Used Features` で N/A と書く）。
-- 機能の節の下には、生成物を1件ずつ ``### `パス` `` の見出しで宣言する（skills・subagents は名前だけでもよい: ``### `test-gen` ``）。新規も改修も維持も、生成されるものは全部ここに並べる。廃止するものは見出しの注記に `retire` か `廃止` と書く（宣言から外れる）。
+- 機能の節の下には、生成物を1件ずつ ``### `パス` `` の見出しで宣言する（skills・subagents は名前だけでもよい: ``### `test-gen` ``。名前だけの見出しは skills が `.claude/skills/<名前>/SKILL.md`、subagents が `.claude/agents/<名前>/<名前>.md` に展開される。別の形にするときは実パスで見出しを書き、名前だけの見出しの下に別のパスを書かない）。新規も改修も維持も、生成されるものは全部ここに並べる。廃止するものは見出しの注記に `retire` か `廃止` と書く（宣言から外れる）。
 - 既存の判定は `## 既存判定` の見出しの下の YAML ブロックに書く。
 - `## Used Features` は必須（無いとスライスの切り出しが失敗する）。`## Write Scopes` は見出しの文字列が完全一致。
 - 共通の節: `## メタ`・`## Used Features`・`## 構成と責務`・`## Model Assignments`・`## Interface Contracts`・`## 生成上の制約`・`## 要件→生成物の対応`・`## 参照元からのコピー`（任意）・`## 管理パス外の変更`・`## Experimental Dependencies`・`## 依存フラグ`。
