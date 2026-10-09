@@ -1,7 +1,7 @@
 /**
  * V3 ツール名（per-file・artifacts.md §8.2）。
  *
- * 出典: 正典リファレンス canon-reference の `tools:tools`（lib/tables.js）と、検証ルール
+ * 出典: 正典リファレンス canon-reference の `tools:tools`（lib/reference-data.js）と、検証ルール
  * V-subagents-08（サブエージェントの `tools`・`disallowedTools`）・V-skills-14（Skill の
  * `allowed-tools`・`disallowed-tools`）。
  *
@@ -20,7 +20,7 @@
  * 純関数。副作用なし。
  */
 
-import { collection, cite, plain } from '../../../../../lib/tables.js';
+import { collection, cite, plain } from '../../../../../lib/reference-data.js';
 import { violation, splitListValue } from '../../../../../lib/artifact.js';
 
 const CHECK = 'V3';
@@ -95,7 +95,7 @@ function checkToken(tok, artifact, field, rule) {
 export function checkV3(artifact) {
   const violations = [];
   const spec = TOOL_LIST_FIELDS[artifact.kind];
-  if (!spec) return violations; // rule/unknown には tools 系フィールドが無い
+  if (!spec) return violations; // rule/output-style/unknown には tools 系フィールドが無い
 
   for (const field of spec.fields) {
     const entry = artifact.frontmatter[field];

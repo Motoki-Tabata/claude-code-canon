@@ -7,7 +7,7 @@
  * 契約が禁じるのは内部専用 Skill（`user-invocable: false`）の**利用者向け一覧への掲載**であって、README
  * 本文からの完全排除ではない。`readme.includes(name)` のような出現ベースの判定にすると、契約が推奨する
  * 「「内部で参照される知識」に留める」書き方や、Hook の実体の在り処（`.claude/skills/<name>/scripts/<script>`）の
- * 明示まで禁じてしまう（`.claude/rules/gates-and-tests.md`「「一覧に出すな」型の規定は出現位置で判定する」）。
+ * 明示まで禁じてしまう（`.claude/rules/checks-and-tests.md`「「一覧に出すな」型の規定は出現位置で判定する」）。
  *
  * ## 判定する2軸（これ以外は見ない）
  *
@@ -45,7 +45,7 @@ const DECORATION_RE = /^[\s`*_[\]"'“”「『（(]+/;
  * テキストの**先頭**に立つ識別子トークンを返す（無ければ null）。
  * `- **\`impact-scope\`** — …` → `impact-scope` ／ `- この deny は impact-scope による` → null。
  */
-export function leadingIdentifier(text) {
+function leadingIdentifier(text) {
   if (typeof text !== 'string') return null;
   const m = text.replace(DECORATION_RE, '').match(LEADING_IDENTIFIER_RE);
   return m ? m[0] : null;
@@ -100,13 +100,6 @@ export function collectListingEntries(readme) {
 
   return entries;
 }
-
-/** 一覧項目の種別 → 違反メッセージ用の日本語ラベル。 */
-export const LISTING_KIND_LABEL = {
-  heading: '見出し',
-  table: '表の第1セル',
-  list: '箇条書きの先頭',
-};
 
 /**
  * README 中の `name` の現れ方を、判定に使う2軸だけへ還元する。

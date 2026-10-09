@@ -47,6 +47,17 @@ test('emit-run-manifest: RUN.md に両コマンド・配置集合・廃止集合
   assert.ok(body.includes(ts), 'RUN.md に実 <ts> が入る');
   assert.ok(!/<ts>=<ts>/.test(body), 'プレースホルダ <ts> がリテラルで残っていない');
   assert.ok(body.includes(`.claude-canon.bak.${ts}`), 'ロールバック手順が実 <ts> の .bak を指す');
+
+  // 配置の前に作業ブランチを切る手順を置く（--confirm のコマンドより前）
+  const sw = body.indexOf('switch -c');
+  assert.ok(sw > 0, 'switch -c の手順がある');
+  assert.ok(sw < body.indexOf('--confirm', body.indexOf('### 3.')), '--confirm のコマンドより前');
+
+  // exit code の文面は CLI 共通の規約（1=拒否・巻き戻し、2=引数不正）に従う
+  assert.match(body, /- exit 1: \*\*uncaptured/);
+  assert.match(body, /- exit 1: uncaptured・list の集合外の行/);
+  assert.doesNotMatch(body, /- exit 2: (\*\*)?uncaptured/);
+  assert.match(body, /- exit 2: 引数不正/);
 });
 
 test('emit-run-manifest: outside-managed/ のファイルを対象へコピーするコマンドが 3a に入る。無ければ入らない', (t) => {
@@ -72,14 +83,6 @@ test('emit-run-manifest: managed-paths.list が無ければ exit 1（黙って�
   const r = runScript('canon-d', 'emit-run-manifest.js', [c.output, c.target]);
   assert.equal(r.code, 1, 'emit-manifest.js の配置リスト欠落は入力不在として exit 1');
   assert.ok(!existsSync(path.join(c.output, 'deploy', 'RUN.md')), '入力欠落時に RUN.md を書かない');
-});
-
-test('emit-run-manifest(render): 集合が空でも本文を組み立てられる（要約は「なし」）', (t) => {
-  // 純関数を直接叩く（CLI 前提の入力検査を経由しない経路の単体確認）。
-  const c = setupTmpCase(t, 'new');
-  const body = renderRunManifest(c.output, c.target);
-  assert.match(body, /配置される管理パス集合/);
-  assert.match(body, /対象から消える/);
 });
 
 test('RUN.md に実行環境の注意（サンドボックスの外で --confirm・push は対象のセッションで・SSH ホスト）が入る', (t) => {

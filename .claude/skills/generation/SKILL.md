@@ -25,7 +25,7 @@ builder は、design-map から切り出されたスライスを入力に、**�
 | `rules` | `.claude/rules/*.md` | [references/rules.md](references/rules.md) | `rules.md` | `targets-rules.txt` |
 | `skills` | `.claude/skills/<name>/**`・`.claude/commands/*.md` | [references/skills.md](references/skills.md) | `skills.md`（分割されたときは渡された `skills-<k>.md`） | `targets-skills.txt`（分割されたときは渡された `targets-skills-<k>.txt`） |
 | `subagents` | `.claude/agents/**` | [references/subagents.md](references/subagents.md) | `subagents.md` | `targets-subagents.txt` |
-| `settings` | `.claude/settings.json`・`.claude/hooks/**`・status line のスクリプト | [references/settings.md](references/settings.md) | `settings.md` | `targets-settings.txt` |
+| `settings` | `.claude/settings.json`・`.claude/hooks/**` | [references/settings.md](references/settings.md) | `settings.md` | `targets-settings.txt` |
 | `mcp` | `.mcp.json` | [references/mcp.md](references/mcp.md) | `mcp.md` | `targets-mcp.txt` |
 | `plugins` | `plugin/**` | [references/plugins.md](references/plugins.md) | `plugins.md` | `targets-plugins.txt` |
 | `output-styles` | `.claude/output-styles/*.md` | [references/output-styles.md](references/output-styles.md) | `output-styles.md` | `targets-output-styles.txt` |

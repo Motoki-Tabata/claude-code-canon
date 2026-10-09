@@ -10,8 +10,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
-import os from 'node:os';
+import { readFileSync, mkdirSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
 import { REVIEW_CHUNK_SIZE, chunkBy, buildKeepReviewBundles, buildReviewerBundle, collectKeepReviewCases, caseIdFor } from '../.claude/skills/canon-c/scripts/review-bundle.js';
 import { keepReviewCaseDir, scratchDir } from './helpers/fixtures.js';
 import { tsFor } from './helpers/ts.js';
@@ -134,8 +133,7 @@ const DM_KEEP = [
 ].join('\n');
 
 function keepRun(t, { generated = {} } = {}) {
-  const tmp = mkdtempSync(path.join(os.tmpdir(), 'bundle-keep-'));
-  t.after(() => rmSync(tmp, { recursive: true, force: true }));
+  const tmp = scratchDir(t, 'bundle-keep-');
   writeFileSync(path.join(tmp, 'design-map.md'), DM_KEEP);
   for (const [rel, body] of Object.entries(generated)) {
     mkdirSync(path.dirname(path.join(tmp, 'generated', rel)), { recursive: true });
@@ -230,8 +228,7 @@ const DM_REVIEWER = [
 ].join('\n');
 
 function reviewerRun(t, { designMap = DM_REVIEWER, generated } = {}) {
-  const tmp = mkdtempSync(path.join(os.tmpdir(), 'bundle-reviewer-'));
-  t.after(() => rmSync(tmp, { recursive: true, force: true }));
+  const tmp = scratchDir(t, 'bundle-reviewer-');
   writeFileSync(path.join(tmp, 'design-map.md'), designMap);
   writeFileSync(path.join(tmp, 'spec.md'), '# spec\n## §8 受入基準\n- functional（A1）: `/x` で動く\n## §9 未決事項\nなし\n');
   for (const [rel, body] of Object.entries(

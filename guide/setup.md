@@ -29,7 +29,7 @@ Phase C は Anthropic の標準 Skill を使います。
 | Skill | 使いどころ | 入手 |
 |---|---|---|
 | `/claude-api prompt-audit` | Phase C で生成物のプロンプトを監査する | プラグイン `example-skills`（Claude Code に同梱されている場合はそれを使う） |
-| `skill-creator` | 対象向けの Skill の description を trigger eval で磨きたいとき（任意）。builder 自身は `generation` Skill に置いた執筆指針の要約に従う | プラグイン `example-skills` |
+| `skill-creator` | 対象向けの Skill の description を trigger eval で磨きたいとき（任意）。builder 自身は `canon-reference` の skills §4（`generation` Skill から参照）に従う | プラグイン `example-skills` |
 | `mcp-builder` | MCP サーバーの新規実装が要るときに、対象側で使うよう案内する | プラグイン `example-skills` |
 
 プラグインは Claude Code の中で次のように入れます。
@@ -146,8 +146,8 @@ rm -rf work/<ts> output/<ts>
 | `npm run new-run -- <target> [<ts>]` | ts の採番・骨格・handoff.md の作成 | A |
 | `npm run approvals -- <ts> hash\|record\|check …` | 承認行の記録と照合 | A〜D |
 | `npm run check -- <ts> requirements\|spec\|design-map` | requirements・spec・design-map の項目ごとの機械点検（OK / NG） | A・B |
-| `npm run handoff -- <ts> mark\|set\|note\|session …` | handoff.md の進捗の印・frontmatter・節への追記・セッションの記録 | A〜D |
-| `npm run slice -- <ts>` | design-map をワーカー別のスライスに切り出す | C |
+| `npm run handoff -- <ts> mark\|set\|note\|session …` | handoff.md の進捗の印（`mark <工程N\|PN> --off` で外す）・frontmatter・節への追記・セッションの記録 | A〜D |
+| `npm run slice -- <ts> [--unit <担当>]` | design-map をワーカー別のスライスに切り出す（`--unit` は標準出力をその担当の分に絞る。書き出しは常に全部） | C |
 | `npm run copy-keep -- <ts>` | keep の原本を generated/ にバイト単位でコピーする | C |
 | `npm run manifest -- <ts>` | MANIFEST・README・配置リストを決定論で生成する | C |
 | `npm run verify -- <ts>` | V1〜V9 の検証。`verify-report.md` を書き、違反があれば exit 1 | C |
@@ -155,8 +155,8 @@ rm -rf work/<ts> output/<ts>
 | `npm run run-manifest -- <output-dir> <target-dir>` | 配置手順書 RUN.md を書く | D |
 | `npm run pre-deploy -- <output-dir> <target-dir>` | 配置前照合。uncaptured があれば exit 1 | D |
 | `npm run deploy -- <output-dir> <target-dir> [--confirm]` | 配置。`--confirm` が無ければ予定の表示だけ | D（人間） |
-| `npm run reference-check [-- --online]` | 正典リファレンスの検査（build.md §8 の 1〜9・11。`--online` で 2・4・5 も）。違反があれば exit 1 | 保守 |
-| `npm run tokens -- <session-id \| jsonl のパス>` | セッションのトークン消費を集計する（Phase D の終わりの振り返りでも使う） | 保守 |
+| `npm run reference-check [-- --online] [--root <dir>]` | 正典リファレンスの検査（build.md §8 の 1〜9・11。`--online` で 2・4・5 も。`--root` で検査するディレクトリを替える）。違反があれば exit 1 | 保守 |
+| `npm run tokens -- <session-id \| jsonl のパス> [--json]` | セッションのトークン消費を集計する（Phase D の終わりの振り返りでも使う。`--json` で JSON を出す） | 保守 |
 | `npm test` | テスト | 保守 |
 
 ## 7. 正典 `canon-reference` の更新

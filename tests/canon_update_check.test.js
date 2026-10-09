@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync, appendFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { REFERENCE_DIR } from '../lib/tables.js';
+import { REFERENCE_DIR } from '../lib/reference-data.js';
 import { CANON_ROOT } from '../lib/canon.js';
 import { runNodeScript } from './helpers/run-cli.js';
 import {

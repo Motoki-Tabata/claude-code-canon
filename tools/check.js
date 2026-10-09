@@ -183,7 +183,7 @@ export function checkDesignMap(text, { spec = null, existing = null, requirement
   const feat = h2Section(lines, 'Used Features', mask);
   let used = null;
   if (!feat) {
-    items.push(ng('## Used Features', '節が無い（Phase C は builder を起動する層をこの節で決める）'));
+    items.push(ng('## Used Features', '節が無い（Phase C は builder を起動する担当をこの節で決める）'));
   } else {
     const body = lines.slice(feat.start + 1, feat.end).join('\n');
     used = builderFeatures(body);

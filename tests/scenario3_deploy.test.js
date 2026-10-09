@@ -16,11 +16,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { setupTmpCase } from './helpers/fixtures.js';
+import { setupTmpCase, TMP_CASE_BAK as BAK } from './helpers/fixtures.js';
 import { runScript } from './helpers/run-cli.js';
 import { sha256File } from '../lib/managed-paths.js';
-
-const BAK = '.claude-canon.bak.20260722_000000';
 
 test('代表シナリオ(3): pre-deploy-check は retired のみで exit 0（settings.json・fork-runner）', (t) => {
   const c = setupTmpCase(t, 'constrained');

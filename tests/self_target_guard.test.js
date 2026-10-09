@@ -6,10 +6,10 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { git, gitInit } from './helpers/git.js';
 import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { scratchDir } from './helpers/fixtures.js';
+import { scratchDir, writeFile, TMP_CASE_TS } from './helpers/fixtures.js';
 import { ROOT as CANON_ROOT } from './helpers/paths.js';
 import { runScript } from './helpers/run-cli.js';
 import { isCanonSelfTarget, pathKey } from '../.claude/skills/canon-d/scripts/self-target-guard.js';
@@ -88,14 +88,11 @@ test('guard: 別 worktree（セッション用）から実行しても、main �
   const base = scratchDir(t, 'canon-guard-wt-');
   const main = path.join(base, 'main');
   const wt = path.join(base, 'wt');
-  const git = (...args) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.com', ...args], { cwd: main, stdio: 'pipe' });
   try {
     mkdirSync(main);
-    git('init', '-q');
     writeFileSync(path.join(main, 'f.txt'), 'x\n');
-    git('add', '.');
-    git('commit', '-q', '-m', 'init');
-    git('worktree', 'add', '-q', '-b', 'session', wt);
+    gitInit(main);
+    git(main, 'worktree', 'add', '-q', '-b', 'session', wt);
   } catch (e) {
     t.skip(`git worktree を作れない環境: ${e.message}`);
     return;
@@ -108,10 +105,9 @@ test('guard: 別 worktree（セッション用）から実行しても、main �
 
 test('CLI: pre-deploy-check・deploy・emit-run-manifest は canon 配下・祖先の対象を exit 1 で拒否する', (t) => {
   const out = scratchDir(t, 'canon-guard-cli-');
-  mkdirSync(path.join(out, '20260722_000000', 'generated'), { recursive: true });
-  mkdirSync(path.join(out, '20260722_000000', 'deploy'), { recursive: true });
-  writeFileSync(path.join(out, '20260722_000000', 'deploy', 'managed-paths.list'), 'CLAUDE.md\n');
-  const o = path.join(out, '20260722_000000');
+  const o = path.join(out, TMP_CASE_TS);
+  mkdirSync(path.join(o, 'generated'), { recursive: true });
+  writeFile(o, 'deploy/managed-paths.list', 'CLAUDE.md\n');
   for (const target of [path.join(CANON_ROOT, 'lib'), path.dirname(CANON_ROOT), CANON_ROOT]) {
     for (const script of ['pre-deploy-check.js', 'deploy.js', 'emit-run-manifest.js']) {
       const r = runScript('canon-d', script, [o, target]);

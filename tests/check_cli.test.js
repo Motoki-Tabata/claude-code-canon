@@ -7,8 +7,9 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { cleanupTs } from './helpers/fixtures.js';
 import { runNodeScript } from './helpers/run-cli.js';
 import { ROOT, outputDir, workDir } from './helpers/paths.js';
 import { tsFor } from './helpers/ts.js';
@@ -162,9 +163,9 @@ test('design-map: 故意の違反をそれぞれ NG にする', () => {
   assert.deepEqual(run(DM.replace('### `.claude/skills/s/SKILL.md`（新規）', '')), ['## skills の節と宣言']);
   // 使う機能と書いたのに節が無い（mcp は N/A の行はあるが、起動する機能に挙げた）
   assert.deepEqual(run(DM.replace('builder を起動する機能: rules・skills', 'builder を起動する機能: rules・skills・mcp')), ['## mcp の節と宣言']);
-  // 起動する機能の行が旧形式（層）のまま・機能名でない語だけ
-  assert.deepEqual(run(DM.replace('builder を起動する機能: rules・skills', 'builder を起動する層: L1・L2')).slice(0, 1), ['## Used Features']);
-  assert.deepEqual(run(DM.replace('builder を起動する機能: rules・skills', 'builder を起動する機能: l1・l2')).slice(0, 1), ['## Used Features']);
+  // 起動する機能の行の見出し語が違う・機能名でない語だけ
+  assert.deepEqual(run(DM.replace('builder を起動する機能: rules・skills', 'builder を起動するもの: rules・skills')).slice(0, 1), ['## Used Features']);
+  assert.deepEqual(run(DM.replace('builder を起動する機能: rules・skills', 'builder を起動する機能: foo・bar')).slice(0, 1), ['## Used Features']);
   // allowed: false の mcp を宣言した
   assert.deepEqual(run(DM.replace('## skills（builder）', '## mcp\n### `.mcp.json`\nx\n\n## skills（builder）')), ['allowed: false の機能']);
   // 管理パス外の変更が outside_managed の範囲外・根拠が試行待ち
@@ -193,10 +194,7 @@ test('design-map: 既存が0件（new）なら既存判定の節が無くてよ�
 test('check CLI: 実際の起動経路で exit code と出力を確かめる', (t) => {
   const ts = tsFor(import.meta.url, 1);
   const script = path.join(ROOT, 'tools', 'check.js');
-  t.after(() => {
-    rmSync(workDir(ts), { recursive: true, force: true });
-    rmSync(outputDir(ts), { recursive: true, force: true });
-  });
+  cleanupTs(t, ts);
   mkdirSync(workDir(ts), { recursive: true });
   mkdirSync(outputDir(ts), { recursive: true });
 

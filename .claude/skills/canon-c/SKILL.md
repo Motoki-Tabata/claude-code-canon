@@ -16,7 +16,7 @@ Phase C は承認済みの design-map から生成物を作り、工程6〜8 と
 `$ARGUMENTS` は run の ts である。
 
 1. `work/<ts>/handoff.md` を読む。frontmatter の `target`・`mode` を控える。
-2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs design guide` を示す。`git status --short -- .claude lib gates tools docs design guide` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
+2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib tools design guide` を示す。`git status --short -- .claude lib tools design guide` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
 3. **承認の照合**: `npm run approvals -- <ts> check --expect P1,P2,P3` を実行する。exit 1 なら、どのファイルが承認後に変わったか（または承認行が無いか）を示し、そのゲートで承認を取り直すまで先へ進まない。
 4. **再入**: handoff の「差し戻し」に Phase D からの差し戻し（P4 の後で生成物を直す指示）があれば、これは再入である。「準備」は済んでいるので飛ばし、「修正ループ」の 2 から始める（builder を新しく起動 → manifest → verify → 変更分の再レビュー）。直し終えたら P4 を取り直す（`record P4` は、verify-report のハッシュが現在の generated/ と一致しないと拒否される）。P4 が変わると P5 も無効になるので、Phase D を `/canon-d <ts>` からやり直してもらう。
 5. **申し送り**: handoff の「申し送り」のうち Phase C 向けのものを先に実施する。結果は P4 の提示に含める。実施しなかったものは理由を添えて示す。

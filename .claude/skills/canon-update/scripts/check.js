@@ -12,7 +12,7 @@
  */
 
 import path from 'node:path';
-import { REFERENCE_DIR } from '../../../../lib/tables.js';
+import { REFERENCE_DIR } from '../../../../lib/reference-data.js';
 import { isMainModule } from '../../../../lib/run.js';
 import { OFFLINE_CHECKS, ONLINE_CHECKS } from './checks.js';
 

@@ -4,7 +4,7 @@ refactor モード（既存のカスタマイズがある）でだけ使う。ex
 
 ## なぜ全量を引き直すのか
 
-配置は、管理パス集合（`CLAUDE.md`・`.claude/rules/**`・`.claude/skills/**`・`.claude/agents/**`・`.claude/settings.json`・`.claude/hooks/**`・`.claude/README.md`・`.mcp.json`・`plugin/**`）を**全置換**する。output に無いファイルは対象から消える。だから output には、配置後の全量を置く。差分パッチにはしない。
+配置は、管理パス集合（`CLAUDE.md`・`AGENTS.md`・`.claude/rules/**`・`.claude/skills/**`・`.claude/commands/**`・`.claude/output-styles/**`・`.claude/agents/**`・`.claude/settings.json`・`.claude/hooks/**`・`.claude/README.md`・`.mcp.json`・`plugin/**`）を**全置換**する。output に無いファイルは対象から消える。だから output には、配置後の全量を置く。差分パッチにはしない。
 
 ## 判定
 
@@ -47,7 +47,7 @@ refactor モード（既存のカスタマイズがある）でだけ使う。ex
 |---|---|
 | SKILL.md・Subagent の定義 | frontmatter の `name` |
 | rule | `paths:` の値（並べ替えた一覧）。`paths:` が無い rule は「無条件に読み込まれること」。本文に節を足すだけなら署名は変わらない |
-| `CLAUDE.md`・`.claude/README.md` | 見出しの構造 |
+| `CLAUDE.md`・`AGENTS.md`・`.claude/README.md` | 見出しの構造 |
 | JSON（settings.json・.mcp.json など） | トップレベルのキーの集合 |
 | 付随スクリプト（`.js`・`.mjs`） | export する識別子の集合 |
 | 上記以外 | 検査できないので、`none` の宣言は違反になる |

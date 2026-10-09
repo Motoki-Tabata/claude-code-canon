@@ -21,6 +21,9 @@
  *      SKILL.md body 中でバッククォート参照されるパス様トークン（`template.md`・`examples/sample.md`
  *      等）を2段で扱う（artifacts.md §8.2 V6-4）。パスらしい構文（拡張子付き or ディレクトリ区切りを
  *      含む・空白/`$`/URL を含まない）に絞るのは、canon-reference がパターンを構造化していないための設計判断。
+ *      Markdown の相対リンク（`[表示名](./references/x.md)`）は、V-skills-18 の「相対パスでリンクした」
+ *      そのものなので、コードフェンスの外のものを skill ディレクトリ相対で解決し、無ければ error にする
+ *      （URL・`#` だけのリンク・絶対パスは対象外）。
  *   5. plugin 参照実在
  *      出典: V-plugins-05（manifest が指すコンポーネントのパスが、プラグインの中に存在する）。
  *      plugin.json の `skills` / `commands` / `agents` / `hooks` / `mcpServers` / `outputStyles` /
@@ -44,9 +47,11 @@
 
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { cite } from '../../../../../lib/tables.js';
+import { cite } from '../../../../../lib/reference-data.js';
 import { skillPathRole, violation, splitListValue } from '../../../../../lib/artifact.js';
 import { isManaged } from '../../../../../lib/managed-paths.js';
+import { computeFenceMask } from '../../../../../lib/markdown.js';
+import { parseExistingDisposition, parseReferenceCopies, DesignMapError } from '../../../../../lib/design-map.js';
 import { splitBySeverity } from './format.js';
 
 const CHECK = 'V6';
@@ -186,6 +191,26 @@ function extractPathLikeTokens(text) {
 }
 
 /**
+ * コードフェンスの外にある Markdown の相対リンクの参照先（`#anchor` を除いたパス）を集める。
+ * URL（`scheme:`）・`#` だけのリンク・絶対パス・プレースホルダ（`$`・`<`）は対象外。
+ */
+function extractRelativeLinks(text) {
+  const lines = text.split('\n');
+  const mask = computeFenceMask(lines);
+  const targets = [];
+  lines.forEach((line, i) => {
+    if (mask[i]) return;
+    for (const m of line.matchAll(/\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
+      const target = m[1].split('#')[0];
+      if (!target || /^[a-z][a-z0-9+.-]*:/i.test(target) || target.startsWith('/')) continue;
+      if (target.includes('$') || target.includes('<')) continue;
+      targets.push(target);
+    }
+  });
+  return [...new Set(targets)];
+}
+
+/**
  * トークンが Tier A（構造上 supporting file 参照と確定できる）かを判定する（artifacts.md §8.2 V6-4）:
  *   - `./`・`../` を冠する明示相対トークン、または
  *   - トークンの第1セグメントがスキルディレクトリ直下に実在するエントリ名と一致するトークン
@@ -214,7 +239,21 @@ function checkSupportingFiles(ctx) {
   for (const f of listSkillDefinitions(ctx)) {
     const artifact = f.artifact;
     const skillDir = path.posix.dirname(f.rel);
-    const tokens = extractPathLikeTokens(artifact.body ?? artifact.rawText ?? '');
+    const body = artifact.body ?? artifact.rawText ?? '';
+    for (const link of extractRelativeLinks(body)) {
+      checked++;
+      if (!existsInTree(ctx, path.posix.join(skillDir, link))) {
+        violations.push(
+          violation(
+            CHECK,
+            artifact.path,
+            `body 中の Markdown リンク "${link}" の参照先がスキルディレクトリ配下に実在しない（V-skills-18）。`,
+            SUPPORTING_FILE_SOURCE
+          )
+        );
+      }
+    }
+    const tokens = extractPathLikeTokens(body);
     const unresolved = [];
     for (const tok of tokens) {
       checked++;
@@ -371,10 +410,22 @@ const BACKTICK_RE = /`([^`\n]+)`/g;
 const LINE_REF_RE = /^((?:[\w.-]+\/)*[\w.-]+\.[A-Za-z0-9]{1,6}):(\d+)(?:-(\d+))?$/;
 
 /**
- * 対象の台帳（tasks/lessons.md）のバイト単位のコピー。内容は対象プロジェクトの記述で、
- * バイト一致が照合の前提（V8・lessons-ledger）なので、中身の行番号引用は直せず、V6-7 の対象にしない。
+ * design-map がバイト単位のコピーと宣言したファイル（keep の対象と `## 参照元からのコピー` の生成先）。
+ * copy-keep が sha256 を照合して写し、V7 がバイト一致を前提にするので、中身の行番号引用は直せず、
+ * V6-7 の対象にしない。`## 既存判定` が無い・壊れている design-map では keep を足さない
+ * （節の欠けは V7 と `npm run check` が見る）。
  */
-const VERBATIM_COPY_PATHS = new Set(['.claude/skills/lessons-ledger/ledger-snapshot.txt']);
+function byteCopyPaths(ctx) {
+  const text = ctx.designMapText;
+  if (!text) return new Set();
+  const paths = parseReferenceCopies(text).flatMap((c) => (c.to ? [c.to] : []));
+  try {
+    for (const r of parseExistingDisposition(text)) if (r.disposition === 'keep') paths.push(r.path);
+  } catch (e) {
+    if (!(e instanceof DesignMapError)) throw e;
+  }
+  return new Set(paths);
+}
 
 /** テキスト中のバッククォート囲みトークンから「パス:行番号」形の参照だけを抽出する。 */
 function extractLineNumberRefs(text) {
@@ -399,9 +450,10 @@ function extractLineNumberRefs(text) {
 function checkUnmanagedLineRefs(ctx) {
   const violations = [];
   let checked = 0;
+  const copies = byteCopyPaths(ctx);
   for (const f of ctx.files) {
     if (!isManaged(f.rel)) continue; // 集合外の生成物は V8 が違反にする
-    if (VERBATIM_COPY_PATHS.has(f.rel)) continue; // 逐語コピーの中身は生成物の記述ではない
+    if (copies.has(f.rel)) continue; // バイト単位のコピーの中身は生成物の記述ではない
     for (const { token, refPath } of extractLineNumberRefs(f.text)) {
       checked++;
       if (isManaged(refPath)) continue; // 生成物同士の行番号参照は正当

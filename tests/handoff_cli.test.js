@@ -7,10 +7,11 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { cleanupTs } from './helpers/fixtures.js';
 import { runNodeScript } from './helpers/run-cli.js';
-import { ROOT, outputDir, workDir } from './helpers/paths.js';
+import { ROOT, workDir } from './helpers/paths.js';
 import { tsFor } from './helpers/ts.js';
 import {
   PROGRESS_ROWS,
@@ -88,10 +89,7 @@ test('handoff CLI: 実際の起動経路で mark・set・note の更新と exit 
   const ts = tsFor(import.meta.url, 1);
   const script = path.join(ROOT, 'tools', 'handoff.js');
   const hp = path.join(workDir(ts), 'handoff.md');
-  t.after(() => {
-    rmSync(workDir(ts), { recursive: true, force: true });
-    rmSync(outputDir(ts), { recursive: true, force: true });
-  });
+  cleanupTs(t, ts);
 
   assert.equal(runNodeScript(script, []).code, 2);
   assert.equal(runNodeScript(script, [ts, 'unknown']).code, 2);

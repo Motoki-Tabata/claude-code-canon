@@ -12,9 +12,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { setupSampleRepo, cleanupTs, writeSkill } from './helpers/fixtures.js';
+import { setupSampleRepo, cleanupTs, writeSkill, writeFile as write } from './helpers/fixtures.js';
 import { runScript } from './helpers/run-cli.js';
 import { genDir, outputDir } from './helpers/paths.js';
 import { tsSeq } from './helpers/ts.js';
@@ -24,12 +24,6 @@ import { hashTree } from '../lib/tree-hash.js';
 const nextTs = tsSeq(import.meta.url);
 const verifyCli = (ts) => runScript('canon-c', 'verify.js', ts === undefined ? [] : [ts]);
 const reportOf = (ts) => readFileSync(path.join(outputDir(ts), 'verify-report.md'), 'utf8');
-
-function write(root, rel, text) {
-  const abs = path.join(root, rel);
-  mkdirSync(path.dirname(abs), { recursive: true });
-  writeFileSync(abs, text);
-}
 
 // ---- CLI の実経路 ----
 
@@ -72,11 +66,11 @@ test('verify CLI: 引数が無い・形式違いなら exit 2（report を書か
   assert.match(bad.stderr, /npm run verify -- <ts>/);
 });
 
-test('verify CLI: 存在しない <ts>（output/<ts>/ が無い）は引数不正の exit 2 で、output/<ts>/ を作らない', (t) => {
+test('verify CLI: 存在しない <ts>（output/<ts>/ が無い）は入力不在の exit 1 で、output/<ts>/ を作らない', (t) => {
   const ts = nextTs();
   cleanupTs(t, ts);
   const r = verifyCli(ts);
-  assert.equal(r.code, 2, r.stdout + r.stderr);
+  assert.equal(r.code, 1, r.stdout + r.stderr);
   assert.match(r.stderr, /output\/.*が無い/);
   assert.ok(!existsSync(outputDir(ts)), 'verify が output/<ts>/ を作った');
 });
@@ -133,15 +127,6 @@ test('verify CLI: outside-managed/ があると report のハッシュは両方�
 
 // ---- ファイルごとの振り分け（V1〜V4 の対象の決め方）----
 
-test('verify: 生成物の旧称ツール（Task）を V3 で捕まえる', (t) => {
-  const ts = nextTs();
-  cleanupTs(t, ts);
-  write(genDir(ts), '.claude/agents/w/w.md', '---\nname: w\ndescription: x\ntools: Read Task\n---\n本文\n');
-  const r = runChecks(buildContext(ts));
-  assert.ok(r.V3.violations.some((v) => v.includes('Task')), JSON.stringify(r.V3));
-  assert.equal(r.V3.checked, 1);
-});
-
 test('verify: CLAUDE.md と README.md に agent/skill のスキーマを当てない（V1〜V3 は対象なし）', (t) => {
   const ts = nextTs();
   cleanupTs(t, ts);
@@ -154,15 +139,31 @@ test('verify: CLAUDE.md と README.md に agent/skill のスキーマを当て�
   }
 });
 
-test('verify: 定義でない .md を黙って飛ばさない（agents 配下の走り書きは V2、種別不明の .md は V1 の違反）', (t) => {
+test('verify: 出力スタイルと AGENTS.md を種別不明にしない（output-style は V1・V2 を当て、AGENTS.md は非スキーマ）', (t) => {
   const ts = nextTs();
   cleanupTs(t, ts);
-  write(genDir(ts), '.claude/agents/reviewer/reviewer.md', '---\nname: reviewer\ndescription: x\ntools: Read\n---\n本文\n');
+  write(genDir(ts), 'AGENTS.md', '# agents\n本文\n');
+  write(genDir(ts), '.claude/output-styles/terse.md', '---\nname: terse\ndescription: 短く答える\n---\n短く答える。\n');
+  const r = runChecks(buildContext(ts));
+  assert.deepEqual(r.V1.violations, [], JSON.stringify(r.V1.violations));
+  assert.deepEqual(r.V2.violations, [], JSON.stringify(r.V2.violations));
+  assert.equal(r.V2.checked, 1, 'output-style に V2 を当てる（AGENTS.md は当てない）');
+  // 故意の違反: 未知キーは V2 が拾う
+  write(genDir(ts), '.claude/output-styles/terse.md', '---\nname: terse\nmade-up: 1\n---\n本文\n');
+  const bad = runChecks(buildContext(ts));
+  assert.ok(bad.V2.violations.some((v) => v.includes('made-up')), JSON.stringify(bad.V2.violations));
+});
+
+test('verify: 定義でない .md を黙って飛ばさない（agents 配下の走り書きは V2、種別不明の .md は V1 の違反）。agent の定義には V3 を当てる', (t) => {
+  const ts = nextTs();
+  cleanupTs(t, ts);
+  write(genDir(ts), '.claude/agents/reviewer/reviewer.md', '---\nname: reviewer\ndescription: x\ntools: Read Task\n---\n本文\n');
   write(genDir(ts), '.claude/agents/reviewer/notes.md', '走り書き\n');
   write(genDir(ts), '.claude/notes.md', '走り書き\n');
   const r = runChecks(buildContext(ts));
   assert.ok(r.V2.violations.some((v) => v.includes('agents/reviewer/notes.md')), JSON.stringify(r.V2.violations));
   assert.ok(r.V1.violations.some((v) => v.includes('.claude/notes.md') && v.includes('種別')), JSON.stringify(r.V1.violations));
+  assert.ok(r.V3.violations.some((v) => v.includes('Task')), `旧称ツール（Task）を V3 で捕まえる: ${JSON.stringify(r.V3)}`);
 });
 
 test('verify: skill の supporting files は V1 を通り、skills ルート直下の孤児 .md は V1 の違反', (t) => {
@@ -195,19 +196,27 @@ test('verify: 生成物を1回だけ読む（各ファイルの本文と artifac
 
 // ---- 不正な JSON のトップレベル（object でない）を例外終了にしない ----
 
-for (const [label, body] of [['null', 'null'], ['配列', '[]'], ['文字列', '"x"'], ['数値', '1']]) {
-  test(`verify CLI: .mcp.json・plugin.json のトップレベルが ${label} でも例外終了せず、違反として report を書く（exit 1）`, (t) => {
-    const c = setupSampleRepo(t, 'constrained', nextTs());
+test('verify: .mcp.json・plugin.json のトップレベルが object でなくても例外終了せず、違反として report を書く（CLI は exit 1）', (t) => {
+  const c = setupSampleRepo(t, 'constrained', nextTs());
+  const put = (body) => {
     write(c.gen, '.mcp.json', body);
     write(c.gen, 'plugin/.claude-plugin/plugin.json', body);
-    const r = verifyCli(c.ts);
-    assert.equal(r.code, 1, r.stdout + r.stderr);
-    assert.doesNotMatch(r.stderr, /TypeError/);
-    const report = reportOf(c.ts);
-    assert.match(report, /- 違反: V4 .*\.mcp\.json.*object/);
-    assert.match(report, /- 違反: V6 .*plugin\.json.*object/);
-  });
-}
+  };
+  for (const [label, body] of [['配列', '[]'], ['文字列', '"x"'], ['数値', '1']]) {
+    put(body);
+    const r = runChecks(buildContext(c.ts));
+    assert.ok(r.V4.violations.some((v) => /\.mcp\.json.*object/.test(v)), `${label}: ${JSON.stringify(r.V4.violations)}`);
+    assert.ok(r.V6.violations.some((v) => /plugin\.json.*object/.test(v)), `${label}: ${JSON.stringify(r.V6.violations)}`);
+  }
+  // null は typeof が object なので取りこぼしやすい。実際の起動経路でも確かめる。
+  put('null');
+  const r = verifyCli(c.ts);
+  assert.equal(r.code, 1, r.stdout + r.stderr);
+  assert.doesNotMatch(r.stderr, /TypeError/);
+  const report = reportOf(c.ts);
+  assert.match(report, /- 違反: V4 .*\.mcp\.json.*object/);
+  assert.match(report, /- 違反: V6 .*plugin\.json.*object/);
+});
 
 test('verify: 検査が想定外の例外を投げても、その検査の違反として report に載せる（report を書かずに落ちない）', (t) => {
   const c = setupSampleRepo(t, 'constrained', nextTs());

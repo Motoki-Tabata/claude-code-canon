@@ -30,12 +30,12 @@ function fmBlock({ name, description, tools, model, extra = '' }) {
 }
 
 /** agent 定義（<name>.md）の本文文字列。既定は最小構成、渡したキーだけ上書きする。 */
-export function agentMd({ name = 'x', description = 'x', tools, model, extra, body = '本文' } = {}) {
+function agentMd({ name = 'x', description = 'x', tools, model, extra, body = '本文' } = {}) {
   return fmBlock({ name, description, tools, model, extra }) + `${body}\n`;
 }
 
 /** SKILL.md の本文文字列。 */
-export function skillMd({ name = 'x', description = 'x', extra, body = '本文' } = {}) {
+function skillMd({ name = 'x', description = 'x', extra, body = '本文' } = {}) {
   return fmBlock({ name, description, extra }) + `${body}\n`;
 }
 
@@ -82,13 +82,31 @@ export function scratchDir(t, prefix) {
 // サンプルリポジトリ・keep-review ケースの書き出し
 // ---------------------------------------------------------------------------
 
+/** root 配下の rel（`/` 区切り）に、親ディレクトリを作って書く。書いた絶対パスを返す。 */
+export function writeFile(root, rel, content) {
+  const p = path.join(root, rel);
+  mkdirSync(path.dirname(p), { recursive: true });
+  writeFileSync(p, content);
+  return p;
+}
+
 /** { 相対パス: 内容 } を root 配下へ書き出す。 */
-export function writeTree(root, files) {
-  for (const [rel, content] of Object.entries(files)) {
-    const p = path.join(root, rel);
-    mkdirSync(path.dirname(p), { recursive: true });
-    writeFileSync(p, content);
-  }
+function writeTree(root, files) {
+  for (const [rel, content] of Object.entries(files)) writeFile(root, rel, content);
+}
+
+/** root 配下の全ファイルを posix 相対パスで列挙する（root が無ければ []）。 */
+export function listFiles(root) {
+  const files = [];
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else files.push(path.relative(root, p).replace(/\\/g, '/'));
+    }
+  };
+  if (existsSync(root)) walk(root);
+  return files;
 }
 
 // 書き出しはテストプロセスごとに1回だけ行い、プロセス終了時に消す。複写元として読むだけで
@@ -141,11 +159,15 @@ export function writeHandoff(ts, { target, mode = 'new' }) {
   writeFileSync(path.join(workDir(ts), 'handoff.md'), renderHandoff({ ts, target: target.split(path.sep).join('/'), mode }));
 }
 
+/** setupTmpCase の既定の ts と、deploy がその ts で作る退避ディレクトリの名前。 */
+export const TMP_CASE_TS = '20260722_000000';
+export const TMP_CASE_BAK = `.claude-canon.bak.${TMP_CASE_TS}`;
+
 /**
  * canon-d 系向け: 対象リポ（expected-output を除く）と `output/<ts>/`（= expected-output）を
  * tmpdir へ複写する。複写元・実 work/output を一切汚さない。
  */
-export function setupTmpCase(t, name, ts = '20260722_000000', { approved = true } = {}) {
+export function setupTmpCase(t, name, ts = TMP_CASE_TS, { approved = true } = {}) {
   const caseDir = sampleRepoDir(name);
   const tmp = mkdtempSync(path.join(os.tmpdir(), 'canon-deploy-'));
   const target = path.join(tmp, 'target');
@@ -184,16 +206,7 @@ function approveAll(root, target, output, ts) {
  * `extra` は節の外（差分サマリ）に足す本文。
  */
 export function writeManifest(ts, { extra = '' } = {}) {
-  const root = path.join(outputDir(ts), 'generated');
-  const files = [];
-  const walk = (dir) => {
-    for (const name of readdirSync(dir, { withFileTypes: true })) {
-      const p = path.join(dir, name.name);
-      if (name.isDirectory()) walk(p);
-      else files.push(path.relative(root, p).replace(/\\/g, '/'));
-    }
-  };
-  if (existsSync(root)) walk(root);
+  const files = listFiles(path.join(outputDir(ts), 'generated'));
   mkdirSync(outputDir(ts), { recursive: true });
   writeFileSync(
     path.join(outputDir(ts), 'MANIFEST.md'),

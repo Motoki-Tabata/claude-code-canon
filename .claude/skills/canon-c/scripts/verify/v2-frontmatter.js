@@ -1,15 +1,15 @@
 /**
  * V2 frontmatter（per-file・artifacts.md §8.2）。
  *
- * 出典: 正典リファレンス canon-reference の `frontmatter:*`（lib/tables.js）と、各機能ファイル §6 の
+ * 出典: 正典リファレンス canon-reference の `frontmatter:*`（lib/reference-data.js）と、各機能ファイル §6 の
  * 検証ルール。
  *
  * 検査内容:
  *   - 必須キー存在（`required: true` の要素。サブエージェントは name・description・V-subagents-02）
  *   - 未知キー検出（キーがコレクションのどの `id` とも一致しない・V-subagents-04・V-skills-04・
- *     V-skills-05・V-rules-03）。コレクションが `complete: false` なら違反でなく未判定（V-common-01）
+ *     V-skills-05・V-rules-03・V-output-styles-01）。コレクションが `complete: false` なら違反でなく未判定（V-common-01）
  *   - 閉じた語彙（`allowed_values` を持つキー・V-subagents-05・V-skills-06）
- *   - 真偽値の型（`type: boolean` のキー・V-skills-07）
+ *   - 真偽値の型（`type: boolean` のキー・V-skills-07・V-output-styles-03）
  *
  * 開いた語彙: サブエージェントの `model` は `allowed_values` にエイリアスと `inherit` を持つが、
  * 完全なモデル ID も取る（subagents.md §3）。値の集合との照合はしない。
@@ -17,7 +17,7 @@
  * 純関数。副作用なし。
  */
 
-import { collection, cite, plain } from '../../../../../lib/tables.js';
+import { collection, cite, plain } from '../../../../../lib/reference-data.js';
 import { violation } from '../../../../../lib/artifact.js';
 
 const CHECK = 'V2';
@@ -26,16 +26,27 @@ const CHECK = 'V2';
  * artifact の種別とパスから、当てる `frontmatter:*` のコレクションと検証ルールの ID を決める。
  * コマンドファイル（`.claude/commands/`）は artifact の種別では skill だが、受け付けるキーが違う
  * （`name`・`paths` を含まない）ので `frontmatter:command` を当てる。
+ * `requiredRule` は `required: true` の要素を持つコレクションにだけ置く（持たないコレクションは null）。
+ * `typeRule` は真偽値の型の出典で、省略すると V-skills-07。
  */
 function schemaFor(artifact) {
   if (artifact.kind === 'agent') return { ref: 'frontmatter:subagent', unknownRule: 'V-subagents-04', vocabRule: 'V-subagents-05', requiredRule: 'V-subagents-02' };
   if (artifact.kind === 'skill') {
     if (artifact.path.split('/').includes('commands')) {
-      return { ref: 'frontmatter:command', unknownRule: 'V-skills-05', vocabRule: 'V-skills-06', requiredRule: 'V-skills-05' };
+      return { ref: 'frontmatter:command', unknownRule: 'V-skills-05', vocabRule: 'V-skills-06', requiredRule: null };
     }
-    return { ref: 'frontmatter:skill', unknownRule: 'V-skills-04', vocabRule: 'V-skills-06', requiredRule: 'V-skills-04' };
+    return { ref: 'frontmatter:skill', unknownRule: 'V-skills-04', vocabRule: 'V-skills-06', requiredRule: null };
   }
-  if (artifact.kind === 'rule') return { ref: 'frontmatter:rule', unknownRule: 'V-rules-03', vocabRule: 'V-rules-03', requiredRule: 'V-rules-03' };
+  if (artifact.kind === 'rule') return { ref: 'frontmatter:rule', unknownRule: 'V-rules-03', vocabRule: 'V-rules-03', requiredRule: null };
+  if (artifact.kind === 'output-style') {
+    return {
+      ref: 'frontmatter:output-style',
+      unknownRule: 'V-output-styles-01',
+      vocabRule: 'V-output-styles-03',
+      requiredRule: null,
+      typeRule: 'V-output-styles-03',
+    };
+  }
   return null;
 }
 
@@ -62,7 +73,8 @@ function checkRequiredKeys(artifact, schema, col) {
   return violations;
 }
 
-function checkUnknownKeys(artifact, schema, col) {
+/** 未知キーの判定。現行の data の frontmatter は全件を収めている（`complete: true`）ので、未判定の分岐はテストから直接当てる。 */
+export function checkUnknownKeys(artifact, schema, col) {
   const violations = [];
   for (const key of Object.keys(artifact.frontmatter)) {
     if (col.byId.has(key)) continue;
@@ -112,7 +124,7 @@ function checkClosedVocab(artifact, schema, col) {
   return violations;
 }
 
-function checkTypes(artifact, col) {
+function checkTypes(artifact, schema, col) {
   const violations = [];
   for (const item of col.items) {
     if (!isBooleanType(item)) continue;
@@ -125,7 +137,7 @@ function checkTypes(artifact, col) {
         CHECK,
         artifact.path,
         `frontmatter "${item.id}" は真偽値のはずが実際の値は "${entry.raw}"（true・false・yes・no・on・off・1・0 のどれでもない）。`,
-        cite('V-skills-07', `${col.ref}/${item.id}`)
+        cite(schema.typeRule ?? 'V-skills-07', `${col.ref}/${item.id}`)
       )
     );
   }
@@ -147,7 +159,7 @@ function checkParseErrors(artifact) {
 }
 
 /**
- * 1件の artifact に対して V2 を判定する。kind が agent/skill/rule 以外（unknown）は
+ * 1件の artifact に対して V2 を判定する。kind が agent/skill/rule/output-style 以外（unknown）は
  * どのスキーマも適用できないため検査自体をスキップせず「種別不明」を1件返す
  * （黙って何もしないと vacuous pass になる）。
  */
@@ -158,7 +170,7 @@ export function checkV2(artifact) {
       violation(
         CHECK,
         artifact.path,
-        `種別（agent/skill/rule）を判定できないため frontmatter スキーマを適用できない。`,
+        `種別（agent/skill/rule/output-style）を判定できないため frontmatter スキーマを適用できない。`,
         'lib/artifact.js detectKind()'
       ),
     ];
@@ -170,6 +182,6 @@ export function checkV2(artifact) {
     ...checkRequiredKeys(artifact, schema, col),
     ...checkUnknownKeys(artifact, schema, col),
     ...checkClosedVocab(artifact, schema, col),
-    ...checkTypes(artifact, col),
+    ...checkTypes(artifact, schema, col),
   ];
 }

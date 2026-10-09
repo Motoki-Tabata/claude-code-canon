@@ -6,13 +6,15 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, writeFileSync, appendFileSync, mkdirSync } from 'node:fs';
+import { existsSync, writeFileSync, appendFileSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { setupTmpCase } from './helpers/fixtures.js';
+import { setupTmpCase, listFiles, TMP_CASE_BAK as BAK } from './helpers/fixtures.js';
 import { runScript } from './helpers/run-cli.js';
+import { moveFileForTest } from './helpers/deploy-ops.js';
 import { walkManaged, sha256File } from '../lib/managed-paths.js';
+import { deploy, probeMovable } from '../.claude/skills/canon-d/scripts/deploy.js';
 
-const BAK = '.claude-canon.bak.20260722_000000';
+const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
 
 /** 対象の管理集合を {rel: sha256} で撮る（配置前後の完全一致比較に使う）。 */
 function snapshot(target) {
@@ -21,11 +23,17 @@ function snapshot(target) {
   return m;
 }
 
-test('deploy: greenfield 配置成功・集合外は不可侵', (t) => {
+test('deploy: greenfield 配置成功・集合外は不可侵・退避0件なら .bak を作らず案内もしない', (t) => {
   const c = setupTmpCase(t, 'new');
   const srcBefore = sha256File(path.join(c.target, 'src', 'server.js'));
   const r = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
   assert.equal(r.code, 0, r.stderr);
+  // 成功時だけ deploy-result.json（配置済みの判定材料）を書く。対象に管理ファイルが無ければ退避は0件。
+  const res = readJson(path.join(c.output, 'deploy', 'deploy-result.json'));
+  assert.deepEqual([res.status, res.baked, res.bak_exists], ['deployed', 0, false]);
+  assert.ok(!existsSync(path.join(c.target, BAK)), '退避0件なのに .bak を作った');
+  assert.match(r.stdout, /退避は 0 件で、\.bak は作られていない/);
+  assert.doesNotMatch(r.stdout, /から手動 restore/, '存在しない .bak からの restore を案内している');
   assert.ok(existsSync(path.join(c.target, 'CLAUDE.md')));
   assert.ok(existsSync(path.join(c.target, '.claude', 'skills', 'todo-helper', 'SKILL.md')));
   // 配置物は output とバイト同一
@@ -37,7 +45,7 @@ test('deploy: greenfield 配置成功・集合外は不可侵', (t) => {
   assert.equal(sha256File(path.join(c.target, 'src', 'server.js')), srcBefore);
 });
 
-test('deploy: 既存改修 — retire 消去・keep 非退行・new 追加・集合外不可侵・.bak 退避', (t) => {
+test('deploy: 既存改修 — retire 消去・keep 非退行・new 追加・merge・集合外不可侵・.bak 退避・同じ ts の2回目は拒否', (t) => {
   const c = setupTmpCase(t, 'existing');
   const keptBefore = sha256File(path.join(c.target, '.claude/skills/kept-skill/SKILL.md'));
   const ciBefore = sha256File(path.join(c.target, '.github/workflows/ci.yml'));
@@ -62,6 +70,22 @@ test('deploy: 既存改修 — retire 消去・keep 非退行・new 追加・集
   // 集合外は不可侵
   assert.equal(sha256File(path.join(c.target, '.github/workflows/ci.yml')), ciBefore);
   assert.ok(existsSync(path.join(c.target, 'CODEOWNERS')));
+  // merge 元は retired 区分で退避され（削除でなく .bak へ）、統合先 merged が配置される
+  assert.ok(!existsSync(path.join(c.target, '.claude/skills/merge-a/SKILL.md')));
+  assert.ok(!existsSync(path.join(c.target, '.claude/skills/merge-b/SKILL.md')));
+  assert.ok(existsSync(path.join(c.target, BAK, '.claude/skills/merge-a/SKILL.md')), 'merge-a は退避');
+  assert.ok(existsSync(path.join(c.target, '.claude/skills/merged/SKILL.md')));
+  // deploy-result.json は .bak の実在と退避件数を返す
+  const res = readJson(path.join(c.output, 'deploy', 'deploy-result.json'));
+  assert.equal(res.bak_exists, true);
+  assert.ok(res.baked > 0);
+
+  // 同じ ts で2回目を配置すると拒否され、1回目の退避（元ファイル）が残る
+  const bakFile = path.join(c.target, BAK, '.claude/skills/legacy-skill/SKILL.md');
+  const firstBak = readFileSync(bakFile, 'utf8');
+  const second = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
+  assert.equal(second.code, 1, second.stdout + second.stderr);
+  assert.equal(readFileSync(bakFile, 'utf8'), firstBak, '1回目の退避（元ファイル）が上書きされた');
 });
 
 test('deploy: --confirm 無しは dry-run（対象不変・退避なし）', (t) => {
@@ -100,41 +124,16 @@ test('deploy: 配置失敗で自動 restore（配置前と完全一致・.bak �
   assert.match(r.stderr, /rolled-back|復帰/);
   assert.deepEqual(snapshot(c.target), before, 'restore で配置前と完全一致');
   assert.ok(!existsSync(path.join(c.target, BAK)), 'restore 後は .bak を掃除して配置前状態へ');
+  // 失敗時は deploy-attempt.json だけを書き、配置済みの印（deploy-result.json）は書かない
+  assert.ok(!existsSync(path.join(c.output, 'deploy', 'deploy-result.json')), '失敗したのに配置済みの印がある');
+  assert.equal(readJson(path.join(c.output, 'deploy', 'deploy-attempt.json')).status, 'rolled-back');
 });
 
-test('deploy: merge 元は retired 区分で退避され merged が配置される（統廃合）', (t) => {
-  const c = setupTmpCase(t, 'existing');
-  const r = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
-  assert.equal(r.code, 0, r.stderr);
-  // merge 元は対象から消える（削除でなく .bak へ退避）
-  assert.ok(!existsSync(path.join(c.target, '.claude/skills/merge-a/SKILL.md')));
-  assert.ok(!existsSync(path.join(c.target, '.claude/skills/merge-b/SKILL.md')));
-  assert.ok(existsSync(path.join(c.target, BAK, '.claude/skills/merge-a/SKILL.md')), 'merge-a は退避');
-  // 統合先 merged が配置される
-  assert.ok(existsSync(path.join(c.target, '.claude/skills/merged/SKILL.md')));
-});
 
 // ---- EBUSY で半壊・存在しない .bak の案内 ----
 
-import { readdirSync, readFileSync } from 'node:fs';
-import { deploy, probeMovable } from '../.claude/skills/canon-d/scripts/deploy.js';
-import { moveFileForTest } from './helpers/deploy-ops.js';
-
 const ebusy = () => Object.assign(new Error('resource busy or locked'), { code: 'EBUSY' });
-const leftovers = (target) => walkAllFiles(target).filter((f) => f.endsWith('.canon-probe'));
-
-function walkAllFiles(root) {
-  const out = [];
-  const walk = (d) => {
-    for (const n of readdirSync(d, { withFileTypes: true })) {
-      const p = path.join(d, n.name);
-      if (n.isDirectory()) walk(p);
-      else out.push(path.relative(root, p).replace(/\\/g, '/'));
-    }
-  };
-  walk(root);
-  return out;
-}
+const leftovers = (target) => listFiles(target).filter((f) => f.endsWith('.canon-probe'));
 
 test('deploy 事前検査（EBUSY 注入）: 動かせないファイルが1件でもあれば何も変えずに拒否する', (t) => {
   const c = setupTmpCase(t, 'existing');
@@ -169,8 +168,8 @@ test('deploy step1 の途中失敗（EBUSY 注入・事前検査をすり抜け�
   assert.equal(failed, 1, '前提: step1 の退避を実際に失敗させた');
   assert.equal(r.status, 'rolled-back');
   assert.equal(r.state, 'restored');
-  // 旧実装の restore は managed-paths.list の全エントリを rmSync してから退避物を戻したため、
-  // まだ退避していない元ファイル（keep 等・list に載っている）を消していた。
+  // restore が managed-paths.list の全エントリを消してから退避物を戻すと、まだ退避していない
+  // 元ファイル（keep 等・list に載っている）まで消える。
   assert.deepEqual(snapshot(c.target), before, '未退避の元ファイルが失われた（または配置前と一致しない）');
   assert.ok(!existsSync(bakRoot), '復元後は .bak を掃除する');
 });
@@ -213,40 +212,6 @@ test('probeMovable: 動かせるものは元に戻して何も変えない', (t)
   assert.deepEqual(leftovers(c.target), []);
 });
 
-test('対象に管理ファイルが無ければ退避は0件で .bak は作られない（実在しない .bak を案内しない）', (t) => {
-  const c = setupTmpCase(t, 'new');
-  const r = deploy(c.output, c.target, { confirm: true });
-  assert.equal(r.status, 'deployed');
-  assert.equal(r.baked, 0);
-  assert.equal(r.bakExists, false);
-  const cli = setupTmpCase(t, 'new');
-  const out = runScript('canon-d', 'deploy.js', [cli.output, cli.target, '--confirm']);
-  assert.equal(out.code, 0, out.stderr);
-  assert.match(out.stdout, /退避は 0 件で、\.bak は作られていない/);
-  assert.doesNotMatch(out.stdout, /から手動 restore/, '存在しない .bak からの restore を案内している');
-});
-
-test('既存改修の成功は .bak の実在と退避件数を返す', (t) => {
-  const c = setupTmpCase(t, 'existing');
-  const r = deploy(c.output, c.target, { confirm: true });
-  assert.equal(r.status, 'deployed');
-  assert.equal(r.bakExists, true);
-  assert.ok(r.baked > 0);
-});
-
-test('deploy-result.json は成功時だけ書かれ（配置済みの判定材料）、失敗時は deploy-attempt.json だけ', (t) => {
-  const ok = setupTmpCase(t, 'new');
-  assert.equal(runScript('canon-d', 'deploy.js', [ok.output, ok.target, '--confirm']).code, 0);
-  const res = JSON.parse(readFileSync(path.join(ok.output, 'deploy', 'deploy-result.json'), 'utf8'));
-  assert.deepEqual([res.status, res.baked, res.bak_exists], ['deployed', 0, false]);
-
-  const ng = setupTmpCase(t, 'existing');
-  appendFileSync(path.join(ng.output, 'deploy', 'managed-paths.list'), '.claude/skills/ghost/SKILL.md\n');
-  assert.equal(runScript('canon-d', 'deploy.js', [ng.output, ng.target, '--confirm']).code, 1);
-  assert.ok(!existsSync(path.join(ng.output, 'deploy', 'deploy-result.json')), '失敗したのに配置済みの印がある');
-  assert.equal(JSON.parse(readFileSync(path.join(ng.output, 'deploy', 'deploy-attempt.json'), 'utf8')).status, 'rolled-back');
-});
-
 test('pre-deploy-report の退避予定件数は deploy の実際の退避件数と一致する（P5 で .bak を推測で案内しない）', (t) => {
   for (const scenario of ['existing', 'new']) {
     const c = setupTmpCase(t, scenario);
@@ -257,6 +222,7 @@ test('pre-deploy-report の退避予定件数は deploy の実際の退避件数
     const r = deploy(c.output, c.target, { confirm: true });
     assert.equal(r.status, 'deployed', scenario);
     assert.equal(Number(m[1]), r.baked, `${scenario}: 予定 ${m[1]} 件と実際の退避 ${r.baked} 件が食い違う`);
+    assert.equal(r.bakExists, r.baked > 0, `${scenario}: .bak の実在と退避件数が食い違う`);
   }
 });
 
@@ -284,17 +250,6 @@ test('deploy: 退避先 .bak.<ts> が既にあれば step0 で拒否し、既存
   assert.match(r.stderr, /退避先/);
   assert.equal(readFileSync(sentinel, 'utf8'), '前回の退避（元ファイル）\n');
   assert.deepEqual(snapshot(c.target), before, '対象は一切変更されない');
-});
-
-test('deploy: 同じ ts で2回配置すると、2回目は拒否され1回目の退避が残る', (t) => {
-  const c = setupTmpCase(t, 'existing');
-  const bakFile = path.join(c.target, BAK, '.claude/skills/legacy-skill/SKILL.md');
-  const original = readFileSync(path.join(c.target, '.claude/skills/legacy-skill/SKILL.md'), 'utf8');
-  assert.equal(runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']).code, 0);
-  assert.equal(readFileSync(bakFile, 'utf8'), original);
-  const second = runScript('canon-d', 'deploy.js', [c.output, c.target, '--confirm']);
-  assert.equal(second.code, 1, second.stdout + second.stderr);
-  assert.equal(readFileSync(bakFile, 'utf8'), original, '1回目の退避（元ファイル）が上書きされた');
 });
 
 test('deploy: 退避先が既にある状態で配置が失敗しても restore は既存の退避を消さない（step0 で止まる）', (t) => {

@@ -10,12 +10,9 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { checkV6 } from '../.claude/skills/canon-c/scripts/verify/v6-ref-integrity.js';
 import { buildContext } from '../.claude/skills/canon-c/scripts/verify.js';
-import { ROOT } from './helpers/paths.js';
-import { cleanupTs } from './helpers/fixtures.js';
+import { workDir as work, outputDir as out, genDir } from './helpers/paths.js';
+import { cleanupTs, writeAgent as writeAgentFile } from './helpers/fixtures.js';
 import { tsFor } from './helpers/ts.js';
-
-const work = (ts) => path.join(ROOT, 'work', ts);
-const out = (ts) => path.join(ROOT, 'output', ts);
 
 /** V6 を実行し、合否（ok）と違反・warning の文字列を返す。 */
 function v6(ts) {
@@ -52,14 +49,6 @@ test('V6: preload skill 参照が実在すれば通過、不在なら違反', (t
     '---\nname: worker\ndescription: x\ntools: Read\nskills: [does-not-exist]\n---\n本文\n'
   );
   assert.equal(v6(ts).ok, false, '不在の preload 参照は違反');
-});
-
-test('V6: 検査した件数を返す（0件しか見ていないことが分かる衛生設計）', (t) => {
-  const ts = tsFor(import.meta.url, 7);
-  setup(t, ts);
-  writeFileSync(path.join(out(ts), 'generated', '.claude', 'agents', 'a.md'), '---\nname: a\ndescription: x\n---\n');
-  assert.equal(typeof v6(ts).checked, 'number');
-  assert.ok(v6(ts).checked >= 1);
 });
 
 // ---------------------------------------------------------------------------
@@ -256,42 +245,35 @@ test('V6 V6-7: 生成物同士（管理ファイル間）の行番号参照は�
   assert.ok(r.checked >= 2, '走査件数が見えること（0件を合格と誤認しない）');
 });
 
-test('V6 V6-7: 台帳の逐語コピー（ledger-snapshot.txt）の中身は検査せず、他のファイルは引き続き検出する', (t) => {
+test('V6 V6-7: design-map がバイト単位のコピーと宣言したファイル（keep・参照元からのコピー）の中身は検査せず、他のファイルは引き続き検出する', (t) => {
   const ts = tsFor(import.meta.url, 23);
   setup(t, ts);
   const gen = path.join(out(ts), 'generated');
-  const ledgerDir = path.join(gen, '.claude', 'skills', 'lessons-ledger');
-  mkdirSync(ledgerDir, { recursive: true });
-  writeFileSync(path.join(ledgerDir, 'SKILL.md'), '---\nname: lessons-ledger\ndescription: x\n---\n本文\n');
-  // 対象の台帳には旧文書名の行番号引用が残りうる。コピーは直せないので違反にしない。
+  const skillDir = path.join(gen, '.claude', 'skills', 'ledger');
+  mkdirSync(skillDir, { recursive: true });
+  writeFileSync(path.join(skillDir, 'SKILL.md'), '---\nname: ledger\ndescription: x\n---\n本文\n');
+  // 原本には対象側の行番号引用が残りうる。コピーは直せないので、宣言されていれば違反にしない。
+  const cite = '- 何が起きたか: `tsod-design/SKILL.md:12` が古い。\n';
+  writeFileSync(path.join(skillDir, 'kept.txt'), cite);
+  writeFileSync(path.join(skillDir, 'copied.txt'), cite);
+  writeFileSync(path.join(skillDir, 'undeclared.txt'), cite);
   writeFileSync(
-    path.join(ledgerDir, 'ledger-snapshot.txt'),
-    '## 2026-01-01 例\n- 何が起きたか: `tsod-design/SKILL.md:12` が古い。\n'
-  );
-  assert.equal(v6(ts).ok, true, '逐語コピーの行番号引用は違反にならないこと');
-
-  // 同じ記述を生成物が自分で書いたら、従来どおり違反になる（除外はコピーのパスに限る）。
-  const rules = path.join(gen, '.claude', 'rules');
-  mkdirSync(rules, { recursive: true });
-  writeFileSync(
-    path.join(rules, 'own.md'),
-    '---\npaths: ["**"]\n---\n' + '出典: `tsod-design/SKILL.md:12`。\n'
+    path.join(out(ts), 'design-map.md'),
+    '## 既存判定\n\n```yaml\nexisting_disposition:\n  - path: .claude/skills/ledger/kept.txt\n    disposition: keep\n```\n\n' +
+      '## 参照元からのコピー\n\n- `/abs/ref/notes.txt` → `.claude/skills/ledger/copied.txt`\n'
   );
   const r = v6(ts);
-  assert.equal(r.ok, false, '生成物自身の行番号引用は違反のまま');
-  assert.ok(r.violations.some((v) => v.includes('own.md')), JSON.stringify(r.violations));
-  assert.ok(!r.violations.some((v) => v.includes('ledger-snapshot.txt')), 'コピーは違反に含めない');
+  assert.ok(!r.violations.some((v) => v.includes('kept.txt')), `keep のコピーは違反に含めない: ${JSON.stringify(r.violations)}`);
+  assert.ok(!r.violations.some((v) => v.includes('copied.txt')), `参照元からのコピーは違反に含めない: ${JSON.stringify(r.violations)}`);
+  // 宣言の無いファイルは、同じ記述でも違反のまま（除外は宣言されたパスに限る）。
+  assert.ok(r.violations.some((v) => v.includes('undeclared.txt')), JSON.stringify(r.violations));
 });
 
 // ---------------------------------------------------------------------------
 // 委譲条件の日本語表記・basename 解決・未解決の集約（P4 の warning のノイズを減らす）
 // ---------------------------------------------------------------------------
 
-function writeAgent(ts, name, description) {
-  const dir = path.join(out(ts), 'generated', '.claude', 'agents', name);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(path.join(dir, `${name}.md`), `---\nname: ${name}\ndescription: ${description}\ntools: Read\n---\n本文\n`);
-}
+const writeAgent = (ts, name, description) => writeAgentFile(genDir(ts), name, { description, tools: 'Read' });
 
 test('V6 委譲条件: 日本語の「委譲される」「委譲する」は warning にならない。条件の無い description は warning になる（故意の違反）', (t) => {
   const ts = tsFor(import.meta.url, 31);
@@ -341,4 +323,35 @@ test('V6 Tier B: 未解決のトークンは1ファイル1件にまとめ、件�
   assert.ok(w[0].includes('"lib/m0.js"') && w[0].includes('"lib/m4.js"'));
   assert.ok(!w[0].includes('"lib/m5.js"'), '代表例は先頭の5件');
   assert.match(w[0], /ほか3件/);
+});
+
+test('V6 V-skills-18: SKILL.md の Markdown 相対リンクの参照先が無ければ違反、あれば通る（故意の違反注入）', (t) => {
+  const ts = tsFor(import.meta.url, 34);
+  setup(t, ts);
+  const skillDir = path.join(out(ts), 'generated', '.claude', 'skills', 'linked');
+  mkdirSync(path.join(skillDir, 'references'), { recursive: true });
+  writeFileSync(path.join(skillDir, 'references', 'guide.md'), '# guide\n');
+  writeFileSync(
+    path.join(skillDir, 'SKILL.md'),
+    '---\nname: linked\ndescription: x\n---\n' +
+      '詳細は [ガイド](./references/guide.md#使い方) を、書式は [書式](references/format.md) を読む。\n'
+  );
+  const r = v6(ts);
+  assert.ok(r.violations.some((v) => v.includes('references/format.md')), JSON.stringify(r.violations));
+  assert.ok(!r.violations.some((v) => v.includes('references/guide.md')), '実在するリンク（anchor 付き）は通す');
+});
+
+test('V6 V-skills-18: コードフェンスの中のリンク・URL・anchor だけのリンクは検査しない', (t) => {
+  const ts = tsFor(import.meta.url, 35);
+  setup(t, ts);
+  const skillDir = path.join(out(ts), 'generated', '.claude', 'skills', 'fenced');
+  mkdirSync(skillDir, { recursive: true });
+  writeFileSync(
+    path.join(skillDir, 'SKILL.md'),
+    '---\nname: fenced\ndescription: x\n---\n' +
+      '[公式](https://code.claude.com/docs/en/skills.md)・[節](#手順)・[メール](mailto:a@example.com)\n' +
+      '```markdown\n[例](./example-only.md)\n```\n'
+  );
+  const r = v6(ts);
+  assert.deepEqual(r.violations.filter((v) => v.includes('fenced/SKILL.md')), []);
 });

@@ -38,7 +38,7 @@ preload された generation Skill の指示に従う。担当に対応する規
 | `rules` | `rules.md` | `targets-rules.txt` | `.claude/rules/**` |
 | `skills` | `skills.md`（分割時は `skills-<k>.md`） | `targets-skills.txt`（分割時は `targets-skills-<k>.txt`） | `.claude/skills/**`・`.claude/commands/**` |
 | `subagents` | `subagents.md` | `targets-subagents.txt` | `.claude/agents/**` |
-| `settings` | `settings.md` | `targets-settings.txt` | `.claude/settings.json`・`.claude/hooks/**`・status line のスクリプト |
+| `settings` | `settings.md` | `targets-settings.txt` | `.claude/settings.json`・`.claude/hooks/**`（status line のスクリプトは書かない。要るなら管理パス外の変更で運ぶ） |
 | `mcp` | `mcp.md` | `targets-mcp.txt` | `.mcp.json` |
 | `plugins` | `plugins.md` | `targets-plugins.txt` | `plugin/**` |
 | `output-styles` | `output-styles.md` | `targets-output-styles.txt` | `.claude/output-styles/**` |

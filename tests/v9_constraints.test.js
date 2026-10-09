@@ -5,20 +5,20 @@
  * 示す。特に「代表例1経路だけ塞いで他が素通り」を防ぐため、同一能力の**別経路**（settings.json
  * 以外の hooks・AGENT_TEAMS 以外の experimental 環境変数）を個別に注入して検出を確認する。
  *
- * vacuous pass: requirements.md 不在・constraints 不在・キー0件・allowed 非真偽値・generated 空を
- * 「制約なし＝合格」と読まないことを固定する。
+ * vacuous pass: requirements.md 不在・constraints 不在・キー0件・allowed 非真偽値を「制約なし＝合格」と
+ * 読まないことを固定する（generated/ が空のときは verify_cli.test.js が全検査について見る）。
+ * requirements.md のパーサ単体は requirements.test.js にある。
  */
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { writeFileSync, mkdirSync, rmSync, readFileSync } from 'node:fs';
+import { writeFileSync, rmSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { setupSampleRepo } from './helpers/fixtures.js';
+import { setupSampleRepo, writeFile } from './helpers/fixtures.js';
 import { SAMPLE_REPOS } from './helpers/sample-repos.js';
 import { tsSeq } from './helpers/ts.js';
 import { checkV9 } from '../.claude/skills/canon-c/scripts/verify/v9-constraints.js';
-import { buildContext, runChecks } from '../.claude/skills/canon-c/scripts/verify.js';
-import { parseRequirementsDoc } from '../lib/requirements.js';
+import { buildContext } from '../.claude/skills/canon-c/scripts/verify.js';
 
 const nextTs = tsSeq(import.meta.url);
 
@@ -32,12 +32,7 @@ function patchRequirements(c, replacer) {
   writeFileSync(c.req, replacer(readFileSync(c.req, 'utf8')));
 }
 
-function write(c, rel, text) {
-  const abs = path.join(c.gen, rel);
-  mkdirSync(path.dirname(abs), { recursive: true });
-  writeFileSync(abs, text);
-  return abs;
-}
+const write = (c, rel, text) => writeFile(c.gen, rel, text);
 
 // ---------------------------------------------------------------------------
 // 基準線（fixture そのままは通る）
@@ -53,7 +48,8 @@ test('V9: 制約強め fixture（hooks/mcp/plugins/experimental 全禁止）は�
   assert.ok(
     r.warnings.some((n) => n.includes('organization_policy')),
     '自由文制約は「機械判定していない」ことを明示する（黙って無いことにしない）'
-  );
+  );  // fixture の Experimental Dependencies は機能名を並べた否定の散文（「…とも不使用」）。これで落ちないことが偽陽性の封鎖になる。
+  assert.match(SAMPLE_REPOS.constrained['expected-output/design-map.md'], /## Experimental Dependencies\nなし（.*Agent Teams.*不使用）/);
 });
 
 // ---------------------------------------------------------------------------
@@ -83,22 +79,11 @@ test('V9: hooks allowed:true + reason「既存維持・新規追加なし」× �
   assert.equal(r.ok, true, JSON.stringify(r.violations, null, 2));
 });
 
-test('V9: 同じ生成物で hooks allowed:false のままなら違反（対比・既存維持の書き分けが実検査と一致する根拠）', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs());
-  write(
-    c,
-    '.claude/settings.json',
-    JSON.stringify({ hooks: { PostToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: 'x' }] }] } })
-  );
-  const r = v9(c.ts);
-  assert.equal(r.ok, false);
-  assert.ok(r.violations.some((v) => v.includes('hooks 宣言')));
-});
-
 // ---------------------------------------------------------------------------
 // hooks: 同一能力の複数経路
 // ---------------------------------------------------------------------------
 
+// 上の allowed:true の通過と同じ生成物。allowed:false のままなら違反になることが、既存維持の書き分けの対比になる。
 test('V9: hooks 禁止 × generated の settings.json に hook（経路①）を検出', (t) => {
   const c = setupSampleRepo(t, 'constrained', nextTs());
   write(
@@ -206,13 +191,6 @@ test('V9: プレビュー段階の組込み Skill（/design）への依存は、
   assert.ok(r.violations.some((v) => v.includes('Experimental Dependencies')));
 });
 
-test('V9: 「なし」と書かれた Experimental Dependencies 節を違反にしない（偽陽性の封鎖）', (t) => {
-  // 機能名を並べた否定の散文（「context:fork / Agent Teams とも不使用」）で落ちてはならない。
-  const c = setupSampleRepo(t, 'constrained', nextTs());
-  const r = v9(c.ts);
-  assert.equal(r.ok, true, JSON.stringify(r.violations));
-});
-
 // ---------------------------------------------------------------------------
 // mcp / plugins
 // ---------------------------------------------------------------------------
@@ -284,16 +262,15 @@ test('V9: deterministic 要件 × hooks 禁止 で conflicts 未登録なら違�
   assert.ok(r.violations.some((v) => v.includes('R1') && v.includes('conflicts')));
 });
 
-test('V9: conflicts ブロック自体が無い場合も登録漏れとして違反', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs());
-  patchRequirements(c, (text) => text.replace(/## 制約と要件の衝突[\s\S]*$/, ''));
-  const r = v9(c.ts);
-  assert.equal(r.ok, false);
-  assert.ok(r.violations.some((v) => v.includes('R1')));
-});
-
 test('V9: conflicts ブロック自体が無いのは、登録漏れが無くても違反（「無い」と空 `conflicts: []` を区別する）', (t) => {
   const c = setupSampleRepo(t, 'constrained', nextTs());
+  // hooks 禁止のままブロックを消すと、R1 の登録漏れとブロックの不在の両方が違反になる。
+  const original = readFileSync(c.req, 'utf8');
+  patchRequirements(c, (text) => text.replace(/## 制約と要件の衝突[\s\S]*$/, ''));
+  const missing = v9(c.ts).violations;
+  assert.ok(missing.some((v) => v.includes('R1')), JSON.stringify(missing));
+  assert.ok(missing.some((v) => v.includes('conflicts ブロックが無い')), JSON.stringify(missing));
+  writeFileSync(c.req, original);
   const allowHooks = (text) =>
     text.replace(
       'hooks:        { allowed: false, reason: "組織ポリシーで自動実行される仕組みを禁止（監査ログの対象にできない）" }',
@@ -355,75 +332,12 @@ test('V9: allowed が真偽値でない制約を合格と読まない', (t) => {
   assert.ok(r.violations.some((v) => v.includes('真偽値でない')));
 });
 
-test('V9: generated/ が空なら「検査対象ゼロ＝合格」と読まない（verify が走査の時点で違反にする）', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs());
-  rmSync(c.gen, { recursive: true, force: true });
-  mkdirSync(c.gen, { recursive: true });
-  const r = runChecks(buildContext(c.ts)).V9;
-  assert.ok(r.violations.some((v) => v.includes('空')), JSON.stringify(r.violations));
-});
-
 test('V9: allowed を持たない未知キーは機械判定不能として違反（黙って通さない）', (t) => {
   const c = setupSampleRepo(t, 'constrained', nextTs());
   patchRequirements(c, (text) => text.replace('  organization_policy:', '  audit_rule: "自由文"\n  organization_policy:'));
   const r = v9(c.ts);
   assert.equal(r.ok, false);
   assert.ok(r.violations.some((v) => v.includes('audit_rule')));
-});
-
-// ---------------------------------------------------------------------------
-// パーサ単体（lib/requirements.js）
-// ---------------------------------------------------------------------------
-
-test('requirements パーサ: インライン形の constraints と conflicts を読む', () => {
-  const doc = parseRequirementsDoc(SAMPLE_REPOS.constrained['expected-work/requirements.md']);
-  assert.equal(doc.requirements.length, 2);
-  assert.equal(doc.requirements[0].strength_needed, 'deterministic');
-  assert.equal(doc.constraintsFound, true);
-  assert.equal(doc.constraints.length, 5);
-  const hooks = doc.constraints.find((c) => c.key === 'hooks');
-  assert.equal(hooks.allowed, false);
-  assert.match(hooks.reason, /組織ポリシー/);
-  const org = doc.constraints.find((c) => c.key === 'organization_policy');
-  assert.equal(org.freeform, true);
-  assert.equal(doc.conflicts.length, 1);
-  assert.match(doc.conflicts[0].requirement, /R1/);
-});
-
-test('requirements パーサ: `conflicts: []` は空（[]）で、ブロックが無いとき（null）と区別する', () => {
-  const base = '## 確定要件\n- id: R1\n  strength_needed: advisory\n  priority: must\n\n## 使用可能なカスタマイズ機能\nconstraints:\n  hooks: { allowed: true, reason: "x" }\n';
-  assert.deepEqual(parseRequirementsDoc(base + '\n## 制約と要件の衝突\nconflicts: []\n').conflicts, []);
-  assert.deepEqual(parseRequirementsDoc(base + '\nconflicts: [ ]  # 無し\n').conflicts, []);
-  assert.equal(parseRequirementsDoc(base).conflicts, null);
-});
-
-test('requirements パーサ: 複数行形の constraints も読む（書式の揺れで沈黙しない）', () => {
-  const doc = parseRequirementsDoc(
-    [
-      '## 確定要件',
-      '- id: R1',
-      '  strength_needed: advisory',
-      '  priority: must',
-      '',
-      '## 使用可能なカスタマイズ機能',
-      'constraints:',
-      '  hooks:',
-      '    allowed: false',
-      '    reason: "禁止"',
-      '  mcp:',
-      '    allowed: true',
-      '',
-    ].join('\n')
-  );
-  assert.equal(doc.constraints.length, 2);
-  assert.equal(doc.constraints[0].allowed, false);
-  assert.equal(doc.constraints[1].allowed, true);
-  assert.equal(doc.conflicts, null, 'conflicts ブロック不在は null（空リストと区別する）');
-});
-
-test('requirements パーサ: 要件0件・確定要件節なしは throw（0件を黙って通さない）', () => {
-  assert.throws(() => parseRequirementsDoc('# 何もない\n'), /確定要件/);
-  assert.throws(() => parseRequirementsDoc('## 確定要件\n\n（なし）\n'), /1件もレコードが無い/);
 });
 
 // ---------------------------------------------------------------------------
