@@ -178,7 +178,7 @@ test('walkManaged: 走査根の外（backend/・node_modules/・docker/）へは
   assert.deepEqual(r.files, TARGET_LIKE_MANAGED);
   assert.deepEqual(r.unreadable, [], '走査根の内側に読めないものは無い');
   // 走査根の外を1つでも readdir していたら、追跡外の物理実在物を拾う経路が残っている
-  // （.claude/rules/gates-and-tests.md「追跡外の物理実在物を誤って拾わない」）。
+  // （.claude/rules/checks-and-tests.md「追跡外の物理実在物を誤って拾わない」）。
   assert.deepEqual(
     seen.filter((d) => !(d === '.' || d === '.claude' || d.startsWith('.claude/'))),
     []

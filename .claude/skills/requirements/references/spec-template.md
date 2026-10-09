@@ -4,7 +4,7 @@ spec-writer が `output/<ts>/spec.md` に書く。次の2つを満たす: (1) de
 
 ## 入力（プロンプトで渡されるパス。すべて Read する）
 
-`work/<ts>/investigation/existing.md`・`profile.md`・`focused.md`、`work/<ts>/requirements.md`、`.claude/skills/canon-reference/sources.json`（`canon_version` の出典。参照だけで、inputs には数えない）。
+`work/<ts>/investigation/existing.md`・`profile.md`・`focused.md`、`work/<ts>/requirements.md`、`work/<ts>/investigation/official-check.md`（あれば）、`.claude/skills/canon-reference/sources.json`（`canon_version` の出典。参照だけで、inputs には数えない）。
 
 ## テンプレート
 

@@ -7,7 +7,7 @@
  * 契約が禁じるのは内部専用 Skill（`user-invocable: false`）の**利用者向け一覧への掲載**であって、README
  * 本文からの完全排除ではない。`readme.includes(name)` のような出現ベースの判定にすると、契約が推奨する
  * 「「内部で参照される知識」に留める」書き方や、Hook の実体の在り処（`.claude/skills/<name>/scripts/<script>`）の
- * 明示まで禁じてしまう（`.claude/rules/gates-and-tests.md`「「一覧に出すな」型の規定は出現位置で判定する」）。
+ * 明示まで禁じてしまう（`.claude/rules/checks-and-tests.md`「「一覧に出すな」型の規定は出現位置で判定する」）。
  *
  * ## 判定する2軸（これ以外は見ない）
  *

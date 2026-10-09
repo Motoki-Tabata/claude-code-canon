@@ -43,7 +43,7 @@
   },
   "comments": {
     "deps": "依存ゼロを維持する。テストは Node 組み込み (node --test)、frontmatter は lib/ 内で自前パースする。外部依存の破壊的変更で検証系が壊れる事態を避ける。",
-    "type-module": "ESM 固定。スクリプトは `node <path>.js` で直接起動されるため、拡張子と解決規則を一貫させる。入口は Phase Skill の scripts/（.claude/skills/canon-a・canon-c・canon-d）、共有モジュールは lib/ に置く。",
+    "type-module": "ESM 固定。スクリプトは `node <path>.js` で直接起動されるため、拡張子と解決規則を一貫させる。入口は Phase Skill の scripts/（.claude/skills/canon-a・canon-c・canon-d）・canon-update の scripts/・tools/、共有モジュールは lib/ に置く。",
     "test-concurrency": "--test-concurrency=1 でテストファイルを直列実行する。一部のテストは実 work/<ts>・output/<ts> を作って消すため、ファイル並列だと相互に汚染しうる。運用規約として、実 work/<ts>・output/<ts> を触るテストは ts の日付部分をテストファイルごとに重複させないこと（`tests/helpers/ts.js` の TS_NAMESPACES＋`tests/ts_namespace.test.js` が機械検査する）。新規テストファイルは `tsFor`/`tsSeq` 経由で ts を発行し、TS_NAMESPACES へ8桁日付を追加登録すること。"
   }
 }

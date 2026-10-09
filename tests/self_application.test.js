@@ -2,7 +2,7 @@
  * 自己適用の回帰スイート（architecture.md §9.2）。
  *
  * verify の検査は「生成物」の検証だが、claude-canon 自身の `.claude/`（agents・skills）も
- * 同じ正典に従う成果物である。フックを使わない v2 では、ワーカーの権限の制限もここで担保する。
+ * 同じ正典に従う成果物である。canon はフックを使わないので、ワーカーの権限の制限もここで担保する。
  *
  * ここが無いと、ワーカー定義の改変でパス規約・frontmatter・ツール名が壊れても
  * `npm test` は緑のまま——検証系が自分自身には目を閉じている状態になる。
@@ -325,14 +325,14 @@ test('検出器の素振り: run の worktree 方式の語を拾い、新方式�
 });
 
 /**
- * 層の語彙（L1〜L5・N層・layers・targets-l<N>）と、削除した旧 docs/・判定表の仕組みの語が、工程側に
+ * 層の語彙（L1〜L5・N層・layers・scope_layer・targets-l<N>）と、削除・改名したファイル（旧 docs/・判定表・層単位の references・旧ルール名）の語が、工程側に
  * 残っていないか。工程は機能単位（canon-reference の12機能・builder の8担当）で組んである。
  * 対象外: canon-reference（正典の本文は reference-check の検査9が見る）、検出の規則そのもの
  * （canon-update の build.md・checks.js）、旧語を写し替えるための誤マッピング表（terminology.md）、
  * 検出器と故意の違反を含む tests/、過去の版を記録する CHANGELOG.md。
  */
 const LAYER_ERA_TERMS =
-  /(?<![A-Za-z0-9])L[1-5](?![A-Za-z0-9])|L[1-5]_[A-Z]|(?<!階)層|レイヤー|layers:|targets-l\d|docs\/(00_INDEX|BEST_PRACTICES|ORCHESTRATION|SOURCES|TOOLS)|gates\/|conformance_tables|build:tables|canon-docs/;
+  /(?<![A-Za-z0-9])L[1-5](?![A-Za-z0-9])|L[1-5]_[A-Z]|(?<!階)層|レイヤー|layers:|targets-l\d|docs\/(00_INDEX|BEST_PRACTICES|ORCHESTRATION|SOURCES|TOOLS)|gates\/|conformance_tables|build:tables|canon-docs|scope_layer|`layer`|layer-design|skill-writing\.md|lib\/tables\.js|canon-reference-build\.md|gates-and-tests|lib gates|tools docs/;
 const LAYER_ERA_EXEMPT = new Set([
   '.claude/skills/canon-update/references/build.md',
   '.claude/skills/canon-update/scripts/checks.js',
@@ -358,10 +358,10 @@ test('工程側に層の語彙と旧 docs/・判定表の語が残っていな�
 });
 
 test('検出器の素振り: 層の語彙と旧 docs/ の語を拾い、普通の語は拾わない', () => {
-  for (const bad of ['L2 の宣言', 'builder を起動する層', 'targets-l2.txt', 'layers: 3層', '正典 L2_SKILLS.md', 'docs/BEST_PRACTICES.md', 'gates/conformance_tables', '## レイヤー構成']) {
+  for (const bad of ['L2 の宣言', 'builder を起動する層', 'targets-l2.txt', 'layers: 3層', '正典 L2_SKILLS.md', 'docs/BEST_PRACTICES.md', 'gates/conformance_tables', '## レイヤー構成', 'purpose / scope_layer', '`layer`・`kind`', 'references/layer-design.md', 'references/skill-writing.md', 'lib/tables.js', 'design/canon-reference-build.md', '.claude/rules/gates-and-tests.md', '-- .claude lib gates tools docs design guide']) {
     assert.ok(LAYER_ERA_TERMS.test(bad), `${bad} を見逃した`);
   }
-  for (const ok of ['WSL2 で動かす', 'ディレクトリの階層', 'builder の担当', 'targets-skills-1.txt', 'code.claude.com/docs/en/hooks.md']) {
+  for (const ok of ['WSL2 で動かす', 'ディレクトリの階層', 'builder の担当', 'targets-skills-1.txt', 'code.claude.com/docs/en/hooks.md', '.claude/rules/checks-and-tests.md', 'lib/reference-data.js', '-- .claude lib tools design guide', 'scope_features', '`feature`・`kind`']) {
     assert.ok(!LAYER_ERA_TERMS.test(ok), `${ok} を過検出した`);
   }
 });

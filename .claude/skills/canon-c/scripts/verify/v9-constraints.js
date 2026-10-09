@@ -8,7 +8,7 @@
  * V4 は**普遍的な安全性**（secret 直書き・experimental 依存の「明示」の有無）を見る。
  * V9 は**このプロジェクト固有の環境制約**（`requirements.md` の constraints）を見る。
  * 同じ `context: fork` でも、V4 は「実験機能である旨を書いたか」を、V9 は
- * 「そもそも使ってよいか」を問う。判定の出典も違う: V4 は正典 docs、V9 は
+ * 「そもそも使ってよいか」を問う。判定の出典も違う: V4 は canon-reference、V9 は
  * requirements.md（artifacts.md §8.3 の「正典由来でない規則」の1つ）。
  *
  * ## 禁止集合の導出規約
@@ -257,7 +257,7 @@ function readDesignMapExperimental(designMapText) {
 // ---------------------------------------------------------------------------
 
 // 識別子境界の照合は `lib/markdown.js` の `mentionsIdentifier` が SSoT
-// （`.claude/rules/gates-and-tests.md`「同じ判定ロジックを複数箇所へ複製しない」）。
+// （`.claude/rules/checks-and-tests.md`「同じ判定ロジックを複数箇所へ複製しない」）。
 const mentions = mentionsIdentifier;
 
 function checkDegradation(doc, prohibitedKeys) {

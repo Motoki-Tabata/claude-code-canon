@@ -18,7 +18,7 @@ Phase C で済ませたレビュー（reviewer・keep-reviewer・prompt-auditor�
 `$ARGUMENTS` は run の ts である。
 
 1. `work/<ts>/handoff.md` を読む。frontmatter の `target` を控える。以降、`<out>` は `output/<ts>` の絶対パス、`<target>` は handoff の `target` を指す。
-2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs design guide` を示す。`git status --short -- .claude lib gates tools docs design guide` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
+2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib tools design guide` を示す。`git status --short -- .claude lib tools design guide` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
 3. **承認の照合**: `npm run approvals -- <ts> check --expect P1,P2,P3,P4` を実行する。exit 1 なら、どのファイルが承認後に変わったか（または承認行が無いか）を示し、そのゲートで承認を取り直すまで先へ進まない。P4 が無効なら、generated/ が承認後に変わっている。配置してはならない。**generated/ には書かない**（Write・Edit・sed などで直接直さない）。書いた時点で P4 が無効になり、`record P4` も `record P5` も拒否され、`deploy --confirm` も拒否される。生成物を直すときは下の「差し戻されたら」と同じく、`/canon-c <ts>` から再入する。
 4. **申し送り**: handoff の「申し送り」のうち Phase D 向けのものを先に実施する。結果は P5 の提示に含める。実施しなかったものは理由を添えて示す。
 5. `npm run handoff -- <ts> set phase=D status=in_progress` で frontmatter を直し、`npm run handoff -- <ts> session D` でこのセッションを記録する。

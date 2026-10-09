@@ -97,6 +97,7 @@
 - **ヒアリングの選択肢**: ワーカーの分け方を尋ねるときは、分割軸（領域 × 実装とテストの分離）の組み合わせを網羅します。
 - **工程8 の裏取り**: コマンドの挙動を根拠にした reviewer の指摘は、オーケストレーターが一時ディレクトリで実行して確かめ、
   コマンド行と出力を添えて示します。
+- **ルール `gates-and-tests` を `checks-and-tests` に改名**: 廃止した `gates/` の名前を引き継いでいたためです。
 
 ### Removed
 
@@ -134,6 +135,13 @@
   配置先の読み手はツール名を解決できないためです。
 - **canon の版の確認**: 各 Phase の開始時に比べるパスに `design/`・`guide/` を足しました。成果物の契約
   （`design/artifacts.md`）が run の途中で変わっても検出します。
+
+- **整合性の点検での追従漏れ**: canon の版の確認で比べるパスから削除済みの `gates`・`docs` を外しました（canon-a〜d・architecture.md）。
+  artifacts.md の spec 節の `scope_layer`（正は `scope_features`）・output のツリー（`review-<k>.md`・`AGENTS.md`・commands・output-styles・
+  `outside-managed/`）・requirements.md の `outside_managed:` 欄、investigation の existing.md の `layer`（正は `feature`）、generation Skill の
+  settings の担当に残っていた status line のスクリプト、requirements-template の「機械はこの行を読まない」（`npm run check` が範囲を確かめる）
+  などを、実装と他の文書に合わせました。旧語の回帰テストは、`scope_layer`・`` `layer` ``・削除した references と旧ルール名・
+  版の確認の旧パス集合も拾います。
 
 ## [2.1.0] - 2026-10-01
 

@@ -35,12 +35,13 @@ output/<ts>/
 ├─ spec.md                         工程4（P2 の対象・§4）
 ├─ design-map.md                   工程5（P3 の対象・§5）
 ├─ generated/                      工程6: 対象へ配置するファイル一式（P4 の対象）
-│   ├─ CLAUDE.md・.claude/{rules,skills,agents,hooks}/・.claude/settings.json・.mcp.json・plugin/
+│   ├─ CLAUDE.md・AGENTS.md・.claude/{rules,skills,commands,agents,hooks,output-styles}/・.claude/settings.json・.mcp.json・plugin/
 │   └─ .claude/README.md           生成物の使い方（§7.3）
+├─ outside-managed/                工程6: 管理パス外の変更の、変更後のファイル（§5.6。P4 の対象に含める）
 ├─ MANIFEST.md                     何が変わるか（§7.2）
 ├─ verify-report.md                工程7（§8.1）
 ├─ review/                         工程8（§9.3）
-│   └─ review.md・keep-review.md・prompt-audit.md
+│   └─ review-<k>.md・keep-review.md・prompt-audit.md
 └─ deploy/                         Phase C・D（§10）
     ├─ managed-paths.list・retired.list          Phase C で emit-manifest.js が出力
     ├─ RUN.md・pre-deploy-report.txt             工程9（P5 の対象は pre-deploy-report.txt）
@@ -67,7 +68,7 @@ output/<ts>/
 
 ## レコード（1ファイル1件）
 - path: <対象ルート相対>
-  feature: <claude-md|rules|skills|subagents|hooks|mcp|settings|permissions|statusline|plugins|plugin-mods|output-styles|commands|other>
+  feature: <claude-md|rules|skills|subagents|hooks|mcp|settings|permissions|statusline|plugins|plugin-mods|output-styles|other>
   kind: <claude-md|rule|skill|agent|hook|settings|mcp|plugin|…>
   strength: advisory|deterministic|enforced
   purpose_verbatim: "<frontmatter description の転記>"
@@ -157,6 +158,7 @@ confirmed_at / confirmed_by
   want: <ユーザーの言葉で、達成したいこと>
   strength_needed: advisory|deterministic|enforced
   priority: must|should|could
+  outside_managed: [<管理パス集合の外で変更してよいパス。無ければこの行ごと書かない>]
 
 ## 使用可能なカスタマイズ機能
 constraints:
@@ -179,6 +181,8 @@ conflicts:
 
 - **`## 参照元`**（任意）は、対象とは別のプロジェクトの一式を移植の基準にするときの入力欄である。`path` は絶対パス、`role` は基準の用途。focused 調査（investigator）・spec-writer・designer・builder が読む。生成物には参照元のパスや名前を書かない。`lib/requirements.js` の `parseReferenceSources` が読み、`npm run check -- <ts> requirements` が実在を確かめる。参照元から一式を機械的にコピーする手順は §5（design-map の `## 参照元からのコピー`）にある。
 
+- **`outside_managed`**（任意）は、ユーザーが管理パス集合の外の変更を認めた要件にだけ書き、変えてよいパス（ディレクトリでもよい）を列挙する。designer はこの範囲の中でだけ `## 管理パス外の変更`（§5.6）を設計し、`npm run check -- <ts> design-map` が対象パスの範囲を確かめる。
+
 - `strength_needed` は `canon-reference/references/selection.md` §4（制御の強さ）の段階に対応する canon の3段階語彙（advisory＝指示、deterministic＝Hook、enforced＝permission 規則・サンドボックス）で、制約との衝突の検出に使う。
 - `constraints` は要件とは独立した環境条件で、機能選定の分岐を先に刈り込む。制約は、調査での検出（Hook が無い・MCP の設定が無い・ポリシーの痕跡）とヒアリングでの確認（禁止なのか、使っていないだけなのか）を合わせて拾う。
 - `conflicts` は方向づけまでにとどめ、判定しない。
@@ -195,7 +199,7 @@ design-map をこれだけで引けること、検証とレビューが受入基
 | 節 | 内容 |
 |---|---|
 | §0 メタ | spec_id / canon_version / inputs（investigation の3ファイルと requirements.md のパス）。**canon_version は `.claude/skills/canon-reference/sources.json` の `claude_code_version` を写す**（`v` なし）。設計書の frontmatter から写さない（人が保守するので正典より遅れうる） |
-| §1 目的とあるべき全体像 | purpose / strength の内訳 / scope_layer |
+| §1 目的とあるべき全体像 | purpose / strength の内訳 / scope_features |
 | §2 新要件 | id / want / rationale / project_grounding（focused.md の findings から、evidence 付きで接地させる） |
 | §3 既存資産の棚卸し | existing.md の全レコードを参照する。keep か modify かは決めない（事実のみ） |
 | §4 統合方針 | 既存と新要件の競合・重複の方向づけ（最終判定は design-map）。focused.md の `ref_resolution` で `resolved: false` になった参照を全件挙げ、直す候補か意図的な未解決かを分ける |
@@ -475,7 +479,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
 
 `npm run verify -- <ts>`（`canon-c/scripts/verify.js`）は、V1〜V9 を1本の CLI で実行する。
 
-- **1回の走査**: generated/ を1回だけ走査し、ファイルごとに V1〜V6 を当て、全体に V7〜V9 を当てる。検査ごとに同じツリーを読み直さない。
+- **1回の走査**: generated/ を1回だけ走査し、ファイルごとに V1〜V5 を当て、全体に V6〜V9 を当てる。検査ごとに同じツリーを読み直さない。
 - **出力**: `output/<ts>/verify-report.md` を書き、違反が1件でもあれば exit 1、無ければ exit 0 を返す。`<ts>` の形式違い、または `output/<ts>/` が無いときは何も作らず exit 2 を返す。想定外の例外で検査が中断しても、その検査の違反として report に載せる。report には、検査ごとの結果（pass／違反の一覧／warning の一覧／未判定の一覧／「対象なし」とその理由）、検査した generated/ のハッシュ（architecture.md §6.2 と同じ計算）、実行時刻を載せる。
 - **検査対象ゼロは違反**: generated/ が無い・空、design-map・requirements.md が無い、など判定の入力が揃わないときは、合格にせず違反にする。「対象なし」と書けるのは、定義上対象が無いと確定する場合（new モードの V7 など）だけで、その理由を report に明記する。
 - **error と warning**: 正典に MUST の明文があるか、規則として確定したものは error（違反）、正典が観測されたパターンとしてしか示していないものは warning（報告のみ）にする。warning も黙って捨てない。
@@ -711,7 +715,7 @@ step4 成功なら .bak を残す（ローカルで戻すため）。失敗な�
 
 ### 10.5 自己指定の拒否
 
-`pre-deploy-check.js`・`deploy.js`・`emit-run-manifest.js` は、`<target-dir>` をを実パスに解決した結果が、claude-canon 自身のルート・その配下・それを含む祖先・同一リポジトリの別 worktree のいずれかなら exit 1 で拒否する（git が使えない環境では worktree の判定ができず、実パスと包含の判定までになる）。配置は対象プロジェクトに人間が回す前提であり、canon 自身を対象にすると、稼働中の本体をテストもレビューも通さずに置き換えられてしまう。canon 本体の変更は、ブランチで `npm test` を通し、PR を経て main に入れる。
+`pre-deploy-check.js`・`deploy.js`・`emit-run-manifest.js` は、`<target-dir>` を実パスに解決した結果が、claude-canon 自身のルート・その配下・それを含む祖先・同一リポジトリの別 worktree のいずれかなら exit 1 で拒否する（git が使えない環境では worktree の判定ができず、実パスと包含の判定までになる）。配置は対象プロジェクトに人間が回す前提であり、canon 自身を対象にすると、稼働中の本体をテストもレビューも通さずに置き換えられてしまう。canon 本体の変更は、ブランチで `npm test` を通し、PR を経て main に入れる。
 
 ### 10.6 配置後のドリフト（判断の記録・未実装）
 

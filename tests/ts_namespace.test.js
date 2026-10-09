@@ -5,7 +5,7 @@
  * ファイル間で重複させない」と定める。コメント頼みだと重複使用が再発するので、
  * 「レビューで気づく」から「テストで機械的に落ちる」へ格上げする。
  *
- * `.claude/rules/gates-and-tests.md`「vacuous pass を最優先で疑う」に従い、
+ * `.claude/rules/checks-and-tests.md`「vacuous pass を最優先で疑う」に従い、
  * 検出0件を鵜呑みにせず、必ず走査件数（scanned）を検査する。
  */
 

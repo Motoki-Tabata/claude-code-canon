@@ -18,7 +18,7 @@ Phase A は「何を作るか」を確定する。工程1〜4 を進め、P1（�
 `$ARGUMENTS` が `YYYYMMDD_hhmmss` の形なら、中断した Phase A の**再開**である。次の手順で再開し、進捗の印が付いていない最初の工程から続ける。
 
 1. `work/<ts>/handoff.md` があることを確かめる。無ければ ts の誤りなので、`ls work/` の一覧を示して止まる。
-2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib gates tools docs design guide` を示す。`git status --short -- .claude lib gates tools docs design guide` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
+2. **canon の版の確認**: handoff の `canon_commit` と `git log -1 --format=%H` を比べる。違えば `git diff --stat <canon_commit> HEAD -- .claude lib tools design guide` を示す。`git status --short -- .claude lib tools design guide` に未コミットの改修があれば、それも示す。どちらかがあれば、run の途中で canon 本体が変わったことを伝え、続けてよいかを尋ねる。
 3. handoff の進捗・承認・差し戻しを確かめる。承認行があれば `npm run approvals -- <ts> check` で照合する。
 4. このセッションを `npm run handoff -- <ts> session A` で記録する（canon のプロジェクトで最後に書かれたセッションの id が、handoff の「セッション」に入る）。
 5. ヒアリングの途中で切れていたら、会話は失われている。調査サマリの提示からやり直す。
