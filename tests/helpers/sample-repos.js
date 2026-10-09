@@ -434,7 +434,7 @@ CLAUDE.md
 builder を起動する機能: claude-md・rules・skills
 hooks・mcp・plugins: N/A（constraints で禁止）
 
-## レイヤー構成
+## 構成と責務
 claude-md: CLAUDE.md（プロジェクト規約）
 rules: .claude/rules/schema-review.md（R1 の縮退先・paths で src へ接地）
 skills: .claude/skills/style-guide/SKILL.md（既存を keep）

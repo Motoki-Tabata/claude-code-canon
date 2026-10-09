@@ -326,11 +326,11 @@ export function buildKeepReviewBundles({ ts, write = true, roots = {} }) {
 
 /**
  * reviewer に渡す design-map の節（設計意図）。機能の節（`## <機能>`）はこの後に足す。
- * `## メタ`（層数の rationale）と `## 既存判定`（keep_conditions・rationale・manifest_note）は入れない。
+ * `## メタ`（patterns の rationale）と `## 既存判定`（keep_conditions・rationale・manifest_note）は入れない。
  */
 export const REVIEWER_DESIGN_SECTIONS = [
   'Used Features',
-  'レイヤー構成',
+  '構成と責務',
   'Write Scopes',
   'Model Assignments',
   'Interface Contracts',

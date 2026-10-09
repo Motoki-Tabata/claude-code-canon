@@ -30,7 +30,7 @@ meta
 ## Used Features
 - Skills
 
-## レイヤー構成
+## 構成と責務
 ### Responsibility Map
 - s: 責務1文
 
