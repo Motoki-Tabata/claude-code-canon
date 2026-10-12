@@ -65,11 +65,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 何が起きたか: emit-manifest は `generated/.claude/README.md` を生成物の一覧から作り直し、design-map が README を modify 以外にすると止まる。canon の `.claude/README.md` は手書きの説明（Phase の推奨モデル・Rule の表など）なので、canon 自身を対象にした run の generated/ をそのまま重ねると置き換わる。この run の配置手順では README を重ねる対象から外した。そのため README の推奨モデルの列と `claude --model <opus|sonnet>` の案内は、Phase Skill の推奨（model と effort）に追従していない。
 - 提案: 上の「new-run が canon 自身を対象に受け付け…」の項目と合わせて、canon 自身を対象にした run の README の扱いを決める。それまでは保守作業で `.claude/README.md` の推奨モデルの列と起動の案内に effort（canon-a・canon-b は opus・medium、canon-c・canon-d は sonnet・medium）を足す。
 
-## 2026-10-12 canon-update の build.md が、印の付かない「canon が実測した事実」の記述を次の再生成で落とす（run 20261012_030955・Phase C）
-- 種別: 欠陥修正
-- 何が起きたか: canon-reference の `features/skills.md`・`features/permissions.md` に、公式の文面で確かめられず canon が `claude -p` で実測した事実を、印を付けずに「実測した事実で、公式の文面では確かめていない」と書いた記述が入った。`canon-update/references/build.md` の §5.1 は根拠の無い主張を書かないとし、§9・§10 は公式で裏を取れるものだけを引き継いで作り直す手順なので、次の `/canon-update` でこの記述は消える。`canon-update/scripts/checks.js` は印を検査しないので、検査で気づく経路も無い。
-- 提案: build.md の §5.1 と §9・§10 に、実測だけが根拠の記述の扱い（印を付けず、実測であることと公式で確かめていないことを明記して残す）を足す。checks.js がその注記を落とさないかも確かめる（JS が要る）。
-
 ## 2026-10-12 keep にした Skill・agent・rules に、理由文と規則の重複が残る（run 20261012_030955・Phase C）
 - 種別: 効率化
 - 何が起きたか: keep-reviewer が K2 の疑いとして挙げた3件が、keep のまま残った。直すには keep を modify に変え、設計の承認を取り直す必要がある。
