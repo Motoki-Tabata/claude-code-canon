@@ -10,17 +10,17 @@
 
 4つとも `/名前` で起動したときだけ動きます（自動では動きません）。1つの Phase を1つのセッションで行い、最後の人間ゲートを承認すると、次の Phase の起動方法を案内して止まります。
 
-| コマンド | 起動する場所 | 推奨モデル | 工程と人間ゲート |
+| コマンド | 起動する場所 | 推奨モデル・effort | 工程と人間ゲート |
 |---|---|---|---|
-| `/canon-a <対象プロジェクトのパス>` | canon のルート | opus | run の骨格を作る → 1 調査① → 2 要件ヒアリング → P1 → 3 調査② → 4 spec → P2 |
-| `/canon-b <ts>` | canon のルート | opus | 5 機能選定と設計（design-map）→ P3 |
-| `/canon-c <ts>` | canon のルート | sonnet | 6 生成 → 7 検証（verify）→ 8 品質検査と修正ループ → P4 |
-| `/canon-d <ts>` | canon のルート | sonnet | 9 配置前照合 → P5 → 配置（人間が sandbox の外で実行）→ 配置後の手順 |
+| `/canon-a <対象プロジェクトのパス>` | canon のルート | opus・medium | run の骨格を作る → 1 調査① → 2 要件ヒアリング → P1 → 3 調査② → 4 spec → P2 |
+| `/canon-b <ts>` | canon のルート | opus・medium | 5 機能選定と設計（design-map）→ P3 |
+| `/canon-c <ts>` | canon のルート | sonnet・medium | 6 生成 → 7 検証（verify）→ 8 品質検査と修正ループ → P4 |
+| `/canon-d <ts>` | canon のルート | sonnet・medium | 9 配置前照合 → P5 → 配置（人間が sandbox の外で実行）→ 配置後の手順 |
 
 - 正典 `canon-reference` の更新は run の外の保守作業で、`/canon-update` で起動します（Phase Skill ではありません）。
 - `<ts>` は `/canon-a` が採番する run の識別子（`YYYYMMDD_hhmmss`）です。
 - 中断した Phase A は、`/canon-a <ts>` を実行すると再開します。
-- 2つ目以降の Phase も、canon のルートで `claude --model <opus|sonnet>` の新しいセッションを起動してから実行します。
+- 2つ目以降の Phase も、canon のルートで `claude --model <opus|sonnet> --effort medium` の新しいセッションを起動してから実行します。
 - run の状態・承認・差し戻し・申し送りは `work/<ts>/handoff.md` に記録されます。各 Phase の開始時に、前の Phase までの承認が承認後に変わっていないかを `npm run approvals` で照合し、run を始めたときから canon 本体が変わっていないか（`canon_commit`）も確かめます。
 - run 中に見つけた canon 本体の問題は、その場で `tasks/lessons.md` に書きます。
 
