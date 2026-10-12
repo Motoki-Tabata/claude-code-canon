@@ -17,6 +17,8 @@ refactor モード（既存のカスタマイズがある）でだけ使う。ex
 | `out_of_scope` | 管理パス集合の外にある既存の実体（例: `tasks/` 配下）。設計の判断としては言及したいが、上の4つのどれでもないとき | `manifest_note`（なぜ管理対象外か） |
 
 - 「keep＝再生成しない」を「output に置かない」と読まない。keep は output にコピーされて初めて、配置後も残る。
+- `.claude/README.md` は、emit-manifest が配置のたびに生成物の一覧から作り直す。既存の README があるなら `modify` にする。`keep`・`merge`・`retire` にすると emit-manifest が止まる。署名は見出しの構造なので、作り直しで見出しが変わりうる以上、`interface_change` は `breaking` と書く（`none` は、見出しが変わらないと確かめられるときだけ）。
+- 対象が claude-canon 自身のときは、生成された README が手書きの説明を置き換えてしまう。README を `modify` と書いたうえで、`## 配置時の追加手順` に「README は canon に重ねない（`git restore .claude/README.md`）」と書く。
 - `retire` は最も慎重に扱う。機能そのものが要らない、または統合後の全体像に居場所が無い、ときだけ。MANIFEST への明示と、人間の確認が要る。
 - `retire` にすると配置時に削除される。管理パス集合の外の、まだ使われている実体を `retire` にしてはならない（`out_of_scope` にする）。逆に、管理パス集合の中のパスに `out_of_scope` を付けてはならない。
 - `modify` は、機能は要り、単体で成立し、正典からの逸脱や新要件との差を直せば使えるもの。`merge` は、複数の既存が同じ目的で重複している、または新規のものがその役割を包含するもの。

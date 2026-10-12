@@ -55,11 +55,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 何が起きたか: `/canon-a /home/motoki-tabata/work/claude-code-canon` で `new-run.js` は exit 0 で run を作った。一方、canon-d の3つの CLI は `self-target-guard.js` で canon 自身を対象にした配置を exit 1 で拒否する（artifacts.md §10.5）。拒否されることは工程3の focused 調査で初めて分かり、P1 を取り直した。調査①・ヒアリング・P1 の分が手戻りになった。
 - 提案: `.claude/skills/canon-a/scripts/new-run.js` の入口で `self-target-guard.js` の判定を使う。canon 自身が対象なら、exit 1 で止めて「canon 本体の改修はブランチ・npm test・PR で行う」と案内するか、run を作ったうえで警告し、配置は手作業になることを handoff に記録する。canon-a の SKILL.md の工程0 にも同じことを書く。
 
-## 2026-10-12 designer が README の扱いと管理パス外の変更の書式を決めるのに lib/ と scripts の実装を読んだ（run 20261012_030955・Phase B）
-- 種別: 規律昇華
-- 何が起きたか: designer は `canon-c/scripts/emit-manifest.js`（README は modify 以外だと止まる）・`lib/design-map.js` の parseOutsideChanges・`lib/interface-signature.js`・`canon-update/scripts/checks.js` を読んで判断した。designer の定義は検査スクリプトの実装を読まないとしているが、これらの制約は design Skill に書かれていない。
-- 提案: `.claude/skills/design/` の references に、emit-manifest の README の扱い・`## 管理パス外の変更` の欄の書式・interface_change の決め方を書き、designer が実装を読まずに済むようにする。
-
 ## 2026-10-12 handoff の申し送りを直す操作が npm run handoff に無い（run 20261012_030955・Phase B）
 - 種別: 効率化
 - 何が起きたか: Phase B の終わりに足した申し送りの件数（breaking の modify 14件→13件）を直す操作が `tools/handoff.js`（mark・set・note・session）に無く、handoff.md を Edit で直した。
