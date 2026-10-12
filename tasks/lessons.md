@@ -64,8 +64,3 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 種別: 欠陥修正
 - 何が起きたか: emit-manifest は `generated/.claude/README.md` を生成物の一覧から作り直し、design-map が README を modify 以外にすると止まる。canon の `.claude/README.md` は手書きの説明（Phase の推奨モデル・Rule の表など）なので、canon 自身を対象にした run の generated/ をそのまま重ねると置き換わる。この run の配置手順では README を重ねる対象から外した。そのため README の推奨モデルの列と `claude --model <opus|sonnet>` の案内は、Phase Skill の推奨（model と effort）に追従していない。
 - 提案: 上の「new-run が canon 自身を対象に受け付け…」の項目と合わせて、canon 自身を対象にした run の README の扱いを決める。それまでは保守作業で `.claude/README.md` の推奨モデルの列と起動の案内に effort（canon-a・canon-b は opus・medium、canon-c・canon-d は sonnet・medium）を足す。
-
-## 2026-10-12 prompt-auditor の監査が対象の一部しか読めず、標準 Skill の報告を逐語で転記できなかった（run 20261012_030955・Phase C）
-- 種別: 欠陥修正
-- 何が起きたか: prompt-auditor に渡した `generated/` は104ファイルだが、Glob が100件で打ち切られ、読めたのは rules 4件・agents 8件・`canon-c/SKILL.md`・`model-selection.md` と Grep の走査だけだった。Skill `claude-api` の呼び出しは報告ではなく手順書を返したので、prompt-auditor が手順を実行して報告を作り、「逐語の転記」にならなかった。`.claude/settings.json` は読まれなかった。
-- 提案: prompt-auditor の定義に、Glob の打ち切り（100件）を前提にディレクトリごとに分けて読む手順と、Skill の出力が手順書だったときの扱いを足す。`canon-c/SKILL.md` の工程8-3 に、監査の読了範囲を P4 で示す規則を足す。
