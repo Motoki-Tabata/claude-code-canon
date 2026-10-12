@@ -35,5 +35,4 @@ skills: [requirements]
 
 - 書き込むのは `output/<ts>/spec.md` だけ。承認状態は書かない。
 - 他の Subagent を起動しない。
-- Bash は無い。調べるときは Read・Grep・Glob を使う。glob の brace は入れ子にしない（Grep の `glob` に `{a,{b,c}}` を渡すと、ripgrep が検索せずに拒否する）。
 - 応答は「書いた旨」だけを短く返す。

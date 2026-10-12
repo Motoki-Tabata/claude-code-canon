@@ -7,7 +7,7 @@ argument-hint: "<ts>"
 
 # canon-b（Phase B: 機能選定と設計）
 
-Phase B は承認済みの spec だけを入力に、工程5 で design-map を確定し、P3（design-map 承認）を取ったら止まる。推奨モデルは opus（keep と retire の議論に判断の精度が要る）。designer 自身は frontmatter で opus に固定されている。
+Phase B は承認済みの spec だけを入力に、工程5 で design-map を確定し、P3（design-map 承認）を取ったら止まる。推奨は opus・effort medium。designer は frontmatter で opus・effort medium に固定されている。
 
 あなたは inline のメイン Claude としてオーケストレーターを務める。設計の判断は designer に任せ、あなたは入力をそろえ、結果を確かめ、人間に提示する。
 
@@ -21,14 +21,15 @@ Phase B は承認済みの spec だけを入力に、工程5 で design-map を�
 4. **申し送り**: handoff の「申し送り」のうち Phase B 向けのものを先に実施する。実施した結果は P3 の提示に含める。実施しなかったものは理由を添えて示す（黙って落とさない）。
 5. `npm run handoff -- <ts> set phase=B status=in_progress` で frontmatter を直し、`npm run handoff -- <ts> session B` でこのセッションを記録する。
 
-claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その場で `tasks/lessons.md` の末尾に書く（書式は同ファイル冒頭）。見出しの出典欄は `run <ts>・Phase B` とする。
+`tasks/lessons.md` に起票するとき（規則は `.claude/rules/workflow.md`）、見出しの出典欄は `run <ts>・Phase B` とする。
 
 ## ワーカーの起動規則
 
 - designer は登録済みの `subagent_type: designer` で起動する。`model` 引数は渡さない。`general-purpose` に定義を読ませて代行させない。
-- `run_in_background: false` にして結果を待つ。待つために ScheduleWakeup や loop を使わない。
-- 応答は「書いた旨」の短い報告である。報告を受けても完了とみなさず、design-map.md の実在と中身を自分で確かめる。
-- 直させるときは SendMessage で再開しない。指摘を handoff の「差し戻し」に逐語で書き（直す箇所・直さない箇所）、designer を**新しく**起動して、そのブロックと入力一式を渡し、指示された箇所だけを Edit させる。
+- `run_in_background: false` にして結果を待つ。待つために ScheduleWakeup や loop を使わない。同じワーカーから重複した通知が来ても応答しない。
+- プロンプトには ts と、入力・書込先の絶対パスを書く。定義に書いてあることを繰り返さない。
+- designer の応答は「書いた旨」の短い報告である。報告を受けても完了とみなさず、design-map.md の実在と中身を自分で確かめる。
+- 直させるときは SendMessage で再開しない。指摘を handoff の「差し戻し」に逐語で書き（直す箇所・直さない箇所）、designer を新しく起動して、そのブロックと入力一式を渡し、指示された箇所だけを Edit させる。
 
 ## 工程5 機能選定と設計
 
@@ -57,7 +58,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 ## P3 design-map 承認
 
-全件の精査は負荷が高いので、注意を要するものに絞って示す（artifacts.md §6.5）。
+注意を要するものに絞って示す。
 
 - **retire の全件**: 対象から消えるファイル。1件ずつ、理由（`manifest_note`）と後継（`superseded_by`）を添えて示す。取り消せない操作なので最優先で確かめてもらう。
 - **merge の統合先**: 何をどこに寄せたか。
@@ -74,11 +75,11 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 ## Phase B の終わり
 
 1. 設定済みの ScheduleWakeup・loop があれば止める。
-2. handoff.md を `npm run handoff` で更新する: `mark 工程5` で印を付け、`set phase=C status=waiting_approval` で frontmatter を直し、`note 申し送り "<文>"` で Phase C 以降でやること（例: P4 で特に見る生成物）を書く。
+2. handoff.md を `npm run handoff` で更新する: `mark 工程5` で印を付け、`set phase=C status=waiting_approval` で frontmatter を直し、`note 申し送り "<文>"` で Phase C 以降でやること（例: P4 で特に見る生成物）を書く。 書いた項目の誤りは書き換えず、`note` で訂正の項目を足す（後の項目を正とする）。
 3. `npm run approvals -- <ts> check --expect P1,P2,P3` が exit 0 であることを確かめる。
 4. SKILL.md の手順の外で行った操作（手順に無い Write・Edit・sed・コマンド、承認の前に進めたこと）を列挙し、あれば `tasks/lessons.md` に起票する。無ければ「無し」と報告する。
 5. 次のように案内して止まる。
    > Phase B が完了しました。次は新しいセッションで Phase C を実行してください。
-   > `claude --model sonnet`（canon のルートで起動）→ `/canon-c <ts>`
+   > `claude --model sonnet --effort medium`（canon のルートで起動）→ `/canon-c <ts>`
 
 canon の Phase（A〜D）と、対象プロジェクト側のワークフローの段階は別物である。対象側の段階に触れるときは「対象側の〜」と書き分ける。

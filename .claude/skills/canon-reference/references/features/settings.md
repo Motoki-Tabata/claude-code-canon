@@ -1,6 +1,6 @@
 ---
 feature: settings
-sources: [https://code.claude.com/docs/en/settings.md, https://code.claude.com/docs/en/settings-reference.md, https://code.claude.com/docs/en/settings-example.md, https://code.claude.com/docs/en/claude-directory.md, https://code.claude.com/docs/en/model-config.md, https://code.claude.com/docs/en/cli-reference.md, https://code.claude.com/docs/en/env-vars.md]
+sources: [https://code.claude.com/docs/en/settings.md, https://code.claude.com/docs/en/settings-reference.md, https://code.claude.com/docs/en/settings-example.md, https://code.claude.com/docs/en/claude-directory.md, https://code.claude.com/docs/en/model-config.md, https://code.claude.com/docs/en/cli-reference.md, https://code.claude.com/docs/en/env-vars.md, https://code.claude.com/docs/en/advisor.md]
 ---
 
 # settings
@@ -90,8 +90,11 @@ settings は、Claude Code の振る舞いを変える JSON のキーである�
 ### 3.5 キー・モデル・環境変数の一覧
 
 - 生成で使うキー: `settings:keys`（全件ではない。公式の全キーは settings-reference にある）
+  - モデルごとの effort と auto-compact の窓: `settings:keys/modelSettings`・`settings:keys/autoCompactWindow`
+  - advisor ツールの答え手: `settings:keys/advisorModel`
 - モデルのエイリアス: `models:aliases`
 - 生成物が参照しうる環境変数: `env-vars:vars`（全件ではない）
+  - auto-compact の窓: `env-vars:vars/CLAUDE_CODE_AUTO_COMPACT_WINDOW`
 - sandbox のキー: `permissions:sandbox-keys`
 
 ## 4. 設計の指針
@@ -104,6 +107,14 @@ settings は、Claude Code の振る舞いを変える JSON のキーである�
 - **`~/.claude.json` は生成の対象にしない**。Claude Code が自分で書くファイルで、編集は要らないと公式が述べている。個人の MCP サーバーは `claude mcp add` が書く。[仕様]
 - **秘密を `env` に平文で書かない**。`env` の値は settings ファイルに平文で残り、すべてのサブプロセスに渡る。API の認証情報には `apiKeyHelper` を使う。[仕様]
 - **クラウドセッションでは一部しか読まれない**。リポジトリが1つのセッションでは `.claude/settings.json` が読まれる。user と local のファイルは読まれない。[仕様]
+- **モデルごとの effort と auto-compact の窓は `modelSettings` で書く**。エントリは正規のモデル名で、同じファイルではトップレベルの `effortLevel` より優先する（値と書式は `settings:keys/modelSettings`）。[仕様]
+- **トップレベルの `effortLevel` は、ユーザー設定に書いたときだけ Opus 5.5 に効かない**。プロジェクト・local・managed の設定と `--settings` に書いた値は全モデルに効く（`settings:keys/effortLevel`）。[仕様]
+- **1M の窓のモデルは、既定で窓のほぼ全体まで compact しない**。毎ターンの再送を抑えたいときは `autoCompactWindow` で窓を絞る（`settings:keys/autoCompactWindow`）。[仕様]
+  - 優先順位は `CLAUDE_CODE_AUTO_COMPACT_WINDOW`（`env-vars:vars/CLAUDE_CODE_AUTO_COMPACT_WINDOW`）→ `--autocompact` → settings のキー。
+  - settings のファイル間の優先順位は §3.2 のとおり（managed → `--settings` → local → project → user）。
+- **`advisorModel` は advisor ツールの答え手を決める**（`settings:keys/advisorModel`）。
+  - advisor ツールは実験機能で、Anthropic API でだけ使え、メインのモデルと同等以上の能力が要る。[仕様]
+  - 既定の推奨には入れない。これは canon の規律で、公式の仕様ではない。
 
 ## 5. 生成の規約
 
@@ -175,6 +186,7 @@ settings は、Claude Code の振る舞いを変える JSON のキーである�
 - https://code.claude.com/docs/en/model-config.md
 - https://code.claude.com/docs/en/cli-reference.md
 - https://code.claude.com/docs/en/env-vars.md
+- https://code.claude.com/docs/en/advisor.md
 
 **insight**
 

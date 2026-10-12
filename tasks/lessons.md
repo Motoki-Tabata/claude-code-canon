@@ -20,27 +20,12 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 
 ---
 
-## 2026-10-10 生成規約の「ルールには理由を添える」が正典 skills §4 の「理由の語りは入れない」と食い違う（保守作業・run 20261010_014620 の持ち越し）
-- 種別: 規律昇華
-- 何が起きたか: `.claude/skills/generation/references/no-leaks.md:20` は「ルールには理由を添える」とし、`canon-reference/references/features/skills.md:156` は「経緯や理由の語りは入れない」とする。run 20261010_014620 では verify も reviewer も指摘せず、生成したルール（`esm-src.md` など）には理由の文が入った。どちらが正かを決めていない。
-- 提案: 正典 §4 の範囲（Skill 本文か、ルールや CLAUDE.md を含むか）を確かめ、no-leaks.md か契約語の検査のどちらかを揃える。
-
-## 2026-10-10 V4 の Agent Teams 検査と V9 の experimental 検出に data の根拠が無い（保守作業）
-- 種別: 規律昇華
-- 何が起きたか: `v4-security.js:20,41`（`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` の開示検査）と V9 の `CLAUDE_CODE_EXPERIMENTAL_*`・`isolation: subagent` の検出は、canon-reference の data（`env-vars`、`isolation` は `worktree` のみ）に根拠が無く、「canon 独自の規則」と明記して残してある。廃止するかが未決。
-- 提案: 正典の最新版で env-vars と isolation の値を確かめ、根拠が無いままなら該当検査を廃止して canon-reference の V- ID だけに揃える。
-
 ## 2026-10-10 Phase ごとに別セッションで /canon-a〜/canon-d を起動する実経路が未検証（run 20261010_014620・Phase D）
 - 種別: 規律昇華
 - 何が起きたか: この run は1セッションで各 SKILL.md の手順を代行した。`disable-model-invocation` の挙動、セッション分離、B〜D の開始手順（`canon_commit` の比較・`approvals check`）は通していない。Hook の発火も未検証（この run は Hook を生成していない）。
-- 提案: 小さな対象で `/canon-a`〜`/canon-d` を別セッションで通し、手順の抜けを本台帳に起票する。1セッション通しで検証するときに省いてよい手順は SKILL.md に書かない（実運用の経路と混ざるため）。
+- 提案: 小さな対象で `/canon-a`〜`/canon-d` を別セッションで通し、手順の抜けを本台帳に起票する。1セッション通しで検証するときに省いてよい手順は SKILL.md に書かない（実運用の経路と混ざるため）。plan mode を使う Skill が経路に入るときは、計画の承認を対話のセッションで確かめる（`claude -p` では承認の画面が使えない。正典 `canon-reference/references/features/permissions.md` の §3.3・§4）。
 
-## 2026-10-10 生成物の README の一覧に出力スタイルが載らない（保守作業・刷新レビュー）
-- 種別: 欠陥修正
-- 何が起きたか: `.claude/skills/canon-c/scripts/emit-manifest.js` の `collectComponents` は Skill・Subagent・Rule・Hook・MCP・plugin だけを集め、`.claude/output-styles/*.md` を拾わない。output-styles の担当が生成した出力スタイルは、`generated/.claude/README.md` の生成物一覧と使い方に現れない。
-- 提案: `collectComponents` に出力スタイル（`frontmatter:output-style` の `name`・`description`）を足し、README の一覧と使い方（`/config` か settings の `outputStyle` で選ぶ）に載せる。artifacts.md §7.3 と emit-manifest のテストを合わせて直す。
-
-## 2026-10-10 V7 の署名に出力スタイルの種別が無い（保守作業・刷新レビュー）
-- 種別: 欠陥修正
-- 何が起きたか: `lib/interface-signature.js` の `interfaceSignature` は `.claude/output-styles/*.md` を `unknown`（検査できない）にする。既存の出力スタイルを modify で残し `interface_change: none` を宣言すると、V7 が必ず違反にする（artifacts.md §8.2 V7 の署名表の「上記以外」）。
-- 提案: 出力スタイルの署名（frontmatter の `name`。無ければファイル名）を署名表と `interfaceSignature` に足し、テストで固定する。
+## 2026-10-10 canon 自身の investigator を haiku・effort high の役に分けられるかを実地で評価していない（保守作業）
+- 種別: 効率化
+- 何が起きたか: `.claude/skills/design/references/model-selection.md` の haiku の条件は、事実の抽出に徹して後段で検証される作業に haiku・`effort: high` を使える形になった。canon 自身の investigator は existing・profile（事実の抽出）と focused（要件に照らした推論）を1体で担うので、sonnet のまま据え置いている。haiku と sonnet の出力の実地比較はしていない。
+- 提案: 小さな対象で existing・profile を haiku・`effort: high` で動かし、sonnet の出力と比べる。採るなら existing・profile 用の agent を分け、`tests/self_application.test.js` の agent 8体の固定（EXPECTED_AGENTS）と Agent の例示に `model=` を書かない検査、`.claude/skills/canon-a/SKILL.md` の工程1、`design/architecture.md` の Agent 表を同じ変更で直す。

@@ -148,6 +148,17 @@ test('V9: experimental 禁止 × frontmatter context: fork を検出', (t) => {
   assert.ok(r.violations.some((v) => v.includes('context: fork')));
 });
 
+test('V9: isolation: subagent は experimental として数えない（値が不正なだけで、V2 の担当）', (t) => {
+  const c = setupSampleRepo(t, 'constrained', nextTs());
+  write(
+    c,
+    '.claude/agents/isolated/isolated.md',
+    '---\nname: isolated\ndescription: x\ntools: Read\nisolation: subagent\n---\n本文\n'
+  );
+  const r = v9(c.ts);
+  assert.ok(!r.violations.some((v) => v.includes('isolation')), JSON.stringify(r.violations));
+});
+
 test('V9: experimental 禁止 × AGENT_TEAMS 以外の CLAUDE_CODE_EXPERIMENTAL_* を検出（接頭辞導出）', (t) => {
   // V4 は AGENT_TEAMS の1変数しか見ない。V9 は接頭辞で導出するため未知の実験フラグも捕まえる。
   const c = setupSampleRepo(t, 'constrained', nextTs());

@@ -7,7 +7,7 @@ argument-hint: "<target_project_path> | <ts>"
 
 # canon-a（Phase A: 調査①・要件ヒアリング・調査②・spec）
 
-Phase A は「何を作るか」を確定する。工程1〜4 を進め、P1（要件承認）と P2（spec 承認）を取ったら止まる。推奨モデルは opus（ヒアリングと spec の精査に判断の精度が要る）。
+Phase A は「何を作るか」を確定する。工程1〜4 を進め、P1（要件承認）と P2（spec 承認）を取ったら止まる。推奨は opus・effort medium。
 
 あなたは inline のメイン Claude としてオーケストレーターを務める。ヒアリングは人間との往復そのものなので、Subagent に任せず自分で行う。調査と spec の執筆はワーカーに任せ、成果物はワーカー自身がファイルに書く。
 
@@ -25,20 +25,20 @@ Phase A は「何を作るか」を確定する。工程1〜4 を進め、P1（�
 
 それ以外は、`$ARGUMENTS` は対象プロジェクトのパスである。
 
-1. `npm run new-run -- <target>` を実行する。stdout の `ts`・`mode`・`handoff`・`canon_commit` を控える。
+1. `npm run new-run -- <target>` を実行する。stdout の `ts`・`mode`・`handoff`・`canon_commit` を控える。`self_target: true` が出たら、対象が canon 自身である。run は作られ、handoff の「申し送り」に配置の扱いが書かれる。canon-d では配置できないので、P1 の前にこのことをユーザーに伝える。
    - exit 1（対象が無い・同じ ts の run が既にある）なら、stderr をそのまま示して止まる。
 2. handoff.md（`work/<ts>/handoff.md`）を開き、frontmatter の `mode` を確かめる。new-run は対象の管理パス集合に既存ファイルがあれば `refactor`、無ければ `new` を初期値にする。工程2で確かめて直す（直すのは `npm run handoff -- <ts> set mode=<new|refactor>`）。
 3. `npm run handoff -- <ts> session A` でこのセッションを記録する。
 
-claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その場で `tasks/lessons.md` の末尾に書く（書式は同ファイル冒頭）。見出しの出典欄は `run <ts>・Phase A` とする。
+`tasks/lessons.md` に起票するとき（規則は `.claude/rules/workflow.md`）、見出しの出典欄は `run <ts>・Phase A` とする。
 
 ## ワーカーの起動規則
 
-- ワーカーは登録済みの `subagent_type`（`investigator`・`session-analyst`・`spec-writer`）で起動する。公式仕様の確認には組込みの `claude-code-guide` を使う（工程3）。`model` 引数は渡さない（frontmatter の指定より優先されてしまう）。`general-purpose` に定義を読ませて代行させない（コマンド実行系ツールを持つので、書込先の制限が崩れる）。
-- 独立したワーカーは**1つのメッセージで並列に**起動し、`run_in_background: false` にして全員の結果がそろうまで待つ。待つために ScheduleWakeup や loop を使わない。同じワーカーから重複した通知が来ても応答しない。
-- プロンプトには ts・対象のルート・入力ファイルと書込先の**絶対パス**を書く。定義に書いてあることを繰り返さない。
-- ワーカーの応答は「書いた旨」の短い報告である。報告を受けても完了とみなさず、成果物ファイルの実在と中身を自分で確かめる。
-- ワーカーに直させるときは、SendMessage で再開しない。指摘を handoff.md の「差し戻し」に逐語で書き（直す箇所・直さない箇所）、同じ種類のワーカーを**新しく**起動して、そのブロックと入力一式を渡し、指示された箇所だけを Edit させる。再開は蓄積した文脈の読み直しになり、新規起動より重い。
+- ワーカーは登録済みの `subagent_type`（`investigator`・`session-analyst`・`spec-writer`）で起動する。公式仕様の確認には組込みの `claude-code-guide` を使う（工程3）。`model` 引数は渡さない。`general-purpose` に定義を読ませて代行させない。
+- 独立したワーカーは1つのメッセージで並列に起動し、`run_in_background: false` にして全員の結果がそろうまで待つ。待つために ScheduleWakeup や loop を使わない。同じワーカーから重複した通知が来ても応答しない。
+- プロンプトには ts と、入力・書込先の絶対パスを書く。定義に書いてあることを繰り返さない。
+- ワーカーの応答は「書いた旨」の短い報告である。報告を受けても完了とみなさず、成果物の実在と中身を自分で確かめる。
+- 直させるときは SendMessage で再開しない。指摘を handoff の「差し戻し」に逐語で書き（直す箇所・直さない箇所）、同じ種類のワーカーを新しく起動して、そのブロックと入力一式を渡し、指示された箇所だけを Edit させる。
 
 ## 工程1 調査①（existing・profile を並列）
 
@@ -68,6 +68,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 1. investigator を `mode: focused` で起動する。渡すもの: `target`・ts・書込先 `<root>/work/<ts>/investigation/focused.md`・`<root>/work/<ts>/requirements.md` の絶対パス・existing.md の `project_refs` の一覧（existing.md から抜き出して渡す。new モードで既存が無ければ「なし」と書く）・requirements.md に `## 参照元` があればその `path` の一覧（無ければ「なし」）。
 2. focused.md の実在を確かめ、`findings` に `evidence_paths` があること、渡した `project_refs` がすべて `ref_resolution` に現れることを確かめる。欠けていれば investigator（focused）を新しく起動して直させる。
 3. **公式仕様の確認**: 確定要件のうち、成否が Claude Code 自体の仕様に依存するもの（組込み Skill をモデルから起動できるか・permissions の効き方・待ちの手段など）は、investigator では確かめられない（WebFetch を持たない）。focused.md に「確かめられなかった」と残った論点も含め、`claude-code-guide` に要件ごとの問いを渡して公式ドキュメントで確かめさせる（独立した問いは1つのメッセージで並列に）。結果を、あなたが `work/<ts>/investigation/official-check.md` に書く（書式は artifacts.md §2.5）。仕様に依存する要件が無ければ、このファイルは作らない。
+4. focused.md・official-check.md で、P1 済みの確定要件が成り立たないと分かったら、spec に進まずユーザーと詰める。差し戻しの内容を handoff の「差し戻し」に逐語で書き、requirements.md を直してから P1 を取り直す。
 
 ## 工程4 spec → P2
 
@@ -81,12 +82,12 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 
 ## Phase A の終わり
 
-1. 設定済みの ScheduleWakeup・loop があれば止める（Phase の終了後に発火して次の Phase と並走するのを防ぐ）。
-2. handoff.md を `npm run handoff` で更新する: 工程2〜4 に `mark` で印を付け（工程1 は付け済み）、`set phase=B status=waiting_approval` で frontmatter を直し、`note 申し送り "<文>"` で Phase B 以降でやることを1件ずつ書く。
+1. 設定済みの ScheduleWakeup・loop があれば止める。
+2. handoff.md を `npm run handoff` で更新する: 工程2〜4 に `mark` で印を付け（工程1 は付け済み）、`set phase=B status=waiting_approval` で frontmatter を直し、`note 申し送り "<文>"` で Phase B 以降でやることを1件ずつ書く。 書いた項目の誤りは書き換えず、`note` で訂正の項目を足す（後の項目を正とする）。
 3. 承認の照合を確かめる: `npm run approvals -- <ts> check --expect P1,P2` が exit 0 であること。
 4. SKILL.md の手順の外で行った操作（手順に無い Write・Edit・sed・コマンド、承認の前に進めたこと）を列挙し、あれば `tasks/lessons.md` に起票する。無ければ「無し」と報告する。
 5. 次のように案内して止まる。モデルはエイリアスで書く。
    > Phase A が完了しました。次は新しいセッションで Phase B を実行してください。
-   > canon のルートで `claude --model opus` → `/canon-b <ts>`
+   > canon のルートで `claude --model opus --effort medium` → `/canon-b <ts>`
 
 canon の Phase（A〜D）と、対象プロジェクト側のワークフローの段階は別物である。対象側の段階に触れるときは「対象側の〜」と書き分ける。

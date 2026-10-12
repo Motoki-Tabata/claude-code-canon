@@ -7,9 +7,9 @@ argument-hint: "<ts>"
 
 # canon-d（Phase D: 配置前照合・配置・後始末）
 
-Phase D は承認済みの生成物を対象プロジェクトへ届ける。工程9 の配置前照合をして P5（配置承認）を取り、人間が配置を実行したら、結果を確かめて後始末をする。推奨モデルは sonnet。
+Phase D は承認済みの生成物を対象プロジェクトへ届ける。工程9 の配置前照合をして P5（配置承認）を取り、人間が配置を実行したら、結果を確かめて後始末をする。推奨は sonnet・effort medium。
 
-あなたは inline のメイン Claude としてオーケストレーターを務める。この Phase ではワーカーを起動しない。**配置（`--confirm`）はあなたが実行しない**。sandbox がファイルをバインドマウントしていると退避の rename が失敗するので、人間が sandbox の外で実行する。
+あなたは inline のメイン Claude としてオーケストレーターを務める。この Phase ではワーカーを起動しない。**配置（`--confirm`）はあなたが実行しない**。人間が sandbox の外で実行する。
 
 Phase C で済ませたレビュー（reviewer・keep-reviewer・prompt-auditor）は再実行しない。生成物は P4 で承認済みで、承認後に変わっていないことは開始時の照合で確かめる。
 
@@ -23,7 +23,7 @@ Phase C で済ませたレビュー（reviewer・keep-reviewer・prompt-auditor�
 4. **申し送り**: handoff の「申し送り」のうち Phase D 向けのものを先に実施する。結果は P5 の提示に含める。実施しなかったものは理由を添えて示す。
 5. `npm run handoff -- <ts> set phase=D status=in_progress` で frontmatter を直し、`npm run handoff -- <ts> session D` でこのセッションを記録する。
 
-claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その場で `tasks/lessons.md` の末尾に書く（書式は同ファイル冒頭）。見出しの出典欄は `run <ts>・Phase D` とする。
+`tasks/lessons.md` に起票するとき（規則は `.claude/rules/workflow.md`）、見出しの出典欄は `run <ts>・Phase D` とする。
 
 ## 工程9 配置前照合
 
@@ -44,7 +44,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 承認を求めて**止まる**。
 
 - 承認されたら `npm run approvals -- <ts> record P5 "<要旨>"`。
-- 差し戻されたら、指摘を handoff の「差し戻し」に逐語で書く。生成物を直す必要があるなら、指摘を「差し戻し」に書いたうえで、新しいセッションで該当する Phase（設計なら `/canon-b <ts>`、生成なら `/canon-c <ts>`）に再入するよう案内して止まる。`/canon-c <ts>` は「差し戻し」を読み、修正ループから始めて P4 を取り直す（軽微な修正でも、この経路を通す）。
+- 差し戻されたら、指摘を handoff の「差し戻し」に逐語で書く。生成物を直す必要があるなら、指摘を「差し戻し」に書いたうえで、新しいセッションで該当する Phase に再入するよう案内して止まる。設計なら `claude --model opus --effort medium` で `/canon-b <ts>`、生成なら `claude --model sonnet --effort medium` で `/canon-c <ts>`。`/canon-c <ts>` は「差し戻し」を読み、修正ループから始めて P4 を取り直す（軽微な修正でも、この経路を通す）。
 
 ## 配置（人間が実行する）
 
@@ -56,7 +56,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 ## 配置後
 
 1. RUN.md の「3a. 管理パス外の変更」に項目があれば、1件ずつ扱う。適用は人間か対象リポジトリで起動したセッションが行い（配置のコミットとは別のコミット）、各項目の「確認」の実行結果を受け取る。結果を `npm run handoff -- <ts> note 進捗 "<文>"` で handoff の進捗に、項目ごとに「適用・確認済み（確認の出力の要旨）」か「撤回（撤回の理由と、直した『撤回したら直す生成物』）」として記録する。撤回したのに「撤回したら直す生成物」を直していなければ、完了として扱わない。
-2. RUN.md の「4. 配置後の手作業」を**逐語で**示す。要旨に言い換えない（言い換えると手順が縮んで欠ける）。
+2. RUN.md の「4. 配置後の手作業」を**逐語で**示す。要旨に言い換えない。
 3. 生成物に Hooks（`.claude/settings.json` の hooks・`.claude/hooks/**`）があり、その発火を対象で確かめていなければ、「配置した。Hook の発火は未検証」と明記する。「全工程が完了した」とだけ言わない。
 4. 対象リポジトリへのコミットと push は、**対象リポジトリで起動したセッション**で行うよう案内する（このセッションからは対象側のサンドボックスの例外が効かない。SSH のリモートなら接続先の許可も要る）。
 5. MCP サーバーの新規実装が要ると「申し送り」にあれば、対象側で `mcp-builder` Skill を使うよう案内する（canon では実装しない）。
@@ -68,7 +68,7 @@ claude-canon 本体の欠陥・浪費・規律の穴に気づいたら、その�
 3. **run の振り返り**（工程番号は増やさない。Phase D の終わりの手順である）。
    1. handoff の `## セッション` から Phase A〜D の session-id を取る。記録の無い Phase は、無いと報告する（分析できない）。
    2. 各 session-id に `npm run tokens -- <session-id>` を実行する。
-   3. session-analyst を1セッションにつき1体、1つのメッセージで並列に起動する。渡すもの: transcript の jsonl の絶対パス（`~/.claude/projects/<slug>/<session-id>.jsonl`）・tokens の集計・書込先 `work/<ts>/retro/session-analysis-<phase>.md` の絶対パス・次の観点。Phase D は実行中のセッション自身なので、「読めた範囲はここまで」と添える。
+   3. session-analyst を1セッションにつき1体、1つのメッセージで並列に起動する。渡すもの: transcript の jsonl の絶対パス（`~/.claude/projects/<slug>/<session-id>.jsonl`）・tokens の集計・書込先 `work/<ts>/retro/session-analysis-<phase>.md` の絶対パス・次の観点。Phase D の分析には「読めた範囲はここまで」と添える（実行中のセッション自身が対象になる）。
       - SKILL.md の手順の外で行った操作（手順に無い Write・Edit・sed・コマンド、承認の前に進めたこと）
       - 繰り返した手戻りと差し戻し
       - canon 本体の欠陥・浪費・規律の穴の疑い

@@ -7,6 +7,7 @@ sources:
   - https://code.claude.com/docs/en/model-config.md
   - https://code.claude.com/docs/en/tools-reference.md
   - https://code.claude.com/docs/en/sub-agents.md
+  - https://code.claude.com/docs/en/goal.md
 ---
 
 # Skills（Skill とコマンドファイル）
@@ -77,6 +78,7 @@ sources:
 
   [仕様]
 - Skill のフォルダ名に `synced` は使えない（大文字小文字を問わない）。Plugin の外では、名前が `anthropic-skills` か `anthropic-skills:` で始まるフォルダ・コマンドファイル・frontmatter の `name` は読み込まれない。[仕様]
+- 作業ディレクトリの外にある Skill（`~/.claude/skills/` のユーザー定義など）の補助ファイルは、Read に許可が要ることがあり、`claude -p` では読めなかった。これは canon が `claude -p` で実測した事実で、公式の文面では確かめていない。
 
 ### 3.2 コマンド名の決まり方
 
@@ -113,6 +115,8 @@ sources:
 - Claude は Skill を `tools:tools/Skill` で実行する。許可ルールは `Skill(name)`（完全一致）か `Skill(name *)`（前方一致）と書く（`permissions:rule-syntax/Skill`）。[仕様]
 - frontmatter を編集せずに、settings の `settings:keys/skillOverrides` で見え方を切り替えられる。値は `on`・`name-only`・`user-invocable-only`・`off` のどれかである。Plugin の Skill には効かない。[仕様]
 - メッセージの先頭に `/name` を書くと、Skill を直接実行する。文の途中に書くと、そのメッセージに限って Claude がその Skill を実行してよいという許可になる。[仕様]
+- `/goal` の条件は、Claude が次のターンから従う指示になる。評価役は会話だけを見て（コマンドを実行せず、ファイルも読まない）、評価は small fast model が行う。条件は 4,000 文字までである。`/goal` は permission mode を変えない。[仕様]（出典 `goal.md`）
+- `disable-model-invocation: true` の Skill は Claude が Skill ツールで呼べないので、`/goal` の条件から呼ばせることもできない。[仕様]（出典 `skills.md` の「Restrict Claude's skill access」）
 
 ### 3.5 引数と文字列の置換
 
@@ -154,6 +158,7 @@ sources:
   - Claude は Skill を使い足りない傾向があるので、使うべき場面をやや積極的に書く。[知見]
 - **本文**:
   - 簡潔に書く。読み込まれた本文はターンをまたいで残るので、1行1行が繰り返しかかるトークンのコストになる。どうするかを書き、経緯や理由の語りは入れない。[仕様]
+    - この項は Skill の本文の指針で、ルールと CLAUDE.md の本文には落とし穴や判断の理由を残す（`claude-md.md` の §4）。適用範囲をこのように分けるのは canon の規律で、公式の仕様ではない。落とし穴・判断の理由を残すことは [仕様]（`/doctor` の削減の基準）。
   - Claude が既に知っていることは書かない。[知見]
   - 一度きりの手順ではなく、作業の間ずっと効く指示として書く（例: 「テストを実行する」ではなく「編集のたびにテストを実行する」）。最も重要な指示は先頭に置く。compaction の後は、先頭しか残らないことがある。[仕様]
   - 選択肢を並べすぎず、既定のやり方を1つ示し、例外のときの代わりを添える。用語は Skill の中で1つに揃える。時期で変わる情報を書かない。[知見]
@@ -163,6 +168,7 @@ sources:
   - 領域や変種ごとに参照ファイルを分けると、Claude は関係するファイルだけを読む。[知見]
 - **呼び出しの制御**:
   - 副作用がある workflow（デプロイ・コミット・外部への送信）は、`disable-model-invocation: true` にする。Claude が自分の判断で実行しないようにするためである。[仕様]
+  - ただし `/goal` で実行させる Skill には `disable-model-invocation: true` を付けず、description で起動の条件を絞る。これは canon の規律で、公式の仕様ではない。
   - 背景知識は `user-invocable: false` にする。[仕様]
 - **権限**:
   - `allowed-tools` には、Skill の手順が実際に使うコマンドだけを書く。[仕様]
@@ -282,7 +288,7 @@ sources:
 ## 7. 品質基準
 
 - **Q-skills-01**: `description` が、何をするかといつ使うかの両方を書き、主な用途と利用者が使う語を先頭近くに置いている。曖昧な説明や一人称・二人称の説明ではない。[仕様][知見]
-- **Q-skills-02**: 呼び出しの制御が内容に合っている。副作用のある手順は `disable-model-invocation: true`、ユーザーが呼ぶ意味の無い背景知識は `user-invocable: false` にしている。[仕様]
+- **Q-skills-02**: 呼び出しの制御が内容に合っている。副作用のある手順は `disable-model-invocation: true`、ユーザーが呼ぶ意味の無い背景知識は `user-invocable: false` にしている（`/goal` で実行させる Skill は §4 の例外）。[仕様]
 - **Q-skills-03**: `context: fork` は、それだけで完結する明示のタスクを持つ Skill にだけ付けている。会話の履歴を前提にしていない。[仕様]
 - **Q-skills-04**: 本文が簡潔で、作業の間ずっと効く指示として書かれ、最も重要な指示が先頭にある。Claude が既に知っている説明を含まない。[仕様][知見]
 - **Q-skills-05**: 毎回必ず守らせたい規則を Skill の指示だけに頼らず、Hook（設定か Skill の `hooks`）で強制している。[仕様]
@@ -304,6 +310,7 @@ sources:
 - https://code.claude.com/docs/en/model-config.md
 - https://code.claude.com/docs/en/tools-reference.md
 - https://code.claude.com/docs/en/sub-agents.md
+- https://code.claude.com/docs/en/goal.md
 
 **insight**
 

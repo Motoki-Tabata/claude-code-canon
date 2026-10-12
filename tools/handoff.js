@@ -8,6 +8,8 @@
  *   session <Phase>                        canon のプロジェクトで最後に書かれたセッションの id を記録する
  *
  * sed や python での手書き換えは、印の付け違いと書式崩れを起こす。承認の表は `npm run approvals` の担当で、ここでは触らない。
+ * 節に書いた項目の誤りは、書き換えずに `note` で訂正の項目を足す（例: 「申し送りの『14件』は13件の誤り」）。項目は追記だけの履歴で、
+ * 読む側は後の項目を正とする。
  * exit 0 成功／exit 1 更新できない（handoff.md が無い・行が当たらない・語彙外・session が見つからない）／exit 2 引数不正。
  */
 
@@ -67,7 +69,7 @@ export function recordSession(root, ts, phase, { projectsRoot, now = new Date() 
 const USAGE = [
   '使い方: npm run handoff -- <ts> mark <工程N|PN> [--off]',
   '        npm run handoff -- <ts> set phase=<A〜D> status=<in_progress|waiting_approval|done> [mode=<new|refactor>]',
-  '        npm run handoff -- <ts> note <節> "<文>"',
+  '        npm run handoff -- <ts> note <節> "<文>"   （節の項目の誤りは、書き換えずに訂正の項目を足す）',
   '        npm run handoff -- <ts> session <Phase>',
 ].join('\n');
 

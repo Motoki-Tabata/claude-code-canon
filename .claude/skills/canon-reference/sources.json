@@ -2555,6 +2555,16 @@
       "where": "data/frontmatter.json",
       "item": "command",
       "what": "skills は commands/*.md が name と paths を除く skill のキーを受け付けるとし、plugins/components は skill と同じ frontmatter とだけ書いている。skills に従った"
+    },
+    {
+      "where": "references/features/skills.md",
+      "item": "/goal の条件の中のスラッシュコマンド",
+      "what": "/goal の条件の中のスラッシュコマンドが展開されるかが確かめられていない"
+    },
+    {
+      "where": "references/features/skills.md",
+      "item": "作業ディレクトリの外にある Skill の補助ファイルの Read",
+      "what": "作業ディレクトリの外にある Skill の補助ファイルの Read に許可が要るかを、公式の文面で確かめていない。canon の claude -p の実測だけがある"
     }
   ]
 }

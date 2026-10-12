@@ -124,7 +124,7 @@ sources:
 | Scheduled tasks（`/loop` など） | セッションの中でプロンプトを一定の間隔で繰り返す（デプロイの監視・PR の見張り） | `scheduled-tasks` |
 | Desktop scheduled tasks | デスクトップアプリから、手元のマシンで定期的に新しいセッションを起動する | `desktop-scheduled-tasks` |
 | Routines | クラウドで、スケジュール・API・GitHub のイベントを契機にセッションを動かす。手元のマシンが止まっていても動く | `routines` |
-| `/goal` | 検証できる完了条件に達するまで、ターンを重ねて作業を続けさせる | `goal` |
+| `/goal` | 検証できる完了条件に達するまで、ターンを重ねて作業を続けさせる。評価役は会話だけを見る（コマンドを実行せず、ファイルも読まない）。条件は 4,000 文字まで、評価は small fast model が行い、permission mode は変わらない。`disable-model-invocation: true` の Skill は条件から呼べない（`features/skills.md` §3.4） | `goal` |
 | Channels | 外部のイベント（CI・チャット・Webhook）を、開いているセッションに送り込む | `channels`・`channels-reference` |
 | Headless（`claude -p`） | スクリプトや CI から非対話で動かす | `headless` |
 | GitHub Actions・GitLab CI/CD | リポジトリのワークフローから Claude Code を動かす | `github-actions`・`gitlab-ci-cd` |

@@ -207,9 +207,6 @@ const CAPABILITY_DETECTORS = {
         if (String(fval(f.frontmatter, 'context') ?? '').trim() === 'fork') {
           hits.push(ev(f.rel, 'frontmatter に context: fork がある'));
         }
-        if (String(fval(f.frontmatter, 'isolation') ?? '').trim() === 'subagent') {
-          hits.push(ev(f.rel, 'frontmatter に isolation: subagent がある（canon 独自の検出。canon-reference の `frontmatter:subagent/isolation` の値は `worktree` だけで、この値は V2 も別に止める）'));
-        }
       }
       if (typeof f.text === 'string') {
         for (const m of f.text.matchAll(/CLAUDE_CODE_EXPERIMENTAL_[A-Z0-9_]+/g)) {

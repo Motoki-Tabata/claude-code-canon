@@ -60,7 +60,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 | D | `/canon-d <ts>` | 9 配置前照合 → P5 → 配置（人間が sandbox の外で `--confirm`）→ 配置後の手順 → run の振り返りと台帳への起票 | P5 配置承認 | sonnet |
 
 - 各 Phase は、最後の人間ゲートの承認を handoff.md に記録したら止まる。次の Phase は新しいセッションで起動する。どの Phase も canon のルートで起動する（§7）。
-- 推奨モデルは、判断の精度が要る Phase（ヒアリング・spec の精査・keep と retire の議論）を opus、委譲と機械的な手順が中心の Phase を sonnet とした。強制はしない。Phase C で意味の判断が要るのは keep-reviewer（opus）だけで、これは Agent の frontmatter で指定する。
+- 推奨モデルは、判断の精度が要る Phase（ヒアリング・spec の精査・keep と retire の議論）を opus、委譲と機械的な手順が中心の Phase を sonnet とした。強制はしない。起動は `--model` に加えて `--effort medium` を勧める（各 Phase Skill の終わりの案内に書いてある）。Phase C で意味の判断が要るのは keep-reviewer（opus）だけで、これは Agent の frontmatter で指定する。
 
 ### 2.2 この分け方にした理由
 
@@ -198,7 +198,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 ### 6.1 役割
 
-`work/<ts>/handoff.md` は run の状態を持つ唯一のファイルで、オーケストレーターだけが編集する。進捗・承認・差し戻し・申し送り・セッションを1か所に集め、Phase をまたいで引き継ぐ。進捗の印・frontmatter・節への追記は `npm run handoff`、承認の表は `npm run approvals` が書く（sed や python での手書き換えは、印の付け違いと書式崩れのもとになる）。
+`work/<ts>/handoff.md` は run の状態を持つ唯一のファイルで、オーケストレーターだけが編集する。進捗・承認・差し戻し・申し送り・セッションを1か所に集め、Phase をまたいで引き継ぐ。進捗の印・frontmatter・節への追記は `npm run handoff`、承認の表は `npm run approvals` が書く（sed や python での手書き換えは、印の付け違いと書式崩れのもとになる）。節に書いた項目の誤りは、書き換えずに `note` で訂正の項目を足す（後の項目を正とする）。節の項目を置き換える操作は持たない。
 
 ### 6.2 書式
 

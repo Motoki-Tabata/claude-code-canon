@@ -76,6 +76,11 @@ sources:
 - `/model` でモデルを切り替えると、メインのモデルを継承するサブエージェントにも及ぶ。小さいモデルに固定したいときは定義に `model` を書く。[仕様]
 - `effort`（`frontmatter:subagent/effort`）はセッションの effort を上書きするが、`CLAUDE_CODE_EFFORT_LEVEL` は上書きしない。モデルが対応しない値は、対応する一番高い値に下がる。[仕様]
 - extended thinking はメインの会話の設定を継承し、サブエージェントごとの設定は無い。[仕様]
+- Opus 5.5・Sonnet 5.5・Haiku 5.5 は effort の low〜max に対応し、既定は medium である。[仕様]（`sub-agents.md`・`model-config.md`）
+- 組み込みの Explore の既定のモデルは、メインの会話のモデルである。ユーザーかプロジェクトに `Explore` という名前のサブエージェントを定義すると、組み込みを置き換え、その定義の `model` で動く。ユーザー定義（`~/.claude/agents/`）はどのプロジェクトでも効く。[仕様]
+
+  > "A user or project subagent named `Explore` overrides the built-in and keeps its own `model` field, so define one with `model: haiku` to run exploration on a lower-cost model."
+- Haiku をメインにして plan mode に入ると、通常は Sonnet に上がる。`availableModels` が最新の Sonnet を除いて古い Sonnet を許すときは、許された最新の Sonnet を使い、Sonnet がすべて除かれたときだけ Haiku のままである（`model-config.md` の「opusplan」節）。[仕様]
 
 ### 権限モード
 

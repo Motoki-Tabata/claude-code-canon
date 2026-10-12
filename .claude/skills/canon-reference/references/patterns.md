@@ -6,6 +6,8 @@ sources:
   - https://code.claude.com/docs/en/workflows.md
   - https://code.claude.com/docs/en/best-practices.md
   - https://code.claude.com/docs/en/permissions.md
+  - https://code.claude.com/docs/en/plugin-evals.md
+  - https://code.claude.com/docs/en/goal.md
 ---
 
 # 機能の組み合わせ方
@@ -72,7 +74,7 @@ sources:
 - **指示と強制を組にする。** 理由と望ましい振る舞いは CLAUDE.md やルールに書き、守らせる部分は Hook か permission 規則に置く。指示だけでは保証にならない。[仕様]
   > "An instruction like "never edit `.env`" in CLAUDE.md or a skill is a request, not a guarantee."
 - **許可と拒否は permission 規則で書く。** 迂回の経路が問題になる制約には、サンドボックスか `hook-events:events/PreToolUse` の Hook を重ねる。Bash の規則はコマンド文字列との照合で、プログラムの周りの境界ではない。[仕様]（`features/permissions.md` §2）
-- **完了の条件は Stop の Hook で縛る。** チェックが通るまでターンを終わらせない、決定論のゲートにできる。判断が要る完了条件なら `/goal` を使う。[仕様]
+- **完了の条件は Stop の Hook で縛る。** チェックが通るまでターンを終わらせない、決定論のゲートにできる。判断が要る完了条件なら `/goal` を使う。`/goal` の評価役は会話だけを見る（コマンドを実行せず、ファイルも読まない）。条件は 4,000 文字までで、評価は small fast model が行い、`/goal` は permission mode を変えない。条件から Skill を呼ばせるなら、その Skill に `disable-model-invocation: true` を付けない（`features/skills.md` §3.4）。[仕様]
   > "a Stop hook runs your check as a script and blocks the turn from ending until it passes."
 
   続行させる Hook は、終わらない続行を防ぐ（`features/hooks.md` の Q-hooks-04）。
@@ -107,6 +109,7 @@ spec:
 - https://code.claude.com/docs/en/best-practices.md
 - https://code.claude.com/docs/en/permissions.md
 - https://code.claude.com/docs/en/plugin-evals.md
+- https://code.claude.com/docs/en/goal.md
 
 insight:
 

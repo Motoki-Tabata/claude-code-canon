@@ -19,7 +19,7 @@ skills: [investigation]
 ## 手順
 
 1. preload された investigation Skill の指示に従い、mode に対応するテンプレートを読む: `.claude/skills/investigation/references/<mode>.md`（このリポジトリのルートからの相対パス）。
-2. `target` の配下を Read・Grep・Glob で調べる。「無い」と書く前に、Glob か Grep で確かめる。
+2. `target` の配下を Read・Grep・Glob で調べる。
 3. テンプレートの書式どおりに、書込先の1ファイルへ Write する。
 4. 書いた自分の出力を Read し直し、テンプレートの「書いたあとの確認」を行う。
 

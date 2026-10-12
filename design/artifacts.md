@@ -324,9 +324,11 @@ design-map は大きくなり（実測で約96KB）、全文を各ワーカー�
 
 `canon-reference` の `features/subagents.md`（モデルの選び方）に基づき、Opus / Sonnet / Haiku の3段階で割り当てる。haiku は次の**すべて**を満たす役割にだけ使う。
 
-1. 設計判断や文脈の推論を伴わない（機械的な構造化・固定書式の出力に限る）。
-2. 正典（`canon-reference`）を参照せずに完結する（生成や判断の Skill を preload しない）。
-3. 失敗のコストが低い（後段の工程かレビューが出力を検証する）。
+1. 事実の抽出に徹し、判断・解釈・要件の取捨をしない（一覧の抜き出し・テンプレートの充填・固定書式の出力）。
+2. 正典（`canon-reference`）を参照した判断を要さない。書式と語彙を与える知識 Skill の preload は妨げない。
+3. 出力が後段の工程かレビューで検証される。
+
+haiku を選んだときは `effort: high` を明示する。effort は Subagent・Skill ごとに必ず明示し、省略しない。方針は design Skill の `references/model-selection.md` が持つ。
 
 `fable` は公式のエイリアスとして指定できるが、既定では採用しない。詳細は design Skill が持ち、designer が `## Model Assignments` に記録する。
 
@@ -447,6 +449,7 @@ README は管理パス集合に含まれ、配置のたびに生成したもの�
 | Skill（参照知識） | `user-invocable: false` | 起動できない | **利用者向けの一覧に載せない**。「内部で参照される知識」に留める |
 | Subagent | description による委譲 | メイン Claude が自動で委譲 | 「〜のときメインが自動で使う」。利用者が直接起動する手順は書かない |
 | Rule | `paths:` の有無 | 自動で読み込まれる | 「常に読み込まれる」または「<paths> を扱うときに読み込まれる」 |
+| 出力スタイル | `name`（無ければファイル名）・`description` | 選ぶまで効かない | 「`/config` か settings の `outputStyle` で選ぶ」。`/名前` の起動行は書かない |
 | Hook | イベント | 自動で発火 | 起動ではなく挙動の予告:「〜のとき自動で走る／ブロックされる」 |
 | MCP サーバー | `${VAR}` の secret・OAuth の有無 | 接続（初回のセットアップが要る） | secret や OAuth があればセットアップ手順へ誘導する |
 
@@ -549,6 +552,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
    | 種別 | 署名 |
    |---|---|
    | SKILL.md・Subagent の定義 | frontmatter の `name` |
+   | 出力スタイル（`.claude/output-styles/*.md`・`plugin/output-styles/*.md`） | frontmatter の `name`。無ければファイル名（拡張子を除く） |
    | rule | `paths:` の値（並べ替えた一覧）。`paths:` が無い rule は「無条件に読み込まれること」を署名にする。本文の節の追加は署名に含めない |
    | `CLAUDE.md`・`AGENTS.md`・`.claude/README.md` | 見出しの構造 |
    | JSON（settings.json・.mcp.json など） | トップレベルのキーの集合 |
@@ -574,7 +578,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
   | `hooks` | ① 生成した JSON（`.claude/settings.json`・`plugin.json`・`.claude-plugin/plugin.json` など）の `hooks` の宣言 ② その宣言のイベント名を `hook-events:events` の全イベント集合と照合 ③ hook スクリプトの実体（`.claude/hooks/**`・`plugin/hooks/**`） ④ frontmatter の `hooks:` |
   | `mcp` | ① `.mcp.json`（plugin 同梱を含む） ② frontmatter の `mcpServers:` ③ `tools`・`disallowedTools`・`allowed-tools`・`disallowed-tools` の中の `mcp__<server>__<tool>` ④ settings.json の `enabledMcpjsonServers` |
   | `plugins` | ① 管理パス集合の plugins パターン（`plugin/**`）に合う生成物 ② `plugin.json`・`marketplace.json` ③ settings.json の `enabledPlugins`・`extraKnownMarketplaces` |
-  | `experimental` | ① frontmatter の `context: fork` ② 環境変数の**接頭辞** `CLAUDE_CODE_EXPERIMENTAL_`（個別の変数名で書かない） ③ plugin 同梱の `themes/`・`monitors/`・`channels/` ④ design-map の `## Experimental Dependencies` 節が空でない ⑤ frontmatter の `isolation: subagent`（canon 独自の検出。data の `frontmatter:subagent/isolation` は `worktree` だけ）。プレビュー段階の組込み Skill（`/design` など）への依存は、生成物には本文の起動の案内として現れるだけなので①〜③では検出しない（④に書かれたときだけ止まる） |
+  | `experimental` | ① frontmatter の `context: fork` ② 環境変数の**接頭辞** `CLAUDE_CODE_EXPERIMENTAL_`（個別の変数名で書かない） ③ plugin 同梱の `themes/`・`monitors/`・`channels/` ④ design-map の `## Experimental Dependencies` 節が空でない。`isolation` の値は `worktree` だけで、それ以外は不正な値として V2 が止める（experimental としては数えない）。プレビュー段階の組込み Skill（`/design` など）への依存は、生成物には本文の起動の案内として現れるだけなので①〜③では検出しない（④に書かれたときだけ止まる） |
   | `organization_policy` | `allowed` を持たない自由文。**機械では判定できない**ことを report に明記する（違反にはしないが、無かったことにもしない）。準拠は reviewer の security 観点が見る |
   | 上記以外のキー | `allowed: false` なら、検出器が無い＝検査できないので**違反** |
 
@@ -716,6 +720,8 @@ step4 成功なら .bak を残す（ローカルで戻すため）。失敗な�
 ### 10.5 自己指定の拒否
 
 `pre-deploy-check.js`・`deploy.js`・`emit-run-manifest.js` は、`<target-dir>` を実パスに解決した結果が、claude-canon 自身のルート・その配下・それを含む祖先・同一リポジトリの別 worktree のいずれかなら exit 1 で拒否する（git が使えない環境では worktree の判定ができず、実パスと包含の判定までになる）。配置は対象プロジェクトに人間が回す前提であり、canon 自身を対象にすると、稼働中の本体をテストもレビューも通さずに置き換えられてしまう。canon 本体の変更は、ブランチで `npm test` を通し、PR を経て main に入れる。
+
+`new-run.js` は、対象が同じ判定（`isCanonSelfTarget`）で自己指定と分かっても run を作る。canon 自身を対象にした run は、Phase C の P4 まで通し、人間が generated/ を作業ブランチに重ねて PR で入れる運用が成り立つので、止めない。代わりに stderr へ警告し、stdout に `self_target: true` を足し、handoff の `## 申し送り` に配置の扱い（canon-d は拒否される・README は重ねない）を書く。配置の拒否が Phase D まで分からない、という手戻りを避けるためである。
 
 ### 10.6 配置後のドリフト（判断の記録・未実装）
 
