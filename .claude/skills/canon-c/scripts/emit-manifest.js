@@ -78,6 +78,7 @@ export function collectComponents(genRoot, files) {
   const skills = [];
   const agents = [];
   const rules = [];
+  const outputStyles = [];
   const hookScripts = [];
   let hooks = [];
   let mcpServers = [];
@@ -113,6 +114,13 @@ export function collectComponents(genRoot, files) {
         rel,
         paths: p === undefined || p === '' ? [] : (Array.isArray(p) ? p : [p]).map(String),
       });
+    } else if (/^\.claude\/output-styles\/[^/]+\.md$/.test(rel)) {
+      const fm = parseFrontmatter(read(rel)).frontmatter;
+      outputStyles.push({
+        name: String(fval(fm, 'name') ?? path.posix.basename(rel, '.md')),
+        rel,
+        description: String(fval(fm, 'description') ?? ''),
+      });
     } else if (rel.startsWith('.claude/hooks/')) {
       hookScripts.push(rel);
     } else if (rel === '.claude/settings.json') {
@@ -124,7 +132,7 @@ export function collectComponents(genRoot, files) {
     }
   }
   const byName = (a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
-  return { skills: skills.sort(byName), agents: agents.sort(byName), rules: rules.sort(byName), hooks, hookScripts, mcpServers, plugin };
+  return { skills: skills.sort(byName), agents: agents.sort(byName), rules: rules.sort(byName), outputStyles: outputStyles.sort(byName), hooks, hookScripts, mcpServers, plugin };
 }
 
 function parseJson(text, rel) {
@@ -269,6 +277,12 @@ export function renderReadme(comp, { genRoot, files, requirementsText }) {
       out.push(`| \`${r.name}\` | ${cell(when)} |`);
     }
   }
+  if (comp.outputStyles.length > 0) {
+    out.push('', '### 出力スタイル', '', '| 出力スタイル | 選び方 | 内容 |', '|---|---|---|');
+    for (const o of comp.outputStyles) {
+      out.push(`| \`${o.name}\` | \`/config\` か settings の \`outputStyle\` で選ぶ | ${cell(o.description)} |`);
+    }
+  }
   if (comp.hooks.length > 0) {
     out.push('', '### Hook', '', '| イベント | 挙動 |', '|---|---|');
     for (const h of comp.hooks) {
@@ -283,8 +297,8 @@ export function renderReadme(comp, { genRoot, files, requirementsText }) {
     }
   }
   if (comp.plugin) out.push('', `plugin \`${comp.plugin}\` を \`plugin/\` に同梱している。`);
-  if (listed.length + internal.length + comp.agents.length + comp.rules.length + comp.hooks.length + comp.mcpServers.length === 0) {
-    out.push('', 'Skill・Subagent・Rule・Hook・MCP サーバーは生成していない（CLAUDE.md だけが読み込まれる）。');
+  if (listed.length + internal.length + comp.agents.length + comp.rules.length + comp.outputStyles.length + comp.hooks.length + comp.mcpServers.length === 0) {
+    out.push('', 'Skill・Subagent・Rule・出力スタイル・Hook・MCP サーバーは生成していない（CLAUDE.md だけが読み込まれる）。');
   }
 
   const setup = setupItems(comp, { genRoot, files, requirementsText });
@@ -456,6 +470,7 @@ export function emitManifest(ts) {
     agents: comp.agents.length,
     rules: comp.rules.length,
     hooks: comp.hooks.length,
+    outputStyles: comp.outputStyles.length,
     mcpServers: comp.mcpServers.length,
   };
 }
@@ -465,7 +480,7 @@ if (isMainModule(import.meta.url)) {
   try {
     const r = emitManifest(ts);
     process.stdout.write(
-      `[manifest] generated/ ${r.files} 件・廃止 ${r.retired} 件（Skill ${r.skills}・Subagent ${r.agents}・Rule ${r.rules}・` +
+      `[manifest] generated/ ${r.files} 件・廃止 ${r.retired} 件（Skill ${r.skills}・Subagent ${r.agents}・Rule ${r.rules}・出力スタイル ${r.outputStyles}・` +
         `Hook ${r.hooks}・MCP ${r.mcpServers}）\n` +
         `[manifest] output/${ts}/MANIFEST.md・generated/${README_REL}・deploy/managed-paths.list・deploy/retired.list を書いた。\n`
     );

@@ -169,6 +169,7 @@ function setupComponents(t, { experimental = false } = {}) {
   write(g, '.claude/agents/reviewer/reviewer.md', '---\nname: reviewer\ndescription: 変更をレビューする。Delegate when PR を出す前。\ntools: Read, Agent\n---\n本文\n');
   write(g, '.claude/rules/backend.md', '---\npaths: ["src/**"]\n---\n本文\n');
   write(g, '.claude/rules/always.md', '# 常時\n');
+  write(g, '.claude/output-styles/terse.md', '---\nname: terse\ndescription: 短く答える\n---\n結論から短く答える。\n');
   write(g, '.claude/hooks/scope-guard.sh', '#!/bin/sh\nexit 0\n');
   write(
     g,
@@ -200,6 +201,14 @@ test('README: 起動方式の違う全種別を含む生成物から導く（生
     assert.match(readme, /`backend` \| `src\/\*\*` を扱うときに読み込まれる/);
     assert.match(readme, /`always` \| 常に読み込まれる/);
     assert.match(readme, /次のときメインが自動で使う: 変更をレビューする/);
+  });
+
+  await t.test('出力スタイルは一覧に載せ、選び方（/config か settings の outputStyle）を添える', () => {
+    assert.match(readme, /### 出力スタイル/);
+    assert.match(readme, /\| `terse` \| `\/config` か settings の `outputStyle` で選ぶ \| 短く答える \|/);
+    const entries = collectListingEntries(readme);
+    assert.ok(analyzeReadmeMentions(readme, 'terse', entries).listing.length > 0, '出力スタイルが一覧に無い（網羅性）');
+    assert.equal(analyzeReadmeMentions(readme, 'terse', entries).slash.length, 0, '出力スタイルに `/名前` を書いている');
   });
 
   await t.test('user-invocable: false の Skill は一覧にも `/名前` にも出さず、散文で触れるだけにする', () => {

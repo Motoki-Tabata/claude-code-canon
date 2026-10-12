@@ -30,11 +30,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 何が起きたか: この run は1セッションで各 SKILL.md の手順を代行した。`disable-model-invocation` の挙動、セッション分離、B〜D の開始手順（`canon_commit` の比較・`approvals check`）は通していない。Hook の発火も未検証（この run は Hook を生成していない）。
 - 提案: 小さな対象で `/canon-a`〜`/canon-d` を別セッションで通し、手順の抜けを本台帳に起票する。1セッション通しで検証するときに省いてよい手順は SKILL.md に書かない（実運用の経路と混ざるため）。plan mode を使う Skill が経路に入るときは、計画の承認を対話のセッションで確かめる（`claude -p` では承認の画面が使えない。正典 `canon-reference/references/features/permissions.md` の §3.3・§4）。
 
-## 2026-10-10 生成物の README の一覧に出力スタイルが載らない（保守作業・刷新レビュー）
-- 種別: 欠陥修正
-- 何が起きたか: `.claude/skills/canon-c/scripts/emit-manifest.js` の `collectComponents` は Skill・Subagent・Rule・Hook・MCP・plugin だけを集め、`.claude/output-styles/*.md` を拾わない。output-styles の担当が生成した出力スタイルは、`generated/.claude/README.md` の生成物一覧と使い方に現れない。
-- 提案: `collectComponents` に出力スタイル（`frontmatter:output-style` の `name`・`description`）を足し、README の一覧と使い方（`/config` か settings の `outputStyle` で選ぶ）に載せる。artifacts.md §7.3 と emit-manifest のテストを合わせて直す。
-
 ## 2026-10-10 canon 自身の investigator を haiku・effort high の役に分けられるかを実地で評価していない（保守作業）
 - 種別: 効率化
 - 何が起きたか: `.claude/skills/design/references/model-selection.md` の haiku の条件は、事実の抽出に徹して後段で検証される作業に haiku・`effort: high` を使える形になった。canon 自身の investigator は existing・profile（事実の抽出）と focused（要件に照らした推論）を1体で担うので、sonnet のまま据え置いている。haiku と sonnet の出力の実地比較はしていない。
