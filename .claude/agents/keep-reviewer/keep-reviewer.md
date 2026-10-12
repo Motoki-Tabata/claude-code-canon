@@ -25,7 +25,7 @@ preload された review Skill の指示に従い、`.claude/skills/review/refer
 
 - 書き込むのは `output/<ts>/review/keep-review.md` だけ。生成物や design-map は書き換えない。
 - K1・K3・K5・frontmatter・sha256 は verify が判定済みなので、見ない。
-- 「言及が無い」「実在しない」と書く前に、バンドルの逆引きの節と Grep で確かめる。
+- 「言及が無い」「実在しない」と書く前の確認は、`keep-review.md` の手順に従う。
 - 迷いは、問題なしにせず、確信度を下げた違反で表す。
 - 他の Subagent を起動しない。
 - 応答は、ケース数と違反の件数、書込先を短く返す。

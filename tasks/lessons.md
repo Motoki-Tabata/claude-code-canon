@@ -65,14 +65,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 何が起きたか: emit-manifest は `generated/.claude/README.md` を生成物の一覧から作り直し、design-map が README を modify 以外にすると止まる。canon の `.claude/README.md` は手書きの説明（Phase の推奨モデル・Rule の表など）なので、canon 自身を対象にした run の generated/ をそのまま重ねると置き換わる。この run の配置手順では README を重ねる対象から外した。そのため README の推奨モデルの列と `claude --model <opus|sonnet>` の案内は、Phase Skill の推奨（model と effort）に追従していない。
 - 提案: 上の「new-run が canon 自身を対象に受け付け…」の項目と合わせて、canon 自身を対象にした run の README の扱いを決める。それまでは保守作業で `.claude/README.md` の推奨モデルの列と起動の案内に effort（canon-a・canon-b は opus・medium、canon-c・canon-d は sonnet・medium）を足す。
 
-## 2026-10-12 keep にした Skill・agent・rules に、理由文と規則の重複が残る（run 20261012_030955・Phase C）
-- 種別: 効率化
-- 何が起きたか: keep-reviewer が K2 の疑いとして挙げた3件が、keep のまま残った。直すには keep を modify に変え、設計の承認を取り直す必要がある。
-  - `.claude/skills/requirements/SKILL.md` の冒頭の段落と「調査は判定しない…」の段落に、理由の文が残る（他の Skill では削った）。
-  - `.claude/agents/keep-reviewer/keep-reviewer.md` の「『言及が無い』『実在しない』と書く前に…確かめる」は、reviewer.md と investigator.md から削った不在確認の規則と同じで、`review/references/keep-review.md`・`review/SKILL.md` と3か所に重複する。
-  - `.claude/rules/worker-definitions.md` の書式の実例を参照させる規則と、`investigator.md` の文言の読み替えは、どちらも変えておらず、食い違いが無いかの確認が済んでいない。
-- 提案: 次の run で、requirements/SKILL.md の理由文を削り、keep-reviewer.md の不在確認の1項を keep-review.md への参照にし、worker-definitions.md の規則を `investigation/references/existing.md` の「値の語彙」と突き合わせて要否を決める。
-
 ## 2026-10-12 prompt-auditor の監査が対象の一部しか読めず、標準 Skill の報告を逐語で転記できなかった（run 20261012_030955・Phase C）
 - 種別: 欠陥修正
 - 何が起きたか: prompt-auditor に渡した `generated/` は104ファイルだが、Glob が100件で打ち切られ、読めたのは rules 4件・agents 8件・`canon-c/SKILL.md`・`model-selection.md` と Grep の走査だけだった。Skill `claude-api` の呼び出しは報告ではなく手順書を返したので、prompt-auditor が手順を実行して報告を作り、「逐語の転記」にならなかった。`.claude/settings.json` は読まれなかった。

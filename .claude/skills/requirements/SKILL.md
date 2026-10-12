@@ -6,7 +6,7 @@ user-invocable: false
 
 # requirements（要件の聞き方と書き方）
 
-要件は、ユーザーとの往復で固まる。ヒアリングは Subagent や `context: fork` に任せない（会話履歴が引き継がれず、往復が成立しない）。オーケストレーター（inline のメイン Claude）が調査結果を示しながら直接聞き、合意した内容を自分で `work/<ts>/requirements.md` に書く。そのあと spec-writer が、調査結果と合意済みの要件から `output/<ts>/spec.md` を書く。
+要件は、ユーザーとの往復で固まる。ヒアリングは Subagent や `context: fork` に任せない。オーケストレーター（inline のメイン Claude）が調査結果を示しながら直接聞き、合意した内容を自分で `work/<ts>/requirements.md` に書く。そのあと spec-writer が、調査結果と合意済みの要件から `output/<ts>/spec.md` を書く。
 
 ## 読み分け
 
@@ -18,7 +18,7 @@ user-invocable: false
 
 ## 三段の責務分離
 
-調査は判定しない → spec は方向づけまで → design-map が確定する。spec-writer は「既存の何を残すか」「どの機能に置くか」を決めない。判定を design-map の一か所に集めるためで、spec が判定まで踏み込むと designer の判断と二重になり、食い違ったときの根拠が失われる。
+調査は判定しない → spec は方向づけまで → design-map が確定する。spec-writer は「既存の何を残すか」「どの機能に置くか」を決めない。
 
 ## 共通の規律
 
