@@ -35,11 +35,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 何が起きたか: `.claude/skills/canon-c/scripts/emit-manifest.js` の `collectComponents` は Skill・Subagent・Rule・Hook・MCP・plugin だけを集め、`.claude/output-styles/*.md` を拾わない。output-styles の担当が生成した出力スタイルは、`generated/.claude/README.md` の生成物一覧と使い方に現れない。
 - 提案: `collectComponents` に出力スタイル（`frontmatter:output-style` の `name`・`description`）を足し、README の一覧と使い方（`/config` か settings の `outputStyle` で選ぶ）に載せる。artifacts.md §7.3 と emit-manifest のテストを合わせて直す。
 
-## 2026-10-10 V7 の署名に出力スタイルの種別が無い（保守作業・刷新レビュー）
-- 種別: 欠陥修正
-- 何が起きたか: `lib/interface-signature.js` の `interfaceSignature` は `.claude/output-styles/*.md` を `unknown`（検査できない）にする。既存の出力スタイルを modify で残し `interface_change: none` を宣言すると、V7 が必ず違反にする（artifacts.md §8.2 V7 の署名表の「上記以外」）。
-- 提案: 出力スタイルの署名（frontmatter の `name`。無ければファイル名）を署名表と `interfaceSignature` に足し、テストで固定する。
-
 ## 2026-10-10 canon 自身の investigator を haiku・effort high の役に分けられるかを実地で評価していない（保守作業）
 - 種別: 効率化
 - 何が起きたか: `.claude/skills/design/references/model-selection.md` の haiku の条件は、事実の抽出に徹して後段で検証される作業に haiku・`effort: high` を使える形になった。canon 自身の investigator は existing・profile（事実の抽出）と focused（要件に照らした推論）を1体で担うので、sonnet のまま据え置いている。haiku と sonnet の出力の実地比較はしていない。

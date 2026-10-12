@@ -48,6 +48,7 @@ refactor モード（既存のカスタマイズがある）でだけ使う。ex
 | 種別 | 署名 |
 |---|---|
 | SKILL.md・Subagent の定義 | frontmatter の `name` |
+| 出力スタイル | frontmatter の `name`。無ければファイル名（拡張子を除く） |
 | rule | `paths:` の値（並べ替えた一覧）。`paths:` が無い rule は「無条件に読み込まれること」。本文に節を足すだけなら署名は変わらない |
 | `CLAUDE.md`・`AGENTS.md`・`.claude/README.md` | 見出しの構造 |
 | JSON（settings.json・.mcp.json など） | トップレベルのキーの集合 |

@@ -310,3 +310,16 @@ test('interfaceSignature: AGENTS.md は CLAUDE.md と同じく見出し構造が
   assert.equal(a.verifiable, true);
   assert.notEqual(interfaceSignature('AGENTS.md', '# a\n## b\n## c\n').signature, a.signature, '節の追加で署名が変わる');
 });
+
+test('interfaceSignature: 出力スタイルは frontmatter の name が署名（name が無ければファイル名）', () => {
+  const a = interfaceSignature('.claude/output-styles/terse.md', '---\nname: terse\ndescription: 短く答える\n---\n本文\n');
+  assert.deepEqual(a, { kind: 'frontmatter-name', signature: 'terse', verifiable: true });
+  const same = interfaceSignature('.claude/output-styles/terse.md', '---\nname: terse\ndescription: 別の説明\n---\n別の本文\n');
+  assert.equal(same.signature, a.signature, '本文・description の変更で署名は変わらない');
+  const renamed = interfaceSignature('.claude/output-styles/terse.md', '---\nname: brief\n---\n本文\n');
+  assert.notEqual(renamed.signature, a.signature, 'name の変更で署名が変わる');
+  const noName = interfaceSignature('.claude/output-styles/terse.md', '本文だけ\n');
+  assert.deepEqual(noName, { kind: 'frontmatter-name', signature: 'terse', verifiable: true });
+  const plugin = interfaceSignature('plugin/output-styles/terse.md', '---\nname: terse\n---\n本文\n');
+  assert.equal(plugin.verifiable, true, 'plugin 同梱の出力スタイルも同じ');
+});

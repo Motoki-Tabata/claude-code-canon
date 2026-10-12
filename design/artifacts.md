@@ -551,6 +551,7 @@ experimental 依存がセットアップ欄に並ぶのは、requirements.md で
    | 種別 | 署名 |
    |---|---|
    | SKILL.md・Subagent の定義 | frontmatter の `name` |
+   | 出力スタイル（`.claude/output-styles/*.md`・`plugin/output-styles/*.md`） | frontmatter の `name`。無ければファイル名（拡張子を除く） |
    | rule | `paths:` の値（並べ替えた一覧）。`paths:` が無い rule は「無条件に読み込まれること」を署名にする。本文の節の追加は署名に含めない |
    | `CLAUDE.md`・`AGENTS.md`・`.claude/README.md` | 見出しの構造 |
    | JSON（settings.json・.mcp.json など） | トップレベルのキーの集合 |
