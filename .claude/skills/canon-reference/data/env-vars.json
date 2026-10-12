@@ -173,6 +173,17 @@
           }
         },
         {
+          "id": "CLAUDE_CODE_AUTO_COMPACT_WINDOW",
+          "description_ja": "auto-compact の窓（トークン数）を決める。`--autocompact` と、settings の `autoCompactWindow`・`modelSettings` の `autoCompactWindow` に優先する。",
+          "used_for": [
+            "settings"
+          ],
+          "source": {
+            "url": "https://code.claude.com/docs/en/env-vars.md",
+            "anchor": "#variables"
+          }
+        },
+        {
           "id": "MAX_THINKING_TOKENS",
           "description_ja": "extended thinking のトークン予算を固定する。`0` で Anthropic API の thinking を切る（切れないモデルがある）。adaptive reasoning のモデルでは正の値の数そのものは無視される。",
           "used_for": [

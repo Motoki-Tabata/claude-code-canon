@@ -6,7 +6,7 @@ user-invocable: false
 
 # design（設計判断と design-map の書き方）
 
-design-map は、生成の**唯一の設計入力**であり、verify の V7・V8 と MANIFEST の宣言源でもある。判定（何を使うか・どの機能に置くか・既存をどうするか）を、調査でも spec でもなくここ一か所に集める。判定が複数の場所に散ると、食い違ったときにどれが正しいか決められない。
+design-map は、生成の**唯一の設計入力**であり、verify の V7・V8 と MANIFEST の宣言源でもある。判定（何を使うか・どの機能に置くか・既存をどうするか）を、調査でも spec でもなくここ一か所に集める。
 
 出力は `output/<ts>/design-map.md`。既存カスタマイズがあっても**全体を引き直す**（前回の design-map を出発点にしない）。
 
@@ -27,7 +27,7 @@ new モード（既存が無い）では段階5を飛ばし、`## 既存判定` 
 
 ## 読む範囲
 
-入力は、プロンプトで渡されたファイルだけ: spec・requirements・investigation の3ファイル（existing・profile・focused）。他の run の design-map、検査スクリプトの実装、設計書は読まない。design-map の書式はテンプレートに従う。読む量がそのまま下流の消費になり、design-map は大きくなりやすいので、その肥大は全ワーカーの読み込みに跳ね返る。`rationale` は判断の根拠を1〜2文で書き、入力の内容を再掲しない。
+入力は、プロンプトで渡されたファイルだけ: spec・requirements・investigation の3ファイル（existing・profile・focused）と、渡されたときだけ `official-check.md`。他の run の design-map、検査スクリプトの実装、設計書は読まない。design-map の書式はテンプレートに従う。`rationale` は判断の根拠を1〜2文で書き、入力の内容を再掲しない。
 
 ## 差し戻しのとき
 

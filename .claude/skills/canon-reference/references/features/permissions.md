@@ -6,6 +6,7 @@ sources:
   - https://code.claude.com/docs/en/sandboxing.md
   - https://code.claude.com/docs/en/tools-reference.md
   - https://code.claude.com/docs/en/settings-reference.md
+  - https://code.claude.com/docs/en/cli-reference.md
 ---
 
 # Permissions
@@ -80,6 +81,7 @@ permissions は、Claude Code がどのツールを・どの対象に・確認�
 - どのモードでも自動承認しないもの [仕様]: 明示の ask 規則に一致するツール、`AskUserQuestion` などユーザーの操作が要るツール、critical path（ルート・ホーム・作業ディレクトリなど）を対象にする `rm`・`rmdir` など。critical path の削除は allow 規則でも PreToolUse Hook の `"allow"` でも承認されない。
 - 保護パス（`.git`・`.claude`・`.vscode`・シェルの起動ファイル・`.mcp.json` など）への書き込みは、`permissions.allow` では事前承認できない [仕様]。モードごとの扱いは `permissions:modes` の `protected_path_writes`。
 - `dontAsk` は、プロンプトが出るはずの呼び出しを拒否し、事前承認したものだけを動かす。CI やスクリプト向け [仕様]。
+- plan mode の制限は `claude -p` でも保たれる [仕様]。`AskUserQuestion` と `ExitPlanMode` はユーザーの操作が要るツールで、`-p` では、プロンプトを受け取る permission host（Agent SDK の `canUseTool` コールバック、`--permission-prompt-tool` の MCP ツール）がある run でだけ提示される [仕様]。PreToolUse Hook が `"allow"` と、答えを入れた `updatedInput` を返すこともこの条件を満たす（`"allow"` だけでは足りない）[仕様]。canon が `claude -p` で段階 Skill を通したとき、plan mode の承認の手前で止まった。これは canon が `claude -p` で実測した事実で、公式の文面では確かめていない。
 - auto モードに入ると、任意コード実行を許す広い allow 規則（`Bash(*)`・`Bash(python*)` のようなインタープリターのワイルドカード、パッケージマネージャーの run、`Agent` の allow、`Monitor` の allow）は外され、`Bash(npm test)` のような狭い規則は残る [仕様]。auto モードでは、サブエージェントの frontmatter の `permissionMode`（`frontmatter:subagent/permissionMode`）は無視される [仕様]。
 
 ### 3.4 サンドボックス
@@ -109,6 +111,7 @@ permissions は、Claude Code がどのツールを・どの対象に・確認�
 - **サンドボックスで足りない書き込み先・通信先は、除外ではなく許可リストで足す** [仕様]。公式は `excludedCommands` で丸ごと外すより `allowWrite`・`allowedDomains` で必要な場所だけ開けることを勧めている。`excludedCommands` に `docker *` のような広いパターンやインタープリターを入れると、Claude が書いたファイルをサンドボックス外で実行できてしまう。
 - **`bypassPermissions` は隔離環境だけで使う** [仕様]。プロンプトインジェクションへの防御が無く、公式はコンテナ・VM でだけの使用を求めている。確認を減らしたいときの代替は auto モードかサンドボックスの auto-allow。
 - **組織のポリシーは managed 設定に置く** [仕様]。`permissions.disableBypassPermissionsMode`・`disableAutoMode`・`allowManagedPermissionRulesOnly`・`sandbox.network.allowManagedDomainsOnly` などのロックは managed 設定で覆せなくなる。プロジェクトに配置するカスタマイズでは扱わない。
+- **plan mode を使う Skill は、計画の承認を対話のセッションで確かめる。** `claude -p` で通しで確かめるなら、`--permission-prompt-tool` で承認を返す経路を用意する。これは canon の規律で、公式の仕様ではない。
 
 ## 5. 生成の規約
 
@@ -168,5 +171,6 @@ permissions は、Claude Code がどのツールを・どの対象に・確認�
   - https://code.claude.com/docs/en/sandboxing.md
   - https://code.claude.com/docs/en/tools-reference.md
   - https://code.claude.com/docs/en/settings-reference.md
+  - https://code.claude.com/docs/en/cli-reference.md
 - insight
   - なし

@@ -3,7 +3,7 @@ name: designer
 description: Write output/<ts>/design-map.md from the approved spec, requirements and investigation — select features (12 features), decide responsibilities and the combination patterns, assign models, and decide the disposition of every existing customization (keep, modify, merge, retire with keep conditions K1-K5). Delegate when the orchestrator runs step 5 (feature selection and design) after spec approval P2, or again when P3 sends the design-map back for correction. This is the mandatory design-judgment step before any builder runs.
 tools: Read, Write, Edit, Grep, Glob
 model: opus
-effort: high
+effort: medium
 skills: [design]
 ---
 
@@ -17,8 +17,6 @@ skills: [design]
 - `work/<ts>/investigation/official-check.md`（Claude Code の仕様に依存する要件があるときだけ渡される。公式仕様の確認結果）
 - handoff の Phase B 向けの申し送り（プロンプトに逐語で写される。設計で決めるよう求められた事項は design-map で決める）
 - `mode`（`new` か `refactor`）と、書込先 `output/<ts>/design-map.md`
-
-他の run の design-map、検査スクリプトの実装、設計書は読みません。
 
 ## 手順
 
@@ -40,4 +38,4 @@ preload された design Skill の指示に従う。各段階で、`.claude/skil
 
 ## 差し戻されたとき
 
-オーケストレーターが、handoff.md の「差し戻し」に書いた指摘（逐語・直す箇所・直さない箇所）を渡して、あなたを新規に起動します。design Skill の「差し戻しのとき」に従い、design-map を全文読まず、指示が指す箇所だけを Edit します。
+差し戻しで起動されたときは、design Skill の「差し戻しのとき」に従う。

@@ -7,6 +7,15 @@
 - 配置は `.claude/agents/<name>/<name>.md` または `.claude/agents/<name>.md`。識別は `name` だけで行われ、tree 全体で一意にする。
 - `tools` は**最小権限**。本文の実際の操作から逆算して、読む道具と書く道具を過不足なく宣言する。省略すると全ツールを継承する。
 - `model`・`effort` は design-map の Model Assignments に従う。
+- モデル割当の既定:
+  - Model Assignments の値が正である。
+  - 段階 Skill や README の推奨に model と effort を書くときの既定は、探索・調査（事実の抽出）は haiku・effort high、実装は sonnet、計画・レビューは opus、壁打ちは opus・effort low。
+  - 壁打ちの組み合わせは canon の推奨で、公式の表に拠らない。
+  - Haiku をメインにして plan mode で計画や壁打ちをする構成は推奨しない（plan mode で通常は Sonnet に上がる。正典 subagents §3）。
+- Explore:
+  - 生成物に `Explore` という名前の Subagent を定義しない。
+  - 探索を安いモデルで回したいときは、ユーザー設定（`~/.claude/agents/Explore.md` に `model: haiku`）での上書きを案内するだけにする（正典 subagents §3）。
+- auto-compact の窓の推奨は `settings.md`（この Skill の references）を見る。
 - `skills:` で preload する Skill に、`disable-model-invocation: true` のものを入れない。preload されるのは本文の全文なので、常時は要らない Skill も入れない。
 - 本文に、書込先（どのパスにだけ書くか）と、入力として何を受け取るかを書く。多段の委譲が不要なら spawn の指示を書かず、`tools` から `Agent` を外す。
 - 対象向けに生成する Subagent が `Bash`・`PowerShell`・`Monitor` を持つのは、要件が求めるときだけ（テストの実行やビルドなど）。

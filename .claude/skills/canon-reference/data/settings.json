@@ -5,7 +5,7 @@
     "keys": {
       "description": "settings のキー。id はドット区切りの公式キー名。scopes はそのキーを置けるファイル（user・project・local・managed）で、公式の Settings index の Scope 列を写したもの。precedence_ja は settings のガイドのページが述べる、そのキーの結合・優先の例外。",
       "complete": false,
-      "complete_basis": "生成で使うものだけを選んだ。選んだ基準は、(1) canon が生成する設定（permissions・hooks・MCP の承認・プラグイン・status line・output style・モデル・env・skills・メモリ・git の帰属・worktree）を settings ファイルに書くときに使うキー（status line と並べて使う footerLinksRegexes、プラグインの mod の順序を決める prependPlugins・appendPlugins を含む）、(2) それらの生成物が効くかどうかを左右する managed のキー（allowManagedHooksOnly・allowManagedPermissionRulesOnly・allowManagedMcpServersOnly・strictKnownMarketplaces・blockedMarketplaces・disableCommandPluginSources・strictPluginOnlyCustomization・disableSideloadFlags・claudeMd）。sandbox.* は permissions:sandbox-keys が持つので含めない。~/.claude.json にだけ置く Global config のキー、footerLinksRegexes 以外の表示・端末・通知・認証・更新・テレメトリのキーは含めない。",
+      "complete_basis": "生成で使うものだけを選んだ。選んだ基準は、(1) canon が生成する設定（permissions・hooks・MCP の承認・プラグイン・status line・output style・モデル・auto-compact の窓・env・skills・メモリ・git の帰属・worktree）を settings ファイルに書くときに使うキー（status line と並べて使う footerLinksRegexes、プラグインの mod の順序を決める prependPlugins・appendPlugins を含む）、(2) それらの生成物が効くかどうかを左右する managed のキー（allowManagedHooksOnly・allowManagedPermissionRulesOnly・allowManagedMcpServersOnly・strictKnownMarketplaces・blockedMarketplaces・disableCommandPluginSources・strictPluginOnlyCustomization・disableSideloadFlags・claudeMd）。sandbox.* は permissions:sandbox-keys が持つので含めない。~/.claude.json にだけ置く Global config のキー、footerLinksRegexes 以外の表示・端末・通知・認証・更新・テレメトリのキーは含めない。",
       "stated_total": null,
       "items": [
         {
@@ -790,6 +790,62 @@
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference.md",
             "anchor": "#effortlevel"
+          }
+        },
+        {
+          "id": "modelSettings",
+          "type": "object（正規のモデル名 → effortLevel・maxEffortLevel・autoCompactWindow を持つオブジェクト。例: claude-opus-5-5）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Model and responses",
+          "default": "unset",
+          "description_ja": "モデルごとの effort level・effort level の上限・auto-compact の窓を決める。エントリは正規のモデル名で書き、エイリアスと `[1m]` 付きの名前も同じエントリに当たる。",
+          "notes_ja": "同じファイルではトップレベルの `effortLevel` より優先する。対話の `/effort` で選んだ値はここに保存される。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#modelsettings"
+          }
+        },
+        {
+          "id": "autoCompactWindow",
+          "type": "number（100000〜1000000 のトークン数）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Memory and context",
+          "default": "unset（モデルごとに調整した窓。ネイティブ 1M の窓のモデルは約 967K で compact する）",
+          "description_ja": "auto-compact が働くコンテキストの窓をトークン数で絞る。毎ターンの再送を抑えたいときに使う。",
+          "session_override_ja": "`CLAUDE_CODE_AUTO_COMPACT_WINDOW`、`--autocompact` の順に、このキーより優先する。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#autocompactwindow"
+          }
+        },
+        {
+          "id": "advisorModel",
+          "type": "string（モデルのエイリアスか完全なモデル ID）",
+          "scopes": [
+            "user",
+            "project",
+            "local",
+            "managed"
+          ],
+          "scope_label": "Any file",
+          "topic": "Model and responses",
+          "default": "unset（advisor はオフ）",
+          "description_ja": "advisor ツールに答えるモデルを決める。メインのモデルと同等以上の能力が要り、Anthropic API でだけ使える。advisor ツールは実験機能である。",
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference.md",
+            "anchor": "#advisormodel"
           }
         },
         {

@@ -11,6 +11,10 @@
 - `model`・`effort` は design-map の Model Assignments に従う。
 - 本文に `` !`command` `` を書くと、Skill の読み込み前にシェルでコマンドが実行され、ツールの権限制御が効かない。使うなら、design-map の「配置時の追加手順」に載っている必要がある。載っていなければ使わない。
 - 役割別の書込範囲を Skill に持たせる設計（design-map の Write Scopes が、その Skill を定義の源とするとき）は、Write Scopes の内容を**要約せず逐語で**書く: 常設の範囲の表・構成ファイルの宣言駆動の例外・自己チェック手順・advisory である旨。
+- 開始条件・停止条件・書込禁止のような、守らないと害の出る確認は、各段階 Skill の本文に直接書く。共通 Skill（複数の段階 Skill が参照する Skill）への参照は、補足の知識だけに使う。
+- `/goal` で実行させる Skill（design-map がそう指定したもの）には、`disable-model-invocation: true` を付けず、description で起動の条件を絞る。
+  - 付けると、`/goal` の条件から Skill ツールで呼べない（正典 skills §3.4・§4）。
+  - それ以外の副作用のある手順には、正典 §4 のとおり付ける。
 
 ## 読み込み元
 

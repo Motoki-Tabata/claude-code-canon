@@ -20,11 +20,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 
 ---
 
-## 2026-10-10 生成規約の「ルールには理由を添える」が正典 skills §4 の「理由の語りは入れない」と食い違う（保守作業・run 20261010_014620 の持ち越し）
-- 種別: 規律昇華
-- 何が起きたか: `.claude/skills/generation/references/no-leaks.md:20` は「ルールには理由を添える」とし、`canon-reference/references/features/skills.md:156` は「経緯や理由の語りは入れない」とする。run 20261010_014620 では verify も reviewer も指摘せず、生成したルール（`esm-src.md` など）には理由の文が入った。どちらが正かを決めていない。
-- 提案: 正典 §4 の範囲（Skill 本文か、ルールや CLAUDE.md を含むか）を確かめ、no-leaks.md か契約語の検査のどちらかを揃える。
-
 ## 2026-10-10 V4 の Agent Teams 検査と V9 の experimental 検出に data の根拠が無い（保守作業）
 - 種別: 規律昇華
 - 何が起きたか: `v4-security.js:20,41`（`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` の開示検査）と V9 の `CLAUDE_CODE_EXPERIMENTAL_*`・`isolation: subagent` の検出は、canon-reference の data（`env-vars`、`isolation` は `worktree` のみ）に根拠が無く、「canon 独自の規則」と明記して残してある。廃止するかが未決。
@@ -33,7 +28,7 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 ## 2026-10-10 Phase ごとに別セッションで /canon-a〜/canon-d を起動する実経路が未検証（run 20261010_014620・Phase D）
 - 種別: 規律昇華
 - 何が起きたか: この run は1セッションで各 SKILL.md の手順を代行した。`disable-model-invocation` の挙動、セッション分離、B〜D の開始手順（`canon_commit` の比較・`approvals check`）は通していない。Hook の発火も未検証（この run は Hook を生成していない）。
-- 提案: 小さな対象で `/canon-a`〜`/canon-d` を別セッションで通し、手順の抜けを本台帳に起票する。1セッション通しで検証するときに省いてよい手順は SKILL.md に書かない（実運用の経路と混ざるため）。
+- 提案: 小さな対象で `/canon-a`〜`/canon-d` を別セッションで通し、手順の抜けを本台帳に起票する。1セッション通しで検証するときに省いてよい手順は SKILL.md に書かない（実運用の経路と混ざるため）。plan mode を使う Skill が経路に入るときは、計画の承認を対話のセッションで確かめる（`claude -p` では承認の画面が使えない。正典 `canon-reference/references/features/permissions.md` の §3.3・§4）。
 
 ## 2026-10-10 生成物の README の一覧に出力スタイルが載らない（保守作業・刷新レビュー）
 - 種別: 欠陥修正
@@ -44,3 +39,61 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 種別: 欠陥修正
 - 何が起きたか: `lib/interface-signature.js` の `interfaceSignature` は `.claude/output-styles/*.md` を `unknown`（検査できない）にする。既存の出力スタイルを modify で残し `interface_change: none` を宣言すると、V7 が必ず違反にする（artifacts.md §8.2 V7 の署名表の「上記以外」）。
 - 提案: 出力スタイルの署名（frontmatter の `name`。無ければファイル名）を署名表と `interfaceSignature` に足し、テストで固定する。
+
+## 2026-10-10 canon 自身の investigator を haiku・effort high の役に分けられるかを実地で評価していない（保守作業）
+- 種別: 効率化
+- 何が起きたか: `.claude/skills/design/references/model-selection.md` の haiku の条件は、事実の抽出に徹して後段で検証される作業に haiku・`effort: high` を使える形になった。canon 自身の investigator は existing・profile（事実の抽出）と focused（要件に照らした推論）を1体で担うので、sonnet のまま据え置いている。haiku と sonnet の出力の実地比較はしていない。
+- 提案: 小さな対象で existing・profile を haiku・`effort: high` で動かし、sonnet の出力と比べる。採るなら existing・profile 用の agent を分け、`tests/self_application.test.js` の agent 8体の固定（EXPECTED_AGENTS）と Agent の例示に `model=` を書かない検査、`.claude/skills/canon-a/SKILL.md` の工程1、`design/architecture.md` の Agent 表を同じ変更で直す。
+
+## 2026-10-10 ユーザー設定のトップレベル effortLevel が Opus 5.5 に効かないことを検出する検証ルールが無い（保守作業）
+- 種別: 効率化
+- 何が起きたか: トップレベルの `effortLevel` は、ユーザー設定（`~/.claude/settings.json`）に書いたときだけ Opus 5.5 に効かない。プロジェクト・local・managed の設定と `--settings` に書いた値は全モデルに効く（正典 `canon-reference/references/features/settings.md` の §4）。生成物がユーザー設定向けにトップレベルの `effortLevel` を案内しても、verify は検出しない。
+- 提案: 生成物がユーザー設定にトップレベルの `effortLevel` を書くよう案内している箇所を検出し、`modelSettings` を促す V ルールを足すかを決める（JS が要る）。足すなら canon-reference の V- ID と `design/artifacts.md` の verify の表を同じ変更で直す。
+
+## 2026-10-12 new-run が canon 自身を対象に受け付け、配置できないことが Phase D まで分からない（run 20261012_030955・Phase A）
+- 種別: 欠陥修正
+- 何が起きたか: `/canon-a /home/motoki-tabata/work/claude-code-canon` で `new-run.js` は exit 0 で run を作った。一方、canon-d の3つの CLI は `self-target-guard.js` で canon 自身を対象にした配置を exit 1 で拒否する（artifacts.md §10.5）。拒否されることは工程3の focused 調査で初めて分かり、P1 を取り直した。調査①・ヒアリング・P1 の分が手戻りになった。
+- 提案: `.claude/skills/canon-a/scripts/new-run.js` の入口で `self-target-guard.js` の判定を使う。canon 自身が対象なら、exit 1 で止めて「canon 本体の改修はブランチ・npm test・PR で行う」と案内するか、run を作ったうえで警告し、配置は手作業になることを handoff に記録する。canon-a の SKILL.md の工程0 にも同じことを書く。
+
+## 2026-10-12 工程3で確定要件が成り立たないと分かったときの P1 の取り直し手順が canon-a に無い（run 20261012_030955・Phase A）
+- 種別: 規律昇華
+- 何が起きたか: focused 調査と公式の確認で、P1 済みの R3（`--resume` が公式と合わず、Phase Skill の旧語の検査にも掛かる）と R4（agent の追加が `tests/self_application.test.js` の8体固定と衝突する）が成り立たないと分かった。`.claude/skills/canon-a/SKILL.md` の工程3には、この場合の扱いが無い。P1 からやり直す道は工程4（§9 が空でないとき）にしか書かれていない。この run では、差し戻しを handoff に書き、requirements.md を直して P1 を取り直した（手順の外の操作）。
+- 提案: canon-a の工程3の末尾に、次のことを書く。focused.md・official-check.md で確定要件が成り立たないと分かったら、spec に進まずユーザーと詰める。差し戻しを handoff に逐語で書き、requirements.md を直して P1 を取り直す。あわせて、canon 自身を対象にした run では、ヒアリングの段階で `tests/self_application.test.js` の契約（agent の件数・旧語など）を示すよう、`requirements/references/interview.md` に書く。
+
+## 2026-10-12 designer が README の扱いと管理パス外の変更の書式を決めるのに lib/ と scripts の実装を読んだ（run 20261012_030955・Phase B）
+- 種別: 規律昇華
+- 何が起きたか: designer は `canon-c/scripts/emit-manifest.js`（README は modify 以外だと止まる）・`lib/design-map.js` の parseOutsideChanges・`lib/interface-signature.js`・`canon-update/scripts/checks.js` を読んで判断した。designer の定義は検査スクリプトの実装を読まないとしているが、これらの制約は design Skill に書かれていない。
+- 提案: `.claude/skills/design/` の references に、emit-manifest の README の扱い・`## 管理パス外の変更` の欄の書式・interface_change の決め方を書き、designer が実装を読まずに済むようにする。
+
+## 2026-10-12 handoff の申し送りを直す操作が npm run handoff に無い（run 20261012_030955・Phase B）
+- 種別: 効率化
+- 何が起きたか: Phase B の終わりに足した申し送りの件数（breaking の modify 14件→13件）を直す操作が `tools/handoff.js`（mark・set・note・session）に無く、handoff.md を Edit で直した。
+- 提案: `tools/handoff.js` に節の項目を置き換える操作を足すか、canon-b〜d の SKILL.md に「申し送りの誤りは note で訂正の項目を足す」と書く。
+
+## 2026-10-12 design/ の haiku の条件と effort の記述が model-selection.md に追従していない（run 20261012_030955・Phase B）
+- 種別: 規律昇華
+- 何が起きたか: `.claude/skills/design/references/model-selection.md` の haiku を使える3条件（事実の抽出・知識 Skill の preload を妨げない・出力が後段で検証される）と effort の節を Haiku 5.5・Opus 5.5 に合わせ、「Subagent は親のコストティアを超えない」を削った。`design/artifacts.md` の §5.5 は旧い3条件を写したままで、`design/` はこの run の範囲外なので直していない。
+- 提案: `design/artifacts.md` §5.5 を model-selection.md の現行の文面に揃える。`design/architecture.md` の Agent 表（モデルの列）に、designer の effort（medium）や haiku の扱いに触れる記述が要るかを見て、要れば揃える。
+
+## 2026-10-12 canon 自身を対象にした run では、emit-manifest の README が canon の .claude/README.md と別物になる（run 20261012_030955・Phase B）
+- 種別: 欠陥修正
+- 何が起きたか: emit-manifest は `generated/.claude/README.md` を生成物の一覧から作り直し、design-map が README を modify 以外にすると止まる。canon の `.claude/README.md` は手書きの説明（Phase の推奨モデル・Rule の表など）なので、canon 自身を対象にした run の generated/ をそのまま重ねると置き換わる。この run の配置手順では README を重ねる対象から外した。そのため README の推奨モデルの列と `claude --model <opus|sonnet>` の案内は、Phase Skill の推奨（model と effort）に追従していない。
+- 提案: 上の「new-run が canon 自身を対象に受け付け…」の項目と合わせて、canon 自身を対象にした run の README の扱いを決める。それまでは保守作業で `.claude/README.md` の推奨モデルの列と起動の案内に effort（canon-a・canon-b は opus・medium、canon-c・canon-d は sonnet・medium）を足す。
+
+## 2026-10-12 canon-update の build.md が、印の付かない「canon が実測した事実」の記述を次の再生成で落とす（run 20261012_030955・Phase C）
+- 種別: 欠陥修正
+- 何が起きたか: canon-reference の `features/skills.md`・`features/permissions.md` に、公式の文面で確かめられず canon が `claude -p` で実測した事実を、印を付けずに「実測した事実で、公式の文面では確かめていない」と書いた記述が入った。`canon-update/references/build.md` の §5.1 は根拠の無い主張を書かないとし、§9・§10 は公式で裏を取れるものだけを引き継いで作り直す手順なので、次の `/canon-update` でこの記述は消える。`canon-update/scripts/checks.js` は印を検査しないので、検査で気づく経路も無い。
+- 提案: build.md の §5.1 と §9・§10 に、実測だけが根拠の記述の扱い（印を付けず、実測であることと公式で確かめていないことを明記して残す）を足す。checks.js がその注記を落とさないかも確かめる（JS が要る）。
+
+## 2026-10-12 keep にした Skill・agent・rules に、理由文と規則の重複が残る（run 20261012_030955・Phase C）
+- 種別: 効率化
+- 何が起きたか: keep-reviewer が K2 の疑いとして挙げた3件が、keep のまま残った。直すには keep を modify に変え、設計の承認を取り直す必要がある。
+  - `.claude/skills/requirements/SKILL.md` の冒頭の段落と「調査は判定しない…」の段落に、理由の文が残る（他の Skill では削った）。
+  - `.claude/agents/keep-reviewer/keep-reviewer.md` の「『言及が無い』『実在しない』と書く前に…確かめる」は、reviewer.md と investigator.md から削った不在確認の規則と同じで、`review/references/keep-review.md`・`review/SKILL.md` と3か所に重複する。
+  - `.claude/rules/worker-definitions.md` の書式の実例を参照させる規則と、`investigator.md` の文言の読み替えは、どちらも変えておらず、食い違いが無いかの確認が済んでいない。
+- 提案: 次の run で、requirements/SKILL.md の理由文を削り、keep-reviewer.md の不在確認の1項を keep-review.md への参照にし、worker-definitions.md の規則を `investigation/references/existing.md` の「値の語彙」と突き合わせて要否を決める。
+
+## 2026-10-12 prompt-auditor の監査が対象の一部しか読めず、標準 Skill の報告を逐語で転記できなかった（run 20261012_030955・Phase C）
+- 種別: 欠陥修正
+- 何が起きたか: prompt-auditor に渡した `generated/` は104ファイルだが、Glob が100件で打ち切られ、読めたのは rules 4件・agents 8件・`canon-c/SKILL.md`・`model-selection.md` と Grep の走査だけだった。Skill `claude-api` の呼び出しは報告ではなく手順書を返したので、prompt-auditor が手順を実行して報告を作り、「逐語の転記」にならなかった。`.claude/settings.json` は読まれなかった。
+- 提案: prompt-auditor の定義に、Glob の打ち切り（100件）を前提にディレクトリごとに分けて読む手順と、Skill の出力が手順書だったときの扱いを足す。`canon-c/SKILL.md` の工程8-3 に、監査の読了範囲を P4 で示す規則を足す。
