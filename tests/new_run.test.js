@@ -86,3 +86,27 @@ test('new-run CLI: 引数が無い・ts の形式違いは exit 2、対象が無
   assert.equal(r.code, 1);
   assert.match(r.stderr, /対象プロジェクトのディレクトリが無い/);
 });
+
+test('new-run: 対象が canon 自身（ルート・配下）のときは run を作り、selfTarget を立てて handoff の申し送りに配置の扱いを書く', (t) => {
+  const s = setup(t);
+  for (const [i, target] of [s.canonRoot, path.join(s.canonRoot, 'sub')].entries()) {
+    mkdirSync(target, { recursive: true });
+    const ts = `21000101_00001${i}`;
+    const r = createRun({ canonRoot: s.canonRoot, target, ts });
+    assert.equal(r.selfTarget, true, `${target} が自己指定と判定されない`);
+    const body = readFileSync(r.handoff, 'utf8');
+    const memo = body.split('## 申し送り')[1].split('## セッション')[0];
+    assert.match(memo, /対象が claude-canon 自身/);
+    assert.match(memo, /canon-d の配置は拒否される/);
+    assert.match(memo, /git restore \.claude\/README\.md/);
+    assert.deepEqual(parseHandoff(body).target, target.split(path.sep).join('/'), 'frontmatter は変えない');
+  }
+});
+
+test('new-run: 対象が canon の外のときは selfTarget を立てず、申し送りは空のまま', (t) => {
+  const s = setup(t);
+  const r = createRun({ canonRoot: s.canonRoot, target: s.target, ts: TS });
+  assert.equal(r.selfTarget, false);
+  const memo = readFileSync(r.handoff, 'utf8').split('## 申し送り')[1].split('## セッション')[0];
+  assert.equal(memo.trim(), '');
+});

@@ -35,11 +35,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 何が起きたか: トップレベルの `effortLevel` は、ユーザー設定（`~/.claude/settings.json`）に書いたときだけ Opus 5.5 に効かない。プロジェクト・local・managed の設定と `--settings` に書いた値は全モデルに効く（正典 `canon-reference/references/features/settings.md` の §4）。生成物がユーザー設定向けにトップレベルの `effortLevel` を案内しても、verify は検出しない。
 - 提案: 生成物がユーザー設定にトップレベルの `effortLevel` を書くよう案内している箇所を検出し、`modelSettings` を促す V ルールを足すかを決める（JS が要る）。足すなら canon-reference の V- ID と `design/artifacts.md` の verify の表を同じ変更で直す。
 
-## 2026-10-12 new-run が canon 自身を対象に受け付け、配置できないことが Phase D まで分からない（run 20261012_030955・Phase A）
-- 種別: 欠陥修正
-- 何が起きたか: `/canon-a /home/motoki-tabata/work/claude-code-canon` で `new-run.js` は exit 0 で run を作った。一方、canon-d の3つの CLI は `self-target-guard.js` で canon 自身を対象にした配置を exit 1 で拒否する（artifacts.md §10.5）。拒否されることは工程3の focused 調査で初めて分かり、P1 を取り直した。調査①・ヒアリング・P1 の分が手戻りになった。
-- 提案: `.claude/skills/canon-a/scripts/new-run.js` の入口で `self-target-guard.js` の判定を使う。canon 自身が対象なら、exit 1 で止めて「canon 本体の改修はブランチ・npm test・PR で行う」と案内するか、run を作ったうえで警告し、配置は手作業になることを handoff に記録する。canon-a の SKILL.md の工程0 にも同じことを書く。
-
 ## 2026-10-12 handoff の申し送りを直す操作が npm run handoff に無い（run 20261012_030955・Phase B）
 - 種別: 効率化
 - 何が起きたか: Phase B の終わりに足した申し送りの件数（breaking の modify 14件→13件）を直す操作が `tools/handoff.js`（mark・set・note・session）に無く、handoff.md を Edit で直した。

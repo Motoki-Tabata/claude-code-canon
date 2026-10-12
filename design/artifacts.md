@@ -721,6 +721,8 @@ step4 成功なら .bak を残す（ローカルで戻すため）。失敗な�
 
 `pre-deploy-check.js`・`deploy.js`・`emit-run-manifest.js` は、`<target-dir>` を実パスに解決した結果が、claude-canon 自身のルート・その配下・それを含む祖先・同一リポジトリの別 worktree のいずれかなら exit 1 で拒否する（git が使えない環境では worktree の判定ができず、実パスと包含の判定までになる）。配置は対象プロジェクトに人間が回す前提であり、canon 自身を対象にすると、稼働中の本体をテストもレビューも通さずに置き換えられてしまう。canon 本体の変更は、ブランチで `npm test` を通し、PR を経て main に入れる。
 
+`new-run.js` は、対象が同じ判定（`isCanonSelfTarget`）で自己指定と分かっても run を作る。canon 自身を対象にした run は、Phase C の P4 まで通し、人間が generated/ を作業ブランチに重ねて PR で入れる運用が成り立つので、止めない。代わりに stderr へ警告し、stdout に `self_target: true` を足し、handoff の `## 申し送り` に配置の扱い（canon-d は拒否される・README は重ねない）を書く。配置の拒否が Phase D まで分からない、という手戻りを避けるためである。
+
 ### 10.6 配置後のドリフト（判断の記録・未実装）
 
 配置の後、対象側で人間が管理パス集合のファイルを手直しすることがある。次の run でそのファイルを再生成すると、手直しが黙って上書きされうる。

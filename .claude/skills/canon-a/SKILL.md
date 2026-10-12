@@ -25,7 +25,7 @@ Phase A は「何を作るか」を確定する。工程1〜4 を進め、P1（�
 
 それ以外は、`$ARGUMENTS` は対象プロジェクトのパスである。
 
-1. `npm run new-run -- <target>` を実行する。stdout の `ts`・`mode`・`handoff`・`canon_commit` を控える。
+1. `npm run new-run -- <target>` を実行する。stdout の `ts`・`mode`・`handoff`・`canon_commit` を控える。`self_target: true` が出たら、対象が canon 自身である。run は作られ、handoff の「申し送り」に配置の扱いが書かれる。canon-d では配置できないので、P1 の前にこのことをユーザーに伝える。
    - exit 1（対象が無い・同じ ts の run が既にある）なら、stderr をそのまま示して止まる。
 2. handoff.md（`work/<ts>/handoff.md`）を開き、frontmatter の `mode` を確かめる。new-run は対象の管理パス集合に既存ファイルがあれば `refactor`、無ければ `new` を初期値にする。工程2で確かめて直す（直すのは `npm run handoff -- <ts> set mode=<new|refactor>`）。
 3. `npm run handoff -- <ts> session A` でこのセッションを記録する。
