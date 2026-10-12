@@ -18,8 +18,9 @@
  *      （出典: 1 と同じ。`"Authorization": "Bearer ${API_KEY}"` の形が良い例で、その否定形＝
  *       `${` を伴わないリテラルを違反とする）。
  *   3. Agent Teams（`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`）依存の experimental 明示
- *      （canon 独自の規則。canon-reference selection.md は agent teams を「実験的な機能で、既定では
- *       無効」と書くが、この環境変数の名前は `env-vars` に無い。名前はコードに残している）。
+ *      （出典: 公式 env-vars.md の `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`「Agent teams are experimental
+ *       and disabled by default」と agent-teams.md。canon-reference の data/env-vars.json は生成で使う
+ *       変数だけを選んだ一覧なので、この変数は載せていない。検査の「開示を求める」ところは canon の規則）。
  *
  * 実装しない検査（canon-reference に根拠が無い）:
  *   - 汎用の secret 正規表現スキャン（AWS key・sk- 系トークン等の一般的パターンマッチ）。
@@ -40,7 +41,8 @@ const VAR_SOURCE = `canon-reference features/mcp.md「資格情報」/ ${cite('V
 const CREDENTIAL_KEY_RE = /(key|token|secret|password|credential)/i;
 const AGENT_TEAMS_ENV = 'CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS';
 const EXPERIMENTAL_DISCLOSURE_RE = /実験機能|experimental/i;
-const AGENT_TEAMS_SOURCE = 'canon 独自の規則（canon-reference selection.md: agent teams は実験的な機能）';
+const AGENT_TEAMS_SOURCE =
+  '公式 env-vars.md の CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS（agent teams は実験的で既定では無効）。開示を求めるのは canon の規則';
 
 function hasVarExpansion(v) {
   return typeof v === 'string' && v.includes('${');
