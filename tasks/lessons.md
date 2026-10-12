@@ -55,11 +55,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 何が起きたか: `/canon-a /home/motoki-tabata/work/claude-code-canon` で `new-run.js` は exit 0 で run を作った。一方、canon-d の3つの CLI は `self-target-guard.js` で canon 自身を対象にした配置を exit 1 で拒否する（artifacts.md §10.5）。拒否されることは工程3の focused 調査で初めて分かり、P1 を取り直した。調査①・ヒアリング・P1 の分が手戻りになった。
 - 提案: `.claude/skills/canon-a/scripts/new-run.js` の入口で `self-target-guard.js` の判定を使う。canon 自身が対象なら、exit 1 で止めて「canon 本体の改修はブランチ・npm test・PR で行う」と案内するか、run を作ったうえで警告し、配置は手作業になることを handoff に記録する。canon-a の SKILL.md の工程0 にも同じことを書く。
 
-## 2026-10-12 工程3で確定要件が成り立たないと分かったときの P1 の取り直し手順が canon-a に無い（run 20261012_030955・Phase A）
-- 種別: 規律昇華
-- 何が起きたか: focused 調査と公式の確認で、P1 済みの R3（`--resume` が公式と合わず、Phase Skill の旧語の検査にも掛かる）と R4（agent の追加が `tests/self_application.test.js` の8体固定と衝突する）が成り立たないと分かった。`.claude/skills/canon-a/SKILL.md` の工程3には、この場合の扱いが無い。P1 からやり直す道は工程4（§9 が空でないとき）にしか書かれていない。この run では、差し戻しを handoff に書き、requirements.md を直して P1 を取り直した（手順の外の操作）。
-- 提案: canon-a の工程3の末尾に、次のことを書く。focused.md・official-check.md で確定要件が成り立たないと分かったら、spec に進まずユーザーと詰める。差し戻しを handoff に逐語で書き、requirements.md を直して P1 を取り直す。あわせて、canon 自身を対象にした run では、ヒアリングの段階で `tests/self_application.test.js` の契約（agent の件数・旧語など）を示すよう、`requirements/references/interview.md` に書く。
-
 ## 2026-10-12 designer が README の扱いと管理パス外の変更の書式を決めるのに lib/ と scripts の実装を読んだ（run 20261012_030955・Phase B）
 - 種別: 規律昇華
 - 何が起きたか: designer は `canon-c/scripts/emit-manifest.js`（README は modify 以外だと止まる）・`lib/design-map.js` の parseOutsideChanges・`lib/interface-signature.js`・`canon-update/scripts/checks.js` を読んで判断した。designer の定義は検査スクリプトの実装を読まないとしているが、これらの制約は design Skill に書かれていない。

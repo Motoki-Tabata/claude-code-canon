@@ -68,6 +68,7 @@ Phase A は「何を作るか」を確定する。工程1〜4 を進め、P1（�
 1. investigator を `mode: focused` で起動する。渡すもの: `target`・ts・書込先 `<root>/work/<ts>/investigation/focused.md`・`<root>/work/<ts>/requirements.md` の絶対パス・existing.md の `project_refs` の一覧（existing.md から抜き出して渡す。new モードで既存が無ければ「なし」と書く）・requirements.md に `## 参照元` があればその `path` の一覧（無ければ「なし」）。
 2. focused.md の実在を確かめ、`findings` に `evidence_paths` があること、渡した `project_refs` がすべて `ref_resolution` に現れることを確かめる。欠けていれば investigator（focused）を新しく起動して直させる。
 3. **公式仕様の確認**: 確定要件のうち、成否が Claude Code 自体の仕様に依存するもの（組込み Skill をモデルから起動できるか・permissions の効き方・待ちの手段など）は、investigator では確かめられない（WebFetch を持たない）。focused.md に「確かめられなかった」と残った論点も含め、`claude-code-guide` に要件ごとの問いを渡して公式ドキュメントで確かめさせる（独立した問いは1つのメッセージで並列に）。結果を、あなたが `work/<ts>/investigation/official-check.md` に書く（書式は artifacts.md §2.5）。仕様に依存する要件が無ければ、このファイルは作らない。
+4. focused.md・official-check.md で、P1 済みの確定要件が成り立たないと分かったら、spec に進まずユーザーと詰める。差し戻しの内容を handoff の「差し戻し」に逐語で書き、requirements.md を直してから P1 を取り直す。
 
 ## 工程4 spec → P2
 
