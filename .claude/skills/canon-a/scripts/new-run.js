@@ -50,8 +50,8 @@ function git(cwd, args) {
 /** 対象が claude-canon 自身のとき、handoff の `## 申し送り` に足す1文。 */
 export const SELF_TARGET_NOTE =
   '対象が claude-canon 自身: canon-d の配置は拒否される（artifacts.md §10.5）。Phase C の P4 まで通し、' +
-  '人間が output/<ts>/generated/.claude を作業ブランチの canon に重ねて npm test と PR で main に入れる。' +
-  '生成された README は重ねない（git restore .claude/README.md）。';
+  '人間が output/<ts>/generated/.claude を作業ブランチの canon に重ねて npm test と PR で main に入れる' +
+  '（管理パス外の変更があれば output/<ts>/outside-managed/ も重ねる）。生成された README は重ねない（git restore .claude/README.md）。';
 
 /**
  * run を作る。

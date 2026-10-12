@@ -83,7 +83,7 @@ Phase A は「何を作るか」を確定する。工程1〜4 を進め、P1（�
 ## Phase A の終わり
 
 1. 設定済みの ScheduleWakeup・loop があれば止める。
-2. handoff.md を `npm run handoff` で更新する: 工程2〜4 に `mark` で印を付け（工程1 は付け済み）、`set phase=B status=waiting_approval` で frontmatter を直し、`note 申し送り "<文>"` で Phase B 以降でやることを1件ずつ書く。
+2. handoff.md を `npm run handoff` で更新する: 工程2〜4 に `mark` で印を付け（工程1 は付け済み）、`set phase=B status=waiting_approval` で frontmatter を直し、`note 申し送り "<文>"` で Phase B 以降でやることを1件ずつ書く。 書いた項目の誤りは書き換えず、`note` で訂正の項目を足す（後の項目を正とする）。
 3. 承認の照合を確かめる: `npm run approvals -- <ts> check --expect P1,P2` が exit 0 であること。
 4. SKILL.md の手順の外で行った操作（手順に無い Write・Edit・sed・コマンド、承認の前に進めたこと）を列挙し、あれば `tasks/lessons.md` に起票する。無ければ「無し」と報告する。
 5. 次のように案内して止まる。モデルはエイリアスで書く。
