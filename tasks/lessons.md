@@ -29,8 +29,3 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 種別: 効率化
 - 何が起きたか: `.claude/skills/design/references/model-selection.md` の haiku の条件は、事実の抽出に徹して後段で検証される作業に haiku・`effort: high` を使える形になった。canon 自身の investigator は existing・profile（事実の抽出）と focused（要件に照らした推論）を1体で担うので、sonnet のまま据え置いている。haiku と sonnet の出力の実地比較はしていない。
 - 提案: 小さな対象で existing・profile を haiku・`effort: high` で動かし、sonnet の出力と比べる。採るなら existing・profile 用の agent を分け、`tests/self_application.test.js` の agent 8体の固定（EXPECTED_AGENTS）と Agent の例示に `model=` を書かない検査、`.claude/skills/canon-a/SKILL.md` の工程1、`design/architecture.md` の Agent 表を同じ変更で直す。
-
-## 2026-10-10 ユーザー設定のトップレベル effortLevel が Opus 5.5 に効かないことを検出する検証ルールが無い（保守作業）
-- 種別: 効率化
-- 何が起きたか: トップレベルの `effortLevel` は、ユーザー設定（`~/.claude/settings.json`）に書いたときだけ Opus 5.5 に効かない。プロジェクト・local・managed の設定と `--settings` に書いた値は全モデルに効く（正典 `canon-reference/references/features/settings.md` の §4）。生成物がユーザー設定向けにトップレベルの `effortLevel` を案内しても、verify は検出しない。
-- 提案: 生成物がユーザー設定にトップレベルの `effortLevel` を書くよう案内している箇所を検出し、`modelSettings` を促す V ルールを足すかを決める（JS が要る）。足すなら canon-reference の V- ID と `design/artifacts.md` の verify の表を同じ変更で直す。
