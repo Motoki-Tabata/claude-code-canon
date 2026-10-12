@@ -324,9 +324,11 @@ design-map は大きくなり（実測で約96KB）、全文を各ワーカー�
 
 `canon-reference` の `features/subagents.md`（モデルの選び方）に基づき、Opus / Sonnet / Haiku の3段階で割り当てる。haiku は次の**すべて**を満たす役割にだけ使う。
 
-1. 設計判断や文脈の推論を伴わない（機械的な構造化・固定書式の出力に限る）。
-2. 正典（`canon-reference`）を参照せずに完結する（生成や判断の Skill を preload しない）。
-3. 失敗のコストが低い（後段の工程かレビューが出力を検証する）。
+1. 事実の抽出に徹し、判断・解釈・要件の取捨をしない（一覧の抜き出し・テンプレートの充填・固定書式の出力）。
+2. 正典（`canon-reference`）を参照した判断を要さない。書式と語彙を与える知識 Skill の preload は妨げない。
+3. 出力が後段の工程かレビューで検証される。
+
+haiku を選んだときは `effort: high` を明示する。effort は Subagent・Skill ごとに必ず明示し、省略しない。方針は design Skill の `references/model-selection.md` が持つ。
 
 `fable` は公式のエイリアスとして指定できるが、既定では採用しない。詳細は design Skill が持ち、designer が `## Model Assignments` に記録する。
 

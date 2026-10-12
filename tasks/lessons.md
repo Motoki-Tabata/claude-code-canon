@@ -60,11 +60,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 何が起きたか: Phase B の終わりに足した申し送りの件数（breaking の modify 14件→13件）を直す操作が `tools/handoff.js`（mark・set・note・session）に無く、handoff.md を Edit で直した。
 - 提案: `tools/handoff.js` に節の項目を置き換える操作を足すか、canon-b〜d の SKILL.md に「申し送りの誤りは note で訂正の項目を足す」と書く。
 
-## 2026-10-12 design/ の haiku の条件と effort の記述が model-selection.md に追従していない（run 20261012_030955・Phase B）
-- 種別: 規律昇華
-- 何が起きたか: `.claude/skills/design/references/model-selection.md` の haiku を使える3条件（事実の抽出・知識 Skill の preload を妨げない・出力が後段で検証される）と effort の節を Haiku 5.5・Opus 5.5 に合わせ、「Subagent は親のコストティアを超えない」を削った。`design/artifacts.md` の §5.5 は旧い3条件を写したままで、`design/` はこの run の範囲外なので直していない。
-- 提案: `design/artifacts.md` §5.5 を model-selection.md の現行の文面に揃える。`design/architecture.md` の Agent 表（モデルの列）に、designer の effort（medium）や haiku の扱いに触れる記述が要るかを見て、要れば揃える。
-
 ## 2026-10-12 canon 自身を対象にした run では、emit-manifest の README が canon の .claude/README.md と別物になる（run 20261012_030955・Phase B）
 - 種別: 欠陥修正
 - 何が起きたか: emit-manifest は `generated/.claude/README.md` を生成物の一覧から作り直し、design-map が README を modify 以外にすると止まる。canon の `.claude/README.md` は手書きの説明（Phase の推奨モデル・Rule の表など）なので、canon 自身を対象にした run の generated/ をそのまま重ねると置き換わる。この run の配置手順では README を重ねる対象から外した。そのため README の推奨モデルの列と `claude --model <opus|sonnet>` の案内は、Phase Skill の推奨（model と effort）に追従していない。
