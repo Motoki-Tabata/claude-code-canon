@@ -29,3 +29,28 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 種別: 効率化
 - 何が起きたか: `.claude/skills/design/references/model-selection.md` の haiku の条件は、事実の抽出に徹して後段で検証される作業に haiku・`effort: high` を使える形になった。canon 自身の investigator は existing・profile（事実の抽出）と focused（要件に照らした推論）を1体で担うので、sonnet のまま据え置いている。haiku と sonnet の出力の実地比較はしていない。
 - 提案: 小さな対象で existing・profile を haiku・`effort: high` で動かし、sonnet の出力と比べる。採るなら existing・profile 用の agent を分け、`tests/self_application.test.js` の agent 8体の固定（EXPECTED_AGENTS）と Agent の例示に `model=` を書かない検査、`.claude/skills/canon-a/SKILL.md` の工程1、`design/architecture.md` の Agent 表を同じ変更で直す。
+
+## 2026-10-12 canon 自身を対象にした run では、P5 の承認が approvals に残らない（run 20261012_030955・Phase D）
+- 種別: 欠陥修正
+- 何が起きたか: `lib/handoff.js:91` は P5 の承認対象を `output/<ts>/deploy/pre-deploy-report.txt` に固定している。canon 自身が対象のとき、pre-deploy-check は self-target-guard で拒否されレポートが作られないので、`approvals record P5` は exit 1「P5 の承認対象が無い」になる（Phase D の transcript 行107、`retro/session-analysis-D.md`）。canon-d の SKILL.md に自己対象の分岐は無く、P5 の提示では「承認いただいたら `record P5` を記録します」と言ったあとに失敗した。この run では口頭承認を handoff の進捗に書いた。承認表に P5 の行は無い。
+- 提案: canon 自身が対象のときの P5 の扱いを決める。案は、(a) canon-d の SKILL.md に分岐を書き、`record P5` を試さず、PR とマージを根拠に進捗へ記録する。(b) 承認対象を、レポートの無い run では generated/ のハッシュにする（JS が要る）。どちらでも、new-run が自己指定で handoff に書く申し送りに「P5 は承認表に残らない」を足す。
+
+## 2026-10-12 台帳の差し替え元（outside-managed）が run 中の起票と分裂し、確認値と版確認が合わない（run 20261012_030955・Phase B・C）
+- 種別: 規律昇華
+- 何が起きたか: 管理パス外の台帳は、設計の時点の `tasks/lessons.md` を元に outside-managed へ写される。run 中に Phase が台帳へ起票するたびに、ルートの現物と写しが分かれた。design-map の確認値「`grep -c '^## 20'` が10」は、起票が足されて14→12→14→15と動き、読み替えが要った。試行の worktree は HEAD なので、未コミットの台帳（+55行）が入らなかった。canon-c の手順0-2 の版確認は `.claude lib tools design guide` だけを見ており、`tasks/` の未コミット差分を拾わなかった（`retro/session-analysis-B.md`・`session-analysis-C.md`）。
+- 提案: canon-c の手順0-2 の `git status` の対象に `tasks` を足す。design-map の確認値は絶対件数でなく「削除N・書き直しN・起票N」の増減で書くよう `design/references/` に書く。canon 自身が対象の run では、台帳の元はルートの現物であり、試行の worktree には未コミット分を重ねることを canon-c の手順に書く。
+
+## 2026-10-12 requirements.md の confirmed_at を誰も検査せず、推測の時刻が書かれた（run 20261012_030955・Phase A）
+- 種別: 欠陥修正
+- 何が起きたか: P1 の取り直しのとき、requirements.md の `confirmed_at` に推測の時刻 04:20 を書いた。実際の承認は 03:56 だった（`retro/session-analysis-A.md`）。`confirmed_at` の形式は requirements-template.md の冒頭にあるが、`check` を含め、この値を検査するコードは無い（`grep -rn confirmed_at lib tools .claude/skills/*/scripts` が0件）。
+- 提案: 時刻は `date` で取るよう canon-a の手順に書く。あるいは `npm run check -- <ts> requirements` が、handoff の承認表の P1 の日時と `confirmed_at` を比べる（JS が要る）。
+
+## 2026-10-12 承認済みの受入基準が公式と食い違うと分かったときの扱いが canon-c に無い（run 20261012_030955・Phase C）
+- 種別: 規律昇華
+- 何が起きたか: Phase C の公式ページでの照合（工程7-3）で、P2 で承認済みの受入基準 A1-7・A1-10・A1-13 が公式の文面と食い違うと初めて分かった。Phase C には、spec の基準を直すのか生成物を直すのか、P2 を取り直すのかの定めが無く、メインが修正ループの「差し戻し」に載せて直した（`retro/session-analysis-C.md`）。
+- 提案: canon-c の工程7-3 に、食い違いの扱いを書く。基準が公式と合わないときは P2 を取り直す、生成物だけが合わないときは修正ループで直す、の切り分けを書く。公式への照合を canon-a の工程3（official-check）で受入基準にまで広げる案も検討する。
+
+## 2026-10-12 designer のコンテキストが約12kから約313kまで増え、入力の94%がキャッシュ読みになる（run 20261012_030955・Phase B）
+- 種別: 効率化
+- 何が起きたか: Phase B の designer の総入力は 9,485,334 で、そのうち 8,911,375（94%）が cache_read だった。コンテキストは約12kから約313kまで単調に増え、後半の約18ターンは 206k 以上だった。増加の主因は、入力外の読み込み（agent 8体・Phase Skill 4件・generation の references）と、`lib/`・`tests/`・canon-reference の grep の出力だった。Write（出力 46k トークン）の直後にキャッシュが全量作り直された（推測）。advisor の2回の呼び出しで約0.5M が上乗せされたと見られる（推測）（`retro/session-analysis-B.md`）。
+- 提案: design-map を節ごとに書かせて、1回の Write の出力を小さくする。designer が入力外の `lib/`・`tests/` を読まずに済むよう、必要な事実を design Skill の references に置く（README の扱いは PR 24 で置いた）。実測してから決める（推測を含む）。
