@@ -27,7 +27,7 @@ import { parseExisting } from '../lib/investigation.js';
 import { FEATURES } from '../lib/features.js';
 import { isManaged } from '../lib/managed-paths.js';
 import { computeFenceMask, findHeading, sectionSlice } from '../lib/markdown.js';
-import { parseReferenceSources, parseRequirementsDoc, RequirementsError } from '../lib/requirements.js';
+import { parseConfirmedAt, parseReferenceSources, parseRequirementsDoc, RequirementsError } from '../lib/requirements.js';
 import { isMainModule, isValidTs } from '../lib/run.js';
 
 export const TARGETS = ['requirements', 'spec', 'design-map'];
@@ -50,7 +50,7 @@ function readOrNull(p) {
 // requirements
 // ---------------------------------------------------------------------------
 
-export function checkRequirements(text) {
+export function checkRequirements(text, now = new Date()) {
   let doc;
   try {
     doc = parseRequirementsDoc(text);
@@ -81,6 +81,10 @@ export function checkRequirements(text) {
   items.push(cond('constraints の allowed は true / false', badC.length === 0, '', `不正: ${badC.map((c) => c.key).join('・')}`));
   items.push(cond('conflicts', doc.conflicts !== null,
     doc.conflicts?.length ? `${doc.conflicts.length}件（未解消）` : '空（[]）', 'conflicts ブロックが無い（無ければ `conflicts: []` と書く）'));
+  // 合意の時刻は推測で書かず `date` で取る。未来の時刻は書いた時点で誤り（承認の記録より後になる）
+  const ca = parseConfirmedAt(text);
+  items.push(cond('confirmed_at', ca?.at && ca.at.getTime() <= now.getTime(), ca?.raw ?? '',
+    !ca ? 'confirmed_at の行が無い' : !ca.at ? `形が YYYY-MM-DD hh:mm でない: ${ca.raw}` : `現在より後の時刻: ${ca.raw}（date で取り直す）`));
   const withOutside = reqs.filter((r) => r.outside_managed.length > 0);
   items.push(ok('outside_managed を持つ要件', withOutside.length ? withOutside.map((r) => r.id).join('・') : 'なし'));
   const refs = parseReferenceSources(text);

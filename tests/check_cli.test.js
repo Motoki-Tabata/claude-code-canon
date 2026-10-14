@@ -16,7 +16,11 @@ import { tsFor } from './helpers/ts.js';
 import { checkDesignMap, checkRequirements, checkSpec, mentionedIds } from '../tools/check.js';
 import { parseReferenceSources } from '../lib/requirements.js';
 
-const REQ = `## 確定要件
+const REQ = `## メタ
+confirmed_at: 2026-01-01 09:00
+confirmed_by: t
+
+## 確定要件
 - id: R1
   want: 何かをしたい
   strength_needed: advisory
@@ -118,6 +122,13 @@ test('requirements: 正しい文書は全項目 OK で、件数・内訳を出�
 test('requirements: 語彙外の強度・conflicts の欠落・確定要件の欠落を NG にする（故意の違反）', () => {
   assert.deepEqual(names(checkRequirements(REQ.replace('deterministic', 'strict'))), ['strength_needed の語彙']);
   assert.deepEqual(names(checkRequirements(REQ.replace('conflicts: []', ''))), ['conflicts']);
+  // confirmed_at: 行が無い・形が違う・実在しない日時・現在より後は NG。現在と同じ分は OK
+  const now = new Date(2026, 9, 12, 3, 55);
+  assert.deepEqual(names(checkRequirements(REQ.replace('confirmed_at: 2026-01-01 09:00\n', ''))), ['confirmed_at']);
+  assert.deepEqual(names(checkRequirements(REQ.replace('2026-01-01 09:00', '2026-01-01'))), ['confirmed_at']);
+  assert.deepEqual(names(checkRequirements(REQ.replace('2026-01-01 09:00', '2026-02-30 09:00'))), ['confirmed_at']);
+  assert.deepEqual(names(checkRequirements(REQ.replace('2026-01-01 09:00', '2026-10-12 04:20'), now)), ['confirmed_at']);
+  assert.deepEqual(names(checkRequirements(REQ.replace('2026-01-01 09:00', '2026-10-12 03:55'), now)), []);
   const noReq = checkRequirements('## メタ\nx: y\n');
   assert.equal(noReq.length, 1);
   assert.equal(noReq[0].ok, false);

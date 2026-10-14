@@ -179,6 +179,7 @@ conflicts:
   role: <何の基準か>
 ```
 
+- **`confirmed_at`** は合意した時刻（`YYYY-MM-DD hh:mm`・ローカル時刻）で、オーケストレーターが `date` で取る。`npm run check -- <ts> requirements` は、行が無い・形が違う・現在より後の時刻を NG にする。`record P1` は、記録の時刻より後の `confirmed_at` を拒否する。
 - **`## 参照元`**（任意）は、対象とは別のプロジェクトの一式を移植の基準にするときの入力欄である。`path` は絶対パス、`role` は基準の用途。focused 調査（investigator）・spec-writer・designer・builder が読む。生成物には参照元のパスや名前を書かない。`lib/requirements.js` の `parseReferenceSources` が読み、`npm run check -- <ts> requirements` が実在を確かめる。参照元から一式を機械的にコピーする手順は §5（design-map の `## 参照元からのコピー`）にある。
 
 - **`outside_managed`**（任意）は、ユーザーが管理パス集合の外の変更を認めた要件にだけ書き、変えてよいパス（ディレクトリでもよい）を列挙する。designer はこの範囲の中でだけ `## 管理パス外の変更`（§5.6）を設計し、`npm run check -- <ts> design-map` が対象パスの範囲を確かめる。

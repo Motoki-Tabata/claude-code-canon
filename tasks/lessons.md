@@ -30,11 +30,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 何が起きたか: `.claude/skills/design/references/model-selection.md` の haiku の条件は、事実の抽出に徹して後段で検証される作業に haiku・`effort: high` を使える形になった。canon 自身の investigator は existing・profile（事実の抽出）と focused（要件に照らした推論）を1体で担うので、sonnet のまま据え置いている。haiku と sonnet の出力の実地比較はしていない。
 - 提案: 小さな対象で existing・profile を haiku・`effort: high` で動かし、sonnet の出力と比べる。採るなら existing・profile 用の agent を分け、`tests/self_application.test.js` の agent 8体の固定（EXPECTED_AGENTS）と Agent の例示に `model=` を書かない検査、`.claude/skills/canon-a/SKILL.md` の工程1、`design/architecture.md` の Agent 表を同じ変更で直す。
 
-## 2026-10-12 requirements.md の confirmed_at を誰も検査せず、推測の時刻が書かれた（run 20261012_030955・Phase A）
-- 種別: 欠陥修正
-- 何が起きたか: P1 の取り直しのとき、requirements.md の `confirmed_at` に推測の時刻 04:20 を書いた。実際の承認は 03:56 だった（`retro/session-analysis-A.md`）。`confirmed_at` の形式は requirements-template.md の冒頭にあるが、`check` を含め、この値を検査するコードは無い（`grep -rn confirmed_at lib tools .claude/skills/*/scripts` が0件）。
-- 提案: 時刻は `date` で取るよう canon-a の手順に書く。あるいは `npm run check -- <ts> requirements` が、handoff の承認表の P1 の日時と `confirmed_at` を比べる（JS が要る）。
-
 ## 2026-10-12 承認済みの受入基準が公式と食い違うと分かったときの扱いが canon-c に無い（run 20261012_030955・Phase C）
 - 種別: 規律昇華
 - 何が起きたか: Phase C の公式ページでの照合（工程7-3）で、P2 で承認済みの受入基準 A1-7・A1-10・A1-13 が公式の文面と食い違うと初めて分かった。Phase C には、spec の基準を直すのか生成物を直すのか、P2 を取り直すのかの定めが無く、メインが修正ループの「差し戻し」に載せて直した（`retro/session-analysis-C.md`）。

@@ -159,6 +159,17 @@ test('check: 期待したゲートの承認行が無ければ無効（承認0件
   assert.equal(checkApprovals(root, TS, ['P1']).results[0].status, 'missing-target');
 });
 
+test('record P1: requirements.md の confirmed_at が記録の時刻より後なら拒否し、同じか前なら記録する', (t) => {
+  const root = setup(t);
+  const req = path.join(root, 'work', TS, 'requirements.md');
+  const now = new Date(2026, 9, 12, 3, 56);
+  writeFileSync(req, '## メタ\nconfirmed_at: 2026-10-12 04:20\n\n## 確定要件\n');
+  assert.throws(() => recordApproval(root, TS, 'P1', 'x', now), /confirmed_at（2026-10-12 04:20）が記録の時刻（2026-10-12 03:56）より後/);
+  assert.equal(checkApprovals(root, TS, []).results.length, 0, '拒否したら承認行を書かない');
+  writeFileSync(req, '## メタ\nconfirmed_at: 2026-10-12 03:56\n\n## 確定要件\n');
+  assert.equal(recordApproval(root, TS, 'P1', 'x', now).gate, 'P1');
+});
+
 test('record: 要旨が空・handoff.md が無いなら拒否する', (t) => {
   const root = setup(t);
   assert.throws(() => recordApproval(root, TS, 'P1', '  '), /要旨が空/);

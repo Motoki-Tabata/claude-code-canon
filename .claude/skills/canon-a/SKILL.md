@@ -55,7 +55,7 @@ Phase A は「何を作るか」を確定する。工程1〜4 を進め、P1（�
 2. 冒頭で調査サマリ（既存の件数と機能ごとの内訳・profile の要点・`learning_history` の要点）を示し、**モード（new／refactor）をユーザーに確かめる**。handoff の `mode` と違えば handoff を直す。
 3. AskUserQuestion で往復する。質問文か直前の本文に判断材料を書く（preview が表示されない環境がある）。ユーザーの用語は `terminology.md` で正しい機能に写し、写し方をユーザーに確かめる。
 4. constraints（hooks・mcp・plugins・experimental・組織ポリシー）は「禁止」か「今は使っていないだけ」かを必ず確かめる。`allowed: false` は「生成物のどこにも現れてはならない」を意味し、既存の keep 対象がその機能を使っているだけで verify（V9）が止める。既存を維持して新規に足さないだけなら `allowed: true` にし、`reason` に「既存を維持・新規追加なし」と書く。
-5. 合意したら、`.claude/skills/requirements/references/requirements-template.md` の書式どおりに、**自分で** `<root>/work/<ts>/requirements.md` を書く。キー名・見出し・字下げを崩さない（verify がこの書式を機械で読む）。書いた直後に `npm run check -- <ts> requirements` を実行し、NG が無いことを確かめる（件数・強度と優先度の内訳・constraints・conflicts の有無も出る）。
+5. 合意したら、`.claude/skills/requirements/references/requirements-template.md` の書式どおりに、**自分で** `<root>/work/<ts>/requirements.md` を書く。`confirmed_at` には、合意した時点で `date '+%Y-%m-%d %H:%M'` を実行した出力を写す（推測で書かない。現在より後の時刻は `check` が NG にし、`record P1` も拒否する）。P1 を取り直すときも同じ。キー名・見出し・字下げを崩さない（verify がこの書式を機械で読む）。書いた直後に `npm run check -- <ts> requirements` を実行し、NG が無いことを確かめる（件数・強度と優先度の内訳・constraints・conflicts の有無も出る）。
 6. **P1**: requirements.md のパスと確定要件の要旨（要件の件数・強度の内訳・禁止した機能・未解消の衝突）を示し、承認を求めて**止まる**。件数は上の `check` の出力から写す。
 7. 承認されたら `npm run approvals -- <ts> record P1 "<要旨>"` を実行する。差し戻されたら、指摘を handoff の「差し戻し」に逐語で書き、requirements.md を直してから P1 を取り直す。
 

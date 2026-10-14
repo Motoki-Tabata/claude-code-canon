@@ -34,6 +34,7 @@ import {
   parseHandoff,
 } from '../lib/handoff.js';
 import { hashGate, hashTree, parseVerifyReportHash } from '../lib/tree-hash.js';
+import { parseConfirmedAt } from '../lib/requirements.js';
 import { isMainModule, isValidTs } from '../lib/run.js';
 import { isCanonSelfTarget } from '../.claude/skills/canon-d/scripts/self-target-guard.js';
 
@@ -97,10 +98,18 @@ function nowStamp(now = new Date()) {
  * 承認を記録してよいかの前提を確かめる（満たさなければ ApprovalError）。
  *   P4: verify-report.md に記録された generated/ のハッシュが、いまの generated/ と一致する
  *       （最後の修正の後に verify を回したこと。メインが generated/ を直接直すと不一致になる）。
+ *   P1: requirements.md の confirmed_at が記録の時刻より後でない（推測で書いた未来の時刻を承認に束縛させない。
+ *       行が無い・形が違うのは npm run check -- <ts> requirements が NG にする）。
  *   P5: P1〜P4 の承認が有効（上流が無効なまま配置の承認を取らせない）。
  */
-function assertRecordable(root, ts, gate) {
-  if (gate === 'P4') {
+function assertRecordable(root, ts, gate, now) {
+  if (gate === 'P1') {
+    const req = path.join(root, 'work', ts, 'requirements.md');
+    const ca = existsSync(req) ? parseConfirmedAt(readFileSync(req, 'utf8')) : null;
+    if (ca?.at && ca.at.getTime() > now.getTime()) {
+      throw new ApprovalError(`P1 の前提: requirements.md の confirmed_at（${ca.raw}）が記録の時刻（${nowStamp(now)}）より後（date で取り直して requirements.md を直す）`);
+    }
+  } else if (gate === 'P4') {
     const vr = path.join(root, 'output', ts, 'verify-report.md');
     if (!existsSync(vr)) throw new ApprovalError(`P4 の前提: verify-report.md が無い（npm run verify -- ${ts} を回す）`);
     const recorded = parseVerifyReportHash(readFileSync(vr, 'utf8'));
@@ -126,7 +135,7 @@ export function recordApproval(root, ts, gate, summary, now = new Date()) {
   if (!summary || !summary.trim()) throw new ApprovalError('要旨が空');
   const hp = handoffPath(root, ts);
   if (!existsSync(hp)) throw new ApprovalError(`handoff.md が無い: ${path.relative(root, hp)}`);
-  assertRecordable(root, ts, gate);
+  assertRecordable(root, ts, gate, now);
   const h = gateHash(root, ts, gate);
   const row = { ...h, at: nowStamp(now), summary: summary.trim() };
   writeFileSync(hp, appendApproval(readFileSync(hp, 'utf8'), row));
