@@ -27,6 +27,8 @@ Phase C で済ませたレビュー（reviewer・keep-reviewer・prompt-auditor�
 
 ## 工程9 配置前照合
 
+対象が canon 自身（handoff の「申し送り」に new-run の自己対象の項目がある）なら、下の 1〜3 は自己指定で拒否されるので実行しない。P5 では申し送りの配置手順（作業ブランチに重ねて `npm test`・PR）と `git diff --stat` を示し、承認されたら `record P5` を実行する（P5 は pre-deploy-report の代わりに generated/ を束縛する）。下の「配置（人間が実行する）」の代わりに、人間が PR を作ってマージする。
+
 1. `npm run run-manifest -- <out> <target>` で配置手順書 `<out>/deploy/RUN.md` を書く。以降の手順は RUN.md と同じである。
 2. `npm run pre-deploy -- <out> <target>` で対象の現物と output を突き合わせ、`<out>/deploy/pre-deploy-report.txt` を書く。
    - **exit 1 で stdout の report に uncaptured または配置リストの書式の欠陥があるなら、配置しない**。uncaptured は、調査が取りこぼしたか、調査の後に対象側で増えた管理ファイルで、配置すると黙って消える。一覧を示し、Phase A の調査（existing の取りこぼし）か Phase B の設計（disposition の付け忘れ）に差し戻すことをユーザーに提案して止まる。

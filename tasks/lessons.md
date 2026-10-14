@@ -30,11 +30,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 何が起きたか: `.claude/skills/design/references/model-selection.md` の haiku の条件は、事実の抽出に徹して後段で検証される作業に haiku・`effort: high` を使える形になった。canon 自身の investigator は existing・profile（事実の抽出）と focused（要件に照らした推論）を1体で担うので、sonnet のまま据え置いている。haiku と sonnet の出力の実地比較はしていない。
 - 提案: 小さな対象で existing・profile を haiku・`effort: high` で動かし、sonnet の出力と比べる。採るなら existing・profile 用の agent を分け、`tests/self_application.test.js` の agent 8体の固定（EXPECTED_AGENTS）と Agent の例示に `model=` を書かない検査、`.claude/skills/canon-a/SKILL.md` の工程1、`design/architecture.md` の Agent 表を同じ変更で直す。
 
-## 2026-10-12 canon 自身を対象にした run では、P5 の承認が approvals に残らない（run 20261012_030955・Phase D）
-- 種別: 欠陥修正
-- 何が起きたか: `lib/handoff.js:91` は P5 の承認対象を `output/<ts>/deploy/pre-deploy-report.txt` に固定している。canon 自身が対象のとき、pre-deploy-check は self-target-guard で拒否されレポートが作られないので、`approvals record P5` は exit 1「P5 の承認対象が無い」になる（Phase D の transcript 行107、`retro/session-analysis-D.md`）。canon-d の SKILL.md に自己対象の分岐は無く、P5 の提示では「承認いただいたら `record P5` を記録します」と言ったあとに失敗した。この run では口頭承認を handoff の進捗に書いた。承認表に P5 の行は無い。
-- 提案: canon 自身が対象のときの P5 の扱いを決める。案は、(a) canon-d の SKILL.md に分岐を書き、`record P5` を試さず、PR とマージを根拠に進捗へ記録する。(b) 承認対象を、レポートの無い run では generated/ のハッシュにする（JS が要る）。どちらでも、new-run が自己指定で handoff に書く申し送りに「P5 は承認表に残らない」を足す。
-
 ## 2026-10-12 台帳の差し替え元（outside-managed）が run 中の起票と分裂し、確認値と版確認が合わない（run 20261012_030955・Phase B・C）
 - 種別: 規律昇華
 - 何が起きたか: 管理パス外の台帳は、設計の時点の `tasks/lessons.md` を元に outside-managed へ写される。run 中に Phase が台帳へ起票するたびに、ルートの現物と写しが分かれた。design-map の確認値「`grep -c '^## 20'` が10」は、起票が足されて14→12→14→15と動き、読み替えが要った。試行の worktree は HEAD なので、未コミットの台帳（+55行）が入らなかった。canon-c の手順0-2 の版確認は `.claude lib tools design guide` だけを見ており、`tasks/` の未コミット差分を拾わなかった（`retro/session-analysis-B.md`・`session-analysis-C.md`）。
