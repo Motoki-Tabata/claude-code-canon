@@ -56,7 +56,7 @@ Phase C は承認済みの design-map から生成物を作り、工程6〜8 と
 2. 使う担当の builder を、**1つのメッセージで並列に**起動する。渡すもの: `unit`・ts・`output/<ts>/` と `work/<ts>/slices/` の絶対パス・handoff の `target`（読み取り専用）。`work/<ts>/requirements.md` に `## 参照元` があれば、その `path` の一覧も渡す（読み取り専用の移植の基準。`npm run check -- <ts> requirements` で確かめられる）。
 3. 全員が終わったら、担当ごとに宣言一覧（skills は `targets-skills.txt` の全体）の各パスが `generated/` に実在するかを確かめる。参照元からコピーしたファイルは `copy-keep` の出力の `ref_copied` と一致していること、builder に打ち直されていないこと（参照元との差分が、指示した箇所だけであること）も確かめる。欠けていれば、その担当の builder を新しく起動し、欠けたパスを渡して書かせる。`targets-other.txt` が空でなければ、どの担当にも属さない宣言があるので、内容を示して扱いを決める。 `.claude/README.md` は担当に属さず工程6-5 の emit-manifest が書くので、`targets-*.txt` に出ず存在確認の対象にもしない（design-map が modify と宣言していても `disposition-other.md` にレコードが入るだけ）。担当に属さない modify・merge のレコードも `disposition-other.md` に入る。
 4. **管理パス外の変更の変更後のファイルを作る**: `common.md` の `## 管理パス外の変更` に項目があれば、項目ごとに次を行う（項目が無い、または「なし」ならこの手順は飛ばす）。変更後のファイルは `output/<ts>/outside-managed/<対象パス>` に置き、P4 の承認が generated/ と一緒に束縛する（承認後に変わると P4 が無効になる）。
-   1. 項目の見出しの対象パスが対象に実在するなら、現物を `output/<ts>/outside-managed/<対象パス>` にコピーする（`mkdir -p` してから `cp`。書き写させない）。実在しない新規ファイルはコピーしない。
+   1. 項目の見出しの対象パスが対象に実在するなら、現物を `output/<ts>/outside-managed/<対象パス>` にコピーする（`mkdir -p` してから `cp`。書き写させない）。実在しない新規ファイルはコピーしない。対象が canon 自身なら、`tasks/lessons.md` のように run の各 Phase が書き足すファイルは、コピーの後も現物が変わる。P4 の前に現物と写しを `diff` で比べ、現物に増えた分を写しにも足す（写しの元はルートの現物である）。
    2. `claude-md` の builder の起動に、そのパスと項目を渡して、「変更内容」どおりに直させる（上の 2 の `claude-md` の builder と同じ起動に含めてよい）。
    3. 実在を確かめる。
 5. `npm run manifest -- <ts>` で `generated/.claude/README.md`・`MANIFEST.md`・`deploy/managed-paths.list`・`deploy/retired.list` を決定論で生成する。これらは builder にも自分にも書かせない。
@@ -69,7 +69,7 @@ Phase C は承認済みの design-map から生成物を作り、工程6〜8 と
    verify の未判定（report の「未判定」。正典リファレンスが全件を収めていない一覧と照合して一致しなかった名前・canon-reference の `references/quality.md` の V-common-01）も exit code に影響しない。違反とも問題なしとも扱わず、1件ずつ出典の公式ページ（`.md` 版を `curl -sSL` で取る）で確かめ、確かめた結果を P4 で示す。公式ページで置けない・使えないと分かったものは、違反と同じく builder に直させる。
 4. 違反が keep のファイルにある（V7）なら、builder では直せない。keep は design-map が正なので、下の「keep に及ぶ修正」の手順で P3 に戻す。
 5. **生成物のテストを実行する**: builder は実行できない（シェルが無い）ので、書いたテストが通るかは verify（V1〜V9）では分からない。`generated/` に `*.test.*`・`*.spec.*` があれば、あなたが対象の一時 worktree で実行する（`<target>` は handoff の `target`、`<root>` は canon のルートの絶対パス）。
-   1. `git -C <target> worktree add --detach <root>/work/<ts>/trial HEAD` で作る（手順の根拠は canon-b の工程5-3。対象のブランチと作業ツリーには触れない。worktree が使えない対象は、対象を `cp -a` した一時ディレクトリで代える）。
+   1. `git -C <target> worktree add --detach <root>/work/<ts>/trial HEAD` で作る（手順の根拠は canon-b の工程5-3。対象のブランチと作業ツリーには触れない。worktree が使えない対象は、対象を `cp -a` した一時ディレクトリで代える）。対象が canon 自身なら、HEAD の worktree には未コミットの変更（run 中に起票した台帳など）が入らないので、`git -C <target> status --short` に出たファイルを trial に `cp -a` で重ねてから次へ進む。
    2. `cp -a <root>/output/<ts>/generated/. <root>/work/<ts>/trial/` で生成物を重ねる。`output/<ts>/outside-managed/` があれば、同じく `cp -a` で重ねる（テストが管理パス外の変更に依存しうる）。
    3. 対象のテストランナー（`work/<ts>/investigation/profile.md` の test 欄。無ければ対象の package.json などから特定する）で、**生成物のテストだけ**でなく、生成物が触れる範囲の既存テストも含めて実行する。依存の取得が要るなら worktree の中で行う。コマンド行と実際の出力を控える。
    4. 失敗は verify の違反と同じに扱う: 失敗したテストを担当ごとに分け、上の 2 と同じく「差し戻し」に逐語で書いて builder に直させる。テスト側の欠陥か、生成物の欠陥かの切り分けは、参照元（`## 参照元`）に同じテストがあるなら、その差分から始める。

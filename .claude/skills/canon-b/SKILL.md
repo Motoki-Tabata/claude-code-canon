@@ -50,7 +50,7 @@ Phase B は承認済みの spec だけを入力に、工程5 で design-map を�
    - requirements.md で `allowed: false` にした機能を使う生成物を宣言していない。
    - `## 管理パス外の変更` の各項目の対象パスが、requirements.md の要件の `outside_managed:` の範囲に収まっている。
 3. **管理パス外の変更を対象で試す**: `## 管理パス外の変更` に `根拠: 試行待ち` の項目があれば、P3 の前にあなたが試す。以下、`<target>` は handoff の `target`、`<root>` は canon のルートの絶対パス（`pwd`）を指す。
-   1. `git -C <target> worktree add --detach <root>/work/<ts>/trial HEAD` で対象の一時 worktree を作る（対象のブランチと作業ツリーには触れない）。
+   1. `git -C <target> worktree add --detach <root>/work/<ts>/trial HEAD` で対象の一時 worktree を作る（対象のブランチと作業ツリーには触れない）。対象が canon 自身なら、HEAD の worktree には未コミットの変更（run 中に起票した台帳など）が入らないので、`git -C <target> status --short` に出たファイルを trial に `cp -a` で重ねてから試す。
    2. 試行待ちの項目をすべて worktree に適用し、各項目の「確認」のコマンドを worktree で実行する。依存の取得が要るなら worktree の中で行う。
    3. 各項目の `根拠: 試行待ち` を、実行したコマンドと結果（通った・落ちた件数と代表的なエラー）の1〜2行に書き換える。design-map で書き換えてよいのはこの欄だけである。
    4. `git -C <target> worktree remove --force <root>/work/<ts>/trial` で片付ける。
