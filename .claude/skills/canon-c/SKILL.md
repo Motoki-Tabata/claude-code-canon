@@ -67,6 +67,7 @@ Phase C は承認済みの design-map から生成物を作り、工程6〜8 と
 2. exit 1 なら、report の違反を担当ごとに分け、handoff の「差し戻し」に逐語で書き、該当する担当の builder を新しく起動して直させる。直したら `npm run manifest -- <ts>` → `npm run verify -- <ts>` をやり直す。違反がなくなるまで繰り返す。
 3. warning は exit code に影響しないが、P4 で示す。種別ごとの件数と代表例を示す（全件は `verify-report.md` にある。パス様トークンの warning は1ファイルにつき1件にまとまっている）。
    verify の未判定（report の「未判定」。正典リファレンスが全件を収めていない一覧と照合して一致しなかった名前・canon-reference の `references/quality.md` の V-common-01）も exit code に影響しない。違反とも問題なしとも扱わず、1件ずつ出典の公式ページ（`.md` 版を `curl -sSL` で取る）で確かめ、確かめた結果を P4 で示す。公式ページで置けない・使えないと分かったものは、違反と同じく builder に直させる。
+   公式ページで確かめた結果が spec §8 の受入基準（P2 で承認済み）と食い違うときは、どちらが公式と合わないかで分ける。生成物だけが合わないなら、修正ループで builder に直させる。受入基準の文面が公式と合わないなら、生成物を基準に合わせて直さない。あなたが spec.md の §8 の該当基準だけを公式の文面に合わせて Edit し、出典の URL と差分をユーザーに示して P2 を取り直す（`npm run approvals -- <ts> record P2 "<要旨>"`）。基準の変更が design-map の割当や受入基準の対応表に及ぶなら、「keep に及ぶ修正」と同じく designer に直させて P3 も取り直す。そのうえで、生成物を修正ループで直す。
 4. 違反が keep のファイルにある（V7）なら、builder では直せない。keep は design-map が正なので、下の「keep に及ぶ修正」の手順で P3 に戻す。
 5. **生成物のテストを実行する**: builder は実行できない（シェルが無い）ので、書いたテストが通るかは verify（V1〜V9）では分からない。`generated/` に `*.test.*`・`*.spec.*` があれば、あなたが対象の一時 worktree で実行する（`<target>` は handoff の `target`、`<root>` は canon のルートの絶対パス）。
    1. `git -C <target> worktree add --detach <root>/work/<ts>/trial HEAD` で作る（手順の根拠は canon-b の工程5-3。対象のブランチと作業ツリーには触れない。worktree が使えない対象は、対象を `cp -a` した一時ディレクトリで代える）。対象が canon 自身なら、HEAD の worktree には未コミットの変更（run 中に起票した台帳など）が入らないので、`git -C <target> status --short` に出たファイルを trial に `cp -a` で重ねてから次へ進む。

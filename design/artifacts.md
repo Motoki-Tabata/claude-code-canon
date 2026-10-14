@@ -24,7 +24,7 @@ work/<ts>/
 │   ├─ existing.md                 工程1: 既存カスタマイズの棚卸し（§2.1）
 │   ├─ profile.md                  工程1: プロジェクトの実態（浅く広く・§2.2）
 │   ├─ focused.md                  工程3: 要件に関係する箇所の深掘り（§2.3）
-│   └─ official-check.md           工程3: Claude Code の公式仕様の確認（仕様に依存する要件があるときだけ・§2.5）
+│   └─ official-check.md           工程3・4: Claude Code の公式仕様の確認（仕様に依存する要件・受入基準があるときだけ・§2.5）
 ├─ requirements.md                 工程2: 合意した要件（§3）
 ├─ session-analysis-<名前>.md      工程2: 過去のセッション履歴の分析（指定があるときだけ・session-analyst が書く）
 ├─ retro/session-analysis-<phase>.md  Phase D の終わり: run の各セッションの振り返り（session-analyst が書く。台帳への起票の材料）
@@ -132,7 +132,7 @@ ref_resolution:                 # existing.md の project_refs を実リポジ�
 
 ### 2.5 official-check.md（公式仕様の確認）
 
-確定要件の成否が Claude Code 自体の仕様に依存するとき、工程3でオーケストレーターが `claude-code-guide` に確かめさせ、その結果を書く。investigator は対象の配下しか読まず WebFetch を持たないので、ここを受け持たない。機械は読まないので書式は散文でよいが、次を必ず含める。
+確定要件の成否が Claude Code 自体の仕様に依存するとき、工程3でオーケストレーターが `claude-code-guide` に確かめさせ、その結果を書く。工程4では、spec §8 の受入基準のうち Claude Code の仕様を述べるものも P2 の前に確かめ、`## <受入基準 ID> <論点>` の項目で足す。investigator は対象の配下しか読まず WebFetch を持たないので、ここを受け持たない。機械は読まないので書式は散文でよいが、次を必ず含める。
 
 ```markdown
 # 公式仕様の確認
