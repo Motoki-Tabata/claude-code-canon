@@ -17,7 +17,7 @@ claude-canon を骨格から作り直す（v3）。生成の精度とトーク�
 - 設計書は `design/architecture.md` 1冊（人間向けの「なぜそうしたか」、目安20KB以下）にまとめる。契約は Skill の references とテストだけに置く。rules は v3 の語彙で縮める。
 - canon-reference は中身を変えない。変えるのは、ワーカーが読む範囲と `SKILL.md` の索引だけ。canon-update は対象外。
 - **model と effort も見直す**（canon 自身の割当と、生成物に割り当てる基準 `.claude/skills/design/references/model-selection.md` の両方）。案は次のとおりで、段階1で確定する: `/canon-plan` は Opus・medium。`/canon-design` は設計をメインの inline で行い、designer を廃止する案と比べる。`/canon-build` は Sonnet・medium（advisor は同じエラーが2回出たときと差分のゲートの前だけ）。investigator は Sonnet・medium。棚卸しはスクリプトにし、足りない部分は haiku・high。builder は Sonnet・medium。reviewer は Sonnet・high で、Opus・high を残すかは段階6で比べる。prompt-auditor は Sonnet・medium。session-analyst は haiku・high。
-- 実装は段階ごとに別のセッション・別の PR で行う。v3 は新しい名前で並べて作り、v2 は最後に1つの PR でまとめて消す（理由: どの PR も `npm test` を通した状態で main に入れるため）。
+- 実装は段階ごとに別のセッションで行う。1本のブランチ `refactor/canon-v3` に段階ごとのコミットを積み、1本の PR で main に入れる。v2 と並べて作らず、その場で置き換える（理由: 互換を取らないので並べる意味が薄い。main が「一部だけ v3」の状態にならず、ベンチマークの結果を見てからマージを決められる）。段階1の設計書は draft PR の上で承認を取る。
 
 ## 捨てた案
 - 骨格を保ったまま最適化する案と、lessons の反映だけにする案: 全量スナップショット方式そのものがコストと手戻りの元なので、部分的な最適化では効果が小さい。
