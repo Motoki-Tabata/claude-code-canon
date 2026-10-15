@@ -14,6 +14,7 @@
  *
  * 対象のパスは canon のルートからの相対パス。P4 の generated/ は
  * ディレクトリのハッシュ（lib/tree-hash.js。verify-report が記録する値と同じ）。
+ * handoff の target が canon 自身の run では、P5 も generated/ を束縛する（lib/handoff.js の gateTarget）。
  *
  * exit 0 成功・照合一致／exit 1 対象が無い・不一致・期待した承認行が無い／exit 2 引数不正。
  */
@@ -28,10 +29,14 @@ import {
   HANDOFF_FILE,
   appendApproval,
   effectiveApprovals,
+  gateTarget,
   parseApprovals,
+  parseHandoff,
 } from '../lib/handoff.js';
 import { hashGate, hashTree, parseVerifyReportHash } from '../lib/tree-hash.js';
+import { parseConfirmedAt } from '../lib/requirements.js';
 import { isMainModule, isValidTs } from '../lib/run.js';
+import { isCanonSelfTarget } from '../.claude/skills/canon-d/scripts/self-target-guard.js';
 
 export class ApprovalError extends Error {
   constructor(message) {
@@ -44,22 +49,37 @@ function handoffPath(root, ts) {
   return path.join(root, 'work', ts, HANDOFF_FILE);
 }
 
+/** handoff の `target` が canon 自身（root）か。handoff や target が無ければ false。 */
+function isSelfTargetRun(root, ts) {
+  const hp = handoffPath(root, ts);
+  if (!existsSync(hp)) return false;
+  const target = parseHandoff(readFileSync(hp, 'utf8'))?.target;
+  return Boolean(target) && isCanonSelfTarget(target, root);
+}
+
+/** run に合わせたゲートの承認対象（canon 自身が対象なら P5 は generated/）。 */
+function runGateTarget(root, ts, gate) {
+  return gateTarget(gate, { selfTarget: gate === 'P5' && isSelfTargetRun(root, ts) });
+}
+
 /**
  * ゲートの承認対象の現在のハッシュ。
  * @returns {{gate:string, target:string, hash:string}} target は root 相対、hash は先頭12桁
  */
 export function gateHash(root, ts, gate) {
-  const spec = GATE_TARGETS[gate];
-  if (!spec) throw new ApprovalError(`未知のゲート: ${gate}（P1〜P5）`);
+  if (!GATE_TARGETS[gate]) throw new ApprovalError(`未知のゲート: ${gate}（P1〜P5）`);
+  const spec = runGateTarget(root, ts, gate);
   const target = spec.rel(ts);
   const abs = path.join(root, target);
   if (!existsSync(abs)) throw new ApprovalError(`${gate} の承認対象が無い: ${target}`);
   let hex;
   if (spec.dir) {
     if (!statSync(abs).isDirectory()) throw new ApprovalError(`${gate} の承認対象がディレクトリでない: ${target}`);
-    // P4 は generated/ に、あれば outside-managed/（管理パス外の変更の変更後のファイル）を足して束縛する。
-    const t = gate === 'P4' ? hashGate(path.join(root, 'output', ts)) : hashTree(abs);
-    const n = gate === 'P4' ? t.generatedFiles : t.files;
+    // generated/ は、あれば outside-managed/（管理パス外の変更の変更後のファイル）を足して束縛する
+    // （P4 と、canon 自身が対象の run の P5）。
+    const bindsGenerated = spec === GATE_TARGETS.P4;
+    const t = bindsGenerated ? hashGate(path.join(root, 'output', ts)) : hashTree(abs);
+    const n = bindsGenerated ? t.generatedFiles : t.files;
     if (n === 0) throw new ApprovalError(`${gate} の承認対象が空: ${target}`);
     hex = t.hash;
   } else {
@@ -78,10 +98,18 @@ function nowStamp(now = new Date()) {
  * 承認を記録してよいかの前提を確かめる（満たさなければ ApprovalError）。
  *   P4: verify-report.md に記録された generated/ のハッシュが、いまの generated/ と一致する
  *       （最後の修正の後に verify を回したこと。メインが generated/ を直接直すと不一致になる）。
+ *   P1: requirements.md の confirmed_at が記録の時刻より後でない（推測で書いた未来の時刻を承認に束縛させない。
+ *       行が無い・形が違うのは npm run check -- <ts> requirements が NG にする）。
  *   P5: P1〜P4 の承認が有効（上流が無効なまま配置の承認を取らせない）。
  */
-function assertRecordable(root, ts, gate) {
-  if (gate === 'P4') {
+function assertRecordable(root, ts, gate, now) {
+  if (gate === 'P1') {
+    const req = path.join(root, 'work', ts, 'requirements.md');
+    const ca = existsSync(req) ? parseConfirmedAt(readFileSync(req, 'utf8')) : null;
+    if (ca?.at && ca.at.getTime() > now.getTime()) {
+      throw new ApprovalError(`P1 の前提: requirements.md の confirmed_at（${ca.raw}）が記録の時刻（${nowStamp(now)}）より後（date で取り直して requirements.md を直す）`);
+    }
+  } else if (gate === 'P4') {
     const vr = path.join(root, 'output', ts, 'verify-report.md');
     if (!existsSync(vr)) throw new ApprovalError(`P4 の前提: verify-report.md が無い（npm run verify -- ${ts} を回す）`);
     const recorded = parseVerifyReportHash(readFileSync(vr, 'utf8'));
@@ -107,7 +135,7 @@ export function recordApproval(root, ts, gate, summary, now = new Date()) {
   if (!summary || !summary.trim()) throw new ApprovalError('要旨が空');
   const hp = handoffPath(root, ts);
   if (!existsSync(hp)) throw new ApprovalError(`handoff.md が無い: ${path.relative(root, hp)}`);
-  assertRecordable(root, ts, gate);
+  assertRecordable(root, ts, gate, now);
   const h = gateHash(root, ts, gate);
   const row = { ...h, at: nowStamp(now), summary: summary.trim() };
   writeFileSync(hp, appendApproval(readFileSync(hp, 'utf8'), row));
@@ -124,8 +152,8 @@ export function checkApprovals(root, ts, expect = []) {
   const eff = effectiveApprovals(parseApprovals(readFileSync(hp, 'utf8')));
   const results = [];
   for (const [gate, row] of eff) {
-    const spec = GATE_TARGETS[gate];
-    if (!spec) throw new ApprovalError(`承認表に未知のゲート: ${gate}`);
+    if (!GATE_TARGETS[gate]) throw new ApprovalError(`承認表に未知のゲート: ${gate}`);
+    const spec = runGateTarget(root, ts, gate);
     const r = { gate, target: row.target, recorded: row.hash, current: null, status: 'ok' };
     if (row.target !== spec.rel(ts)) {
       r.status = 'target-changed';

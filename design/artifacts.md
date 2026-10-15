@@ -24,7 +24,7 @@ work/<ts>/
 │   ├─ existing.md                 工程1: 既存カスタマイズの棚卸し（§2.1）
 │   ├─ profile.md                  工程1: プロジェクトの実態（浅く広く・§2.2）
 │   ├─ focused.md                  工程3: 要件に関係する箇所の深掘り（§2.3）
-│   └─ official-check.md           工程3: Claude Code の公式仕様の確認（仕様に依存する要件があるときだけ・§2.5）
+│   └─ official-check.md           工程3・4: Claude Code の公式仕様の確認（仕様に依存する要件・受入基準があるときだけ・§2.5）
 ├─ requirements.md                 工程2: 合意した要件（§3）
 ├─ session-analysis-<名前>.md      工程2: 過去のセッション履歴の分析（指定があるときだけ・session-analyst が書く）
 ├─ retro/session-analysis-<phase>.md  Phase D の終わり: run の各セッションの振り返り（session-analyst が書く。台帳への起票の材料）
@@ -132,7 +132,7 @@ ref_resolution:                 # existing.md の project_refs を実リポジ�
 
 ### 2.5 official-check.md（公式仕様の確認）
 
-確定要件の成否が Claude Code 自体の仕様に依存するとき、工程3でオーケストレーターが `claude-code-guide` に確かめさせ、その結果を書く。investigator は対象の配下しか読まず WebFetch を持たないので、ここを受け持たない。機械は読まないので書式は散文でよいが、次を必ず含める。
+確定要件の成否が Claude Code 自体の仕様に依存するとき、工程3でオーケストレーターが `claude-code-guide` に確かめさせ、その結果を書く。工程4では、spec §8 の受入基準のうち Claude Code の仕様を述べるものも P2 の前に確かめ、`## <受入基準 ID> <論点>` の項目で足す。investigator は対象の配下しか読まず WebFetch を持たないので、ここを受け持たない。機械は読まないので書式は散文でよいが、次を必ず含める。
 
 ```markdown
 # 公式仕様の確認
@@ -179,6 +179,7 @@ conflicts:
   role: <何の基準か>
 ```
 
+- **`confirmed_at`** は合意した時刻（`YYYY-MM-DD hh:mm`・ローカル時刻）で、オーケストレーターが `date` で取る。`npm run check -- <ts> requirements` は、行が無い・形が違う・現在より後の時刻を NG にする。`record P1` は、記録の時刻より後の `confirmed_at` を拒否する。
 - **`## 参照元`**（任意）は、対象とは別のプロジェクトの一式を移植の基準にするときの入力欄である。`path` は絶対パス、`role` は基準の用途。focused 調査（investigator）・spec-writer・designer・builder が読む。生成物には参照元のパスや名前を書かない。`lib/requirements.js` の `parseReferenceSources` が読み、`npm run check -- <ts> requirements` が実在を確かめる。参照元から一式を機械的にコピーする手順は §5（design-map の `## 参照元からのコピー`）にある。
 
 - **`outside_managed`**（任意）は、ユーザーが管理パス集合の外の変更を認めた要件にだけ書き、変えてよいパス（ディレクトリでもよい）を列挙する。designer はこの範囲の中でだけ `## 管理パス外の変更`（§5.6）を設計し、`npm run check -- <ts> design-map` が対象パスの範囲を確かめる。

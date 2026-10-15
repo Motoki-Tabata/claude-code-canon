@@ -51,7 +51,8 @@ function git(cwd, args) {
 export const SELF_TARGET_NOTE =
   '対象が claude-canon 自身: canon-d の配置は拒否される（artifacts.md §10.5）。Phase C の P4 まで通し、' +
   '人間が output/<ts>/generated/.claude を作業ブランチの canon に重ねて npm test と PR で main に入れる' +
-  '（管理パス外の変更があれば output/<ts>/outside-managed/ も重ねる）。生成された README は重ねない（git restore .claude/README.md）。';
+  '（管理パス外の変更があれば output/<ts>/outside-managed/ も重ねる）。生成された README は重ねない（git restore .claude/README.md）。' +
+  'P5 は pre-deploy-report を作れないので、`record P5` は generated/ のハッシュを束縛する。';
 
 /**
  * run を作る。

@@ -107,6 +107,24 @@ test('record P5: P1〜P4 のどれかが無効（承認後に変わった）な�
   assert.throws(() => recordApproval(root, TS, 'P5', 'again'), /P5 の前提: P4/);
 });
 
+test('canon 自身が対象の run: P5 はレポートが無くても generated/ を束縛して記録でき、generated/ が変わると不一致', (t) => {
+  const root = setup(t);
+  // handoff の target を run のルート（＝canon 自身）にする
+  const hp = path.join(root, 'work', TS, 'handoff.md');
+  writeFileSync(hp, renderHandoff({ ts: TS, target: root, mode: 'refactor' }));
+  for (const f of ['spec.md', 'design-map.md']) writeFileSync(path.join(root, 'output', TS, f), 'x\n');
+  for (const g of ['P1', 'P2', 'P3']) recordApproval(root, TS, g, 'a');
+  writeVerifyReport(root);
+  recordApproval(root, TS, 'P4', 'a');
+  const p5 = recordApproval(root, TS, 'P5', '自己対象');
+  assert.equal(p5.target, `output/${TS}/generated`);
+  assert.equal(p5.hash, gateHash(root, TS, 'P4').hash, 'P4 と同じ計算');
+  assert.equal(checkApprovals(root, TS, ['P1', 'P2', 'P3', 'P4', 'P5']).ok, true);
+  writeFileSync(path.join(root, 'output', TS, 'generated', 'CLAUDE.md'), '# 直接編集\n');
+  const c = checkApprovals(root, TS, ['P5']);
+  assert.equal(c.results.find((r) => r.gate === 'P5').status, 'mismatch');
+});
+
 test('P4 は outside-managed/ も束縛する: 追加・承認後の改変で不一致になり、無ければ generated/ だけのハッシュ', (t) => {
   const root = setup(t);
   const gen = path.join(root, 'output', TS, 'generated');
@@ -139,6 +157,17 @@ test('check: 期待したゲートの承認行が無ければ無効（承認0件
   recordApproval(root, TS, 'P1', '要件を承認');
   rmSync(path.join(root, 'work', TS, 'requirements.md'));
   assert.equal(checkApprovals(root, TS, ['P1']).results[0].status, 'missing-target');
+});
+
+test('record P1: requirements.md の confirmed_at が記録の時刻より後なら拒否し、同じか前なら記録する', (t) => {
+  const root = setup(t);
+  const req = path.join(root, 'work', TS, 'requirements.md');
+  const now = new Date(2026, 9, 12, 3, 56);
+  writeFileSync(req, '## メタ\nconfirmed_at: 2026-10-12 04:20\n\n## 確定要件\n');
+  assert.throws(() => recordApproval(root, TS, 'P1', 'x', now), /confirmed_at（2026-10-12 04:20）が記録の時刻（2026-10-12 03:56）より後/);
+  assert.equal(checkApprovals(root, TS, []).results.length, 0, '拒否したら承認行を書かない');
+  writeFileSync(req, '## メタ\nconfirmed_at: 2026-10-12 03:56\n\n## 確定要件\n');
+  assert.equal(recordApproval(root, TS, 'P1', 'x', now).gate, 'P1');
 });
 
 test('record: 要旨が空・handoff.md が無いなら拒否する', (t) => {

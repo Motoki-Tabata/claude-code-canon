@@ -170,15 +170,18 @@ export const TMP_CASE_BAK = `.claude-canon.bak.${TMP_CASE_TS}`;
 export function setupTmpCase(t, name, ts = TMP_CASE_TS, { approved = true } = {}) {
   const caseDir = sampleRepoDir(name);
   const tmp = mkdtempSync(path.join(os.tmpdir(), 'canon-deploy-'));
+  // canon のルート（work/・output/ の親）と対象を兄弟に置く。対象を canon のルートの配下に置くと、
+  // 承認の照合が canon 自身を対象にした run と判定する（tools/approvals.js）。
+  const root = path.join(tmp, 'canon');
   const target = path.join(tmp, 'target');
-  const output = path.join(tmp, 'output', ts);
+  const output = path.join(root, 'output', ts);
   cpSync(caseDir, target, {
     recursive: true,
     filter: (s) => !s.split(path.sep).includes('expected-output'),
   });
   cpSync(path.join(caseDir, 'expected-output'), output, { recursive: true });
   t.after(() => rmSync(tmp, { recursive: true, force: true }));
-  if (approved) approveAll(tmp, target, output, ts);
+  if (approved) approveAll(root, target, output, ts);
   return { tmp, target, output, ts };
 }
 
