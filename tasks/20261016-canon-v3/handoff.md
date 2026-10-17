@@ -1,14 +1,14 @@
 # handoff: canon-v3
 
 ## 現在地
-段階1 実装中（2026-10-17）
-T1-1〜T1-5 を終え、`design/architecture.md` を v3 で書き直した。T1-6（コミット・push・draft PR・承認）は、コミットの内容をユーザーに示して了承を待っている。
+段階1 完了（2026-10-17）
+`design/architecture.md` を v3 で書き直し、draft PR https://github.com/Motoki-Tabata/claude-code-canon/pull/27 の上でユーザーの承認を得た。次は段階2（決定論の土台）。
 
 ## 次のセッション
-- 推奨モデル: Opus（effort medium）
-- 始める前に: PR #26 がマージされた main から `refactor/canon-v3` を切る（plan.md の「ブランチと PR」）
-- 最初の指示: 「`tasks/20261016-canon-v3/plan.md` の段階1 を実装する。brief.md と handoff.md を先に読む」
-- 起動: canon のルートで `claude --model opus --effort medium`
+- 推奨モデル: Sonnet（effort medium）
+- 最初の指示: 「`tasks/20261016-canon-v3/plan.md` の段階2 を実装する。brief.md・handoff.md・`design/architecture.md` を先に読む」
+- 起動: canon のルートで `claude --model sonnet --effort medium`
+- 段階2で確かめること: Subagent（builder）が `Edit(~/.claude-canon/wt/**)` の allow 規則で worktree を編集できるか、対話のセッションで `~/` 起点の規則が効くか（architecture.md §3.1 の未確認の点）
 
 ## 判断ログ
 - 2026-10-16 段階0: 骨格から作り直し、互換は取らない（理由: 全量スナップショット方式そのものがコストと手戻りの元）
@@ -25,6 +25,7 @@ T1-1〜T1-5 を終え、`design/architecture.md` を v3 で書き直した。T1-
 - 2026-10-17 段階1: `tasks/lessons.md` 冒頭の「設計書2冊」は、段階5で「`design/` には `architecture.md` 1冊だけを置く」に直す。同じ冒頭の `design/architecture.md` §6.4 への参照は、新版で節番号が変わったので古くなっている。これも段階5で §8（canon の課題の起票）に直す
 
 ## レビュー記録
+- 2026-10-17 段階1: draft PR #27 の上で、設計書 `design/architecture.md`（d1d68ca）をユーザーが承認した
 
 ## メモ
 - この計画の「段階」は本フォルダの段階0〜6で、flow-workflow の段階1〜4 とは別物である。/flow-* はこのリポジトリでは開始時に止まる（`.claude/skills/canon-a/SKILL.md` があるため）。canon-a を置き換えた後（段階4）は、この制約は無くなる。
