@@ -114,3 +114,10 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 提案: `.claude/skills/canon-d/SKILL.md` の「配置（人間が実行する）」に、(1) 配置前の作業ブランチの作成（この Phase が `switch -c` を実行するか、人間に案内するかの担当）と、(2) 生成物に `lessons-ledger` があれば、配置後に `apply` を実行して `diff --stat` を示す手順を足す。生成物側（lessons-ledger Skill）の監査行は、削除した見出しの件数を数えて表示する形にする。
 - 未決: 作業ブランチを Phase が切るか、人間に案内するか
 - 予定: v3 刷新（tasks/20261016-canon-v3/）で（worktree のスクリプトが作業ブランチを作る）。監査行の件数表示は対象側の生成物の課題として対象の台帳に申し送る
+
+## 2026-10-17 paths.json に Agent の入れ子の配置が無い（v3 段階2）
+- 種別: 欠陥修正
+- 何が起きたか: canon 自身の Agent は `.claude/agents/<name>/<name>.md`（8体）に入れ子で置いてあり、`claude -p` で `subagent_type: builder` が実際に起動した。しかし `data/paths.json` の配置は `.claude/agents/*.md` だけで、`inventory` は8体を subagents でなく分類外に出す（`feature_hint` で subagents と示すようにはした）。architecture.md §2.1 の条件2「機能のファイルが0件か」の判定を `inventory` の機能別の件数だけで行うと、小の経路の対象が大に倒れうる。
+- 確度: 実物で確認（`npm run inventory` の出力と起動の実験）。入れ子の配置が公式で認められているかは未確認（`lib/features.js` の EXTRA_PATHS のコメントは subagents.md §3 を挙げるが、そこに該当の記述は見つからなかった）
+- 提案: 条件2の判定は、機能別の件数に分類外の `feature_hint` の件数を足して行う（段階3で `check` に実装する）。入れ子の配置が公式で認められるかは `features/subagents.md` と公式で確かめ、認められるなら paths.json の欠けとして正典側に送る。
+- 予定: v3 刷新（tasks/20261016-canon-v3/）の段階3

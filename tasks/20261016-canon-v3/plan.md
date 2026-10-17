@@ -35,10 +35,10 @@
 - [x] T1-6 `refactor/canon-v3` に設計書をコミットして push し、draft PR を作る。draft PR の上でユーザーの承認を取る。承認されるまで段階2に進まない。
 
 ### 段階2 決定論の土台
-- [ ] T2-1 `inventory`: 対象のカスタマイズ（canon-reference の `data/paths.json` が示す配置パス）の一覧・frontmatter・参照のグラフを JSON とその要約に書く。プレースホルダ（`<...>`・`NNN`）は実在の参照と区別する。既存の `lib/investigation.js`・`lib/markdown.js`・V6 の参照抽出（`.claude/skills/canon-c/scripts/verify/v6-ref-integrity.js`）を再利用できるか先に確かめる。
-- [ ] T2-2 `impact`: 変えるファイルの一覧と語・コマンドの一覧を受け取り、触らないファイルのうち、それらを参照・言及するものを、行番号付きで列挙する。
-- [ ] T2-3 `worktree`: 作成（`canon/<ts>` ブランチ）・コミット・片付け。対象が git でなければ exit 1。canon 自身が対象のときも動くこと。
-- [ ] T2-4 テスト: 各スクリプトに、故意に注入した入力で発火することを示すテストを付ける。対象がゼロ件のときを合格にしない。
+- [x] T2-1 `inventory`: 対象のカスタマイズ（canon-reference の `data/paths.json` が示す配置パス）の一覧・frontmatter・参照のグラフを JSON とその要約に書く。プレースホルダ（`<...>`・`NNN`）は実在の参照と区別する。既存の `lib/investigation.js`・`lib/markdown.js`・V6 の参照抽出（`.claude/skills/canon-c/scripts/verify/v6-ref-integrity.js`）を再利用できるか先に確かめる。
+- [x] T2-2 `impact`: 変えるファイルの一覧と語・コマンドの一覧を受け取り、触らないファイルのうち、それらを参照・言及するものを、行番号付きで列挙する。
+- [x] T2-3 `worktree`: 作成（`canon/<ts>` ブランチ）・コミット・片付け。対象が git でなければ exit 1。canon 自身が対象のときも動くこと。
+- [x] T2-4 テスト: 各スクリプトに、故意に注入した入力で発火することを示すテストを付ける。対象がゼロ件のときを合格にしない。
 
 ### 段階3 検査
 - [ ] T3-1 verify v3: 入力は worktree の変更されたファイル（`git diff --name-only`）。系統は、配置パス・frontmatter・ツール名・secret・書式片・参照整合・constraints と trust の前提の警告。番号は1から振る。canon-update が使う判定と1系統にまとめる。

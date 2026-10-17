@@ -68,7 +68,9 @@ v3 は**変更集合方式**にする。対象リポジトリの worktree の上
 - ルートの下に置くと、対象の指示が canon のセッションに混ざる（v2 の `output/<ts>/generated/` も同じ）。gitignore されていないサブディレクトリの Skill は、対照の実験で読み込まれた。gitignore 下で読み込まれないのはこの実験で見た挙動で、正典には書かれていない。
 - `--add-dir` は対象の Skill を読み込むので使わない。`permissions.additionalDirectories` も、正典 `skills.md` §3.1 が追加ディレクトリを Skill の置き場所に挙げているので使わない（こちらは実験していない）。
 - そこで、置き場所をホームの下の固定のパスにし、canon の `.claude/settings.json` に `Read(~/.claude-canon/wt/**)`・`Edit(~/.claude-canon/wt/**)` を置く。`~/` の起点で書けるので、利用者ごとの絶対パスが要らない。allow 規則は、canon のルートのワークスペース信頼を受け入れてから効く（正典 `permissions.md`）。
-- まだ確かめていないこと: Subagent（builder）が同じ allow 規則で worktree を編集できるか。対話のセッションで `~/` の起点の規則が効くか。段階2の `worktree` の実装で、実際の起動経路で確かめる。
+- 段階2で確かめたこと（`claude -p`・v2.1.300・haiku、`worktree` で作った `~/.claude-canon/wt/` の worktree）: Subagent（builder）は、この allow 規則で worktree を Edit できた。規則に当たらないパスへの Edit は、同じ手順で拒否された。
+- まだ確かめていないこと: 対話のセッションで `~/` の起点の規則が効くか（`-p` は非対話なので、対話の許可の画面は通っていない）。
+- 片付けは、人間のマージの後に `worktree cleanup` で行う。worktree のフォルダと、空になった `~/.claude-canon/` だけを消す。ブランチ `canon/<ts>` は成果物なので、`--delete-branch`（マージ済みのときだけ）か `--discard`（未コミットの変更ごと捨てる）を指定したときだけ消す。差分のゲートで差し戻されると同じ worktree で直すので、`/canon-build` の終わりでは消さない。
 
 v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分け・コミットの権限確認・3つ目のフォルダの管理が負担だとしてやめた。v3 の worktree は対象の側にあり、作成・コミット・片付けは `worktree` スクリプトが行い、置き場所は1か所に固定する。ツールには絶対パスを渡すので `cd` も要らない。
 
