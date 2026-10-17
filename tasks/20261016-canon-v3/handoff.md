@@ -25,7 +25,7 @@
 - 2026-10-17 段階1: `tasks/lessons.md` 冒頭の「設計書2冊」は、段階5で「`design/` には `architecture.md` 1冊だけを置く」に直す。同じ冒頭の `design/architecture.md` §6.4 への参照は、新版で節番号が変わったので古くなっている。これも段階5で §8（canon の課題の起票）に直す
 
 ## レビュー記録
-- 2026-10-17 段階1: draft PR #27 の上で、設計書 `design/architecture.md`（d1d68ca）をユーザーが承認した
+- 2026-10-17 段階1: draft PR #27 の上で、設計書 `design/architecture.md`（033e80d）をユーザーが承認した
 
 ## メモ
 - この計画の「段階」は本フォルダの段階0〜6で、flow-workflow の段階1〜4 とは別物である。/flow-* はこのリポジトリでは開始時に止まる（`.claude/skills/canon-a/SKILL.md` があるため）。canon-a を置き換えた後（段階4）は、この制約は無くなる。
