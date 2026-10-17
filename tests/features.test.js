@@ -27,7 +27,7 @@ test('UNITS: 8担当が12機能を重複なく覆う', () => {
   assert.equal(unitOfFeature('nope'), null);
 });
 
-test('featureOfPath: paths.json の feature を引き、data に無い管理パスは補完表で引く', () => {
+test('featureOfPath: paths.json の feature を引き、data に無いパスは補完表で引く', () => {
   const cases = {
     'CLAUDE.md': 'claude-md',
     'AGENTS.md': 'claude-md',

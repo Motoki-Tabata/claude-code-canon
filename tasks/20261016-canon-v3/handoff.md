@@ -1,22 +1,13 @@
 # handoff: canon-v3
 
 ## 現在地
-段階4 完了（2026-10-17）
-`/canon-plan`・`/canon-design`・`/canon-build` の SKILL.md、知識 Skill 5件の v3 化、Agent 6体（`profiler` を新設し、`designer`・`spec-writer`・`keep-reviewer` を削除）、`new-run`・`preflight`（`tools/`）、`worktree rm`、`lib/handoff.js` の v3 化、自己適用テストの追従を入れた。`npm test` 365件が通った。実経路（scratch の git の対象で `new-run` → `preflight` → `inventory` → `impact` → `check` → `approvals record G1` → 編集 → `worktree commit` → `verify` → `approvals record G2` → 承認後のコミットで承認が無効になること）を通した。コミットはユーザーの了承待ち。次は段階5（v2 の残りの撤去）。段階の Skill 自体は別セッションで通していない（未確認。下の「未確認」）。
+段階5 完了（2026-10-17）
+v2 の残りを撤去した。消したもの: `.claude/skills/canon-c/scripts/`（`copy-keep`・`emit-manifest`・`review-bundle`・`slice`）、`lib/` の `design-map`・`design-slices`・`interface-signature`・`investigation`・`managed-paths`・`manifest`・`tree-hash`、そのテスト（`copy_keep`・`emit_manifest`・`review_bundle`・`slice`・`managed_paths`）と helpers（`keep-review-cases`・`readme-listing`・`sample-repos`）、`design/artifacts.md`、`output/.gitkeep`、`package.json` の scripts 4件、`settings.json` の deploy の deny 規則。直したもの: `lib/run.js`（`output/`・`readHandoff`・`resolveTargetRoot`・`readTsArg`）、`lib/markdown.js`（死んだパーサ5件）、`tools/token-usage.js`（design-map Read の列）、`tests/helpers/`（`constrained-case.js` を新設し、verify のテストの仮の worktree は `work/<ts>/generated/` にした）、`exit_codes.test.js`、README・`.claude/README.md`・`guide/setup.md`・rules・コード内の `artifacts.md §` 引用・`tasks/lessons.md` 冒頭と解消した5項目。`npm test` 288件が通った（段階4の365件から、消した v2 のテスト分が減った）。コミットはユーザーの了承待ち。次は段階6（ベンチマーク）。
 
 ## 次のセッション
-- 推奨モデル: Sonnet（effort medium）
-- 最初の指示: 「`tasks/20261016-canon-v3/plan.md` の段階5 を実装する。brief.md・handoff.md・`design/architecture.md` を先に読む」
-- 起動: canon のルートで `claude --model sonnet --effort medium`
-- 段階5で消す・直すもの（下の「段階5に回したもの」）。消す前に、消すパスへの参照を、import とテストと docs まで横断 grep する（段階3では `new-run.js` の import を見落とした）
-
-## 段階5に回したもの
-- `.claude/skills/canon-c/scripts/`（`copy-keep`・`emit-manifest`・`review-bundle`・`slice`）と、依存する `lib/design-map.js`・`lib/design-slices.js`・`lib/managed-paths.js`・`lib/tree-hash.js`・`lib/manifest.js`・`lib/interface-signature.js` など、そのテスト（`copy_keep`・`emit_manifest`・`review_bundle`・`slice`・`managed_paths`・`exit_codes` のうち該当、`tests/helpers/keep-review-cases.js` など）。`package.json` の scripts（`slice`・`copy-keep`・`manifest`・`review-bundle`）も消す。`canon-c/` は SKILL.md を段階4で消したので、scripts を消せばフォルダが無くなる
-- `design/artifacts.md`（v2 の書式と検査。段階5まで残す）。`design/architecture.md` の §10 の「段階5までは artifacts.md に残る」の文
-- 語彙の追従: `README.md`・`.claude/README.md`・`guide/setup.md`（`/canon-a`〜`/canon-d`・Phase A〜D・P1〜P5・spec・V1〜V9 の説明。V7〜V9 の意味が変わった）、`.claude/rules/worker-definitions.md`・`workflow.md`（design-map・Write Scopes・V9 の語）、`.claude/settings.json` の `$comment`、`package.json` の description と `comments`、`tests/helpers/paths.js` の `scriptsDir` のコメント、`tasks/lessons.md` 冒頭（書式の `Phase <A〜D>`・「設計書2冊」・`design/architecture.md` §6.4 への参照→§8）
-- `tests/self_application.test.js` の「Phase Skill の scripts/ は skill パッケージの supporting files として扱われる」: canon-c/scripts を消すと対象が0件になる。v3 に scripts/ を持つ Skill が無ければ、このテストごと消す
-- 台帳（`tasks/lessons.md`）のうち、v3 で解消した項目（予定欄が「v3 刷新で」のもの。K5・README の管理境界・keep の P2/P3 の取り直し・canon-d の apply／作業ブランチ）
-- `tests/helpers/sample-repos.js` の `expected-work/` は v2 の書式のまま（investigation/existing.md など）。使うテストが消えるときに一緒に整理する
+- 推奨モデル: Opus / Sonnet（段階6。`/canon-plan` は Opus、`/canon-build` は Sonnet）
+- 最初の指示: 「`tasks/20261016-canon-v3/plan.md` の段階6 を実装する。brief.md・handoff.md・`design/architecture.md` を先に読む」
+- ベンチマークは別セッションの実際の経路で通す（受け入れ条件4）。下の「未確認」を最初に当たる
 
 ## 判断ログ
 - 2026-10-16 段階0: 骨格から作り直し、互換は取らない（理由: 全量スナップショット方式そのものがコストと手戻りの元）
@@ -55,6 +46,12 @@
 - 2026-10-17 段階4: canon-a〜d の SKILL.md と `new-run.js`・`self-target-guard.js`（とそのテスト）は、置き換えたので段階4で消した。`canon-c/scripts/` だけ段階5まで残る。自己適用テストの旧語彙の検査に v2 の語（K1〜K5・P1〜P5・spec.md・design-map・MANIFEST・Phase A〜D・output/<ts>）を足し、G4 以上だけを旧ゲートとした（G1〜G3 は v3 のゲート）
 - 2026-10-17 段階4: `tasks/lessons.md` のうち、段階4で反映した5項目（haiku の investigator・trust の前提・K2・lessons の文言・P2/P3 を1つの問いで取る）を消し、2項目（designer の文脈・評価で run の作業ディレクトリを使う）を残りの部分だけに書き直した。`git -C <worktree>` が allow 規則に当たらない見込みを起票した
 
+- 2026-10-17 段階5: 台帳（`tasks/lessons.md`）から、v3 で解消した5項目（2026-10-10 の別セッション実経路・K5・README の管理境界・keep→modify の P2/P3・canon-d の apply／作業ブランチ）を消した。別セッション実経路の未検証は、handoff の「未確認」と受け入れ条件4が持つ。README の管理境界の件は対象側（skillweave の canon-boundary.md）の課題で、対象の台帳への申し送りは未実施
+- 2026-10-17 段階5: verify のテストの仮の worktree を `output/<ts>/generated/` から `work/<ts>/generated/` に移した（v3 に `output/` が無いため。テストの意味は変えていない）。`.gitignore` の `/output/` は、手元に残る v2 の run の成果物（`output/20261012_030955`・`20261014_232320`）を追跡させないために残した。消していない
+- 2026-10-17 段階5: `tests/self_application.test.js` の「scripts/ は supporting files」のテストは、canon-update の scripts/（2件）が残るので消さず、下限を5から2に直した
+- 2026-10-17 段階5: `tools/token-usage.js` から design-map の Read 数の列を外した（v3 に design-map が無い）。段階6の `npm run tokens` の表は、この列が無い
+- 2026-10-17 段階5: 受け入れ条件6のため、`design/architecture.md` の v2 の経緯（§1.1・§3・§4・§6・§10）を、K・P の番号や旧文書名を使わない言い方に書き直した（ユーザー指示）。§7 の「判定のコードは1系統」も現状（canon-update は触らない）に直した。テスト側は、旧ゲート名を拒否する確認の値を `P1`・`design-map` から `G9`・`unknown` に替えた。残る旧語彙は `tests/self_application.test.js` の検出リスト（旧語彙を検出する仕組みそのもの）と `PLUGIN_MANIFEST`（plugin の語）だけ
+
 ## レビュー記録
 - 2026-10-17 段階1: draft PR #27 の上で、設計書 `design/architecture.md`（033e80d）をユーザーが承認した
 
@@ -67,4 +64,4 @@
 
 ## メモ
 - この計画の「段階」は本フォルダの段階0〜6で、flow-workflow の段階1〜4 とは別物である。/flow-* は、以前はこのリポジトリで開始時に止まった（`.claude/skills/canon-a/SKILL.md` があったため）。canon-a は段階4で消したので、この制約は無くなった。
-- 台帳の項目のうち、R2 で別セッションの実経路を通った L23（2026-10-10 の1件目）は、v2 については大半が解消している。v2 の残りを消す段階5で台帳から消す。
+- 台帳の 2026-10-10 の1件目（別セッションの実経路）は、段階5で台帳から消した。v3 の実経路は「未確認」と受け入れ条件4が持つ。

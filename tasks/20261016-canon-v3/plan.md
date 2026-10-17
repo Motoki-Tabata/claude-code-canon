@@ -53,9 +53,9 @@
 - [x] T4-5 自己適用テスト（`tests/self_application.test.js`）を v3 の構成に追従させる。
 
 ### 段階5 v2 の残りの撤去
-- [ ] T5-1 消す前に、消すパスへの参照を横断 grep する。gitignore されたものの扱いを確かめる。
-- [ ] T5-2 段階2〜4 で置き換えなかった v2 のもの（canon-a〜d・廃止するスクリプト・lib・テスト・`design/artifacts.md` のうち残っているもの）を消す。README・`.claude/README.md`・`guide/setup.md`・rules・`tasks/lessons.md` の冒頭を v3 の語彙に直す。
-- [ ] T5-3 台帳のうち、v3 で解消した項目を、このコミットの中で消す（項目の「予定」欄を見る）。
+- [x] T5-1 消す前に、消すパスへの参照を横断 grep する。gitignore されたものの扱いを確かめる。
+- [x] T5-2 段階2〜4 で置き換えなかった v2 のもの（canon-a〜d・廃止するスクリプト・lib・テスト・`design/artifacts.md` のうち残っているもの）を消す。README・`.claude/README.md`・`guide/setup.md`・rules・`tasks/lessons.md` の冒頭を v3 の語彙に直す。
+- [x] T5-3 台帳のうち、v3 で解消した項目を、このコミットの中で消す（項目の「予定」欄を見る）。
 
 ### 段階6 ベンチマーク
 - [ ] T6-1 skillweave-mhwilds の R2 の前のコミットを特定する（main の `bc0c63f` か、R2 の配置ブランチ `chore/canon-deploy-20261014_232320` の分岐点を確かめる）。

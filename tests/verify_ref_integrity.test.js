@@ -1,7 +1,7 @@
 /**
- * V6 参照整合（artifacts.md §8.2）の回帰テスト。verify.js の buildContext（1回の走査）を通して当てる。
+ * V6 参照整合の回帰テスト。verify.js の buildContext（1回の走査）を通して当てる。
  *
- * 実 work/・output/ を汚さないよう、一意な <ts> を使い、各テストで自分の分だけ掃除する。
+ * 実 work/ を汚さないよう、一意な <ts> を使い、各テストで自分の分だけ掃除する。
  */
 
 import test from 'node:test';
@@ -12,7 +12,7 @@ import path from 'node:path';
 import { checkV6 } from '../lib/verify/ref-integrity.js';
 import { buildContext } from './helpers/verify-ctx.js';
 import { makeContext } from '../lib/verify/context.js';
-import { workDir as work, outputDir as out, genDir } from './helpers/paths.js';
+import { workDir as work, genDir } from './helpers/paths.js';
 import { cleanupTs, writeAgent as writeAgentFile } from './helpers/fixtures.js';
 import { tsFor } from './helpers/ts.js';
 
@@ -34,15 +34,15 @@ function v6(ts) {
 function setup(t, ts) {
   cleanupTs(t, ts);
   mkdirSync(work(ts), { recursive: true });
-  mkdirSync(path.join(out(ts), 'generated', '.claude', 'agents'), { recursive: true });
-  mkdirSync(path.join(out(ts), 'generated', '.claude', 'skills'), { recursive: true });
+  mkdirSync(path.join(genDir(ts), '.claude', 'agents'), { recursive: true });
+  mkdirSync(path.join(genDir(ts), '.claude', 'skills'), { recursive: true });
 }
 
 test('V6: preload skill 参照が実在すれば通過、不在なら違反', (t) => {
   const ts = tsFor(import.meta.url, 6);
   setup(t, ts);
-  const agents = path.join(out(ts), 'generated', '.claude', 'agents');
-  const skills = path.join(out(ts), 'generated', '.claude', 'skills');
+  const agents = path.join(genDir(ts), '.claude', 'agents');
+  const skills = path.join(genDir(ts), '.claude', 'skills');
   // 実在する skill
   mkdirSync(path.join(skills, 'helper'), { recursive: true });
   writeFileSync(path.join(skills, 'helper', 'SKILL.md'), '---\nname: helper\ndescription: x\n---\n本文\n');
@@ -63,7 +63,7 @@ test('V6: preload skill 参照が実在すれば通過、不在なら違反', (t
 });
 
 // ---------------------------------------------------------------------------
-// supporting file 判定の2段構え（artifacts.md §8.2 V6-4）。
+// supporting file 判定の2段構え（V6-4）。
 // Tier A（構造上確定できる参照）と Tier B（未解決トークンは warning に留める）に分ける。
 // 検出器の生存証明として、Tier A が機能することを故意の違反注入で固定する。
 // ---------------------------------------------------------------------------
@@ -71,7 +71,7 @@ test('V6: preload skill 参照が実在すれば通過、不在なら違反', (t
 test('V6 Tier A: ディレクトリが実在する supporting file 参照 → 欠落は違反として検出', (t) => {
   const ts = tsFor(import.meta.url, 11);
   setup(t, ts);
-  const skills = path.join(out(ts), 'generated', '.claude', 'skills');
+  const skills = path.join(genDir(ts), '.claude', 'skills');
   const skillDir = path.join(skills, 'demo');
   mkdirSync(path.join(skillDir, 'examples'), { recursive: true });
   // examples/ ディレクトリは実在するが、参照する missing.md 自体は無い（git は空のディレクトリを追跡しないので、別のファイルを置く）。
@@ -91,7 +91,7 @@ test('V6 Tier A: ディレクトリが実在する supporting file 参照 → �
 test('V6 Tier A: 明示相対トークン（./missing.md）の欠落 → 違反として検出', (t) => {
   const ts = tsFor(import.meta.url, 12);
   setup(t, ts);
-  const skills = path.join(out(ts), 'generated', '.claude', 'skills');
+  const skills = path.join(genDir(ts), '.claude', 'skills');
   const skillDir = path.join(skills, 'demo2');
   mkdirSync(skillDir, { recursive: true });
   writeFileSync(
@@ -109,7 +109,7 @@ test('V6 Tier A: 明示相対トークン（./missing.md）の欠落 → 違反�
 test('V6 Tier B: リポジトリ相対の地の文参照（lib/run.js 等）は誤検出しない', (t) => {
   const ts = tsFor(import.meta.url, 13);
   setup(t, ts);
-  const skills = path.join(out(ts), 'generated', '.claude', 'skills');
+  const skills = path.join(genDir(ts), '.claude', 'skills');
   const skillDir = path.join(skills, 'demo3');
   mkdirSync(skillDir, { recursive: true });
   // lib/run.js はスキルディレクトリ相対には実在しないが、地の文の説明であり
@@ -143,7 +143,7 @@ test('V6 Tier B: リポジトリ相対の地の文参照（lib/run.js 等）は�
 test('V6: supporting files だけで SKILL.md が無い skill パッケージは違反（サイレント不発火の検出）', (t) => {
   const ts = tsFor(import.meta.url, 15);
   setup(t, ts);
-  const skills = path.join(out(ts), 'generated', '.claude', 'skills');
+  const skills = path.join(genDir(ts), '.claude', 'skills');
   const skillDir = path.join(skills, 'broken');
   mkdirSync(path.join(skillDir, 'examples'), { recursive: true });
   // 故意の違反注入: 定義ファイルの綴り違い（Skill.md）＋ supporting files のみ。
@@ -169,7 +169,7 @@ test('V6: supporting files だけで SKILL.md が無い skill パッケージは
 test('V6: ネストした examples/SKILL.md はパッケージの定義ファイルに数えない（skillPathRole 委譲の確認）', (t) => {
   const ts = tsFor(import.meta.url, 16);
   setup(t, ts);
-  const skills = path.join(out(ts), 'generated', '.claude', 'skills');
+  const skills = path.join(genDir(ts), '.claude', 'skills');
   const skillDir = path.join(skills, 'nested');
   mkdirSync(path.join(skillDir, 'examples'), { recursive: true });
   // supporting file として置かれた例示 SKILL.md。名前だけで拾うと定義ファイル有りに見える。
@@ -193,7 +193,7 @@ test('V6: ネストした examples/SKILL.md はパッケージの定義ファイ
 test('V6 V6-7: 対象プロジェクトの非管理ファイルへの行番号引用は違反（故意の違反注入）', (t) => {
   const ts = tsFor(import.meta.url, 20);
   setup(t, ts);
-  const rules = path.join(out(ts), 'generated', '.claude', 'rules');
+  const rules = path.join(genDir(ts), '.claude', 'rules');
   mkdirSync(rules, { recursive: true });
   // 故意の違反注入: 実測どおり README.md への行番号引用（非管理ファイル）。
   writeFileSync(
@@ -220,7 +220,7 @@ test('V6 V6-7: 対象プロジェクトの非管理ファイルへの行番号�
 test('V6 V6-7: 行範囲形式（path:N-M）・ネストしたパス（contracts/README.md）も検出する', (t) => {
   const ts = tsFor(import.meta.url, 21);
   setup(t, ts);
-  const skills = path.join(out(ts), 'generated', '.claude', 'skills');
+  const skills = path.join(genDir(ts), '.claude', 'skills');
   const skillDir = path.join(skills, 'impact-scope');
   mkdirSync(skillDir, { recursive: true });
   // 故意の違反注入: 実測どおり contracts/README.md への行範囲引用（ファイル末尾の節ゆえ
@@ -231,7 +231,7 @@ test('V6 V6-7: 行範囲形式（path:N-M）・ネストしたパス（contracts
       '影響範囲はファイル名パターンで宣言する（出典: `contracts/README.md:64-68`）。\n'
   );
   const r = v6(ts);
-  assert.equal(r.ok, false, 'ネストした非管理パスへの行範囲引用も違反のはず');
+  assert.equal(r.ok, false, 'ネストした差分外のファイルへの行範囲引用も違反のはず');
   assert.ok(
     r.violations.some((v) => v.includes('contracts/README.md') && v.includes('impact-scope')),
     `contracts/README.md への行範囲引用が検出されること: ${JSON.stringify(r.violations)}`
@@ -241,11 +241,11 @@ test('V6 V6-7: 行範囲形式（path:N-M）・ネストしたパス（contracts
 test('V6 V6-7: 差分の中のファイル同士の行番号参照は誤検出しない', (t) => {
   const ts = tsFor(import.meta.url, 22);
   setup(t, ts);
-  const rules = path.join(out(ts), 'generated', '.claude', 'rules');
+  const rules = path.join(genDir(ts), '.claude', 'rules');
   mkdirSync(rules, { recursive: true });
   // 差分の中のファイル同士の行番号参照は正当（同じ run で一括して直すので相互の行番号がずれる余地がない）。
   writeFileSync(path.join(rules, 'backend.md'), '---\npaths: ["**"]\n---\nbackend\n');
-  writeFileSync(path.join(out(ts), 'generated', 'CLAUDE.md'), '# claude\n');
+  writeFileSync(path.join(genDir(ts), 'CLAUDE.md'), '# claude\n');
   writeFileSync(
     path.join(rules, 'cross-ref.md'),
     '---\npaths: ["**"]\n---\n' + '詳細は `.claude/rules/backend.md:12` および `CLAUDE.md:1-10` を参照。\n'
@@ -297,7 +297,7 @@ test('V6: 触った skill のパッケージから SKILL.md だけが消える�
 });
 
 // ---------------------------------------------------------------------------
-// 委譲条件の日本語表記・basename 解決・未解決の集約（P4 の warning のノイズを減らす）
+// 委譲条件の日本語表記・basename 解決・未解決の集約（warning のノイズを減らす）
 // ---------------------------------------------------------------------------
 
 const writeAgent = (ts, name, description) => writeAgentFile(genDir(ts), name, { description, tools: 'Read' });
@@ -319,7 +319,7 @@ test('V6 委譲条件: 日本語の「委譲される」「委譲する」は wa
 test('V6 Tier B: パスを含まないファイル名は generated/ 全体の basename 一致で解決する。パス付きは解決しない', (t) => {
   const ts = tsFor(import.meta.url, 32);
   setup(t, ts);
-  const skills = path.join(out(ts), 'generated', '.claude', 'skills');
+  const skills = path.join(genDir(ts), '.claude', 'skills');
   mkdirSync(path.join(skills, 'demo'), { recursive: true });
   mkdirSync(path.join(skills, 'other', 'scripts'), { recursive: true });
   writeFileSync(path.join(skills, 'other', 'SKILL.md'), '---\nname: other\ndescription: x\n---\n本文\n');
@@ -340,7 +340,7 @@ test('V6 Tier B: パスを含まないファイル名は generated/ 全体の ba
 test('V6 Tier B: 未解決のトークンは1ファイル1件にまとめ、件数と代表例（5件）を載せる', (t) => {
   const ts = tsFor(import.meta.url, 33);
   setup(t, ts);
-  const skillDir = path.join(out(ts), 'generated', '.claude', 'skills', 'many');
+  const skillDir = path.join(genDir(ts), '.claude', 'skills', 'many');
   mkdirSync(skillDir, { recursive: true });
   const toks = Array.from({ length: 8 }, (_, i) => `\`lib/m${i}.js\``).join('・');
   writeFileSync(path.join(skillDir, 'SKILL.md'), `---\nname: many\ndescription: x\n---\n${toks}\n`);
@@ -355,7 +355,7 @@ test('V6 Tier B: 未解決のトークンは1ファイル1件にまとめ、件�
 test('V6 V-skills-18: SKILL.md の Markdown 相対リンクの参照先が無ければ違反、あれば通る（故意の違反注入）', (t) => {
   const ts = tsFor(import.meta.url, 34);
   setup(t, ts);
-  const skillDir = path.join(out(ts), 'generated', '.claude', 'skills', 'linked');
+  const skillDir = path.join(genDir(ts), '.claude', 'skills', 'linked');
   mkdirSync(path.join(skillDir, 'references'), { recursive: true });
   writeFileSync(path.join(skillDir, 'references', 'guide.md'), '# guide\n');
   writeFileSync(
@@ -371,7 +371,7 @@ test('V6 V-skills-18: SKILL.md の Markdown 相対リンクの参照先が無け
 test('V6 V-skills-18: コードフェンスの中のリンク・URL・anchor だけのリンクは検査しない', (t) => {
   const ts = tsFor(import.meta.url, 35);
   setup(t, ts);
-  const skillDir = path.join(out(ts), 'generated', '.claude', 'skills', 'fenced');
+  const skillDir = path.join(genDir(ts), '.claude', 'skills', 'fenced');
   mkdirSync(skillDir, { recursive: true });
   writeFileSync(
     path.join(skillDir, 'SKILL.md'),

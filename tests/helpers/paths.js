@@ -6,18 +6,14 @@
 
 import path from 'node:path';
 import { CANON_ROOT } from '../../lib/canon.js';
-import { outputDir } from '../../lib/run.js';
+import { workDir } from '../../lib/run.js';
 
 export { CANON_ROOT as ROOT, DESIGN_DOCS } from '../../lib/canon.js';
 
-export { outputDir, workDir } from '../../lib/run.js';
+export { workDir } from '../../lib/run.js';
 
-/** output/<ts>/generated/ */
+/** work/<ts>/generated/（verify のテストが、変えたファイルを置く仮の worktree） */
 export function genDir(ts) {
-  return path.join(outputDir(ts), 'generated');
+  return path.join(workDir(ts), 'generated');
 }
 
-/** Phase Skill の scripts/ ディレクトリ（`phase` は 'canon-a'・'canon-c'・'canon-d'）。 */
-export function scriptsDir(phase) {
-  return path.join(CANON_ROOT, '.claude', 'skills', phase, 'scripts');
-}

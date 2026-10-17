@@ -185,7 +185,7 @@ test('check CLI: 入力不在は NG（exit 1）、引数不正は exit 2', (t) =
   assert.equal(noPlan.code, 1);
   assert.match(noPlan.stdout, /change-plan\.md が無い/);
   assert.equal(checkCli(r.ts, 'spec').code, 2, 'spec は廃止した');
-  assert.equal(checkCli(r.ts, 'design-map').code, 2, 'design-map は廃止した');
+  assert.equal(checkCli(r.ts, 'unknown').code, 2, '未知の対象は引数不正');
   assert.equal(checkCli('not-a-ts', 'requirements').code, 2);
   assert.equal(checkCli().code, 2);
 });

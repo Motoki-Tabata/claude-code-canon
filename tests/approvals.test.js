@@ -67,7 +67,7 @@ test('gateHash（小）: G1 は requirements.md と change-plan.md の両方に�
   assert.equal(g2.hash, r.head().slice(0, 12));
   assert.equal(g2.target, r.branch);
   assert.throws(() => gateHash(r.root, r.ts, 'G3'), /ゲート G3 は small の経路に無い/);
-  assert.throws(() => gateHash(r.root, r.ts, 'P1'), ApprovalError);
+  assert.throws(() => gateHash(r.root, r.ts, 'G9'), ApprovalError);
 });
 
 test('record → check（小）: 一致なら有効。承認後に文書を変える・コミットを積むと不一致（故意の改変で検出を確かめる）', (t) => {
@@ -172,7 +172,7 @@ test('approvals CLI: 実際の起動経路で record・check の exit code を�
 
   assert.equal(run().code, 2);
   assert.equal(run(r.ts, 'check', '--expect', 'G7').code, 2, 'どの経路にも無い名前は引数不正（exit 2）');
-  assert.equal(run(r.ts, 'record', 'P1', 'x').code, 2);
+  assert.equal(run(r.ts, 'record', 'G9', 'x').code, 2);
   assert.equal(run(r.ts, 'check', '--expect', 'G3').code, 1, '小の経路に無いゲートは拒否（exit 1）');
   assert.equal(run(r.ts, 'check', '--expect', 'G1').code, 1, '承認行が無い');
   assert.equal(run(r.ts, 'record', 'G2', 'x').code, 1, '前提（G1）を満たさない');

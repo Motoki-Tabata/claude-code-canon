@@ -61,9 +61,9 @@ test('claude-canon 自身の .claude/**.md が V1〜V4 で違反0件', () => {
   assert.deepEqual(found, [], `自己適用で違反を検出:\n${found.join('\n')}`);
 });
 
-test('Phase Skill の scripts/ は skill パッケージの supporting files として扱われる（V1・V2 の対象外）', () => {
+test('Skill の scripts/ は skill パッケージの supporting files として扱われる（V1・V2 の対象外）', () => {
   const scripts = trackedFiles('.claude/skills').filter((f) => /^\.claude\/skills\/[^/]+\/scripts\//.test(f));
-  assert.ok(scripts.length >= 5, `scripts が少なすぎる（実際: ${scripts.length}）。0件を成功と誤認しない。`);
+  assert.ok(scripts.length >= 2, `scripts が少なすぎる（実際: ${scripts.length}）。0件を成功と誤認しない。`);
   const misfiled = scripts.filter((f) => skillPathRole(f) !== 'supporting' || !isNonSchemaRel(f, 'generated'));
   assert.deepEqual(misfiled, []);
 });
@@ -149,7 +149,7 @@ const KNOWLEDGE_SKILLS = ['investigation', 'requirements', 'design', 'generation
 /** parseFrontmatter の値（文字列、または { value } を持つオブジェクト）を文字列で返す。 */
 const fmValue = (v) => (v && typeof v === 'object' ? String(v.value ?? '') : String(v ?? ''));
 
-test('Agent は6体ちょうどで（spec-writer・designer・keep-reviewer を作らない）、それぞれ期待する知識 Skill を preload する', () => {
+test('Agent は6体ちょうどで（旧版の Agent を作らない）、それぞれ期待する知識 Skill を preload する', () => {
   // `.claude` などサンドボックスのマウント点は定義ではないので、<名前>/<名前>.md を持つものだけを数える。
   const actual = readdirSync(path.join(SELF, 'agents'))
     .filter((n) => existsSync(path.join(SELF, 'agents', n, `${n}.md`)))
@@ -326,7 +326,7 @@ test('段階 Skill が handoff に書く進捗のキー・route・stage・status
 
 test('検出器の素振り: 進捗のキーの正規表現は v2 のキー・存在しないキーを拒否する', () => {
   for (const ok of ['計画1', '計画3', '設計1', '構築5']) assert.ok(PROGRESS_KEY_RE.test(ok), `${ok} を拒否した`);
-  for (const bad of ['工程1', 'P1', '構築6', '設計2', '計画4']) assert.ok(!PROGRESS_KEY_RE.test(bad), `${bad} を通した`);
+  for (const bad of ['工程1', 'G1', '構築6', '設計2', '計画4']) assert.ok(!PROGRESS_KEY_RE.test(bad), `${bad} を通した`);
 });
 
 test('段階 Skill に旧体系の用語・番号と廃止した標準レビューの呼び出しが残っていない（SendMessage は「再開しない」の規則として許す）', () => {

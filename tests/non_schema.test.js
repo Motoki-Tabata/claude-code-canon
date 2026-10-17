@@ -1,5 +1,5 @@
 /**
- * lib/non-schema.js（非スキーマ .md 判定の SSoT・artifacts.md §8.1）の回帰テスト。
+ * lib/non-schema.js（非スキーマ .md 判定の SSoT）の回帰テスト。
  *
  * この判定を複数の検査・ツール・テストに独立に複製すると、新しい生成物（README.md）が
  * 初めて実在したとき波及漏れが起きる。
@@ -65,7 +65,7 @@ test('呼び出し側が SSoT（lib/non-schema.js）を import しているこ�
 
 /**
  * 固定名3件のほかに、パターンでしか書けない非スキーマ領域。
- * どちらも「正典が示す形なのに検査が弾く」内部矛盾を防ぐためにある（artifacts.md §8.1・§8.2 V1）。
+ * どちらも「正典が示す形なのに検査が弾く」内部矛盾を防ぐためにある（V1）。
  */
 test('skill パッケージの supporting files は非スキーマ（正典 V-skills-18 が前提にする補助ファイル）', () => {
   assert.equal(isNonSchemaRel('.claude/skills/y/template.md', 'generated'), true);

@@ -1,5 +1,5 @@
 /**
- * verify のテスト用コンテキスト。`output/<ts>/generated/` の全ファイルを「変えたファイル」（追加）かつ
+ * verify のテスト用コンテキスト。`work/<ts>/generated/` の全ファイルを「変えたファイル」（追加）かつ
  * 「追跡されているファイル」として扱い、`work/<ts>/` の requirements.md・change-plan.md を読む。
  * git は使わない（git を使う経路は verify_cli.test.js が実際の起動経路で見る）。
  */

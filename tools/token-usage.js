@@ -5,7 +5,7 @@
  * セッション transcript（`~/.claude/projects/<slug>/<sid>.jsonl` と
  * `<sid>/subagents/agent-*.jsonl` ＋ `.meta.json`）から、トークン消費を **メイン／agentType ×
  * model** 別に集計する。claude-canon の改修前後で「何がトークンを使ったか」を実測比較するための計測器で、
- * 5時間枠の消費主因（メイン履歴の再読込・長時間稼働 agent・差し戻し・design-map の重複 Read）を
+ * 5時間枠の消費主因（メイン履歴の再読込・長時間稼働 agent・差し戻し）を
  * 数字で確かめるために使う。読み取り専用（何も書かない）。
  *
  * 集計の規律:
@@ -14,7 +14,7 @@
  *   - model が `<synthetic>`（上限到達メッセージ等）のレコードは 0 トークンなので除外する。
  *   - 「総入力」= input + cache_creation + cache_read。
  *
- * 純関数（aggregateRecords・countDesignMapReads・formatMarkdown）は tests/token_usage.test.js が検証する。
+ * 純関数（aggregateRecords・formatMarkdown）は tests/token_usage.test.js が検証する。
  */
 
 import path from 'node:path';
@@ -23,8 +23,6 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { CANON_ROOT } from '../lib/canon.js';
 import { projectSlug } from '../lib/claude-session.js';
 import { isMainModule } from '../lib/run.js';
-
-const DESIGN_MAP_RE = /(^|[\\/])design-map\.md$/;
 
 /** JSONL 文字列を壊れた行を飛ばしてレコード配列にする。 */
 export function parseJsonl(text) {
@@ -70,27 +68,12 @@ export function totalInput(a) {
   return a.input + a.cacheCreation + a.cacheRead;
 }
 
-/** design-map.md への Read 呼び出し回数（同一成果物の重複 Read を検出する指標）。 */
-export function countDesignMapReads(records) {
-  let n = 0;
-  const seen = new Set();
-  for (const r of records) {
-    if (r?.type !== 'assistant' || !Array.isArray(r.message?.content)) continue;
-    for (const c of r.message.content) {
-      if (c?.type !== 'tool_use' || c.name !== 'Read' || seen.has(c.id)) continue;
-      seen.add(c.id);
-      if (DESIGN_MAP_RE.test(String(c.input?.file_path || ''))) n += 1;
-    }
-  }
-  return n;
-}
-
 /** セッションディレクトリ（`<sid>.jsonl` と `<sid>/subagents/`）を読み、メイン＋各 agent の集計を返す。 */
 export function analyzeSession(jsonlPath) {
   const main = parseJsonl(readFileSync(jsonlPath, 'utf8'));
   const sid = path.basename(jsonlPath, '.jsonl');
   const subDir = path.join(path.dirname(jsonlPath), sid, 'subagents');
-  const groups = [{ label: 'main', agg: aggregateRecords(main), designMapReads: countDesignMapReads(main), agents: 1 }];
+  const groups = [{ label: 'main', agg: aggregateRecords(main), agents: 1 }];
 
   const byType = new Map();
   if (existsSync(subDir)) {
@@ -105,14 +88,13 @@ export function analyzeSession(jsonlPath) {
         }
       }
       const recs = parseJsonl(readFileSync(path.join(subDir, f), 'utf8'));
-      const g = byType.get(agentType) ?? { label: agentType, agg: { byModel: {}, turns: 0 }, designMapReads: 0, agents: 0 };
+      const g = byType.get(agentType) ?? { label: agentType, agg: { byModel: {}, turns: 0 }, agents: 0 };
       const a = aggregateRecords(recs);
       for (const [model, v] of Object.entries(a.byModel)) {
         const t = (g.agg.byModel[model] ??= { calls: 0, input: 0, cacheCreation: 0, cacheRead: 0, output: 0 });
         for (const k of Object.keys(t)) t[k] += v[k];
       }
       g.agg.turns += a.turns;
-      g.designMapReads += countDesignMapReads(recs);
       g.agents += 1;
       byType.set(agentType, g);
     }
@@ -134,12 +116,12 @@ export function formatMarkdown(groups) {
   rest.sort((x, y) => y.total - x.total);
   const grand = [...main, ...rest].reduce((s, r) => s + r.total, 0) || 1;
   const lines = [
-    '| 区分 | model | 起動数 | ターン | 総入力 | (cache_read) | output | 全体比 | design-map Read |',
-    '|---|---|---|---|---|---|---|---|---|',
+    '| 区分 | model | 起動数 | ターン | 総入力 | (cache_read) | output | 全体比 |',
+    '|---|---|---|---|---|---|---|---|',
   ];
   for (const { g, model, a, total } of [...main, ...rest]) {
     lines.push(
-      `| ${g.label} | ${model} | ${g.agents} | ${a.calls} | ${fmt(total)} | ${fmt(a.cacheRead)} | ${fmt(a.output)} | ${((total / grand) * 100).toFixed(1)}% | ${g.designMapReads} |`
+      `| ${g.label} | ${model} | ${g.agents} | ${a.calls} | ${fmt(total)} | ${fmt(a.cacheRead)} | ${fmt(a.output)} | ${((total / grand) * 100).toFixed(1)}% |`
     );
   }
   lines.push('', `総入力の合計: ${fmt(grand)}`);

@@ -17,7 +17,7 @@ claude-canon は、Claude Code のカスタマイズ一式（CLAUDE.md・Rules�
 
 ### 1.1 v2 から変えた理由
 
-v2 は全量スナップショット方式で、既存の全ファイルを keep・modify・merge・retire に判定し、一式を `output/<ts>/generated/` に書き直して配置した。2回の run（R1 20261012_030955・R2 20261014_232320）はどちらも小さな改修だったが、総入力は R1 が 53.5M、R2 が 46.3M（Phase A〜C で 40.3M）で、94% が cache_read だった。R2 では79件中55件が modify になり、23件は内容を変えないのに全文を書き写した。中間文書は requirements 10KB → spec 101KB → design-map 81KB と膨らみ、下流の全員がそれを読み直した。手戻りの原因は2回とも、実物や公式で確かめる前に要件を確定したことだった。verify の違反は2回とも0件で、欠陥を見つけたのは keep-review・prompt-audit・公式照合だった。
+v2 は全量スナップショット方式で、既存の全ファイルを「そのまま残す・直す・統合する・消す」に判定し、一式を `output/` の下に書き直して配置した。2回の run（R1 20261012_030955・R2 20261014_232320）はどちらも小さな改修だったが、総入力は R1 が 53.5M、R2 が 46.3M（配置の段を除くと 40.3M）で、94% が cache_read だった。R2 では79件中55件が「直す」になり、23件は内容を変えないのに全文を書き写した。中間文書は要件 10KB → 仕様 101KB → 設計マップ 81KB と膨らみ、下流の全員がそれを読み直した。手戻りの原因は2回とも、実物や公式で確かめる前に要件を確定したことだった。verify の違反は2回とも0件で、欠陥を見つけたのは、残すファイルのレビュー・prompt-audit・公式照合だった。
 
 v3 は**変更集合方式**にする。対象リポジトリの worktree の上で、変えるファイルだけを編集する。差分は `git diff` で示し、反映は人間がマージする。触らないファイルの判定・書き写し・配置の仕組みが要らなくなる。そのため、互換を取らずに骨格から作り直す。
 
@@ -52,7 +52,7 @@ v3 は**変更集合方式**にする。対象リポジトリの worktree の上
 - 対象は git で管理されていることを前提にする。git でなければ `worktree` は exit 1 で止まる。
 - `output/` は無くなる。生成物は対象のブランチのコミットとして渡す。
 - 対象のブランチに入らないファイル（未追跡や gitignore の、`.claude/settings.local.json` など）は worktree に現れない。`inventory` は対象の作業ツリーにあるそうしたカスタマイズを警告として挙げる。そのファイルを変える要件は扱わない。
-- canon 自身が対象のときも同じ扱いになる。worktree は canon のルートの外にあるので、run 中のセッションが読む `.claude/` と、編集される `.claude/` が混ざらない。v2 で必要だった自己指定の拒否（`self-target-guard`）は要らなくなる。
+- canon 自身が対象のときも同じ扱いになる。worktree は canon のルートの外にあるので、run 中のセッションが読む `.claude/` と、編集される `.claude/` が混ざらない。v2 で必要だった、canon 自身を対象に指定することの拒否は要らなくなる。
 
 ### 3.1 canon のルートの外に置く理由（2026-10-17 の実験）
 
@@ -65,7 +65,7 @@ v3 は**変更集合方式**にする。対象リポジトリの worktree の上
 | ルートの外・`--add-dir` | 読み込まれなかった | **読み込まれた** | 通った |
 | ルートの外・allow 規則 `Edit(//<worktree>/**)` だけ | 読み込まれなかった | 読み込まれなかった | 通った |
 
-- ルートの下に置くと、対象の指示が canon のセッションに混ざる（v2 の `output/<ts>/generated/` も同じ）。gitignore されていないサブディレクトリの Skill は、対照の実験で読み込まれた。gitignore 下で読み込まれないのはこの実験で見た挙動で、正典には書かれていない。
+- ルートの下に置くと、対象の指示が canon のセッションに混ざる（v2 が生成物を置いていた canon のルートの下のフォルダも同じ）。gitignore されていないサブディレクトリの Skill は、対照の実験で読み込まれた。gitignore 下で読み込まれないのはこの実験で見た挙動で、正典には書かれていない。
 - `--add-dir` は対象の Skill を読み込むので使わない。`permissions.additionalDirectories` も、正典 `skills.md` §3.1 が追加ディレクトリを Skill の置き場所に挙げているので使わない（こちらは実験していない）。
 - そこで、置き場所をホームの下の固定のパスにし、canon の `.claude/settings.json` に `Read(~/.claude-canon/wt/**)`・`Edit(~/.claude-canon/wt/**)` を置く。`~/` の起点で書けるので、利用者ごとの絶対パスが要らない。allow 規則は、canon のルートのワークスペース信頼を受け入れてから効く（正典 `permissions.md`）。
 - 段階2で確かめたこと（`claude -p`・v2.1.300・haiku、`worktree` で作った `~/.claude-canon/wt/` の worktree）: Subagent（builder）は、この allow 規則で worktree を Edit できた。規則に当たらないパスへの Edit は、同じ手順で拒否された。
@@ -83,14 +83,14 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 | `work/<ts>/requirements.md` | `/canon-plan` のメイン | 要件ごとの want・根拠の確度・根拠の所在・触る見込みのファイル・受入基準。constraints（hooks・mcp・plugins・experimental・組織の方針）、範囲外、未決 |
 | `work/<ts>/change-plan.md` | 小はメイン（`/canon-plan`）、大は `/canon-design` のメイン | ファイルごとの変更指示（modify・new・delete と、要件 ID ごとの指示）、影響を受ける参照元の扱い（`impact` の該当ごとに「変える」か「変えない（理由）」か）、worktree で実行する対象の検証コマンド。大の経路では、機能選定・構成と責務・モデル割当も持つ |
 
-- spec は廃止して requirements.md に統合する。要件を「確かめた事実」と「受入基準」の形で書けば、方向づけの文書を別に挟む必要が無い。
+- 仕様の文書は廃止して requirements.md に統合する。要件を「確かめた事実」と「受入基準」の形で書けば、方向づけの文書を別に挟む必要が無い。
 - **根拠の確度**は「実物で確認」「公式で確認」「文言のみ」の3つにする。「文言のみ」の要件は G1 で確定させない（`check` が NG にする）。2回の run の手戻りは、どちらもここが原因だった。
-- `impact` の該当には、change-plan の参照元の扱いで漏れなく答える（`check` が照合する）。R2 で keep-review が見つけた K2（触らないファイルが変えた語を参照していた）を、計画の段階で表に出すためである。
+- `impact` の該当には、change-plan の参照元の扱いで漏れなく答える（`check` が照合する）。R2 のレビューが見つけた、触らないファイルが変えた語を参照していた食い違いを、計画の段階で表に出すためである。
 - handoff.md は run の状態だけを持ち、要件と計画の本文を写さない。frontmatter（`ts`・`target`・`route`・`worktree`・`branch`・`base`〔分岐元の sha〕・`canon_commit`・`stage`・`status`）と、進捗・承認・差し戻し・申し送り・セッションの5節にする。
 
 ### 4.1 サイズの上限
 
-`check` は節ごとの UTF-8 バイト数を数え、上限を超えたら NG にする。値は R2 の実測（要件1件は 357〜1190 バイト、design-map の変更指示はファイル1件で最大約 2.1KB）に余裕を持たせて決めた。段階6の実測で見直す。
+`check` は節ごとの UTF-8 バイト数を数え、上限を超えたら NG にする。値は R2 の実測（要件1件は 357〜1190 バイト、v2 の設計マップの変更指示はファイル1件で最大約 2.1KB）に余裕を持たせて決めた。段階6の実測で見直す。
 
 | 文書・節 | 上限 |
 |---|---|
@@ -137,8 +137,8 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 | `prompt-auditor` | 変えたファイルに `/claude-api prompt-audit` を実行し、報告を逐語で書く | sonnet・medium | build |
 | `session-analyst` | run の各セッションの transcript を分析し、行の参照付きで事実を書く | haiku・high | build の最後（振り返り） |
 
-- **spec-writer と keep-reviewer は作らない**。spec は廃止した。keep の判定はもう無いので、keep-reviewer が見ていた K2（触らないファイルとの食い違い）は、`impact` の該当を reviewer が見ることで引き継ぐ。
-- **designer は作らない**。`/canon-design` の設計はメインが inline で行う。R1 の designer は総入力 9.5M（cache_read 8.9M）で、文脈は約12k から約313k まで増えた。そのうえ Phase B のメインも 1.7M を使い、R2 では Phase C で designer をもう1回起動した。設計の段のメインは設計以外のことをしないので、ワーカーに分けても文脈は節約できない。inline なら入力を読むのは1回で済み、差し戻しも同じ文脈で直せる。
+- **仕様を書く Agent と、残すファイルを見る Agent は作らない**。仕様の文書は廃止し、残すかどうかの判定ももう無い。後者が見ていた触らないファイルとの食い違いは、`impact` の該当を reviewer が見ることで引き継ぐ。
+- **designer は作らない**。`/canon-design` の設計はメインが inline で行う。R1 の designer は総入力 9.5M（cache_read 8.9M）で、文脈は約12k から約313k まで増えた。そのうえ設計の段のメインも 1.7M を使い、R2 では生成の段で designer をもう1回起動した。設計の段のメインは設計以外のことをしないので、ワーカーに分けても文脈は節約できない。inline なら入力を読むのは1回で済み、差し戻しも同じ文脈で直せる。
 - 小の経路の change-plan はメインが書く。要件の事実確認をした文脈がメインにあるからである。
 - `profiler` と `session-analyst` を haiku・high にしたのは、`.claude/skills/design/references/model-selection.md` の3条件（事実の抽出に徹する・正典を参照した判断を要さない・出力が後段で検証される）を満たすからである。profile については `work/20261014_232320/eval/haiku/profile.md` で、haiku の出力が本番とほぼ同じ質だった（版の情報は多く、数えられなかった repo_scale は `inventory` が数える）。haiku に分ける基準は「3条件を満たし、本番の出力と同じ事実の項目が揃うこと」とする。session-analyst の分析を台帳に起票するかは、メインが確度を確かめて決める。
 
@@ -148,14 +148,14 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 
 | 役（R2 の実績） | 実績 | 案 | 同じトークン量での概算 |
 |---|---|---|---|
-| designer＋Phase B のメイン | opus $5.74（C の designer の再起動を含む） | 設計をメインの inline で行う | designer 1体分（約 $4.0）以下。メインが入力を読み直す分と、再起動の分が無くなる |
+| designer＋設計の段のメイン | opus $5.74（生成の段の designer の再起動を含む） | 設計をメインの inline で行う | designer 1体分（約 $4.0）以下。メインが入力を読み直す分と、再起動の分が無くなる |
 | reviewer | sonnet $2.53 | sonnet・high（opus・high は段階6で比べる） | opus なら $4.40 |
 | session-analyst | sonnet $2.08 | haiku・high | $0.10（100K トークンを超えるプロンプトは単価が5倍になるので、最大で約 $0.5） |
 | investigator | sonnet $2.39 | sonnet・medium（profile の部分は profiler の haiku に移す） | haiku なら $0.12 |
 | builder・prompt-auditor | sonnet $2.30・$1.33 | sonnet・medium | 変えない |
 
 - Opus と Sonnet の差は、cache read の単価が同じなので、cache の多い役では約1.4〜1.7倍にとどまる。費用を決めるのは、モデルの格よりトークンの量である。そこで v3 は、モデルを下げるより、読む量と書き写す量を減らすほうを優先した。
-- 段階6の受け入れ条件（総入力が R2 の Phase A〜D の 46.3M の40%、約18.5M 以下）に余裕を持って収める配分の目安（推測、計16M）は、plan のメイン 4.5M・investigator 1.5M・build のメイン 3M・builder 2M・reviewer 2.5M・prompt-auditor 1M・振り返り 1.5M である。段階6で `npm run tokens` の実測と比べる。
+- 段階6の受け入れ条件（総入力が R2 の全段の 46.3M の40%、約18.5M 以下）に余裕を持って収める配分の目安（推測、計16M）は、plan のメイン 4.5M・investigator 1.5M・build のメイン 3M・builder 2M・reviewer 2.5M・prompt-auditor 1M・振り返り 1.5M である。段階6で `npm run tokens` の実測と比べる。
 - `/canon-build` の advisor は、同じエラーが2回出たときと、差分のゲートの前だけに呼ぶ。
 
 ### 6.3 Skill
@@ -173,8 +173,8 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 | 対象のテスト | worktree | change-plan の検証コマンドを、メインが worktree で実行する |
 | `approvals` | ゲートの対象 | G1・G2（大は G3 まで）。文書のゲートは sha256 に、差分のゲートはコミットの sha に束縛する |
 
-- verify は変えたファイルだけを見る。触らないファイルは base のまま変わらず、それへの影響は 6 の参照整合と `impact` が受け持つ。v2 の V7（keep の非回帰）・V8（スナップショットの完全性）は全量スナップショット方式のための検査なので廃止する。
-- 判定のコードは1系統にまとめる。`canon-c/scripts/verify/` と `canon-update/scripts/` の検査で重なる判定（frontmatter・ツール名・配置パス）は `lib/` に置き、両方から呼ぶ。
+- verify は変えたファイルだけを見る。触らないファイルは base のまま変わらず、それへの影響は 6 の参照整合と `impact` が受け持つ。v2 の、残すファイルの非回帰とスナップショットの完全性の検査は、全量スナップショット方式のためのものなので廃止する。
+- 判定のコードは `lib/verify/` の1系統にまとめた。`canon-update` の検査（正典の検査）は触らない。重なるのはコードフェンスの判定と走査だけだった。
 - 差分に hooks（settings・frontmatter のどちらでも）か `permissions` が含まれるときは、verify の 9 が「対象のワークスペースの trust を承認しないと効かない」という警告を出し、差分のゲートの提示に載せる。v2 は README の生成でこれを伝えようとしたが、項目が漏れていた。
 - 空振りを合格にしない。検査の対象が0件のとき（差分が空・計画が空）は、違反として扱う。
 - 差分のゲートを承認した後に、ブランチに新しいコミットが積まれたら、承認は無効になる（`approvals check` が sha の不一致を出す）。
@@ -194,4 +194,4 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 
 ## 10. 廃止したもの
 
-全量スナップショット方式と、それを支えた仕組みを廃止する。具体的には、keep・modify・merge・retire の処遇と K1〜K5、MANIFEST と README の決定論の生成、管理パス集合、`copy-keep`・`emit-manifest`・`review-bundle`・`emit-run-manifest`・`pre-deploy-check`・`deploy`・`self-target-guard`、verify の V7・V8、spec と spec-writer、keep-reviewer、designer、`output/`、Phase A〜D と P1〜P5 である。v2 の書式と検査の詳細は、段階5までは `design/artifacts.md` に残り、その後は git の履歴に残る。
+全量スナップショット方式と、それを支えた仕組みを廃止する。具体的には、ファイルごとの処遇の判定とその条件、成果物の一覧と使い方の説明の決定論の生成、管理パス集合、成果物のコピー・一覧の生成・レビュー入力の作成・配置前の照合・配置・自己指定の拒否のスクリプト、verify の旧 V7・V8、仕様の文書とそれを書く Agent、残すファイルを見る Agent、designer、`output/`、Phase 分けと人間ゲート P 系である。v2 の書式と検査の詳細（旧 `design/artifacts.md`）は git の履歴に残る。

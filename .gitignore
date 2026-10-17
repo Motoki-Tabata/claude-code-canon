@@ -1,17 +1,11 @@
-# output/・work/ は run の成果物なので gitignore（architecture.md §7・§10）。
+# work/ は run の状態と中間文書なので gitignore（architecture.md §3）。
 # ディレクトリ自体は .gitkeep で追跡し、中身のみ除外する（除外ディレクトリの中に git は降りないため
-# `/output/` 形式ではなく `/output/*` 形式にする）。
-
-# 【実行結果】run ごとの成果物ステージング（対象プロジェクトで版管理する）
-/output/*
-!/output/.gitkeep
-
-# 【調査中間成果物】work/<ts>/
+# `/work/` 形式ではなく `/work/*` 形式にする）。
 /work/*
 !/work/.gitkeep
 
-# 配置時の退避先（artifacts.md §10.3 退避スワップ・対象リポジトリ側に生成されるが念のため）
-.claude-canon.bak.*/
+# v2 の run の成果物（v3 は output/ を作らない）。手元に残っている分を追跡しないための除外
+/output/
 
 # node
 /node_modules/

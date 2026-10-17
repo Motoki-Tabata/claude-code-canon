@@ -1,45 +1,41 @@
 # claude-canon `.claude/` の使い方
 
-この `.claude/` は claude-canon 本体です。対象プロジェクトの Claude Code カスタマイズ一式を、Phase A〜D の4つのセッションに分けて、調査・要件確定・設計・生成・検証・配置します。構成は Phase Skill 4件・知識 Skill 5件・正典リファレンス `canon-reference`・その更新 Skill `canon-update`（Skill は計11件）・Subagent 8体・Rule 4件・`settings.json` です。
+この `.claude/` は claude-canon 本体です。対象プロジェクトの Claude Code カスタマイズ一式を、対象の worktree の上で、計画・設計・構築の段に分けて作る・直します。構成は段の Skill 3件・知識 Skill 5件・正典リファレンス `canon-reference`・その更新 Skill `canon-update`（Skill は計10件）・Subagent 6体・Rule 4件・`settings.json` です。
 
 設計の全体像は [design/architecture.md](../design/architecture.md)、セットアップと運用の手順は [guide/setup.md](../guide/setup.md) を参照してください。
 
 ---
 
-## 1. 起動するもの（Phase Skill）
+## 1. 起動するもの（段の Skill）
 
-4つとも `/名前` で起動したときだけ動きます（自動では動きません）。1つの Phase を1つのセッションで行い、最後の人間ゲートを承認すると、次の Phase の起動方法を案内して止まります。
+3つとも `/名前` で起動したときだけ動きます（自動では動きません）。1つの段を1つのセッションで行い、最後のゲートを承認すると、次の段の起動方法を案内して止まります。
 
-| コマンド | 起動する場所 | 推奨モデル・effort | 工程と人間ゲート |
+| コマンド | 起動する場所 | 推奨モデル・effort | 内容と人間のゲート |
 |---|---|---|---|
-| `/canon-a <対象プロジェクトのパス>` | canon のルート | opus・medium | run の骨格を作る → 1 調査① → 2 要件ヒアリング → P1 → 3 調査② → 4 spec → P2 |
-| `/canon-b <ts>` | canon のルート | opus・medium | 5 機能選定と設計（design-map）→ P3 |
-| `/canon-c <ts>` | canon のルート | sonnet・medium | 6 生成 → 7 検証（verify）→ 8 品質検査と修正ループ → P4 |
-| `/canon-d <ts>` | canon のルート | sonnet・medium | 9 配置前照合 → P5 → 配置（人間が sandbox の外で実行）→ 配置後の手順 |
+| `/canon-plan <対象プロジェクトのパス>` | canon のルート | opus・medium | run と worktree の作成 → 棚卸し → 要件ヒアリングと根拠の確認 → G1。小の経路は change-plan.md も書き、G1 を両文書で取る |
+| `/canon-design <ts>` | canon のルート | opus・medium | 大の経路だけ。機能選定・構成と責務・モデル割当と change-plan.md → G2 |
+| `/canon-build <ts>` | canon のルート | sonnet・medium | 編集（builder）→ 対象のテストと verify → レビュー → 差分のゲート（小は G2・大は G3）→ 振り返り |
 
-- 正典 `canon-reference` の更新は run の外の保守作業で、`/canon-update` で起動します（Phase Skill ではありません）。
-- `<ts>` は `/canon-a` が採番する run の識別子（`YYYYMMDD_hhmmss`）です。
-- 中断した Phase A は、`/canon-a <ts>` を実行すると再開します。
-- 2つ目以降の Phase も、canon のルートで `claude --model <opus|sonnet> --effort medium` の新しいセッションを起動してから実行します。
-- run の状態・承認・差し戻し・申し送りは `work/<ts>/handoff.md` に記録されます。各 Phase の開始時に、前の Phase までの承認が承認後に変わっていないかを `npm run approvals` で照合し、run を始めたときから canon 本体が変わっていないか（`canon_commit`）も確かめます。
+- 正典 `canon-reference` の更新は run の外の保守作業で、`/canon-update` で起動します（段の Skill ではありません）。
+- `<ts>` は `/canon-plan` が採番する run の識別子（`YYYYMMDD_hhmmss`）です。中断した段は、`/canon-plan <ts>` のように ts を渡すと再開します。
+- 2つ目以降の段も、canon のルートで `claude --model <opus|sonnet> --effort medium` の新しいセッションを起動してから実行します。
+- run の状態・承認・差し戻し・申し送りは `work/<ts>/handoff.md` に記録されます。各段の開始時に `npm run preflight` が、承認が承認後に変わっていないか、run を始めたときから canon 本体が変わっていないか（`canon_commit`）、worktree が正しいかを確かめます。
 - run 中に見つけた canon 本体の問題は、その場で `tasks/lessons.md` に書きます。
 
 ## 2. 自動で使われるもの（Subagent）
 
-Phase Skill が工程ごとに起動します。ユーザーが直接起動する手順はありません。いずれもコマンド実行系のツールを持たず、決められたファイルだけを書きます。
+段の Skill が起動します。ユーザーが直接起動する手順はありません。いずれもコマンド実行系のツールを持ちません。
 
 | Subagent | 使われる場面 | 書くもの |
 |---|---|---|
-| `investigator` | Phase A の工程1（existing・profile）と工程3（focused） | `work/<ts>/investigation/<mode>.md` |
-| `session-analyst` | Phase A の工程2（過去のセッション履歴の分析を要件の材料にするときだけ）・Phase D の終わりの振り返り | `work/<ts>/session-analysis-<名前>.md`・`work/<ts>/retro/session-analysis-<phase>.md` |
-| `spec-writer` | Phase A の工程4 | `output/<ts>/spec.md` |
-| `designer` | Phase B の工程5（P3 の差し戻し、Phase C で keep に及ぶ修正をするときも） | `output/<ts>/design-map.md` |
-| `builder` | Phase C の工程6（担当ごとに並列）と修正ループ | `output/<ts>/generated/` のうち担当の範囲 |
-| `reviewer` | Phase C の工程8（判定の対象20件ごとに1体を並列に） | `output/<ts>/review/review-<k>.md` |
-| `keep-reviewer` | Phase C の工程8（既存を改修する run のときだけ） | `output/<ts>/review/keep-review.md` |
-| `prompt-auditor` | Phase C の工程8（標準 Skill `/claude-api prompt-audit` を実行し、報告を逐語で保存する） | `output/<ts>/review/prompt-audit.md` |
+| `investigator` | `/canon-plan`。要件の主張を対象の実物で確かめる | `work/<ts>/investigation/findings.md` |
+| `profiler` | `/canon-plan`。既存が無い対象や、未知の領域に触れる要件のとき | `work/<ts>/investigation/profile.md` |
+| `builder` | `/canon-build`。担当（unit）ごとに並列 | worktree の担当のファイル |
+| `reviewer` | `/canon-build`。変えたファイルと `impact` の参照元を判定する | `work/<ts>/review/review-<k>.md` |
+| `prompt-auditor` | `/canon-build`。標準 Skill `/claude-api prompt-audit` を実行し、報告を逐語で保存する | `work/<ts>/review/prompt-audit.md` |
+| `session-analyst` | `/canon-plan`（過去のセッション履歴を要件の材料にするとき）・`/canon-build` の振り返り | `work/<ts>/session-analysis-<名前>.md`・`work/<ts>/retro/session-analysis-<段>-<id>.md` |
 
-このほか、調査・要件・設計・生成・レビューの判断基準とテンプレートをまとめた内部参照の知識が5件あり、それぞれの Subagent が起動時に読み込みます。直接呼び出すものではないので、ここには並べません。
+このほか、要件・調査・設計・生成・レビューの判断基準とテンプレートをまとめた内部参照の知識が5件あり、それぞれの Subagent が起動時に読み込みます。直接呼び出すものではないので、ここには並べません。
 
 ## 3. 自動で読み込まれるもの（Rule）
 
@@ -55,15 +51,16 @@ claude-canon 本体を保守するときの規律です。run の生成物には
 ## 4. 前提のセットアップ
 
 - **Node.js 22 以上と git**。依存パッケージはありません（`npm install` は不要）。
-- **標準 Skill**: Phase C は `prompt-auditor` が `/claude-api prompt-audit` を実行し、builder は Skill の執筆指針として `canon-reference` の skills §4（generation Skill から参照）に従います。claude-api などはプラグイン `example-skills@anthropic-agent-skills`（marketplace `anthropics/skills`）で入れます。手順は [guide/setup.md](../guide/setup.md) にあります。
+- **標準 Skill**: `/canon-build` では `prompt-auditor` が `/claude-api prompt-audit` を実行し、builder は Skill の執筆指針として `canon-reference` の skills §4（generation Skill から参照）に従います。claude-api などはプラグイン `example-skills@anthropic-agent-skills`（marketplace `anthropics/skills`）で入れます。手順は [guide/setup.md](../guide/setup.md) にあります。
 - **フック・MCP・実験的機能**: この `.claude/` は使いません。
 
 ## 5. 注意と制約
 
 - **`settings.json` の permissions**:
   - canon のスクリプト（`npm run …`）と読み取り専用の git は許可しています。
-  - `deploy` の `--confirm` は拒否しています。配置は人間が sandbox の外で実行します。
-  - `git push` は毎回確認を求めます。
-- **人間ゲートは自動で進みません**。P1〜P5 では、チャットで承認を得るまで止まります。
-- **run の成果物（`work/<ts>`・`output/<ts>`）は自動で消しません**。片付けは人間が判断します。
-- **配置先に claude-canon 自身は指定できません**。canon 本体の変更は、ブランチで `npm test` を通し、PR で main に入れます。
+  - 対象の worktree（`~/.claude-canon/wt/`）の Read・Edit を許可しています。
+  - `git push` と、`worktree cleanup` の `--discard` は毎回確認を求めます。
+- **人間のゲートは自動で進みません**。G1〜G3 では、チャットで承認を得るまで止まります。
+- **反映は人間のマージです**。この仕組みは対象のブランチをマージも push もしません。worktree は、マージの後に `npm run worktree -- cleanup` で片付けます。
+- **run の中間物（`work/<ts>`）は自動で消しません**。片付けは人間が判断します。
+- canon 自身を対象にしても、worktree が canon のルートの外にあるので、run 中に読む `.claude/` と編集される `.claude/` は混ざりません。

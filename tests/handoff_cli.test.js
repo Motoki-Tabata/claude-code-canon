@@ -60,7 +60,7 @@ test('markProgress: 当たる行が無い・複数ある・キーが不正なら
   const t = fresh();
   assert.throws(() => markProgress(t, '構築6'), /キーは/);
   assert.throws(() => markProgress(t, '工程1'), /キーは/);
-  assert.throws(() => markProgress(t, 'P1'), /キーは/);
+  assert.throws(() => markProgress(t, 'G9'), /キーは/);
   assert.throws(() => markProgress(t.replace('構築1 編集と削除', '構築1x 編集と削除'), '構築1'), /0件/);
   assert.throws(() => markProgress(t.replace('## 承認', '- [ ] 計画3 重複\n\n## 承認'), '計画3'), /2件/);
   assert.throws(() => markProgress('## 承認\n', '計画1'), /「## 進捗」節が無い/);
