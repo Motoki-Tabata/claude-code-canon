@@ -44,14 +44,14 @@ test('NON_SCHEMA_MD は正準4件のみ（列挙漏れ・過剰の両方を検�
 
 test('呼び出し側が SSoT（lib/non-schema.js）を import していること（リテラル重複への回帰防止）', () => {
   const sites = [
-    path.join(ROOT, '.claude', 'skills', 'canon-c', 'scripts', 'verify.js'),
+    path.join(ROOT, 'lib', 'verify', 'run.js'),
     path.join(ROOT, 'tests', 'self_application.test.js'),
   ];
   for (const f of sites) {
     const src = readFileSync(f, 'utf8');
     assert.match(
       src,
-      /from ['"](\.\.\/)+lib\/non-schema\.js['"]/,
+      /from ['"](\.\.\/)+(lib\/)?non-schema\.js['"]/,
       `${path.relative(ROOT, f)} は isNonSchemaRel を lib/non-schema.js から import すること`
     );
     // 旧リテラル定義（KNOWN_NON_SCHEMA = new Set([...])）が復活していないこと。

@@ -11,9 +11,6 @@ import path from 'node:path';
 import { outputDir, workDir } from './paths.js';
 import { SAMPLE_REPOS, SAMPLE_MODES } from './sample-repos.js';
 import { renderHandoff } from '../../lib/handoff.js';
-import { hashTree } from '../../lib/tree-hash.js';
-import { recordApproval } from '../../tools/approvals.js';
-import { computeVanishing, writeReport } from '../../.claude/skills/canon-d/scripts/pre-deploy-check.js';
 import { KEEP_REVIEW_CASES } from './keep-review-cases.js';
 
 // ---------------------------------------------------------------------------
@@ -157,50 +154,6 @@ export function setupSampleRepo(t, name, ts) {
 export function writeHandoff(ts, { target, mode = 'new' }) {
   mkdirSync(workDir(ts), { recursive: true });
   writeFileSync(path.join(workDir(ts), 'handoff.md'), renderHandoff({ ts, target: target.split(path.sep).join('/'), mode }));
-}
-
-/** setupTmpCase の既定の ts と、deploy がその ts で作る退避ディレクトリの名前。 */
-export const TMP_CASE_TS = '20260722_000000';
-export const TMP_CASE_BAK = `.claude-canon.bak.${TMP_CASE_TS}`;
-
-/**
- * canon-d 系向け: 対象リポ（expected-output を除く）と `output/<ts>/`（= expected-output）を
- * tmpdir へ複写する。複写元・実 work/output を一切汚さない。
- */
-export function setupTmpCase(t, name, ts = TMP_CASE_TS, { approved = true } = {}) {
-  const caseDir = sampleRepoDir(name);
-  const tmp = mkdtempSync(path.join(os.tmpdir(), 'canon-deploy-'));
-  // canon のルート（work/・output/ の親）と対象を兄弟に置く。対象を canon のルートの配下に置くと、
-  // 承認の照合が canon 自身を対象にした run と判定する（tools/approvals.js）。
-  const root = path.join(tmp, 'canon');
-  const target = path.join(tmp, 'target');
-  const output = path.join(root, 'output', ts);
-  cpSync(caseDir, target, {
-    recursive: true,
-    filter: (s) => !s.split(path.sep).includes('expected-output'),
-  });
-  cpSync(path.join(caseDir, 'expected-output'), output, { recursive: true });
-  t.after(() => rmSync(tmp, { recursive: true, force: true }));
-  if (approved) approveAll(root, target, output, ts);
-  return { tmp, target, output, ts };
-}
-
-/**
- * `<tmp>/work/<ts>/handoff.md` を作り、P1〜P5 の承認行を記録する（deploy.js --confirm が P1〜P5 を照合する）。
- * P1〜P3 の対象は中身を問わないのでダミーを置く。P4 の前提の verify-report は現在の generated/ のハッシュを書き、
- * P5 の対象の pre-deploy-report は本物の writeReport で書く。
- */
-function approveAll(root, target, output, ts) {
-  const work = path.join(root, 'work', ts);
-  mkdirSync(work, { recursive: true });
-  writeFileSync(path.join(work, 'handoff.md'), renderHandoff({ ts, target, mode: 'new' }));
-  writeFileSync(path.join(work, 'requirements.md'), '# requirements\n');
-  writeFileSync(path.join(output, 'spec.md'), '# spec\n');
-  writeFileSync(path.join(output, 'design-map.md'), '# design-map\n');
-  writeFileSync(path.join(output, 'verify-report.md'), `- generated/ のハッシュ: \`${hashTree(path.join(output, 'generated')).hash}\`\n`);
-  for (const g of ['P1', 'P2', 'P3', 'P4']) recordApproval(root, ts, g, 'テスト用の承認');
-  writeReport(output, target, computeVanishing(output, target));
-  recordApproval(root, ts, 'P5', 'テスト用の承認');
 }
 
 /**
