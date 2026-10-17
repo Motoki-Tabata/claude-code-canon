@@ -3,6 +3,7 @@
  * worktree.js — 対象リポジトリの作業用 worktree（ブランチ canon/<ts>）の作成・コミット・片付け。
  *
  *   npm run worktree -- create --target <対象> --ts <YYYYMMDD_hhmmss>
+ *   npm run worktree -- rm --worktree <path> <file>...
  *   npm run worktree -- commit --worktree <path> --message <文>
  *   npm run worktree -- cleanup --worktree <path> [--delete-branch] [--discard]
  *
@@ -16,12 +17,13 @@
 
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { cleanupWorktree, commitWorktree, createWorktree, WorktreeError } from '../lib/worktree.js';
+import { cleanupWorktree, commitWorktree, createWorktree, removeFromWorktree, WorktreeError } from '../lib/worktree.js';
 import { isMainModule } from '../lib/run.js';
 
 const USAGE = [
   '使い方:',
   '  npm run worktree -- create --target <対象> --ts <YYYYMMDD_hhmmss>',
+  '  npm run worktree -- rm --worktree <path> <file>...',
   '  npm run worktree -- commit --worktree <path> --message <文>',
   '  npm run worktree -- cleanup --worktree <path> [--delete-branch] [--discard]',
 ].join('\n');
@@ -49,12 +51,16 @@ function main(argv) {
     process.stderr.write(`${USAGE}\n`);
     return 2;
   };
-  if (rest.length > 0) return bad();
+  if (rest.length > 0 && cmd !== 'rm') return bad();
   try {
     if (cmd === 'create') {
       if (!v.target || !v.ts) return bad();
       const r = createWorktree({ target: v.target, ts: v.ts });
       process.stdout.write(`worktree: ${r.worktree}\nbranch: ${r.branch}\nbase: ${r.base}\ntarget: ${r.target}\n`);
+    } else if (cmd === 'rm') {
+      if (!v.worktree || rest.length === 0) return bad();
+      const rels = removeFromWorktree({ worktree: path.resolve(v.worktree), paths: rest });
+      process.stdout.write(`removed: ${rels.join(', ')}\n`);
     } else if (cmd === 'commit') {
       if (!v.worktree || !v.message) return bad();
       process.stdout.write(`sha: ${commitWorktree({ worktree: path.resolve(v.worktree), message: v.message })}\n`);

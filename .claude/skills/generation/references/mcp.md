@@ -5,10 +5,6 @@
 ## canon の契約
 
 - **資格情報は必ず `${VAR}` の展開で書く**。キーや token を直書きしない（verify の V4 が止める）。未設定で既定値も無い `${VAR}` は、未展開の文字列のまま使われて接続に失敗する。
-- `mcp` が constraints で `allowed: false` なら、生成物のどこにも現れてはならない（V9）。
-- OAuth や環境変数のセットアップが要るときは、配置後の手作業として、design-map の「配置時の追加手順」に載っていることを確かめる。
+- `mcp` が constraints で `allowed: false` なら、差分のどこにも現れてはならない（verify の V8）。
+- OAuth や環境変数のセットアップが要るときは、change-plan の `## 機能と責務` の「配置後の手作業」に載っていることを確かめる。載っていなければ応答に書く。
 - Agent Teams・Channels・Monitors・Themes に依存するときは、実験機能であることを明示する。verify が機械で止めるのは Agent Teams の明示漏れだけ（V4）で、それ以外の明示は reviewer が見る。constraints の `experimental` が `allowed: false` なら作らない。
-
-## 読み込み元
-
-design-map の `## mcp` の節が、スライス `mcp.md` に入っている。

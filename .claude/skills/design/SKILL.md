@@ -1,14 +1,12 @@
 ---
 name: design
-description: 承認済みの spec から design-map.md を作るときの判断基準とテンプレート。機能選定（12機能）・構成と責務・機能の組み合わせ方（パターン）・モデル割当・既存カスタマイズの処遇（keep・modify・merge・retire と K1〜K5）・design-map の書式を扱う。designer が design-map を書く前に参照する。
+description: 大の経路で change-plan.md の機能選定・構成と責務・モデル割当を決めるときの判断基準とテンプレート。機能選定（12機能）・構成と責務・機能の組み合わせ方（パターン）・モデル割当を扱う。/canon-design のメインが、承認済みの requirements.md から change-plan.md を書く前に参照する。
 user-invocable: false
 ---
 
-# design（設計判断と design-map の書き方）
+# design（設計判断と change-plan の書き方・大の経路）
 
-design-map は、生成の**唯一の設計入力**であり、verify の V7・V8 と MANIFEST の宣言源でもある。判定（何を使うか・どの機能に置くか・既存をどうするか）を、調査でも spec でもなくここ一か所に集める。
-
-出力は `output/<ts>/design-map.md`。既存カスタマイズがあっても**全体を引き直す**（前回の design-map を出発点にしない）。
+大の経路（新規の構築・作り直し）では、変えるファイルを決める前に、どの機能に何を置くかを決める。判断は `/canon-design` のメインが inline で行い、結果を `change-plan.md` の `## 機能と責務`・`## モデル割当` と、`## ファイル` の各件に書く。設計だけを担うワーカーは置かない（入力を読むのが1回で済み、差し戻しも同じ文脈で直せる）。
 
 ## 手順と読むファイル
 
@@ -19,23 +17,22 @@ design-map は、生成の**唯一の設計入力**であり、verify の V7・V
 | 1 | 要件ごとの使用機能（12機能）と Experimental 依存 | [references/feature-selection.md](references/feature-selection.md) |
 | 2 | 各カスタマイズの1文責任・書込スコープ・検証の主体 | [references/structure.md](references/structure.md) |
 | 3 | 組み合わせの型（パターン）と入出力・依存の向き | [references/orchestration-patterns.md](references/orchestration-patterns.md) |
-| 4 | 各実行単位のモデル | [references/model-selection.md](references/model-selection.md) |
-| 5 | 既存カスタマイズの処遇（refactor モードのみ） | [references/existing-disposition.md](references/existing-disposition.md) |
-| 6 | design-map に書く | [references/design-map-template.md](references/design-map-template.md) |
+| 4 | 各実行単位のモデルと effort | [references/model-selection.md](references/model-selection.md) |
+| 5 | change-plan に書く | [references/change-plan-large.md](references/change-plan-large.md) |
 
-new モード（既存が無い）では段階5を飛ばし、`## 既存判定` 節は置かない。
+既存のカスタマイズがある作り直しでは、`inventory.json` の一覧を見て、残すもの（何も書かない）・直すもの（`op: modify`）・消すもの（`op: delete`）・足すもの（`op: new`）を `## ファイル` に書く。残すかどうかの判定の表は作らない。
 
 ## 読む範囲
 
-入力は、プロンプトで渡されたファイルだけ: spec・requirements・investigation の3ファイル（existing・profile・focused）と、渡されたときだけ `official-check.md`。他の run の design-map、検査スクリプトの実装、設計書は読まない。design-map の書式はテンプレートに従う。`rationale` は判断の根拠を1〜2文で書き、入力の内容を再掲しない。
+入力は `work/<ts>/` の `requirements.md`・`inventory.json`・`investigation/` のファイルと、`canon-reference` の該当の節だけ。他の run の change-plan、検査スクリプトの実装、設計書は読まない。`rationale` は判断の根拠を1〜2文で書き、入力の内容を再掲しない。
 
 ## 差し戻しのとき
 
-オーケストレーターが handoff.md の「差し戻し」（人間の指摘の逐語・直す箇所・直さない箇所）を渡して、designer を新規に起動する。design-map を全文読まず、指示が指す箇所を Grep で探し、その前後だけを Read して Edit する。指示の無い機能の節・判定を書き換えない。修正が既存の判定（keep・modify・merge・retire）に及ぶときは、該当レコードの K1〜K5 をやり直す（指摘に合わせて結論だけを変えない）。Write Scopes・Model Assignments・Interface Contracts に波及するなら、そこも整合させる。
+G2 で差し戻されたら、指摘を handoff の「差し戻し」に逐語で書き、change-plan.md の指摘が指す箇所だけを Edit する。指示の無い機能の節を書き換えない。修正が機能と責務やモデル割当に波及するなら、そこも整合させる。直したら `npm run check -- <ts> change-plan` を通し、G2 を取り直す。
 
 ## 書いてはいけないもの
 
 - 承認状態（承認は handoff.md の承認行が持つ）。
-- 生成物の中身（それは builder の仕事）。
-- `## 管理パス外の変更` の `根拠` に、試していない成否（「既存と衝突しない」「テストは通る」）。対象のテスト・ビルド・CI の振る舞いを変える変更は「試行待ち」と書き、オーケストレーターの試行に任せる。
-- 実行を要する検証（テストの実行・スクリプトの動作確認）の主体をワーカーにすること。designer・builder・reviewer はコマンド実行系ツールを持たない。検証の主体は「オーケストレーター」と書く。ワーカーに割り当てられるのは、ファイルを読んで確かめる検証（存在・書式・件数・参照の整合）までである。
+- 新しい本文（それは builder の仕事）。
+- 試していない成否（「既存と衝突しない」「テストは通る」）。対象のテスト・ビルド・CI の振る舞いを変える変更は、`## 検証コマンド` で `/canon-build` のメインが worktree で試す。
+- 実行を要する検証（テストの実行・スクリプトの動作確認）の主体をワーカーにすること。builder・reviewer はコマンド実行系ツールを持たない。検証の主体は「メイン」と書く。ワーカーに割り当てられるのは、ファイルを読んで確かめる検証（存在・書式・件数・参照の整合）までである。

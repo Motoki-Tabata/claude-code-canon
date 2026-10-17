@@ -46,11 +46,11 @@
 - [x] T3-3 approvals: G1・G2（大の経路は G3 まで）。差分のゲートはブランチのコミット sha に束縛する。
 
 ### 段階4 Skill と Agent
-- [ ] T4-1 `/canon-plan`・`/canon-design`・`/canon-build` の SKILL.md。開始時の照合は1コマンドで行う。ゲートは別々の問いで取る。終わりに、次のセッションの `--model`・`--effort` を案内する。
-- [ ] T4-2 知識 Skill の改訂（requirements・investigation・design・generation・review）。spec と keep の語彙を除く。canon-reference は、節単位で参照させる。
-- [ ] T4-3 Agent 6体の定義（段階1で確定した model と effort）。spec-writer と keep-reviewer を作らない。
-- [ ] T4-4 `.claude/skills/design/references/model-selection.md` の見直し（haiku の3条件に profile の評価の実例を足す。独立した判定者の Sonnet を high にしてよい）。
-- [ ] T4-5 自己適用テスト（`tests/self_application.test.js`）を v3 の構成に追従させる。
+- [x] T4-1 `/canon-plan`・`/canon-design`・`/canon-build` の SKILL.md。開始時の照合は1コマンドで行う。ゲートは別々の問いで取る。終わりに、次のセッションの `--model`・`--effort` を案内する。
+- [x] T4-2 知識 Skill の改訂（requirements・investigation・design・generation・review）。spec と keep の語彙を除く。canon-reference は、節単位で参照させる。
+- [x] T4-3 Agent 6体の定義（段階1で確定した model と effort）。spec-writer と keep-reviewer を作らない。
+- [x] T4-4 `.claude/skills/design/references/model-selection.md` の見直し（haiku の3条件に profile の評価の実例を足す。独立した判定者の Sonnet を high にしてよい）。
+- [x] T4-5 自己適用テスト（`tests/self_application.test.js`）を v3 の構成に追従させる。
 
 ### 段階5 v2 の残りの撤去
 - [ ] T5-1 消す前に、消すパスへの参照を横断 grep する。gitignore されたものの扱いを確かめる。
@@ -74,7 +74,7 @@
 ## 検証コマンド
 - `npm test`: 全テスト（各段階）。
 - `npm run <新しいスクリプト> -- <args>`: 実際の起動経路での exit code と出力先（段階2・3）。
-- `npm run tokens -- <ts>`: トークンの集計（段階6）。使い方は `tools/token-usage.js` で確かめる。
+- `npm run tokens -- <session-id>`: セッションごとのトークンの集計（段階6。session-id は handoff の `## セッション`）。使い方は `tools/token-usage.js` で確かめる。
 
 ## 範囲外
 - `.claude/skills/canon-reference/` の references と data の中身、`.claude/skills/canon-update/`。

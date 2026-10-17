@@ -2,10 +2,10 @@
 /**
  * handoff.js（npm run handoff -- <ts> <コマンド>）— `work/<ts>/handoff.md` の更新（architecture.md §6）。
  *
- *   mark <工程N|PN> [--off]                進捗の行に印を付ける（工程1〜9・P1〜P5。P<N> は `→ P<N>` を持つ行）
- *   set phase=<A〜D> status=<in_progress|waiting_approval|done> [mode=<new|refactor>]   frontmatter を書き換える
+ *   mark <キー> [--off]                    進捗の行に印を付ける（計画1〜3・設計1・構築1〜5）
+ *   set route=<small|large> stage=<plan|design|build> status=<in_progress|waiting_approval|done>   frontmatter を書き換える
  *   note <節> "<文>"                       節（進捗・差し戻し・申し送り など）の末尾に箇条書きを足す
- *   session <Phase>                        canon のプロジェクトで最後に書かれたセッションの id を記録する
+ *   session <plan|design|build>            canon のプロジェクトで最後に書かれたセッションの id を記録する
  *
  * sed や python での手書き換えは、印の付け違いと書式崩れを起こす。承認の表は `npm run approvals` の担当で、ここでは触らない。
  * 節に書いた項目の誤りは、書き換えずに `note` で訂正の項目を足す（例: 「申し送りの『14件』は13件の誤り」）。項目は追記だけの履歴で、
@@ -17,7 +17,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { CANON_ROOT } from '../lib/canon.js';
 import { latestSessionId } from '../lib/claude-session.js';
-import { HANDOFF_FILE, appendNote, appendSession, markProgress, setFrontmatterValue } from '../lib/handoff.js';
+import { HANDOFF_FILE, STAGES, appendNote, appendSession, markProgress, setFrontmatterValue } from '../lib/handoff.js';
 import { isMainModule, isValidTs } from '../lib/run.js';
 
 export class HandoffError extends Error {
@@ -59,18 +59,19 @@ export function noteHandoff(root, ts, section, note) {
 }
 
 /** canon のプロジェクトの最新セッションを `## セッション` に記録し、記録した session-id を返す。 */
-export function recordSession(root, ts, phase, { projectsRoot, now = new Date() } = {}) {
+export function recordSession(root, ts, stage, { projectsRoot, now = new Date() } = {}) {
+  if (!STAGES.includes(stage)) throw new HandoffError(`段は ${STAGES.join('|')}（${stage}）`);
   const sessionId = latestSessionId(root, projectsRoot);
   if (!sessionId) throw new HandoffError(`セッションの履歴が見つからない（~/.claude/projects/ の ${root} のディレクトリ）`);
-  update(root, ts, (t) => appendSession(t, { phase, sessionId, at: nowStamp(now) }));
+  update(root, ts, (t) => appendSession(t, { stage, sessionId, at: nowStamp(now) }));
   return sessionId;
 }
 
 const USAGE = [
-  '使い方: npm run handoff -- <ts> mark <工程N|PN> [--off]',
-  '        npm run handoff -- <ts> set phase=<A〜D> status=<in_progress|waiting_approval|done> [mode=<new|refactor>]',
+  '使い方: npm run handoff -- <ts> mark <計画1〜3|設計1|構築1〜5> [--off]',
+  '        npm run handoff -- <ts> set route=<small|large> stage=<plan|design|build> status=<in_progress|waiting_approval|done>',
   '        npm run handoff -- <ts> note <節> "<文>"   （節の項目の誤りは、書き換えずに訂正の項目を足す）',
-  '        npm run handoff -- <ts> session <Phase>',
+  '        npm run handoff -- <ts> session <plan|design|build>',
 ].join('\n');
 
 function usage() {
@@ -100,7 +101,7 @@ if (isMainModule(import.meta.url)) {
     } else if (cmd === 'session') {
       if (rest.length !== 1) usage();
       const id = recordSession(CANON_ROOT, ts, rest[0]);
-      process.stdout.write(`記録した: Phase ${rest[0]}  ${id}\n`);
+      process.stdout.write(`記録した: ${rest[0]}  ${id}\n`);
     } else {
       usage();
     }

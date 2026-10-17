@@ -25,7 +25,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "new-run": "node .claude/skills/canon-a/scripts/new-run.js",
+    "new-run": "node tools/new-run.js",
+    "preflight": "node tools/preflight.js",
     "approvals": "node tools/approvals.js",
     "slice": "node .claude/skills/canon-c/scripts/slice.js",
     "copy-keep": "node .claude/skills/canon-c/scripts/copy-keep.js",

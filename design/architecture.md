@@ -115,7 +115,7 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 | `preflight` | 開始時の照合を1回で行う（canon の HEAD と `canon_commit` の差分、`--expect` に挙げたゲートの承認、入力の実在、worktree のブランチと記録した sha） |
 | `inventory` | worktree のカスタマイズ（`canon-reference/data/paths.json` の配置パス）の一覧・frontmatter・参照のグラフを JSON と要約に書く。プレースホルダ（`<...>`・`NNN`）は、実在の参照と区別する |
 | `impact` | 変えるファイルと語・コマンドの一覧を受け取り、触らないファイルのうち、それらに触れているものを行番号付きで挙げる |
-| `worktree` | 作成・コミット・片付け。差分のゲートは、ここで作ったコミットの sha に束縛する |
+| `worktree` | 作成・削除（`rm`。change-plan の `op: delete`）・コミット・片付け。差分のゲートは、ここで作ったコミットの sha に束縛する |
 | `verify` | 変えたファイルの検査（§7） |
 | `check` | requirements.md と change-plan.md の検査（§4） |
 | `approvals`・`handoff`・`tokens`・`reference-check` | 承認の記録と照合、handoff の更新、トークンの集計、正典の検査 |

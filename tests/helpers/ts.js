@@ -24,6 +24,7 @@ export const TS_NAMESPACES = {
   exit_codes: '29990501',
   check_cli: '29990601',
   handoff_cli: '29990602',
+  preflight: '29990701',
 };
 
 function nameFromUrl(importMetaUrl) {

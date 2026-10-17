@@ -69,6 +69,36 @@ test('create: git でない・コミットが無い・ブランチが既にあ�
   assert.ok(!existsSync(path.join(s.home, 'wt', 'plain-21000102_000002')), '失敗した create が置き場所を残している');
 });
 
+test('rm: 追跡中のファイルを git rm し、worktree の外・追跡外・未指定は何も消さず exit 1、引数なしは exit 2', (t) => {
+  const s = setup(t);
+  const c = s.create();
+  writeFile(c.worktree, 'a.md', 'a\n');
+  writeFile(c.worktree, 'b.md', 'b\n');
+  git(c.worktree, 'add', '.');
+  git(c.worktree, 'commit', '-q', '-m', 'add', '--no-gpg-sign');
+  writeFile(c.worktree, 'untracked.md', 'u\n');
+
+  assert.equal(s.wt('rm', '--worktree', c.worktree).code, 2, '消すファイルが無い');
+  const outside = s.wt('rm', '--worktree', c.worktree, '../x.md');
+  assert.equal(outside.code, 1);
+  assert.match(outside.stderr, /worktree の外/);
+  const untracked = s.wt('rm', '--worktree', c.worktree, 'a.md', 'untracked.md');
+  assert.equal(untracked.code, 1);
+  assert.match(untracked.stderr, /追跡されていない/);
+  assert.ok(existsSync(path.join(c.worktree, 'a.md')), '1つでも拒否なら何も消さない');
+
+  const ok = s.wt('rm', '--worktree', c.worktree, 'a.md');
+  assert.equal(ok.code, 0, ok.stderr);
+  assert.match(ok.stdout, /removed: a\.md/);
+  assert.ok(!existsSync(path.join(c.worktree, 'a.md')));
+  assert.ok(existsSync(path.join(c.worktree, 'b.md')));
+  assert.match(git(c.worktree, 'status', '--porcelain'), /^D  a\.md/m, '削除はステージされる');
+
+  const notCanon = s.wt('rm', '--worktree', s.repo, 'CLAUDE.md');
+  assert.equal(notCanon.code, 1, 'canon の worktree でないものは触らない');
+  assert.ok(existsSync(path.join(s.repo, 'CLAUDE.md')));
+});
+
 test('commit: 変更が無ければ exit 1、あれば sha を返し、作者はスクリプトに埋め込まず環境から取る', (t) => {
   const s = setup(t);
   const c = s.create();

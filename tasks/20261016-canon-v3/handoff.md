@@ -1,28 +1,22 @@
 # handoff: canon-v3
 
 ## 現在地
-段階3 完了（2026-10-17）
-`verify`（`tools/verify.js`・`lib/verify/`）・`check`（requirements・change-plan）・`approvals`（G1〜G3）と lib・テストを実装し、`npm test` 365件が通った。実経路（canon 自身を対象にした worktree で `npm run inventory`・`impact`・`check`・`verify`・`approvals`）も通した。コミットはユーザーの了承待ち。次は段階4（Skill と Agent）。未確認が1点ある（下の「未確認」）。
+段階4 完了（2026-10-17）
+`/canon-plan`・`/canon-design`・`/canon-build` の SKILL.md、知識 Skill 5件の v3 化、Agent 6体（`profiler` を新設し、`designer`・`spec-writer`・`keep-reviewer` を削除）、`new-run`・`preflight`（`tools/`）、`worktree rm`、`lib/handoff.js` の v3 化、自己適用テストの追従を入れた。`npm test` 365件が通った。実経路（scratch の git の対象で `new-run` → `preflight` → `inventory` → `impact` → `check` → `approvals record G1` → 編集 → `worktree commit` → `verify` → `approvals record G2` → 承認後のコミットで承認が無効になること）を通した。コミットはユーザーの了承待ち。次は段階5（v2 の残りの撤去）。段階の Skill 自体は別セッションで通していない（未確認。下の「未確認」）。
 
 ## 次のセッション
-- 推奨モデル: Sonnet（effort medium。設計判断が出たら Opus）
-- 最初の指示: 「`tasks/20261016-canon-v3/plan.md` の段階4 を実装する。brief.md・handoff.md・`design/architecture.md` を先に読む」
+- 推奨モデル: Sonnet（effort medium）
+- 最初の指示: 「`tasks/20261016-canon-v3/plan.md` の段階5 を実装する。brief.md・handoff.md・`design/architecture.md` を先に読む」
 - 起動: canon のルートで `claude --model sonnet --effort medium`
-- 段階4で使うもの（書式の契約。テンプレートは `check` の書式に合わせる）:
-  - requirements.md: `## 確定要件`（`- id:`・`want`・`confidence`〔実物で確認／公式で確認／文言のみ〕・`evidence`・`files: [..]`・`accept`・任意で `strength_needed`）、`## 未確定`（同じ書式。「文言のみ」はここ）、`constraints:` と `conflicts:` のキー行（節の見出しは問わない）、任意で `confirmed_at: YYYY-MM-DD hh:mm`
-  - change-plan.md: `## ファイル`（`- path:`・`op: modify|new|delete`・`reqs: [R1]`・`instruct:`）、`## 影響の語`（バッククォートの箇条書き）、`## 参照元の扱い`（`- <path>:<line>:<term>: 変える|変えない（理由）` か、ファイル単位の `- <path>: 変える|変えない（理由）`）、`## 検証コマンド`、大の経路だけ `## 機能と責務`・`## モデル割当`
-  - `work/<ts>/` に置くもの: `handoff.md`（frontmatter に `route: small|large`・`worktree`・`branch`・`base`）、`inventory.json`・`impact.json`（`npm run inventory`・`impact` の `--out work/<ts>`）、`verify-report.md`（`npm run verify -- <ts>` が書く）
-  - ゲート: 小は G1（requirements.md＋change-plan.md）・G2（コミット sha）、大は G1（requirements.md）・G2（change-plan.md）・G3（コミット sha）。`npm run approvals -- <ts> record|check|hash`。差分のゲートは、未コミットの変更が無く、verify が現在の HEAD を検査して合格していることが前提
-  - `npm run check -- <ts> requirements|change-plan`、`npm run verify -- <ts>`（exit 0 合格・1 違反か入力不在・2 引数不正）
-- 段階4で直すもの（段階3では直していない。`worker-definitions.md` の規律に従い、v3 の語彙で書き直す）: 下の「段階4に回したもの」
+- 段階5で消す・直すもの（下の「段階5に回したもの」）。消す前に、消すパスへの参照を、import とテストと docs まで横断 grep する（段階3では `new-run.js` の import を見落とした）
 
-## 段階4に回したもの
-- V1〜V9・V7・V8・P1〜P5・spec・design-map・keep の語彙が残るワーカー定義と知識 Skill: `.claude/skills/generation/SKILL.md`・`design/SKILL.md`・`review/SKILL.md`・`requirements/references/spec-template.md`・`design/references/existing-disposition.md`・`design/references/design-map-template.md`・`review/references/keep-review.md`。verify の番号は新しい番号（V7=計画との一致、V8=constraints、V9=trust の前提）に変わった
-- `canon-a`〜`canon-d` の SKILL.md。`canon-d/SKILL.md` は、廃止した `npm run deploy`・`pre-deploy`・`run-manifest` を呼ぶ記述のまま残している。`tests/self_application.test.js` の「npm scripts が実在する」検査に、この3つだけを canon-d に限って許す暫定の許可リストを入れた（段階4で canon-d を置き換えたら外す）。`.claude/README.md`・`README.md`・`guide/setup.md` にも `/canon-d`・配置の記述が残る（段階5）
-- `canon-a/scripts/new-run.js` は `canon-d/scripts/self-target-guard.js` を import しているので、後者は残した（`tests/self_target_guard.test.js` も、廃止したスクリプトを呼ぶ CLI のケースだけ消して残した）。new-run を置き換えるとき（段階4）に一緒に消す
-- `tools/handoff.js`・`lib/handoff.js` の雛形・進捗の行は v2 のまま（Phase・P1〜P5）。v3 の frontmatter のキー（route・worktree・branch・base・stage）は読み取りだけ足した。書き換えは段階4（`new-run` と `preflight`）
-- 古い番号・パスが残る箇所（段階4か5で直す）: `README.md` 32行・`guide/setup.md` 153行（V1〜V9 と verify-report の説明。V7〜V9 の意味が変わった）、`canon-c/SKILL.md`（verify の再入・keep の V7・P4 のハッシュ照合の手順）、`review-bundle.js`・`copy-keep.js` のコメント（V7）。常時ロードされる rules が名指ししていた検査の置き場（`checks-and-tests.md`・`worker-definitions.md` の `canon-c/scripts/verify/`）は `lib/verify/` に直した
-- 残る v2 の部品（`copy-keep`・`emit-manifest`・`review-bundle`・`slice`・`lib/design-map.js`・`lib/managed-paths.js`・`lib/tree-hash.js` など）は段階5で消す。いま `npm test` が通るのは、これらが verify・approvals に依存しないため
+## 段階5に回したもの
+- `.claude/skills/canon-c/scripts/`（`copy-keep`・`emit-manifest`・`review-bundle`・`slice`）と、依存する `lib/design-map.js`・`lib/design-slices.js`・`lib/managed-paths.js`・`lib/tree-hash.js`・`lib/manifest.js`・`lib/interface-signature.js` など、そのテスト（`copy_keep`・`emit_manifest`・`review_bundle`・`slice`・`managed_paths`・`exit_codes` のうち該当、`tests/helpers/keep-review-cases.js` など）。`package.json` の scripts（`slice`・`copy-keep`・`manifest`・`review-bundle`）も消す。`canon-c/` は SKILL.md を段階4で消したので、scripts を消せばフォルダが無くなる
+- `design/artifacts.md`（v2 の書式と検査。段階5まで残す）。`design/architecture.md` の §10 の「段階5までは artifacts.md に残る」の文
+- 語彙の追従: `README.md`・`.claude/README.md`・`guide/setup.md`（`/canon-a`〜`/canon-d`・Phase A〜D・P1〜P5・spec・V1〜V9 の説明。V7〜V9 の意味が変わった）、`.claude/rules/worker-definitions.md`・`workflow.md`（design-map・Write Scopes・V9 の語）、`.claude/settings.json` の `$comment`、`package.json` の description と `comments`、`tests/helpers/paths.js` の `scriptsDir` のコメント、`tasks/lessons.md` 冒頭（書式の `Phase <A〜D>`・「設計書2冊」・`design/architecture.md` §6.4 への参照→§8）
+- `tests/self_application.test.js` の「Phase Skill の scripts/ は skill パッケージの supporting files として扱われる」: canon-c/scripts を消すと対象が0件になる。v3 に scripts/ を持つ Skill が無ければ、このテストごと消す
+- 台帳（`tasks/lessons.md`）のうち、v3 で解消した項目（予定欄が「v3 刷新で」のもの。K5・README の管理境界・keep の P2/P3 の取り直し・canon-d の apply／作業ブランチ）
+- `tests/helpers/sample-repos.js` の `expected-work/` は v2 の書式のまま（investigation/existing.md など）。使うテストが消えるときに一緒に整理する
 
 ## 判断ログ
 - 2026-10-16 段階0: 骨格から作り直し、互換は取らない（理由: 全量スナップショット方式そのものがコストと手戻りの元）
@@ -53,12 +47,24 @@
 - 2026-10-17 段階3: deploy 系（`deploy`・`pre-deploy-check`・`emit-run-manifest`）とそのテスト（`deploy_*`・`scenario3_deploy`）は、P1〜P5 の承認と v2 の verify-report に依存していたので、段階3で消した（段階5の予定を前倒し。理由: 承認の置き換えで動かなくなり、`npm test` が通らなくなるため）。消す前の横断 grep は package.json・テスト・docs まで見たが、`new-run.js` の import は見落とし、テストの失敗で気づいて `self-target-guard.js` を戻した
 - 2026-10-17 段階3: `lessons.md` のうち、段階3で機械の側が入った4項目（Agent の入れ子の配置・trust の前提・impact の照合・「文言のみ」）は、残り（Skill の手順の文面、段階4）だけに書き直した
 
+- 2026-10-17 段階4: builder は unit（`lib/features.js` の `UNITS`）ごとに、change-plan の担当ファイルを渡して並列に起動する。tools は Read・Write・Edit・Glob（change-plan に `op: new` があるので Write が要る。brief の「Edit だけ」からの変更）。正典 `permissions.md` §3 は、パスの規則を書けるのは `Read`・`Edit` だけで `Write(path)` は参照されないと書くので、`Edit(~/.claude-canon/wt/**)` の規則が Write にも効くはずだが、実験は Edit しか通していない（未確認）
+- 2026-10-17 段階4: `op: delete` は、ワーカーがシェルを持たないのでメインが `npm run worktree -- rm --worktree <wt> <file>…` で消す。`rm` サブコマンドを `worktree` に足した（追跡中のファイルだけ・worktree の外は拒否。ユーザー了承。settings.json の permissions は変えない）
+- 2026-10-17 段階4: 「公式で確認」は、メインが `claude-code-guide` で確かめて `work/<ts>/investigation/official-check.md` に書き、requirements の `evidence` から節を指す（investigator は WebFetch を持たない）。investigator の成果物は `investigation/findings.md`（旧 focused）、profiler の成果物は `profile.md`。existing の棚卸しは `inventory` に置き換え、ワーカーの書式は廃止した
+- 2026-10-17 段階4: handoff の frontmatter を v3 のキー（ts・target・route・worktree・branch・base・canon_commit・stage・status）にした。`mode`・`phase` は廃止。route は `new-run` が空で作り、`/canon-plan` が要件を固めたあとに `set route=` で決める。stage は plan・design・build。進捗の行は `計画1〜3`・`設計1`・`構築1〜5` で、`mark` はこの行頭の語で引く。セッションの表の列は「段」
+- 2026-10-17 段階4: `preflight --stage <plan|design|build>` は、handoff・canon の HEAD（変わっていれば WARN。続けるかは人間に尋ねる）・worktree（ブランチと base が祖先であること）・route・入力の実在・前のゲートの承認（design: G1、build: 差分のゲートより前すべて）を照合する。差分のゲートは build の開始時には要求しない
+- 2026-10-17 段階4: canon-a〜d の SKILL.md と `new-run.js`・`self-target-guard.js`（とそのテスト）は、置き換えたので段階4で消した。`canon-c/scripts/` だけ段階5まで残る。自己適用テストの旧語彙の検査に v2 の語（K1〜K5・P1〜P5・spec.md・design-map・MANIFEST・Phase A〜D・output/<ts>）を足し、G4 以上だけを旧ゲートとした（G1〜G3 は v3 のゲート）
+- 2026-10-17 段階4: `tasks/lessons.md` のうち、段階4で反映した5項目（haiku の investigator・trust の前提・K2・lessons の文言・P2/P3 を1つの問いで取る）を消し、2項目（designer の文脈・評価で run の作業ディレクトリを使う）を残りの部分だけに書き直した。`git -C <worktree>` が allow 規則に当たらない見込みを起票した
+
 ## レビュー記録
 - 2026-10-17 段階1: draft PR #27 の上で、設計書 `design/architecture.md`（033e80d）をユーザーが承認した
 
 ## 未確認
+- 段階の Skill（`/canon-plan`・`/canon-design`・`/canon-build`）を、別セッションの対話で通していない。機械の部分（`new-run`・`preflight`・`inventory`・`impact`・`check`・`worktree`・`verify`・`approvals`）は scratch の git の対象で実経路を通したが、ワーカーの起動・ヒアリング・ゲートの問いは未確認。段階6で通す
+- 依存の導入を含む検証コマンド（worktree には追跡中のファイルしか無く、`node_modules` などが入っていない）を実経路で通していない。リハーサルの検証コマンドは `git diff --check` だった。段階6の skillweave で最初に当たる
+- 既定の置き場 `~/.claude-canon/wt/` を `new-run` 経由では通していない。リハーサルは `CANON_WT_ROOT` を scratch に向けた（`~/` 起点の既定は、段階2の `worktree create` と `claude -p` の実験が通した範囲）
+- builder の Write が `Edit(~/.claude-canon/wt/**)` の規則で通るか（正典は通ると読めるが、実験は Edit だけ）
 - 対話のセッションで `Read(~/.claude-canon/wt/**)`・`Edit(~/.claude-canon/wt/**)` の規則（`~/` 起点）が効くか。`claude -p` では効いた（builder の Edit が通り、規則に当たらないパスは拒否された）。対話の許可の画面は通っていない。確かめるまでは「動く」と書かない
 
 ## メモ
-- この計画の「段階」は本フォルダの段階0〜6で、flow-workflow の段階1〜4 とは別物である。/flow-* はこのリポジトリでは開始時に止まる（`.claude/skills/canon-a/SKILL.md` があるため）。canon-a を置き換えた後（段階4）は、この制約は無くなる。
+- この計画の「段階」は本フォルダの段階0〜6で、flow-workflow の段階1〜4 とは別物である。/flow-* は、以前はこのリポジトリで開始時に止まった（`.claude/skills/canon-a/SKILL.md` があったため）。canon-a は段階4で消したので、この制約は無くなった。
 - 台帳の項目のうち、R2 で別セッションの実経路を通った L23（2026-10-10 の1件目）は、v2 については大半が解消している。v2 の残りを消す段階5で台帳から消す。
