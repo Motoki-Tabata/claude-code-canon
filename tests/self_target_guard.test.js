@@ -9,9 +9,7 @@ import assert from 'node:assert/strict';
 import { git, gitInit } from './helpers/git.js';
 import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { scratchDir, writeFile, TMP_CASE_TS } from './helpers/fixtures.js';
-import { ROOT as CANON_ROOT } from './helpers/paths.js';
-import { runScript } from './helpers/run-cli.js';
+import { scratchDir } from './helpers/fixtures.js';
 import { isCanonSelfTarget, pathKey } from '../.claude/skills/canon-d/scripts/self-target-guard.js';
 
 function fakeCanon(t) {
@@ -101,18 +99,4 @@ test('guard: 別 worktree（セッション用）から実行しても、main �
   assert.equal(isCanonSelfTarget(main, wt), true);
   assert.equal(isCanonSelfTarget(path.join(main, 'sub-not-exist'), wt), true);
   assert.equal(isCanonSelfTarget(path.join(base, 'elsewhere'), wt), false);
-});
-
-test('CLI: pre-deploy-check・deploy・emit-run-manifest は canon 配下・祖先の対象を exit 1 で拒否する', (t) => {
-  const out = scratchDir(t, 'canon-guard-cli-');
-  const o = path.join(out, TMP_CASE_TS);
-  mkdirSync(path.join(o, 'generated'), { recursive: true });
-  writeFile(o, 'deploy/managed-paths.list', 'CLAUDE.md\n');
-  for (const target of [path.join(CANON_ROOT, 'lib'), path.dirname(CANON_ROOT), CANON_ROOT]) {
-    for (const script of ['pre-deploy-check.js', 'deploy.js', 'emit-run-manifest.js']) {
-      const r = runScript('canon-d', script, [o, target]);
-      assert.equal(r.code, 1, `${script} ${target}: ${r.stdout}${r.stderr}`);
-      assert.match(r.stderr, /自身は指定できない/);
-    }
-  }
 });

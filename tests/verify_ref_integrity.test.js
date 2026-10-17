@@ -6,13 +6,24 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import { checkV6 } from '../.claude/skills/canon-c/scripts/verify/v6-ref-integrity.js';
-import { buildContext } from '../.claude/skills/canon-c/scripts/verify.js';
+import { checkV6 } from '../lib/verify/ref-integrity.js';
+import { buildContext } from './helpers/verify-ctx.js';
+import { makeContext } from '../lib/verify/context.js';
 import { workDir as work, outputDir as out, genDir } from './helpers/paths.js';
 import { cleanupTs, writeAgent as writeAgentFile } from './helpers/fixtures.js';
 import { tsFor } from './helpers/ts.js';
+
+/** 使い捨ての worktree 役のディレクトリ（テストの終了で消えるよう process 終了時に掃除する）。 */
+function scratchRoot() {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'canon-v6-'));
+  cleanups.push(dir);
+  return dir;
+}
+const cleanups = [];
+process.on('exit', () => cleanups.forEach((d) => rmSync(d, { recursive: true, force: true })));
 
 /** V6 を実行し、合否（ok）と違反・warning の文字列を返す。 */
 function v6(ts) {
@@ -63,7 +74,8 @@ test('V6 Tier A: ディレクトリが実在する supporting file 参照 → �
   const skills = path.join(out(ts), 'generated', '.claude', 'skills');
   const skillDir = path.join(skills, 'demo');
   mkdirSync(path.join(skillDir, 'examples'), { recursive: true });
-  // examples/ ディレクトリは実在するが、参照する sample.md 自体は無い。
+  // examples/ ディレクトリは実在するが、参照する missing.md 自体は無い（git は空のディレクトリを追跡しないので、別のファイルを置く）。
+  writeFileSync(path.join(skillDir, 'examples', 'other.md'), '# other\n');
   writeFileSync(
     path.join(skillDir, 'SKILL.md'),
     '---\nname: demo\ndescription: x\n---\n参照: `examples/missing.md`\n'
@@ -226,12 +238,14 @@ test('V6 V6-7: 行範囲形式（path:N-M）・ネストしたパス（contracts
   );
 });
 
-test('V6 V6-7: 生成物同士（管理ファイル間）の行番号参照は誤検出しない', (t) => {
+test('V6 V6-7: 差分の中のファイル同士の行番号参照は誤検出しない', (t) => {
   const ts = tsFor(import.meta.url, 22);
   setup(t, ts);
   const rules = path.join(out(ts), 'generated', '.claude', 'rules');
   mkdirSync(rules, { recursive: true });
-  // 生成物同士の行番号参照は正当（同じ run で一括生成されるため相互の行番号がずれる余地がない）。
+  // 差分の中のファイル同士の行番号参照は正当（同じ run で一括して直すので相互の行番号がずれる余地がない）。
+  writeFileSync(path.join(rules, 'backend.md'), '---\npaths: ["**"]\n---\nbackend\n');
+  writeFileSync(path.join(out(ts), 'generated', 'CLAUDE.md'), '# claude\n');
   writeFileSync(
     path.join(rules, 'cross-ref.md'),
     '---\npaths: ["**"]\n---\n' + '詳細は `.claude/rules/backend.md:12` および `CLAUDE.md:1-10` を参照。\n'
@@ -245,28 +259,41 @@ test('V6 V6-7: 生成物同士（管理ファイル間）の行番号参照は�
   assert.ok(r.checked >= 2, '走査件数が見えること（0件を合格と誤認しない）');
 });
 
-test('V6 V6-7: design-map がバイト単位のコピーと宣言したファイル（keep・参照元からのコピー）の中身は検査せず、他のファイルは引き続き検出する', (t) => {
-  const ts = tsFor(import.meta.url, 23);
-  setup(t, ts);
-  const gen = path.join(out(ts), 'generated');
-  const skillDir = path.join(gen, '.claude', 'skills', 'ledger');
-  mkdirSync(skillDir, { recursive: true });
-  writeFileSync(path.join(skillDir, 'SKILL.md'), '---\nname: ledger\ndescription: x\n---\n本文\n');
-  // 原本には対象側の行番号引用が残りうる。コピーは直せないので、宣言されていれば違反にしない。
-  const cite = '- 何が起きたか: `tsod-design/SKILL.md:12` が古い。\n';
-  writeFileSync(path.join(skillDir, 'kept.txt'), cite);
-  writeFileSync(path.join(skillDir, 'copied.txt'), cite);
-  writeFileSync(path.join(skillDir, 'undeclared.txt'), cite);
-  writeFileSync(
-    path.join(out(ts), 'design-map.md'),
-    '## 既存判定\n\n```yaml\nexisting_disposition:\n  - path: .claude/skills/ledger/kept.txt\n    disposition: keep\n```\n\n' +
-      '## 参照元からのコピー\n\n- `/abs/ref/notes.txt` → `.claude/skills/ledger/copied.txt`\n'
-  );
-  const r = v6(ts);
-  assert.ok(!r.violations.some((v) => v.includes('kept.txt')), `keep のコピーは違反に含めない: ${JSON.stringify(r.violations)}`);
-  assert.ok(!r.violations.some((v) => v.includes('copied.txt')), `参照元からのコピーは違反に含めない: ${JSON.stringify(r.violations)}`);
-  // 宣言の無いファイルは、同じ記述でも違反のまま（除外は宣言されたパスに限る）。
-  assert.ok(r.violations.some((v) => v.includes('undeclared.txt')), JSON.stringify(r.violations));
+test('V6 V6-7: 差分に無い（変えない）ファイルへの行番号引用は違反。差分に含めれば通る', () => {
+  const skill = '---\nname: s\ndescription: x\n---\n出典: `README.md:12` を参照。\n';
+  const root = scratchRoot();
+  mkdirSync(path.join(root, '.claude', 'skills', 's'), { recursive: true });
+  writeFileSync(path.join(root, '.claude', 'skills', 's', 'SKILL.md'), skill);
+  writeFileSync(path.join(root, 'README.md'), '# r\n');
+  const rels = ['.claude/skills/s/SKILL.md', 'README.md'];
+  const only = makeContext({ root, changed: [{ rel: rels[0], status: 'M' }], tracked: rels });
+  assert.ok(checkV6(only).violations.some((v) => v.includes('README.md:12')), '変えないファイルへの行番号引用を検出する');
+  const both = makeContext({ root, changed: rels.map((rel) => ({ rel, status: 'M' })), tracked: rels });
+  assert.deepEqual(checkV6(both).violations.filter((v) => v.includes('README.md:12')), [], '差分に含めれば通る');
+});
+
+test('V6: 変えていない skill への preload は HEAD の追跡ファイルから解決する。削除した skill への preload は違反', () => {
+  const root = scratchRoot();
+  mkdirSync(path.join(root, '.claude', 'skills', 'kept'), { recursive: true });
+  mkdirSync(path.join(root, '.claude', 'agents'), { recursive: true });
+  writeFileSync(path.join(root, '.claude', 'skills', 'kept', 'SKILL.md'), '---\nname: kept\ndescription: x\n---\n本文\n');
+  const agent = (skill) => `---\nname: w\ndescription: x. Delegate when needed.\ntools: Read\nskills: [${skill}]\n---\n本文\n`;
+  writeFileSync(path.join(root, '.claude', 'agents', 'w.md'), agent('kept'));
+  const tracked = ['.claude/skills/kept/SKILL.md', '.claude/agents/w.md'];
+  const ok = makeContext({ root, changed: [{ rel: '.claude/agents/w.md', status: 'M' }], tracked });
+  assert.deepEqual(checkV6(ok).violations, [], '変えていない skill を preload できる');
+  writeFileSync(path.join(root, '.claude', 'agents', 'w.md'), agent('gone'));
+  const bad = makeContext({ root, changed: [{ rel: '.claude/agents/w.md', status: 'M' }], tracked });
+  assert.ok(checkV6(bad).violations.some((v) => v.includes('gone')), '無い skill の preload は違反');
+});
+
+test('V6: 触った skill のパッケージから SKILL.md だけが消えると違反（supporting files だけが残る）', () => {
+  const root = scratchRoot();
+  mkdirSync(path.join(root, '.claude', 'skills', 'p', 'references'), { recursive: true });
+  writeFileSync(path.join(root, '.claude', 'skills', 'p', 'references', 'a.md'), '# a\n');
+  const tracked = ['.claude/skills/p/references/a.md'];
+  const ctx = makeContext({ root, changed: [{ rel: '.claude/skills/p/SKILL.md', status: 'D' }], tracked, deletedHits: [] });
+  assert.ok(checkV6(ctx).violations.some((v) => v.includes('SKILL.md が実在しない')), '定義ファイルの欠けたパッケージを検出する');
 });
 
 // ---------------------------------------------------------------------------

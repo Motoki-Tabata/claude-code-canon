@@ -6,8 +6,8 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { findToolCallFragments, checkV5 } from '../.claude/skills/canon-c/scripts/verify/v5-fragments.js';
-import { buildContext } from '../.claude/skills/canon-c/scripts/verify.js';
+import { findToolCallFragments, checkV5 } from '../lib/verify/fragments.js';
+import { buildContext } from './helpers/verify-ctx.js';
 import { genDir } from './helpers/paths.js';
 import { cleanupTs, writeSkill } from './helpers/fixtures.js';
 import { tsFor } from './helpers/ts.js';

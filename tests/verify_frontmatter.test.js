@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkV2, checkUnknownKeys } from '../.claude/skills/canon-c/scripts/verify/v2-frontmatter.js';
+import { checkV2, checkUnknownKeys } from '../lib/verify/frontmatter.js';
 import { artifactFromText } from '../lib/artifact.js';
 
 function agent(fm) {

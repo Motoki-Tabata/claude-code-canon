@@ -52,8 +52,8 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 種別: 欠陥修正
 - 何が起きたか: 対象 skillweave-mhwilds の `tasks/lessons.md`（2026-10-03 の項目）によると、trust dialog を承認していないワークスペースでは、Subagent の frontmatter の hooks と `.claude/settings.json` の `permissions.allow` が警告なしで捨てられた（`claude -p --debug-file` のログで確認済み）。`.claude/skills/canon-c/scripts/emit-manifest.js` の `setupItems`（195行〜）は、settings の hooks・fork・MCP は拾うが、frontmatter hooks・permissions を持つ構成に trust の前提を出さない。そのため README は「なし」と書いた。canon-d の配置手順にも、信頼状態の確認（`~/.claude.json` の `projects[<root>].hasTrustDialogAccepted`）が無い。
 - 確度: 文言のみ（trust 未承認で hooks と permissions が捨てられる点は、対象の `tasks/lessons.md` の記録。canon 側では再現していない）。`setupItems` に trust の項目が無いことは実物で確認
-- 提案: `setupItems` に、生成物が hooks（settings・frontmatter のどちらでも）か `permissions` を持つときは「対象リポジトリで Claude Code を対話起動して trust dialog を承認する」を出す項目を足す（`tests/emit_manifest.test.js` に故意の注入で発火を示すテストを足す）。canon-d の配置後の実発火確認の最初に、信頼状態の確認を置く。
-- 予定: v3 刷新（tasks/20261016-canon-v3/）で（README の生成は廃止し、verify の警告と差分のゲートで示す）
+- 提案: verify の V9（trust の前提の警告）は段階3で入った。残りは、`/canon-build` の差分のゲートの提示に、V9 の警告（hooks か `permissions` を持つ差分は、対象のリポジトリで trust dialog を承認しないと効かない）を載せる手順を書くこと。
+- 予定: v3 刷新（tasks/20261016-canon-v3/）の段階4（T4-1）
 
 ## 2026-10-15 K5 がプレースホルダの参照を未解決と数え、内容を変えない既存ファイルを keep にできない（run 20261014_232320・Phase B）
 - 種別: 欠陥修正
@@ -90,15 +90,15 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 種別: 規律昇華
 - 何が起きたか: R10 は既定の e2e の段を API・DB なしの1段にする要件だが、triage.md（keep）の32行目は「api は起動し直し、テスト用コンテナも作り直す」を既定にしていた。Phase B の designer は K2 を true にし、Phase C の keep-reviewer（`output/20261014_232320/review/keep-review.md`）が medium で指摘して、P2・P3 の取り直しと再生成になった。designer の K2 の根拠は、要件が触れるコマンドや挙動を keep の本文で grep する手順を持たない。
 - 確度: 実物で確認（keep 時点の triage.md の原本の32行目は照合していない）
-- 提案: `.claude/skills/design/` の keep の判定（K2）に、要件の want が変えるコマンド名・既定の挙動・語（例: `--e2e`・`docker`）を keep の本文で grep し、ヒットした keep を K2 の根拠に挙げる手順を足す。
-- 予定: v3 刷新（tasks/20261016-canon-v3/）で（impact が、要件の語やコマンドに触れる触らないファイルを列挙する）
+- 提案: `impact` の列挙と、`check` による「参照元の扱い」の照合は段階2・3で入った。残りは、`/canon-plan` と `/canon-design` の手順に、要件の want が変えるコマンド名・既定の挙動・語（例: `--e2e`・`docker`）を `impact` の `--terms` に渡し、change-plan の `## 参照元の扱い` で全件に答える手順を書くこと。
+- 予定: v3 刷新（tasks/20261016-canon-v3/）の段階4（T4-1）
 
 ## 2026-10-15 対象 lessons の文言を実物と照合せずに要件にしたため、P1 の取り直しと P2 前の spec 修正になった（run 20261014_232320・Phase D）
 - 種別: 規律昇華
 - 何が起きたか: R7（packages/data の tsconfig 分割）と R12(2)（SelectTrigger の sonar 抑止）は、対象の lessons の文言を根拠に P1 で確定したが、focused 調査で実物と食い違い、P1 を取り直した。A1-1 の「警告なしで」も lessons の文言の引き継ぎで、P2 前の公式照合で初めて公式と合わないと分かった（`work/20261014_232320/retro/session-analysis-A.md` の 2-1・2-2。transcript 53741b48 の 283〜319・394〜412 行）。`.claude/skills/canon-a/SKILL.md` の工程には、lessons の文言を要件にする前に実物で確かめる手順が無い（`lessons`・`実物` の grep は33行の起票規則のみ。工程1 全文の通読は分析側では未了）。
 - 確度: 実物で確認（P2 の前の公式照合は `0ee45b9` で canon-a に入っている。残りは P1 の前の実物照合と、spec-writer への official-check の受け渡し）
-- 提案: refactor で lessons を要件にするとき、P1 の前に、要件1件ごとに lessons の主張（ファイルの形・設定値・挙動）を対象の実物で確かめ、`requirements.md` の根拠欄に「実物で確認」か「文言のみ」を書かせる。「文言のみ」は P1 で確定させず、focused 調査の結果を待つ。spec-writer には official-check.md の結論と食い違う語を受入基準に書かないよう渡す（推測: spec-writer が official-check の結論を取り込まなかった）。
-- 予定: v3 刷新（tasks/20261016-canon-v3/）で（要件ごとに根拠の確度を書き、「文言のみ」は G1 で確定させない）
+- 提案: 要件の根拠の確度と、確定要件に「文言のみ」を置かない検査は、`check` に入った（段階3）。残りは、`/canon-plan` の手順に、lessons を要件にするとき G1 の前に要件1件ごとに lessons の主張（ファイルの形・設定値・挙動）を対象の実物で確かめ、確度を書き、「文言のみ」は「## 未確定」に置いて investigator の結果を待つ、と書くこと。
+- 予定: v3 刷新（tasks/20261016-canon-v3/）の段階4（T4-1）
 
 ## 2026-10-15 keep→modify の取り直しで P2 と P3 を1つの問いで取っている（run 20261014_232320・Phase D）
 - 種別: 規律昇華
@@ -117,7 +117,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 
 ## 2026-10-17 paths.json に Agent の入れ子の配置が無い（v3 段階2）
 - 種別: 欠陥修正
-- 何が起きたか: canon 自身の Agent は `.claude/agents/<name>/<name>.md`（8体）に入れ子で置いてあり、`claude -p` で `subagent_type: builder` が実際に起動した。しかし `data/paths.json` の配置は `.claude/agents/*.md` だけで、`inventory` は8体を subagents でなく分類外に出す（`feature_hint` で subagents と示すようにはした）。architecture.md §2.1 の条件2「機能のファイルが0件か」の判定を `inventory` の機能別の件数だけで行うと、小の経路の対象が大に倒れうる。
+- 何が起きたか: canon 自身の Agent は `.claude/agents/<name>/<name>.md`（8体）に入れ子で置いてあり、`claude -p` で `subagent_type: builder` が実際に起動した。しかし `data/paths.json` の配置は `.claude/agents/*.md` だけで、`inventory` は8体を subagents でなく分類外に出す（`feature_hint` で subagents と示すようにはした）。architecture.md §2.1 の条件2「機能のファイルが0件か」の判定を `inventory` の機能別の件数だけで行うと、小の経路の対象が大に倒れうる（この点は `check` が分類外のヒントを足して解消した）。
 - 確度: 実物で確認（`npm run inventory` の出力と起動の実験）。入れ子の配置が公式で認められているかは未確認（`lib/features.js` の EXTRA_PATHS のコメントは subagents.md §3 を挙げるが、そこに該当の記述は見つからなかった）
-- 提案: 条件2の判定は、機能別の件数に分類外の `feature_hint` の件数を足して行う（段階3で `check` に実装する）。入れ子の配置が公式で認められるかは `features/subagents.md` と公式で確かめ、認められるなら paths.json の欠けとして正典側に送る。
-- 予定: v3 刷新（tasks/20261016-canon-v3/）の段階3
+- 提案: 入れ子の配置が公式で認められるかを `features/subagents.md` と公式で確かめ、認められるなら paths.json の欠けとして正典側に送る。条件2の判定は、`check` が機能別の件数に分類外の `feature_hint` の件数を足して行うようにした（段階3）。

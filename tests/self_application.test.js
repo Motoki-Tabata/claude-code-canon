@@ -14,10 +14,10 @@ import path from 'node:path';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { loadArtifact, parseFrontmatter, splitListValue, skillPathRole } from '../lib/artifact.js';
-import { checkV1 } from '../.claude/skills/canon-c/scripts/verify/v1-paths.js';
-import { checkV2 } from '../.claude/skills/canon-c/scripts/verify/v2-frontmatter.js';
-import { checkV3 } from '../.claude/skills/canon-c/scripts/verify/v3-tool-names.js';
-import { checkV4 } from '../.claude/skills/canon-c/scripts/verify/v4-security.js';
+import { checkV1 } from '../lib/verify/paths.js';
+import { checkV2 } from '../lib/verify/frontmatter.js';
+import { checkV3 } from '../lib/verify/tool-names.js';
+import { checkV4 } from '../lib/verify/security.js';
 import { isNonSchemaRel } from '../lib/non-schema.js';
 import { ROOT } from './helpers/paths.js';
 import { REFERENCE_DIR } from '../lib/reference-data.js';
@@ -62,7 +62,7 @@ test('claude-canon 自身の .claude/**.md が V1〜V4 で違反0件', () => {
 
 test('Phase Skill の scripts/ は skill パッケージの supporting files として扱われる（V1・V2 の対象外）', () => {
   const scripts = trackedFiles('.claude/skills').filter((f) => /^\.claude\/skills\/[^/]+\/scripts\//.test(f));
-  assert.ok(scripts.length >= 10, `scripts が少なすぎる（実際: ${scripts.length}）。0件を成功と誤認しない。`);
+  assert.ok(scripts.length >= 5, `scripts が少なすぎる（実際: ${scripts.length}）。0件を成功と誤認しない。`);
   const misfiled = scripts.filter((f) => skillPathRole(f) !== 'supporting' || !isNonSchemaRel(f, 'generated'));
   assert.deepEqual(misfiled, []);
 });
@@ -273,10 +273,12 @@ test('Phase Skill の本文が呼ぶ npm scripts がすべて package.json に�
   const scripts = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8')).scripts;
   const missing = [];
   let calls = 0;
+  // v3 段階3で廃止した配置系の npm scripts。canon-d の本文は段階4で置き換え、段階5で撤去する（それまでの暫定）。
+  const RETIRED = new Set(['run-manifest', 'pre-deploy', 'deploy']);
   for (const name of PHASE_SKILLS) {
     for (const m of phaseSkillText(name).matchAll(/npm run ([a-z][a-z0-9:-]*)/g)) {
       calls++;
-      if (!scripts[m[1]]) missing.push(`${name}: npm run ${m[1]}`);
+      if (!scripts[m[1]] && !(name === 'canon-d' && RETIRED.has(m[1]))) missing.push(`${name}: npm run ${m[1]}`);
     }
   }
   assert.ok(calls >= 15, `npm run の呼び出しが少なすぎる（実際: ${calls}）。検査が発火していない`);

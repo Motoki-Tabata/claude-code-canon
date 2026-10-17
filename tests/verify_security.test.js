@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkV4, checkMcpJsonText } from '../.claude/skills/canon-c/scripts/verify/v4-security.js';
+import { checkV4, checkMcpJsonText } from '../lib/verify/security.js';
 import { artifactFromText } from '../lib/artifact.js';
 
 describe('V4 セキュリティ（.md artifact 側）', () => {

@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkV3 } from '../.claude/skills/canon-c/scripts/verify/v3-tool-names.js';
+import { checkV3 } from '../lib/verify/tool-names.js';
 import { artifactFromText } from '../lib/artifact.js';
 
 function agent(tools) {

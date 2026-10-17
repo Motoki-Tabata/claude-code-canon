@@ -1,228 +1,163 @@
 /**
- * verify.js（npm run verify・artifacts.md §8.1）の統合テスト。
+ * verify.js（npm run verify・design/architecture.md §7）の統合テスト。
  *
- * - 実際の起動経路（子プロセス）で exit code・report の出力先・中身を確かめる。
- * - ファイルごとの振り分け（スキーマを持つ定義だけに V1〜V4、非スキーマは素通り、種別不明は V1 違反）。
- * - 検査対象ゼロ（generated/ が無い・空）を合格にしない。
- * - report のハッシュが、report に書いたシェルコマンドの結果と一致する（POSIX のみ）。
+ * - 実際の起動経路（子プロセス）で exit code・report の出力先・中身を確かめる。使い捨ての対象リポジトリと
+ *   その worktree（`canon/<ts>`）の上で、変えたファイルだけが検査されること。
+ * - 検査対象ゼロ（差分が空）・未コミットの変更・入力不在を合格にしない。
  *
  * 「全部通った」だけを根拠にしない: 同じ入力へ違反を注入すると exit 1 になることを対で確かめる。
  */
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { setupSampleRepo, cleanupTs, writeSkill, writeFile as write } from './helpers/fixtures.js';
-import { runScript } from './helpers/run-cli.js';
-import { genDir, outputDir } from './helpers/paths.js';
+import { runNodeScript } from './helpers/run-cli.js';
+import { ROOT } from './helpers/paths.js';
 import { tsSeq } from './helpers/ts.js';
-import { buildContext, runChecks, renderReport, CHECKS } from '../.claude/skills/canon-c/scripts/verify.js';
-import { hashTree } from '../lib/tree-hash.js';
+import { changePlan, REQUIREMENTS, setupRun } from './helpers/v3-run.js';
+import { CHECKS, parseVerifyReport, renderReport } from '../lib/verify/run.js';
 
 const nextTs = tsSeq(import.meta.url);
-const verifyCli = (ts) => runScript('canon-c', 'verify.js', ts === undefined ? [] : [ts]);
-const reportOf = (ts) => readFileSync(path.join(outputDir(ts), 'verify-report.md'), 'utf8');
+const VERIFY = path.join(ROOT, 'tools', 'verify.js');
+const verifyCli = (...args) => runNodeScript(VERIFY, args);
+const reportOf = (r) => readFileSync(path.join(r.work, 'verify-report.md'), 'utf8');
+
+const A_MD = '---\npaths: ["**"]\n---\n# a\n新しい一文\n';
+/** a.md を書き換えて b.md が a.md を参照している状態の plan（impact の該当に回答済み）。 */
+const PLAN_OK = changePlan({ answers: '- .claude/rules/b.md: 変えない（a.md の存在への参照で内容は無関係）' });
+
+function passingRun(t) {
+  const r = setupRun(t, nextTs(), { plan: PLAN_OK });
+  r.write('.claude/rules/a.md', A_MD);
+  r.commit();
+  return r;
+}
 
 // ---- CLI の実経路 ----
 
-test('verify CLI: 制約強めのサンプルは V1〜V9 を全通過し exit 0、report を output/<ts>/ に書く', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs());
-  const r = verifyCli(c.ts);
-  assert.equal(r.code, 0, r.stdout + r.stderr + (existsSync(path.join(c.out, 'verify-report.md')) ? reportOf(c.ts) : ''));
-  const report = reportOf(c.ts);
+test('verify CLI: 変えたファイルが計画どおりなら V1〜V9 を通り exit 0、report を work/<ts>/ に書く（HEAD の sha 付き）', (t) => {
+  const r = passingRun(t);
+  const out = verifyCli(r.ts);
+  assert.equal(out.code, 0, out.stdout + out.stderr + (existsSync(path.join(r.work, 'verify-report.md')) ? reportOf(r) : ''));
+  const report = reportOf(r);
   for (const [id] of CHECKS) assert.match(report, new RegExp(`^## ${id} `, 'm'), `${id} の節が report に無い`);
   assert.match(report, /結果: 合格（違反 0 件/);
-  assert.match(r.stdout, /未判定 \d+ 件/, '要約の行に未判定の件数が出る');
-  assert.match(report, /generated\/ のハッシュ: `[0-9a-f]{64}`（4 ファイル）/);
-  assert.match(report, /V9: .*organization_policy/, 'V9 の warning（自由文は機械判定しない）も report に残す');
+  assert.deepEqual(parseVerifyReport(report), { head: r.head(), passed: true }, '検査した HEAD の sha を残す');
+  assert.match(out.stdout, /HEAD [0-9a-f]{12}/);
 });
 
-test('verify CLI（違反注入）: hooks 禁止の環境に hook 設定を生成すると exit 1、report に V9 の違反が載る', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs());
-  write(c.gen, '.claude/settings.json', JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: 'x' }] }] } }));
-  const r = verifyCli(c.ts);
-  assert.equal(r.code, 1, r.stdout);
-  assert.match(r.stdout, /V9:違反/);
-  assert.match(reportOf(c.ts), /- 違反: V9: constraints で "hooks" は禁止/);
+test('verify CLI（違反注入）: 計画に無いファイルを変えると exit 1、report に V7 の違反が載る', (t) => {
+  const r = passingRun(t);
+  r.write('CLAUDE.md', '# 計画に無い変更\n');
+  r.commit('もう1つ');
+  const out = verifyCli(r.ts);
+  assert.equal(out.code, 1, out.stdout);
+  assert.match(out.stdout, /V7:違反/);
+  assert.match(reportOf(r), /- 違反: V7: 差分の CLAUDE\.md（M）が change-plan のファイルに無い/);
+});
+
+test('verify CLI（違反注入）: 計画の op と差分の種類が違うと V7 の違反（modify の計画で、実際は新規追加）', (t) => {
+  const r = setupRun(t, nextTs(), { plan: PLAN_OK });
+  r.write('.claude/rules/new.md', A_MD);
+  r.commit();
+  const out = verifyCli(r.ts);
+  assert.equal(out.code, 1);
+  const report = reportOf(r);
+  assert.match(report, /V7: 差分の \.claude\/rules\/new\.md（A）が change-plan のファイルに無い/);
+  assert.match(report, /V7: change-plan の \.claude\/rules\/a\.md（modify）が差分に無い/);
+});
+
+test('verify CLI: 未コミットの変更があれば不合格（検査も承認も漏れる）', (t) => {
+  const r = passingRun(t);
+  r.write('.claude/rules/a.md', `${A_MD}さらに未コミット\n`);
+  const out = verifyCli(r.ts);
+  assert.equal(out.code, 1, out.stdout);
+  assert.match(reportOf(r), /## 前提[\s\S]*未コミットの変更が 1 件/);
+});
+
+test('verify CLI: 差分が空なら全検査を違反にする（検査対象ゼロを合格にしない）', (t) => {
+  const r = setupRun(t, nextTs(), { plan: PLAN_OK });
+  const out = verifyCli(r.ts);
+  assert.equal(out.code, 1, out.stdout);
+  const report = reportOf(r);
+  for (const [id] of CHECKS) assert.match(report, new RegExp(`- 違反: ${id}: 差分が空`), id);
+});
+
+test('verify CLI: 種別を判定できない .md を黙って飛ばさず V1 の違反にする', (t) => {
+  const plan = changePlan({ files: '- path: .claude/misc/x.md\n  op: new\n  reqs: [R1]\n  instruct: 足す（R1）' });
+  const r = setupRun(t, nextTs(), { plan });
+  r.write('.claude/misc/x.md', '# x\n');
+  r.commit();
+  const out = verifyCli(r.ts);
+  assert.equal(out.code, 1, out.stdout);
+  assert.match(reportOf(r), /- 違反: V1 \.claude\/misc\/x\.md: 種別/);
+});
+
+test('verify CLI: 削除したファイルを指す、触らないファイルの参照は、答えが無ければ違反・「変えない（理由）」なら warning', (t) => {
+  // b.md は a.md を指している。a.md を削除する。
+  const del = (answers) => changePlan({ answers, files: '- path: .claude/rules/a.md\n  op: delete\n  reqs: [R1]\n  instruct: 廃止する（R1）' });
+  const r = setupRun(t, nextTs(), { plan: del('') });
+  r.remove('.claude/rules/a.md');
+  r.commit();
+  const bad = verifyCli(r.ts);
+  assert.equal(bad.code, 1, bad.stdout);
+  assert.match(reportOf(r), /- 違反: V6 \.claude\/rules\/b\.md: \d+ 行目が、削除したファイル/);
+
+  r.writeWork('change-plan.md', del('- .claude/rules/b.md: 変えない（履歴の説明として残す）'));
+  const ok = verifyCli(r.ts);
+  assert.equal(ok.code, 0, ok.stdout + reportOf(r));
+  assert.match(reportOf(r), /- warning: V6 \.claude\/rules\/b\.md/);
+});
+
+test('verify CLI: hooks か permissions を含む差分は、trust の前提を V9 の warning に載せる（合格のまま）', (t) => {
+  const req = REQUIREMENTS.replace('hooks:        { allowed: false', 'hooks:        { allowed: true');
+  const plan = changePlan({ files: '- path: .claude/settings.json\n  op: new\n  reqs: [R1]\n  instruct: 権限を足す（R1）' });
+  const r = setupRun(t, nextTs(), { plan, requirements: req });
+  r.write('.claude/settings.json', JSON.stringify({ permissions: { allow: ['Read'] } }));
+  r.commit();
+  const out = verifyCli(r.ts);
+  assert.equal(out.code, 0, out.stdout + reportOf(r));
+  assert.match(reportOf(r), /- warning: V9: .*trust.*permissions/);
+});
+
+test('verify CLI: 禁止した機能（hooks）の差分は V8 の違反', (t) => {
+  const plan = changePlan({ files: '- path: .claude/settings.json\n  op: new\n  reqs: [R1]\n  instruct: フックを足す（R1）' });
+  const r = setupRun(t, nextTs(), { plan });
+  r.write('.claude/settings.json', JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: 'x' }] }] } }));
+  r.commit();
+  const out = verifyCli(r.ts);
+  assert.equal(out.code, 1, out.stdout);
+  assert.match(reportOf(r), /- 違反: V8: constraints で "hooks" は禁止/);
+});
+
+test('verify CLI: change-plan.md が無ければ V7 の違反（計画が無いことを「計画どおり」と読まない）', (t) => {
+  const r = setupRun(t, nextTs());
+  r.write('.claude/rules/a.md', A_MD);
+  r.commit();
+  const out = verifyCli(r.ts);
+  assert.equal(out.code, 1);
+  assert.match(reportOf(r), /V7: work\/<ts>\/change-plan\.md が無い/);
+});
+
+test('verify CLI: 入力不在は exit 1、引数不正は exit 2', () => {
+  const ghost = nextTs(); // work/<ts>/ を作らない
+  const none = verifyCli(ghost);
+  assert.equal(none.code, 1);
+  assert.match(none.stderr, /handoff\.md が無い/);
+  assert.equal(verifyCli().code, 2);
+  assert.equal(verifyCli('not-a-ts').code, 2);
+  assert.equal(verifyCli(ghost, 'extra').code, 2);
 });
 
 test('verify report: 未判定だけなら合格のまま、未判定を件数・表・本文に載せる（V-common-01）', () => {
   const results = Object.fromEntries(CHECKS.map(([id]) => [id, { violations: [], warnings: [], undetermined: [], checked: 1, na: null }]));
   results.V1.undetermined.push('V1 x/y.md: 未判定の例 [出典: canon-reference V-common-01]');
-  const { body, total, undetermined } = renderReport({ ts: 'x', results, tree: null, at: 'now' });
+  const state = { head: 'a'.repeat(40), base: 'b'.repeat(40), branch: 'canon/x', dirty: [], changedCount: 1 };
+  const { body, total, undetermined } = renderReport({ ts: 'x', results, state, at: 'now' });
   assert.equal(total, 0, '未判定は違反に数えない（exit 0 の条件は違反0件）');
   assert.equal(undetermined, 1);
   assert.match(body, /結果: 合格（違反 0 件・warning 0 件・未判定 1 件）/);
   assert.match(body, /\| V1 配置パス \| pass（未判定あり） \| 0 \| 0 \| 1 \|/);
   assert.match(body, /- 未判定: V1 x\/y\.md/);
-});
-
-test('verify CLI: 引数が無い・形式違いなら exit 2（report を書かない）', () => {
-  assert.equal(verifyCli().code, 2);
-  const bad = verifyCli('not-a-ts');
-  assert.equal(bad.code, 2);
-  assert.match(bad.stderr, /npm run verify -- <ts>/);
-});
-
-test('verify CLI: 存在しない <ts>（output/<ts>/ が無い）は入力不在の exit 1 で、output/<ts>/ を作らない', (t) => {
-  const ts = nextTs();
-  cleanupTs(t, ts);
-  const r = verifyCli(ts);
-  assert.equal(r.code, 1, r.stdout + r.stderr);
-  assert.match(r.stderr, /output\/.*が無い/);
-  assert.ok(!existsSync(outputDir(ts)), 'verify が output/<ts>/ を作った');
-});
-
-test('verify CLI: generated/ が無いときは全検査を違反にして exit 1（検査対象ゼロを合格にしない）', (t) => {
-  const ts = nextTs();
-  cleanupTs(t, ts);
-  mkdirSync(outputDir(ts), { recursive: true });
-  const r = verifyCli(ts);
-  assert.equal(r.code, 1);
-  const report = reportOf(ts);
-  for (const [id] of CHECKS) assert.match(report, new RegExp(`- 違反: ${id}: generated/ が無い`));
-  assert.match(report, /generated\/ のハッシュ: なし/);
-});
-
-test('verify: generated/ が空でも全検査を違反にする', (t) => {
-  const ts = nextTs();
-  cleanupTs(t, ts);
-  mkdirSync(genDir(ts), { recursive: true });
-  const results = runChecks(buildContext(ts));
-  for (const [id] of CHECKS) assert.ok(results[id].violations.some((v) => v.includes('generated/ が空')), id);
-});
-
-test('verify: report のハッシュは report に書いたシェルコマンドと同じ値になる', { skip: process.platform === 'win32' }, (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs());
-  write(c.gen, '.claude/skills/style-guide/examples/a b.md', '空白を含む名前\n');
-  const { hash } = hashTree(c.gen);
-  const shell = execSync(`(cd "${c.gen}" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum) | sha256sum`, {
-    encoding: 'utf8',
-    shell: '/bin/sh',
-  });
-  assert.equal(shell.split(/\s+/)[0], hash);
-});
-
-test('verify CLI: outside-managed/ があると report のハッシュは両方を含み、書いたシェルコマンドと同じ値になる。改変で変わる', { skip: process.platform === 'win32' }, (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs());
-  const hashLine = () => {
-    assert.equal(verifyCli(c.ts).code, 0);
-    const body = reportOf(c.ts);
-    return { body, hash: body.match(/generated\/ のハッシュ: `([0-9a-f]{64})`/)[1], cmd: body.match(/再計算: `(.*)`/)[1] };
-  };
-  const base = hashLine().hash;
-  assert.equal(base, hashTree(c.gen).hash, 'outside-managed/ が無ければ従来どおり generated/ だけのハッシュ');
-  write(c.out, 'outside-managed/README.md', '# 変更後\n');
-  const a = hashLine();
-  assert.notEqual(a.hash, base);
-  assert.match(a.body, /outside-managed\/ の 1 ファイルを含む/);
-  // 再計算コマンドは canon のルートからの相対パスで書かれている
-  const shell = execSync(a.cmd, { encoding: 'utf8', shell: '/bin/sh', cwd: path.dirname(path.dirname(c.out)) });
-  assert.equal(shell.split(/\s+/)[0], a.hash);
-  write(c.out, 'outside-managed/README.md', '# 承認後に改変\n');
-  assert.notEqual(hashLine().hash, a.hash);
-});
-
-// ---- ファイルごとの振り分け（V1〜V4 の対象の決め方）----
-
-test('verify: CLAUDE.md と README.md に agent/skill のスキーマを当てない（V1〜V3 は対象なし）', (t) => {
-  const ts = nextTs();
-  cleanupTs(t, ts);
-  write(genDir(ts), 'CLAUDE.md', '# c\n本文\n');
-  write(genDir(ts), '.claude/README.md', '# 使い方\n');
-  const r = runChecks(buildContext(ts));
-  for (const id of ['V1', 'V2', 'V3']) {
-    assert.deepEqual(r[id].violations, [], `${id}: ${r[id].violations}`);
-    assert.match(r[id].na ?? '', /スキーマを持つファイル/, `${id} は「対象なし」と理由を書く`);
-  }
-});
-
-test('verify: 出力スタイルと AGENTS.md を種別不明にしない（output-style は V1・V2 を当て、AGENTS.md は非スキーマ）', (t) => {
-  const ts = nextTs();
-  cleanupTs(t, ts);
-  write(genDir(ts), 'AGENTS.md', '# agents\n本文\n');
-  write(genDir(ts), '.claude/output-styles/terse.md', '---\nname: terse\ndescription: 短く答える\n---\n短く答える。\n');
-  const r = runChecks(buildContext(ts));
-  assert.deepEqual(r.V1.violations, [], JSON.stringify(r.V1.violations));
-  assert.deepEqual(r.V2.violations, [], JSON.stringify(r.V2.violations));
-  assert.equal(r.V2.checked, 1, 'output-style に V2 を当てる（AGENTS.md は当てない）');
-  // 故意の違反: 未知キーは V2 が拾う
-  write(genDir(ts), '.claude/output-styles/terse.md', '---\nname: terse\nmade-up: 1\n---\n本文\n');
-  const bad = runChecks(buildContext(ts));
-  assert.ok(bad.V2.violations.some((v) => v.includes('made-up')), JSON.stringify(bad.V2.violations));
-});
-
-test('verify: 定義でない .md を黙って飛ばさない（agents 配下の走り書きは V2、種別不明の .md は V1 の違反）。agent の定義には V3 を当てる', (t) => {
-  const ts = nextTs();
-  cleanupTs(t, ts);
-  write(genDir(ts), '.claude/agents/reviewer/reviewer.md', '---\nname: reviewer\ndescription: x\ntools: Read Task\n---\n本文\n');
-  write(genDir(ts), '.claude/agents/reviewer/notes.md', '走り書き\n');
-  write(genDir(ts), '.claude/notes.md', '走り書き\n');
-  const r = runChecks(buildContext(ts));
-  assert.ok(r.V2.violations.some((v) => v.includes('agents/reviewer/notes.md')), JSON.stringify(r.V2.violations));
-  assert.ok(r.V1.violations.some((v) => v.includes('.claude/notes.md') && v.includes('種別')), JSON.stringify(r.V1.violations));
-  assert.ok(r.V3.violations.some((v) => v.includes('Task')), `旧称ツール（Task）を V3 で捕まえる: ${JSON.stringify(r.V3)}`);
-});
-
-test('verify: skill の supporting files は V1 を通り、skills ルート直下の孤児 .md は V1 の違反', (t) => {
-  const ts = nextTs();
-  cleanupTs(t, ts);
-  writeSkill(genDir(ts), 'demo', { body: 'テンプレートは [template.md](./template.md)。' });
-  write(genDir(ts), '.claude/skills/demo/template.md', '# テンプレート\n');
-  write(genDir(ts), '.claude/skills/demo/scripts/validate.mjs', 'process.exit(0);\n');
-  assert.deepEqual(runChecks(buildContext(ts)).V1.violations, []);
-
-  write(genDir(ts), '.claude/skills/orphan.md', '---\nname: orphan\ndescription: x\n---\n本文\n');
-  const r = runChecks(buildContext(ts));
-  assert.ok(r.V1.violations.some((v) => v.includes('orphan.md') && v.includes('SKILL.md')), JSON.stringify(r.V1.violations));
-});
-
-test('verify: 生成物を1回だけ読む（各ファイルの本文と artifact を1回の走査で持つ）', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs());
-  const ctx = buildContext(c.ts);
-  assert.equal(ctx.files.length, 4);
-  for (const f of ctx.files) {
-    assert.equal(typeof f.text, 'string');
-    assert.equal(f.artifact !== null, f.rel.endsWith('.md'), `${f.rel}: .md だけが artifact を持つ`);
-  }
-  // 以降の検査は ctx だけを見る: generated/ を消しても結果が変わらない。
-  const before = runChecks(ctx);
-  rmSync(c.gen, { recursive: true, force: true });
-  const after = runChecks(ctx);
-  for (const [id] of CHECKS) assert.deepEqual(after[id], before[id], id);
-});
-
-// ---- 不正な JSON のトップレベル（object でない）を例外終了にしない ----
-
-test('verify: .mcp.json・plugin.json のトップレベルが object でなくても例外終了せず、違反として report を書く（CLI は exit 1）', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs());
-  const put = (body) => {
-    write(c.gen, '.mcp.json', body);
-    write(c.gen, 'plugin/.claude-plugin/plugin.json', body);
-  };
-  for (const [label, body] of [['配列', '[]'], ['文字列', '"x"'], ['数値', '1']]) {
-    put(body);
-    const r = runChecks(buildContext(c.ts));
-    assert.ok(r.V4.violations.some((v) => /\.mcp\.json.*object/.test(v)), `${label}: ${JSON.stringify(r.V4.violations)}`);
-    assert.ok(r.V6.violations.some((v) => /plugin\.json.*object/.test(v)), `${label}: ${JSON.stringify(r.V6.violations)}`);
-  }
-  // null は typeof が object なので取りこぼしやすい。実際の起動経路でも確かめる。
-  put('null');
-  const r = verifyCli(c.ts);
-  assert.equal(r.code, 1, r.stdout + r.stderr);
-  assert.doesNotMatch(r.stderr, /TypeError/);
-  const report = reportOf(c.ts);
-  assert.match(report, /- 違反: V4 .*\.mcp\.json.*object/);
-  assert.match(report, /- 違反: V6 .*plugin\.json.*object/);
-});
-
-test('verify: 検査が想定外の例外を投げても、その検査の違反として report に載せる（report を書かずに落ちない）', (t) => {
-  const c = setupSampleRepo(t, 'constrained', nextTs());
-  const ctx = buildContext(c.ts);
-  ctx.byRel = null; // V6 以降を壊す
-  const r = runChecks(ctx);
-  assert.ok(r.V6.violations.some((v) => v.startsWith('V6: 検査が例外で中断した')), JSON.stringify(r.V6.violations));
-  assert.ok(CHECKS.every(([id]) => r[id]), '全検査の結果が揃っている');
 });

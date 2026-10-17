@@ -41,9 +41,9 @@
 - [x] T2-4 テスト: 各スクリプトに、故意に注入した入力で発火することを示すテストを付ける。対象がゼロ件のときを合格にしない。
 
 ### 段階3 検査
-- [ ] T3-1 verify v3: 入力は worktree の変更されたファイル（`git diff --name-only`）。系統は、配置パス・frontmatter・ツール名・secret・書式片・参照整合・constraints と trust の前提の警告。番号は1から振る。canon-update が使う判定と1系統にまとめる。
-- [ ] T3-2 `check`: requirements.md（根拠の確度、「文言のみ」が確定要件に無いこと、サイズの上限）と change-plan.md の検査。
-- [ ] T3-3 approvals: G1・G2（大の経路は G3 まで）。差分のゲートはブランチのコミット sha に束縛する。
+- [x] T3-1 verify v3: 入力は worktree の変更されたファイル（`git diff --name-only`）。系統は、配置パス・frontmatter・ツール名・secret・書式片・参照整合・constraints と trust の前提の警告。番号は1から振る。canon-update が使う判定と1系統にまとめる。
+- [x] T3-2 `check`: requirements.md（根拠の確度、「文言のみ」が確定要件に無いこと、サイズの上限）と change-plan.md の検査。
+- [x] T3-3 approvals: G1・G2（大の経路は G3 まで）。差分のゲートはブランチのコミット sha に束縛する。
 
 ### 段階4 Skill と Agent
 - [ ] T4-1 `/canon-plan`・`/canon-design`・`/canon-build` の SKILL.md。開始時の照合は1コマンドで行う。ゲートは別々の問いで取る。終わりに、次のセッションの `--model`・`--effort` を案内する。

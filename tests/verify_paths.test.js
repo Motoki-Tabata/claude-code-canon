@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkV1 } from '../.claude/skills/canon-c/scripts/verify/v1-paths.js';
+import { checkV1 } from '../lib/verify/paths.js';
 import { artifactFromText } from '../lib/artifact.js';
 
 function art(p, fm = '') {
