@@ -67,20 +67,8 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 確度: 実物で確認（このセッションの操作）
 - 提案: canon-plan の計画3 の1に「検証コマンドを変更前の worktree で1回実行し、結果（pass・fail の件数と、変更前から落ちているもの）を `## 検証コマンド` に書く」を足す。impact の入力は、`impact` が change-plan.md の `## ファイル`・`## 影響の語` を直接読む `--from-plan` を持てば、一時ファイルが要らない。
 
-## 2026-10-19 reviewer が総入力の 34% を使い、受け入れ条件1（18.5M 以下）を超えた（run 20261019_190415・build）
-- 種別: 効率化
-- 何が起きたか: run の総入力は 26.4M（plan 9.5M・build 16.8M）で、目標の 18.5M を超えた。最大は reviewer の 8.87M（4起動・77ターン。段階1の目安 2.5M の約3.5倍）。最初の2体は変えたファイルを機能のまとまりで分けて担当し、`impact` の「変えない」参照元のうち、どちらの担当ファイルにも結びつかない35件が誰にも渡らなかった（review-2.md が担当外として挙げた）。その35件に4体目を起動し、約6.5分かかった。再レビュー（3体目）は Bash を持たず、修正のコミットの範囲（`d9b1eb8..HEAD`）の差分を渡されなかったので、5ファイルを全文で読み直した（review-3.md の注記）。ほかに plan のメインが 6.87M（目安 4.5M）、目安に無かった claude-code-guide が 1.01M だった。
-- 確度: 実物で確認（`npm run tokens` の集計と `work/20261019_190415/review/review-2.md`・`review-3.md`・`review-4.md`）
-- 提案: canon-build の構築3 の2で reviewer を分けるとき、`impact.json` の「変えない」参照元を、該当の語・ファイルで1体ずつに割り当て、どれにも当たらない参照元は1体に寄せて、全件をどこかに渡す。再レビューの前に `git -C <worktree> diff <前回の HEAD>..HEAD > review/diff-<n>.patch` を書き、それを渡す。
-
-## 2026-10-19 reviewer が、存在しない節を指す参照を「残っている」と合格にし、prompt-auditor だけが見つけた（run 20261019_190415・build）
+## 2026-10-19 impact が変えるファイルの中を走査しないので、instruct の外の行に残った古い記述が計画で表に出ない（run 20261019_190415・build）
 - 種別: 欠陥修正
-- 何が起きたか: 変えたファイル `canon-boundary.md` の3・11行目は「`.claude/README.md` の『管理境界』節」を指すが、対象の README にその節は無い。review-2.md:77 は「『管理境界』節への参照は残っている」と書いて問題なしとし、prompt-audit.md:23 だけが参照先が無いと指摘した。受け入れ条件3の、R2 で見つかった種類（README の管理境界の参照）を reviewer が見逃した。差分は直していない（brief の範囲外の、対象側の課題）。
-- 確度: 実物で確認（`work/20261019_190415/review/review-2.md:77`・`prompt-audit.md:23`・worktree の `.claude/README.md` に「管理境界」が無いことを grep で確認）
-- 提案: review Skill の `references/perspectives.md` の correctness に「変えたファイルの中の、節名・見出し・パスで他のファイルを指す参照は、変えていない行も含めて、指す先の実在を確かめる」を足す。
-
-## 2026-10-19 /canon-build の振り返りが plan のセッションを分析しなかった（run 20261019_190415・build）
-- 種別: 規律昇華
-- 何が起きたか: 構築5 の2は handoff の `## セッション` の session-id ごとに session-analyst を起動すると書くが、メインは build（01b70c47）の1体だけを起動した。handoff には plan（7f4f7a65）も記録されていた。plan は run の総入力の 36%（9.5M）で、そのうちメインが目安を 2.4M 超えたが、その分析が無い。
-- 確度: 実物で確認（`work/20261019_190415/retro/` のファイルが1件だけ、handoff の `## セッション` が2行）
-- 提案: canon-build の構築5 の2に「`## セッション` の行の数だけ起動する（build の自分のセッションを含む）」と件数を明記し、構築5 の mark の前に `retro/` のファイルの数を数えて行の数と比べる。
+- 何が起きたか: change-plan の `## 影響の語` に `予約の場所`・`lessons-ledger` があったが、`impact` は変えるファイルを走査の対象から外す。変えるファイル `ui-design.md:13`（予約の場所）・`direct-edit.md:32`（配置時に lessons-ledger が消す）・`:40` は、instruct の外の行で古い記述のまま残った。reviewer が指摘し、差し戻し・再レビューで直した（直した5件のうち3件）。opus の reviewer の比較（`work/eval-20261019_190415-opus/review/review-2.md`）が、この経路を原因として挙げた。
+- 確度: 実物で確認（change-plan の `## 影響の語` と、`work/20261019_190415/review/review-2.md` の #1・#2・#4）
+- 提案: `impact` が、変えるファイルの中の該当も「変えるファイルの中」と区別して挙げ、`check` が change-plan のそのファイルの instruct がその行に触れているか、`## 参照元の扱い` が答えているかを照合する。

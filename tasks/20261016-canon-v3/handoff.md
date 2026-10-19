@@ -2,11 +2,13 @@
 
 ## 現在地
 段階6 進行中（2026-10-19）
-T6-1〜T6-3 済み。run `20261019_190415`（小の経路。plan 7f4f7a65・build 01b70c47）を通し、G1・G2 を承認済み。総入力は 26.4M（R2 46.3M の 57%）で受け入れ条件1は満たさなかった。条件3は一部未達（README の管理境界の参照を reviewer が見逃し、prompt-auditor だけが見つけた）。T6-4 は、PR 本文の案 `work/20261019_190415/pr-body-stage6.md` をユーザーが確かめ、PR の更新とマージの判断を決める番。
+T6-1〜T6-3 済み。1回目の run `20261019_190415` は受け入れ条件1（26.4M）と3の一部を満たさなかったので、ユーザーの指示で台帳の3件（reviewer の参照元の割当と再レビューの差分・参照先の実在・振り返りの件数）を直した。reviewer の model はユーザーの判断待ち（opus・high との比較は判断ログ）。次は測り直しの run。
 
 ## 次のセッション
-- T6-4 の続き: ユーザーの判断（下のどれか）を受けてから始める。マージする／ブランチの上で台帳の 2026-10-19 の項目（reviewer の割当・節の参照の実在）を直してから測り直す／PR ごとやめる
-- 測り直すときは、対象の `/home/motoki-tabata/work/skillweave-mhwilds-r2base` を `bc0c63f` に戻してから `/canon-plan` を打つ（今の run の worktree とブランチ `canon/20261019_190415` は `npm run worktree -- cleanup` で片付ける）
+- 測り直しの前に決めること: reviewer の model（比較の結果は判断ログ）と、台帳の 2026-10-19「impact が変えるファイルの中を走査しない」を測り直しの前に直すか
+- 測り直しの1本目: 対象 `/home/motoki-tabata/work/skillweave-mhwilds-r2base` の HEAD が `bc0c63f` のままであることを確かめ、canon のルートで `claude --model opus --effort medium` を起動して `/canon-plan /home/motoki-tabata/work/skillweave-mhwilds-r2base` を打つ。ヒアリングでは「要件は `work/20261014_232320/requirements.md` の R1〜R13 を入力にする」と伝える
+- 測り直しの2本目: `/canon-plan` が案内する `--model`・`--effort` で新しいセッションを起動し、`/canon-build <ts>` を打つ
+- その後: 「`tasks/20261016-canon-v3/plan.md` の段階6 の T6-3 から続ける。run の ts は <ts>。1回目は 20261019_190415」。1回目の worktree とブランチ `canon/20261019_190415` は、比べ終わるまで残す
 
 ## 判断ログ
 - 2026-10-16 段階0: 骨格から作り直し、互換は取らない（理由: 全量スナップショット方式そのものがコストと手戻りの元）
@@ -57,6 +59,9 @@ T6-1〜T6-3 済み。run `20261019_190415`（小の経路。plan 7f4f7a65・buil
 - 2026-10-19 段階6: T6-2。run `20261019_190415` を `/canon-plan`（opus・medium）→ `/canon-build`（sonnet・medium）の別セッションで通した。build の構築2 で verify V1 が対象の `tasks/lessons.md` を種別不明にしたので、ユーザーの選択で `lib/non-schema.js` の `NON_SCHEMA_MD` に足した（canon 本体の修正。段階6のコミットに含め、台帳の項目は同じコミットで消す）
 - 2026-10-19 段階6: T6-3。総入力は plan 9.53M＋build 16.85M＝26.38M（R2 46.35M の 56.9%）、段階1の単価での概算は $12.57（R2 $26.32 の 48%）。最大は reviewer の 8.87M（4起動）。振り返りは台帳に3件起票し（reviewer の割当、節の参照の実在、plan のセッションの分析漏れ）、investigator の Write の拒否と `git -C` の項目を実測で書き直した。reviewer の opus・high との比較は、同じ差分で reviewer を起動し直す費用（約 $5〜7 の見込み）がかかるので実施していない（PR 本文の案で判断を求める）
 - 2026-10-19 段階6: 受け入れ条件6の確認では、この作業フォルダ（brief・plan・handoff）に残る v2 の語は、計画の記録として除外した
+
+- 2026-10-19 段階6: reviewer の opus・high との比較。1回目の修正前のコミット `d9b1eb8` を別の worktree に出し、run のファイルの写し（`work/eval-20261019_190415-opus/`）で、sonnet の1回目の2体と同じプロンプトで opus の reviewer を2体起動した。総入力は opus 9.90M・sonnet 3.19M（3.1倍）、概算は $5.63・$1.74、時間は約14分・約4分。1回目に直した5件のうち、sonnet は5件、opus は4件を挙げた（README の読込条件を落とした）。opus だけが挙げた medium は2件（guard-internals.md の `claude -p` の書き方が広すぎる・台帳の項目の削除で ui-design-standard.md の後始末の記録が無くなる〔後者は1回目の handoff の申し送りにある〕）。README の「管理境界」節への参照は両方とも見逃した。参照元は両方とも担当を自分で選び、sonnet は35件を未判定に挙げたが、opus は対象外として未判定 0 と書いた
+- 2026-10-19 段階6: ユーザーの指示で台帳の3件を直した。`canon-build` の構築3（参照元の全件を reviewer に割り当てて和を数える・再レビューに `diff-<n>.patch` を渡す）と構築5（`## セッション` の行の数だけ session-analyst を起動し、分析のファイルの数を数える）、`reviewer.md`（担当の参照元の一覧・判定する参照元を自分で選び直さない）、`review` の `perspectives.md`（参照先の実在）。opus の比較が挙げた漏れの経路（`impact` が変えるファイルを走査しない）は、台帳に起票した
 
 ## レビュー記録
 - 2026-10-17 段階1: draft PR #27 の上で、設計書 `design/architecture.md`（033e80d）をユーザーが承認した

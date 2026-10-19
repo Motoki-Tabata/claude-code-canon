@@ -50,9 +50,9 @@ canon のルートの絶対パスを `<root>` と書く。handoff の `worktree`
 
 1. `git -C <worktree> diff <base>..HEAD > <root>/work/<ts>/review/diff.patch`（`work/<ts>/review/` が無ければ作る）。
 2. `reviewer` と `prompt-auditor` を1つのメッセージで並列に起動する。
-   - reviewer: worktree・変えたファイルの一覧（`git -C <worktree> diff --name-only <base>..HEAD`）・`diff.patch`・`requirements.md`・`change-plan.md`・`impact.json` の絶対パスと、書込先 `<root>/work/<ts>/review/review-1.md`。変えたファイルが多いときは、機能のまとまりで分けて複数起動してよい（`review-<k>.md`）。
+   - reviewer: worktree・変えたファイルの一覧（`git -C <worktree> diff --name-only <base>..HEAD`）・`diff.patch`・`requirements.md`・`change-plan.md`・`impact.json` の絶対パスと、書込先 `<root>/work/<ts>/review/review-1.md`。変えたファイルが多いときは、機能のまとまりで分けて複数起動してよい（`review-<k>.md`）。分けるときは、change-plan の `## 参照元の扱い` の「変えない」の全件を、どれか1体に割り当てて、担当の参照元の一覧としてプロンプトに書く（該当の語やファイルが担当のファイルに当たるものはその reviewer へ、どれにも当たらないものは1体に寄せる）。割り当てた一覧の和が全件と一致することを、起動の前に数えて確かめる。
    - prompt-auditor: プロンプトとして読まれるファイル（Skill・Subagent・CLAUDE.md・rules・出力スタイル）が差分にあるときだけ。変えたそのファイルの絶対パスと、書込先 `<root>/work/<ts>/review/prompt-audit.md`。小さな修正では起動しない。
-3. 指摘を読む。`## 未判定の対象` が「なし」でなければ、その分の reviewer を追加で起動する。`high`・`medium` の指摘は、直す（差し戻しの手順で builder を新しく起動 → 再コミット → verify → 変更のあった対象だけ再レビュー）。直さない指摘は、理由を差分のゲートの提示に載せる。
+3. 指摘を読む。`## 未判定の対象` が「なし」でなければ、その分の reviewer を追加で起動する。`high`・`medium` の指摘は、直す（差し戻しの手順で builder を新しく起動 → 再コミット → verify → 変更のあった対象だけ再レビュー）。再レビューの前に `git -C <worktree> diff <前回レビューした HEAD>..HEAD > <root>/work/<ts>/review/diff-<n>.patch`（n は2から）を書き、`diff.patch` の代わりに渡す。直さない指摘は、理由を差分のゲートの提示に載せる。
 4. `npm run handoff -- <ts> mark 構築3`。
 
 ## 構築4 差分のゲート
@@ -71,9 +71,9 @@ canon のルートの絶対パスを `<root>` と書く。handoff の `worktree`
 ## 構築5 振り返り
 
 1. handoff の `## セッション` に記録された session-id ごとに `npm run tokens -- <session-id>` で区分別の消費を出す。
-2. `session-analyst` を、session-id ごとに1つのメッセージで並列に起動する。渡すもの: transcript の jsonl の絶対パス・tokens の集計結果・観点（手戻り・承認で止まった箇所・時間やトークンを使った工程）・書込先 `<root>/work/<ts>/retro/session-analysis-<stage>-<session-id の先頭8桁>.md`（同じ段を再開して session-id が複数あっても上書きしない）。
+2. `session-analyst` を、`## セッション` の行の数だけ（plan・design と、このセッション自身の build を含む）1つのメッセージで並列に起動する。渡すもの: transcript の jsonl の絶対パス・tokens の集計結果・観点（手戻り・承認で止まった箇所・時間やトークンを使った工程）・書込先 `<root>/work/<ts>/retro/session-analysis-<stage>-<session-id の先頭8桁>.md`（同じ段を再開して session-id が複数あっても上書きしない）。
 3. 分析を読み、canon 本体の改修要求（欠陥・浪費・規律の穴）は、メインが確度（実物で確認か文言のみか）を確かめてから `tasks/lessons.md` に起票する。session-analyst の記述を転記しない。無ければ「無し」と報告する。
-4. `npm run handoff -- <ts> mark 構築5`。
+4. `work/<ts>/retro/` の分析のファイルの数が `## セッション` の行の数と一致することを数えて確かめてから、`npm run handoff -- <ts> mark 構築5`。
 
 ## 終わりに
 
