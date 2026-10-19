@@ -1,13 +1,12 @@
 # handoff: canon-v3
 
 ## 現在地
-段階5 完了（2026-10-17）
-v2 の残りを撤去した。消したもの: `.claude/skills/canon-c/scripts/`（`copy-keep`・`emit-manifest`・`review-bundle`・`slice`）、`lib/` の `design-map`・`design-slices`・`interface-signature`・`investigation`・`managed-paths`・`manifest`・`tree-hash`、そのテスト（`copy_keep`・`emit_manifest`・`review_bundle`・`slice`・`managed_paths`）と helpers（`keep-review-cases`・`readme-listing`・`sample-repos`）、`design/artifacts.md`、`output/.gitkeep`、`package.json` の scripts 4件、`settings.json` の deploy の deny 規則。直したもの: `lib/run.js`（`output/`・`readHandoff`・`resolveTargetRoot`・`readTsArg`）、`lib/markdown.js`（死んだパーサ5件）、`tools/token-usage.js`（design-map Read の列）、`tests/helpers/`（`constrained-case.js` を新設し、verify のテストの仮の worktree は `work/<ts>/generated/` にした）、`exit_codes.test.js`、README・`.claude/README.md`・`guide/setup.md`・rules・コード内の `artifacts.md §` 引用・`tasks/lessons.md` 冒頭と解消した5項目。`npm test` 288件が通った（段階4の365件から、消した v2 のテスト分が減った）。コミットはユーザーの了承待ち。次は段階6（ベンチマーク）。
+段階6 進行中（2026-10-19）
+T6-1〜T6-3 済み。run `20261019_190415`（小の経路。plan 7f4f7a65・build 01b70c47）を通し、G1・G2 を承認済み。総入力は 26.4M（R2 46.3M の 57%）で受け入れ条件1は満たさなかった。条件3は一部未達（README の管理境界の参照を reviewer が見逃し、prompt-auditor だけが見つけた）。T6-4 は、PR 本文の案 `work/20261019_190415/pr-body-stage6.md` をユーザーが確かめ、PR の更新とマージの判断を決める番。
 
 ## 次のセッション
-- 推奨モデル: Opus / Sonnet（段階6。`/canon-plan` は Opus、`/canon-build` は Sonnet）
-- 最初の指示: 「`tasks/20261016-canon-v3/plan.md` の段階6 を実装する。brief.md・handoff.md・`design/architecture.md` を先に読む」
-- ベンチマークは別セッションの実際の経路で通す（受け入れ条件4）。下の「未確認」を最初に当たる
+- T6-4 の続き: ユーザーの判断（下のどれか）を受けてから始める。マージする／ブランチの上で台帳の 2026-10-19 の項目（reviewer の割当・節の参照の実在）を直してから測り直す／PR ごとやめる
+- 測り直すときは、対象の `/home/motoki-tabata/work/skillweave-mhwilds-r2base` を `bc0c63f` に戻してから `/canon-plan` を打つ（今の run の worktree とブランチ `canon/20261019_190415` は `npm run worktree -- cleanup` で片付ける）
 
 ## 判断ログ
 - 2026-10-16 段階0: 骨格から作り直し、互換は取らない（理由: 全量スナップショット方式そのものがコストと手戻りの元）
@@ -52,15 +51,21 @@ v2 の残りを撤去した。消したもの: `.claude/skills/canon-c/scripts/`
 - 2026-10-17 段階5: `tools/token-usage.js` から design-map の Read 数の列を外した（v3 に design-map が無い）。段階6の `npm run tokens` の表は、この列が無い
 - 2026-10-17 段階5: 受け入れ条件6のため、`design/architecture.md` の v2 の経緯（§1.1・§3・§4・§6・§10）を、K・P の番号や旧文書名を使わない言い方に書き直した（ユーザー指示）。§7 の「判定のコードは1系統」も現状（canon-update は触らない）に直した。テスト側は、旧ゲート名を拒否する確認の値を `P1`・`design-map` から `G9`・`unknown` に替えた。残る旧語彙は `tests/self_application.test.js` の検出リスト（旧語彙を検出する仕組みそのもの）と `PLUGIN_MANIFEST`（plugin の語）だけ
 
+- 2026-10-17 段階6: T6-1。skillweave-mhwilds の R2 の前のコミットは `bc0c63f`。10-17 の時点では R2 の配置は作業ツリーに未コミットで、main の HEAD は `bc0c63f` だった
+- 2026-10-19 段階6: T6-1 の前提が崩れていた。対象の main は 10-18 に R2 の配置（PR #25・`1a656a0`）をマージして `16953c4` に進み、`new-run` は対象の HEAD から worktree を作るので、R1〜R13 が反映済みの base になる（最初に始めた run `20261019_185305` は base `16953c4` で、inventory までで止めた）。canon は変えずに、対象を `/home/motoki-tabata/work/skillweave-mhwilds-r2base` に clone して `bc0c63f` に `reset --hard` し、そこを対象にする（ユーザー了承。退けた案: `new-run` に `--base` を足す〔canon 本体の機能追加で段階6の範囲を超える〕）
+
+- 2026-10-19 段階6: T6-2。run `20261019_190415` を `/canon-plan`（opus・medium）→ `/canon-build`（sonnet・medium）の別セッションで通した。build の構築2 で verify V1 が対象の `tasks/lessons.md` を種別不明にしたので、ユーザーの選択で `lib/non-schema.js` の `NON_SCHEMA_MD` に足した（canon 本体の修正。段階6のコミットに含め、台帳の項目は同じコミットで消す）
+- 2026-10-19 段階6: T6-3。総入力は plan 9.53M＋build 16.85M＝26.38M（R2 46.35M の 56.9%）、段階1の単価での概算は $12.57（R2 $26.32 の 48%）。最大は reviewer の 8.87M（4起動）。振り返りは台帳に3件起票し（reviewer の割当、節の参照の実在、plan のセッションの分析漏れ）、investigator の Write の拒否と `git -C` の項目を実測で書き直した。reviewer の opus・high との比較は、同じ差分で reviewer を起動し直す費用（約 $5〜7 の見込み）がかかるので実施していない（PR 本文の案で判断を求める）
+- 2026-10-19 段階6: 受け入れ条件6の確認では、この作業フォルダ（brief・plan・handoff）に残る v2 の語は、計画の記録として除外した
+
 ## レビュー記録
 - 2026-10-17 段階1: draft PR #27 の上で、設計書 `design/architecture.md`（033e80d）をユーザーが承認した
 
 ## 未確認
-- 段階の Skill（`/canon-plan`・`/canon-design`・`/canon-build`）を、別セッションの対話で通していない。機械の部分（`new-run`・`preflight`・`inventory`・`impact`・`check`・`worktree`・`verify`・`approvals`）は scratch の git の対象で実経路を通したが、ワーカーの起動・ヒアリング・ゲートの問いは未確認。段階6で通す
-- 依存の導入を含む検証コマンド（worktree には追跡中のファイルしか無く、`node_modules` などが入っていない）を実経路で通していない。リハーサルの検証コマンドは `git diff --check` だった。段階6の skillweave で最初に当たる
-- 既定の置き場 `~/.claude-canon/wt/` を `new-run` 経由では通していない。リハーサルは `CANON_WT_ROOT` を scratch に向けた（`~/` 起点の既定は、段階2の `worktree create` と `claude -p` の実験が通した範囲）
-- builder の Write が `Edit(~/.claude-canon/wt/**)` の規則で通るか（正典は通ると読めるが、実験は Edit だけ）
-- 対話のセッションで `Read(~/.claude-canon/wt/**)`・`Edit(~/.claude-canon/wt/**)` の規則（`~/` 起点）が効くか。`claude -p` では効いた（builder の Edit が通り、規則に当たらないパスは拒否された）。対話の許可の画面は通っていない。確かめるまでは「動く」と書かない
+- 依存の導入を含む検証コマンド。run `20261019_190415` の検証コマンドは `node --test` の4本で、依存の導入が要らなかった
+- 対話のセッションで `~/.claude-canon/wt/**` の allow 規則に許可の画面が出たか。build の builder の Edit・Write（既存ファイルの上書き）と、メインの `git -C` はすべて成功したが、画面が出たかは transcript に残らない（台帳の `git -C` の項目）
+- builder の Write での新規作成（change-plan の `op: new`）。この run は modify だけだった
+- 大の経路（`/canon-design`）は通していない
 
 ## メモ
 - この計画の「段階」は本フォルダの段階0〜6で、flow-workflow の段階1〜4 とは別物である。/flow-* は、以前はこのリポジトリで開始時に止まった（`.claude/skills/canon-a/SKILL.md` があったため）。canon-a は段階4で消したので、この制約は無くなった。

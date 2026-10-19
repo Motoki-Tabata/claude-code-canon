@@ -58,9 +58,9 @@
 - [x] T5-3 台帳のうち、v3 で解消した項目を、このコミットの中で消す（項目の「予定」欄を見る）。
 
 ### 段階6 ベンチマーク
-- [ ] T6-1 skillweave-mhwilds の R2 の前のコミットを特定する（main の `bc0c63f` か、R2 の配置ブランチ `chore/canon-deploy-20261014_232320` の分岐点を確かめる）。
-- [ ] T6-2 R2 の13要件（`work/20261014_232320/requirements.md`）を入力にして、v3 の小の経路を別セッションで通す（`/canon-plan` → `/canon-build`）。
-- [ ] T6-3 `npm run tokens` で役ごとの model・effort・トークンを集め、R2 と比べる。振り返りを台帳に起票する。
+- [x] T6-1 skillweave-mhwilds の R2 の前のコミットを特定する（main の `bc0c63f` か、R2 の配置ブランチ `chore/canon-deploy-20261014_232320` の分岐点を確かめる）。
+- [x] T6-2 R2 の13要件（`work/20261014_232320/requirements.md`）を入力にして、v3 の小の経路を別セッションで通す（`/canon-plan` → `/canon-build`）。
+- [x] T6-3 `npm run tokens` で役ごとの model・effort・トークンを集め、R2 と比べる。振り返りを台帳に起票する。
 - [ ] T6-4 受け入れ条件の結果を draft PR の本文に書き、マージの判断をユーザーに求める。
 
 ## 受け入れ条件

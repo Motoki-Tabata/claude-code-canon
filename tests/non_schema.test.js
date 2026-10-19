@@ -35,10 +35,10 @@ test('isNonSchemaRel: バックスラッシュ区切り（Windows パス）も�
   assert.equal(isNonSchemaRel('.claude\\agents\\x\\x.md', 'generated'), false);
 });
 
-test('NON_SCHEMA_MD は正準4件のみ（列挙漏れ・過剰の両方を検出）', () => {
+test('NON_SCHEMA_MD は正準5件のみ（列挙漏れ・過剰の両方を検出）', () => {
   assert.deepEqual(
     [...NON_SCHEMA_MD].sort(),
-    ['.claude/README.md', '.claude/settings.json', 'AGENTS.md', 'CLAUDE.md'].sort()
+    ['.claude/README.md', '.claude/settings.json', 'AGENTS.md', 'CLAUDE.md', 'tasks/lessons.md'].sort()
   );
 });
 
