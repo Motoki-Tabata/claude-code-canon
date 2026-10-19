@@ -1,8 +1,8 @@
 /**
  * tools/impact.js・lib/impact.js の回帰テスト。
  *
- * 触らないファイルのうち、変えるファイルの路径・相対リンク・語・スラッシュコマンドに触れているものだけが
- * 行番号付きで挙がること（誤検出の境界を含む）、走査件数が 0 のとき合格にしないことを、
+ * 触らないファイルのうち、変えるファイルの路径・相対リンク・語・スラッシュコマンドに触れているものと、
+ * 変えるファイルの中で語に触れている行だけが、行番号付きで挙がること（誤検出の境界を含む）、走査件数が 0 のとき合格にしないことを、
  * 実際の起動経路（子プロセス）で確かめる。
  */
 
@@ -35,7 +35,7 @@ function run(repo, out, args) {
   return { ...r, res: r.code === 0 ? JSON.parse(readFileSync(path.join(out, 'impact.json'), 'utf8')) : null };
 }
 
-test('impact: 触らないファイルだけを、行番号付きの安定した ID で挙げる', (t) => {
+test('impact: 触らないファイルはパス・リンク・語で、変えるファイルの中は語だけで、行番号付きの安定した ID で挙げる', (t) => {
   const { tmp, repo } = buildRepo(t);
   const { code, stdout, res } = run(repo, path.join(tmp, 'o'), ['--files', 'docs/old.md', '--terms', 'verifyX,/canon-x']);
   assert.equal(code, 0, stdout);
@@ -43,15 +43,31 @@ test('impact: 触らないファイルだけを、行番号付きの安定した
   assert.deepEqual(ids, [
     'README.md:2:docs/old.md',
     'README.md:3:/canon-x',
+    'docs/old.md:2:/canon-x', // 変えるファイルの中で、instruct の外に語が残りうる行
+    'docs/old.md:2:verifyX',
     'docs/other.md:1:docs/old.md', // 相対リンク ./old.md を、解決した先で照合した
     'docs/other.md:2:verifyX',
   ]);
   assert.equal(res.hits.find((h) => h.id === 'docs/other.md:1:docs/old.md').via, 'link');
-  // 変えるファイル自身・無関係なファイル・バイナリ・語の境界を越える出現（verifyXY・skills/canon-x）は挙げない。
-  assert.equal(res.hits.some((h) => h.path === 'docs/old.md' || h.path === 'docs/unrelated.md' || h.path === 'bin.dat'), false);
-  assert.equal(res.hits.some((h) => h.line === 4 || h.line === 5), false);
-  assert.equal(res.scanned, 3, '走査件数（変えるファイルとバイナリを除く追跡テキスト）');
+  assert.deepEqual(res.hits.filter((h) => h.scope === 'changed').map((h) => h.id), ['docs/old.md:2:/canon-x', 'docs/old.md:2:verifyX']);
+  assert.ok(res.hits.filter((h) => h.path !== 'docs/old.md').every((h) => h.scope === 'untouched'));
+  // 無関係なファイル・バイナリ・語の境界を越える出現（verifyXY・skills/canon-x）は挙げない。
+  assert.equal(res.hits.some((h) => h.path === 'docs/unrelated.md' || h.path === 'bin.dat'), false);
+  assert.equal(res.hits.some((h) => h.path === 'README.md' && (h.line === 4 || h.line === 5)), false);
+  assert.equal(res.scanned, 3, '走査件数（触らない追跡テキスト。変えるファイルとバイナリを除く）');
   assert.match(stdout, /該当 4 件（2 ファイル）/);
+  assert.match(stdout, /変えるファイルの中の語の該当 2 件（1 ファイル/);
+  assert.match(stdout, /docs\/old\.md:2:verifyX/);
+});
+
+test('impact: 変えるファイル同士のパスの参照は挙げない（verify V6 が見る）。語が無ければ変えるファイルの中は走査しない', (t) => {
+  const { tmp, repo } = buildRepo(t);
+  const both = run(repo, path.join(tmp, 'o1'), ['--files', 'docs/old.md,README.md', '--terms', 'verifyX']);
+  assert.equal(both.code, 0, both.stdout);
+  assert.equal(both.res.hits.some((h) => h.id === 'README.md:2:docs/old.md'), false, 'README.md も変えるので、old.md への参照は照合しない');
+  assert.deepEqual(both.res.hits.filter((h) => h.scope === 'changed').map((h) => h.id), ['docs/old.md:2:verifyX']);
+  const noTerms = run(repo, path.join(tmp, 'o2'), ['--files', 'docs/old.md']);
+  assert.equal(noTerms.res.hits.some((h) => h.scope === 'changed'), false);
 });
 
 test('impact: --files に追跡されていないパス（綴りの誤り・新規）があれば、要約と JSON に挙げる', (t) => {

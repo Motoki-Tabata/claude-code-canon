@@ -13,7 +13,7 @@ skills: [generation]
 
 - `unit`: `claude-md`・`rules`・`skills`・`subagents`・`settings`・`mcp`・`plugins`・`output-styles` のどれか1つ
 - 対象の worktree の絶対パス（読み書きしてよいのは、担当のファイルのパスだけ）
-- `work/<ts>/change-plan.md` と `work/<ts>/requirements.md` の絶対パス
+- `work/<ts>/change-plan.md`・`work/<ts>/requirements.md`・`work/<ts>/impact.json` の絶対パス
 - 担当のファイルのパスの一覧（change-plan の `## ファイル` の `path`。`op` が `delete` のものは含まれない）
 - 参照元があるときだけ: requirements.md の `## 参照元` の `path`（移植の基準。読み取り専用。差分には参照元のパスや名前を書かない）
 - 差し戻しのときだけ: 直すファイルと指摘（handoff.md の「差し戻し」の逐語）
@@ -23,6 +23,7 @@ skills: [generation]
 - preload された generation Skill の「共通の手順」に従う。
 - 担当の unit の規約 `.claude/skills/generation/references/<unit>.md`（このリポジトリのルートからの相対パス）と、共通の規約 `no-leaks.md` を読む。
 - `modify` は現物を Read して、`instruct` が指す箇所だけを Edit する。`new` は Write する。
+- `modify` のファイルでは、`impact.json` を `"id": "<path>:` で Grep して、そのファイルの中の該当（`<path>:<line>:<term>`）を拾う。change-plan の `## 参照元の扱い` が「変える」と答えた該当（ID）の行は、`instruct` が「ほかの行は変えない」と書いていても、`instruct` の趣旨に合わせて直す。「変えない」と答えた行は触らない。impact.json の全体は読まない。
 
 ## 書込先
 

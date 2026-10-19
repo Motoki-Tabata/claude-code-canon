@@ -148,7 +148,9 @@ function impactItems(plan, impact) {
   items.push(cond('impact の入力が change-plan と同じ（語）', same(inTerms, planTerms), `${planTerms.size}件`,
     `impact の語と「## 影響の語」が違う: ${[...inTerms].filter((x) => !planTerms.has(x)).concat([...planTerms].filter((x) => !inTerms.has(x))).join('・')}`));
 
-  const hits = impact.hits ?? [];
+  // 削除するファイルの中の該当は、ファイルごと消えるので答えを求めない。
+  const deleted = new Set(plan.files.filter((f) => f.op === 'delete').map((f) => f.path));
+  const hits = (impact.hits ?? []).filter((h) => !(h.scope === 'changed' && deleted.has(h.path)));
   items.push(cond('参照元の扱いの書式', plan.malformedAnswers.length === 0, `${plan.answers.length}行`,
     `書式に合わない行（<path>:<line>:<term> か <path> のあとに「: 変える」か「: 変えない（理由）」）: ${plan.malformedAnswers.map((m) => `L${m.line}`).join('・')}`));
   const long = plan.answers.filter((a) => a.bytes > LIMITS.answerLine);
@@ -161,11 +163,13 @@ function impactItems(plan, impact) {
 
   const hitIds = new Set(hits.map((h) => h.id));
   const hitPaths = new Set(hits.map((h) => h.path));
-  const unanswered = hits.filter((h) => !plan.answers.some((a) => a.key === h.id || (a.kind === 'file' && a.path === h.path)));
+  // 変えるファイルの中の該当は、ファイル単位の「変える」では覆わない（builder が直す行を1件ずつ示す）。
+  const covers = (a, h) => a.key === h.id || (a.kind === 'file' && a.path === h.path && (h.scope !== 'changed' || a.verdict === '変えない'));
+  const unanswered = hits.filter((h) => !plan.answers.some((a) => covers(a, h)));
   const files = [...new Set(unanswered.map((h) => h.path))];
   items.push(cond(`impact の該当 ${hits.length}件 すべてに回答がある`, unanswered.length === 0,
     `${hits.length}件（${hitPaths.size}ファイル）`,
-    `未回答 ${unanswered.length}件（${files.length}ファイル）: ${files.slice(0, 5).join('・')}${files.length > 5 ? '…' : ''}（件数が多い語は <path>: 変える|変えない（理由） とファイル単位で答える）`));
+    `未回答 ${unanswered.length}件（${files.length}ファイル）: ${files.slice(0, 5).join('・')}${files.length > 5 ? '…' : ''}（件数が多い語は <path>: 変える|変えない（理由） とファイル単位で答える。変えるファイルの中の「変える」は1件ずつ）`));
   const stale = plan.answers.filter((a) => (a.kind === 'hit' ? !hitIds.has(a.key) : !hitPaths.has(a.path)));
   items.push(cond('回答が impact の該当を指している', stale.length === 0, '', `impact に無い回答（古い・綴りの誤り）: ${stale.map((a) => a.key).join('・')}`));
   return items;

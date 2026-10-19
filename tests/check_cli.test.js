@@ -152,6 +152,19 @@ test('check change-plan: 小の経路の条件（1 既存がある・2 新しい
   assert.ok(!failed(run(withSections, { route: 'large' })).some((n) => n.includes('大の経路')));
 });
 
+
+test('check change-plan: 変えるファイルの中の該当（scope: changed）にも回答を求める。削除するファイルの中の該当は求めない', () => {
+  const inA = { id: '.claude/rules/a.md:3:old', path: '.claude/rules/a.md', line: 3, term: 'old', via: 'text', scope: 'changed', text: 'old' };
+  const c = ctx({ impact: { ...IMPACT, input: { files: ['.claude/rules/a.md'], terms: ['old'] }, hits: [HIT, inA] } });
+  const withTerm = (answers) => plan({ answers, terms: '- `old`' });
+  assert.ok(failed(checkChangePlan(withTerm(ANSWER), c)).some((n) => n.startsWith('impact の該当 2件')), 'a.md の中の行が未回答');
+  assert.deepEqual(failed(checkChangePlan(withTerm(`${ANSWER}\n- .claude/rules/a.md:3:old: 変える`), c)), []);
+  assert.ok(failed(checkChangePlan(withTerm(`${ANSWER}\n- .claude/rules/a.md: 変える`), c)).some((n) => n.startsWith('impact の該当 2件')), 'ファイル単位の「変える」は変えるファイルの中の該当を覆わない');
+  assert.deepEqual(failed(checkChangePlan(withTerm(`${ANSWER}\n- .claude/rules/a.md: 変えない（語は残す）`), c)), [], 'ファイル単位の「変えない」は覆う');
+  const del = changePlan({ answers: ANSWER, terms: '- `old`', files: '- path: .claude/rules/a.md\n  op: delete\n  reqs: [R1]\n  instruct: 消す（R1）' });
+  assert.deepEqual(failed(checkChangePlan(del, c)), [], '削除するファイルの中の該当は答えなくてよい');
+});
+
 // ---------------------------------------------------------------------------
 // CLI（inventory・impact の実物を通す）
 // ---------------------------------------------------------------------------

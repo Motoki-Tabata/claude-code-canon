@@ -3,7 +3,8 @@
  * impact.js（npm run impact -- --root <worktree> --out <dir> --files <a,b,...> [--terms <語,...>]）
  *
  * 変える・削除するファイルと語・コマンド（`/name` はスラッシュコマンド）に触れている、触らない
- * ファイルを行番号付きで `<dir>/impact.json` に書き、要約だけを標準出力に返す。
+ * ファイルと、変えるファイルの中で語に触れている行を、行番号付きで `<dir>/impact.json` に書き、
+ * 要約だけを標準出力に返す。
  * 該当の ID は `<path>:<line>:<term>`。判定の本体は lib/impact.js。
  *
  * exit 0 走査して書いた（該当 0 件でも書く）／exit 1 root が無い・git でない・走査したファイルが 0 件／

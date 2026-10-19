@@ -32,7 +32,7 @@ canon のルートの絶対パスを `<root>`、`work/<ts>/` を `<root>/work/<t
 
 1. `.claude/skills/requirements/references/change-plan-template.md` と `.claude/skills/design/references/change-plan-large.md` を読み、`<root>/work/<ts>/change-plan.md` の `## ファイル`・`## 影響の語`・`## 検証コマンド`・`## 機能と責務`・`## モデル割当` を書く。`instruct` は「何を・なぜ」だけで、新しい本文は書かない。
 2. 変えるファイルと影響の語を、そのまま `npm run impact -- --root <worktree> --out <root>/work/<ts> --files <ファイル,…> --terms <語,…>`（`<worktree>` は handoff の `worktree`）に渡す。要約の件数だけを読み、該当は `impact.json` を必要な範囲で読む。
-3. `## 参照元の扱い` に、**該当のすべて**へ「変える」か「変えない（理由）」で答える。理由は、そのファイルのその行を実際に読んで書く。「変える」は `## ファイル` にも載せる。
+3. `## 参照元の扱い` に、**該当のすべて**へ「変える」か「変えない（理由）」で答える。理由は、そのファイルのその行を実際に読んで書く。「変える」は `## ファイル` にも載せる。変えるファイルの中の該当にも答える（「変える」は1件ずつ ID で答え、その行は builder が直す）。
 4. `npm run check -- <ts> change-plan` を実行し、NG を直す。サイズの上限を超えたら、前の段の再掲か新しい本文の丸写しを削る。
 5. `npm run handoff -- <ts> mark 設計1`。
 

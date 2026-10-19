@@ -34,7 +34,7 @@ canon のルートの絶対パスを `<root>` と書く。handoff の `worktree`
 
 1. `work/<ts>/change-plan.md` の `## ファイル` を読む。`op: delete` のファイルは、あなたが `npm run worktree -- rm --worktree <worktree> <ファイル…>` で消す。
 2. `modify`・`new` のファイルを、機能ごとの担当（unit）に分ける。対応は `.claude/skills/generation/SKILL.md` の表（CLAUDE.md＝claude-md、`.claude/rules`＝rules、`.claude/skills`・commands＝skills、`.claude/agents`＝subagents、settings・hooks・permissions・statusline＝settings、`.mcp.json`＝mcp、plugin＝plugins、出力スタイル＝output-styles）。担当のファイルの集合は互いに重ならない。
-3. `builder` を unit ごとに、1つのメッセージで並列に起動する。渡すもの: `unit`・worktree の絶対パス・`work/<ts>/change-plan.md` と `requirements.md` の絶対パス・担当のファイルのパスの一覧・（あれば）参照元の `path`。
+3. `builder` を unit ごとに、1つのメッセージで並列に起動する。渡すもの: `unit`・worktree の絶対パス・`work/<ts>/change-plan.md`・`requirements.md`・`impact.json` の絶対パス・担当のファイルのパスの一覧・（あれば）参照元の `path`。
 4. 各 builder の応答（書いたファイルの一覧）を、change-plan の担当の件数と突き合わせる。欠けや、担当外のファイルが書かれていれば、差し戻しの手順で直す。実行権限が要ると報告されたスクリプトには、あなたが権限を付ける。
 5. `npm run handoff -- <ts> mark 構築1`。
 

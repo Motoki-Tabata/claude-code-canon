@@ -66,9 +66,3 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 何が起きたか: change-plan の `## 検証コマンド` を書く前に、worktree で `node --test` の4本と `verify.mjs --dry-run` を実行して、変更前の基準（drift-scan.test は 33 pass・1 fail）を取った。手順に無い操作だったが、build が「変更前から落ちていた fail」と「変更で落ちた fail」を区別するのに要る。また、30件のファイルと11語を `impact` に2回渡すため、`work/<ts>/.files`・`.terms` の一時ファイルに書いて使い、終わってから消した。
 - 確度: 実物で確認（このセッションの操作）
 - 提案: canon-plan の計画3 の1に「検証コマンドを変更前の worktree で1回実行し、結果（pass・fail の件数と、変更前から落ちているもの）を `## 検証コマンド` に書く」を足す。impact の入力は、`impact` が change-plan.md の `## ファイル`・`## 影響の語` を直接読む `--from-plan` を持てば、一時ファイルが要らない。
-
-## 2026-10-19 impact が変えるファイルの中を走査しないので、instruct の外の行に残った古い記述が計画で表に出ない（run 20261019_190415・build）
-- 種別: 欠陥修正
-- 何が起きたか: change-plan の `## 影響の語` に `予約の場所`・`lessons-ledger` があったが、`impact` は変えるファイルを走査の対象から外す。変えるファイル `ui-design.md:13`（予約の場所）・`direct-edit.md:32`（配置時に lessons-ledger が消す）・`:40` は、instruct の外の行で古い記述のまま残った。reviewer が指摘し、差し戻し・再レビューで直した（直した5件のうち3件）。opus の reviewer の比較（`work/eval-20261019_190415-opus/review/review-2.md`）が、この経路を原因として挙げた。
-- 確度: 実物で確認（change-plan の `## 影響の語` と、`work/20261019_190415/review/review-2.md` の #1・#2・#4）
-- 提案: `impact` が、変えるファイルの中の該当も「変えるファイルの中」と区別して挙げ、`check` が change-plan のそのファイルの instruct がその行に触れているか、`## 参照元の扱い` が答えているかを照合する。
