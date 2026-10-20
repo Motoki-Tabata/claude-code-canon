@@ -1,11 +1,11 @@
 /**
  * 設計書の正典バージョン追従テスト。
  *
- * 両設計書 frontmatter の `canon_version` は「本書が参照している canon-reference の版」であり、
+ * 設計書 frontmatter の `canon_version` は「本書が参照している canon-reference の版」であり、
  * `.claude/skills/canon-reference/sources.json` の `claude_code_version`（`v` なし）と一致しなければならない。
  *
- * この乖離は静かに伝播する: spec のテンプレートは `canon_version` を持ち、ワーカーが出典を
- * 持たないと設計書 frontmatter から複写して `spec.md` へ陳腐化を持ち込む。run の外で落とせる
+ * この乖離は静かに伝播する: 中間文書のテンプレートは `canon_version` を持ち、ワーカーが出典を
+ * 持たないと設計書 frontmatter から複写して陳腐化を持ち込む。run の外で落とせる
  * ものは run の外で落とす。
  */
 
@@ -34,7 +34,7 @@ function staleCanonVersion(rel, text, version) {
   return null;
 }
 
-test('両設計書の canon_version が sources.json の claude_code_version と一致していること（stale 検出）', () => {
+test('設計書の canon_version が sources.json の claude_code_version と一致していること（stale 検出）', () => {
   const version = canonVersion();
   for (const rel of DESIGN_DOCS) {
     const abs = path.join(ROOT, rel);

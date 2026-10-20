@@ -1,10 +1,11 @@
 {
   "$comment": [
-    "claude-canon 自身の運用設定。フックは使わない（design/architecture.md §9）。",
-    "allow: Phase Skill が繰り返し実行する canon のスクリプト（npm run）と、読み取りだけの git。",
-    "deny: deploy の --confirm は人間が sandbox の外で実行する（P5 の承認の機械的な裏付け・artifacts.md §10.3）。",
+    "claude-canon 自身の運用設定。フックは使わない（design/architecture.md §8）。",
+    "allow: 段階 Skill が繰り返し実行する canon のスクリプト（npm run）と、読み取りだけの git。",
     "ask: push するときは確認を挟む。",
-    "run はすべて canon のルートで起動し、成果物は work/<ts>・output/<ts> に置く（architecture.md §7）。対象プロジェクトは調査で読むだけで、配置は人間が sandbox の外で行う。"
+    "run はすべて canon のルートで起動し、状態と中間文書は work/<ts> に置く。生成物は対象の worktree に置き、反映は人間のマージで行う（architecture.md §3）。",
+    "worktree: 対象の worktree は canon のルートの外 ~/.claude-canon/wt/ に置く。Read・Edit の allow 規則で書かせ、--add-dir は使わない（architecture.md §3.1）。",
+    "ask: worktree cleanup の --discard は未コミットの変更と未マージのブランチを捨てる（戻せない）ので確認を挟む。"
   ],
   "permissions": {
     "allow": [
@@ -13,14 +14,13 @@
       "Bash(git status*)",
       "Bash(git diff *)",
       "Bash(git log *)",
-      "Bash(git branch --show-current)"
-    ],
-    "deny": [
-      "Bash(npm run deploy * --confirm*)",
-      "Bash(node *deploy.js* --confirm*)"
+      "Bash(git branch --show-current)",
+      "Read(~/.claude-canon/wt/**)",
+      "Edit(~/.claude-canon/wt/**)"
     ],
     "ask": [
-      "Bash(git push*)"
+      "Bash(git push*)",
+      "Bash(npm run worktree * --discard*)"
     ]
   }
 }

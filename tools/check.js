@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 /**
- * check.js（npm run check -- <ts> requirements|spec|design-map）— Phase A・B の成果物の機械点検。
+ * check.js（npm run check -- <ts> requirements|change-plan）— 中間文書の機械点検（design/architecture.md §4）。
  *
- * 点検の中身（要件の件数・§9 が空か・mandatory の対応・K1〜K5 など）は機械で判定できる。
- * オーケストレーターが大きいファイルを何度も読み直さずに済むよう、既存のパーサ
- * （lib/requirements.js・lib/design-map.js・lib/markdown.js）だけで項目ごとに OK / NG を出す。
- * 判定の追加はここに足し、パーサは複製しない。
+ * 要件の欄・根拠の確度・サイズの上限・要件と計画の対応・`impact` の該当への回答・小の経路の条件を、
+ * 既存のパーサ（lib/requirements.js・lib/change-plan.js）だけで項目ごとに OK / NG にする。
+ * 入力は work/<ts>/ の requirements.md・change-plan.md・handoff.md（route）・inventory.json・impact.json。
  *
  * exit 0 すべて OK／exit 1 NG あり（対象のファイルが無い・パースできないも NG）／exit 2 引数不正。
  */
@@ -13,37 +12,39 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { CANON_ROOT } from '../lib/canon.js';
-import {
-  FEATURE_SECTIONS,
-  featureSection,
-  listDeclaredArtifacts,
-  parseExistingDisposition,
-  parseOutsideChanges,
-  parseReferenceCopies,
-  h2Section,
-  DesignMapError,
-} from '../lib/design-map.js';
-import { parseExisting } from '../lib/investigation.js';
-import { FEATURES } from '../lib/features.js';
-import { isManaged } from '../lib/managed-paths.js';
-import { computeFenceMask, findHeading, sectionSlice } from '../lib/markdown.js';
-import { parseConfirmedAt, parseReferenceSources, parseRequirementsDoc, RequirementsError } from '../lib/requirements.js';
+import { ChangePlanError, OPS, parseChangePlan } from '../lib/change-plan.js';
+import { featureOfPath } from '../lib/features.js';
+import { parseHandoff, ROUTES } from '../lib/handoff.js';
+import { parseConfirmedAt, parseRequirementsDoc, RequirementsError } from '../lib/requirements.js';
+import { skillPathRole } from '../lib/artifact.js';
 import { isMainModule, isValidTs } from '../lib/run.js';
 
-export const TARGETS = ['requirements', 'spec', 'design-map'];
+export const TARGETS = ['requirements', 'change-plan'];
+
+/** サイズの上限（UTF-8 バイト）。design/architecture.md §4.1。段階6の実測で見直す。 */
+export const LIMITS = {
+  requirement: 1.5 * 1024,
+  constraints: 2 * 1024,
+  requirementsTotal: 20 * 1024,
+  changeFile: 2.5 * 1024,
+  answerLine: 300,
+  features: 8 * 1024,
+  models: 3 * 1024,
+  planTotal: { small: 48 * 1024, large: 64 * 1024 },
+};
+
+export const CONFIDENCES = ['実物で確認', '公式で確認', '文言のみ'];
 
 const ok = (name, detail = '') => ({ name, ok: true, detail });
 const ng = (name, detail) => ({ name, ok: false, detail });
 const cond = (name, pass, detailOk, detailNg) => (pass ? ok(name, detailOk) : ng(name, detailNg));
+const kb = (n) => `${(n / 1024).toFixed(1)}KB`;
+const readOrNull = (p) => (existsSync(p) ? readFileSync(p, 'utf8') : null);
 
 function tally(items) {
   const m = new Map();
   for (const v of items) m.set(v ?? '(未記入)', (m.get(v ?? '(未記入)') ?? 0) + 1);
   return [...m].map(([k, n]) => `${k} ${n}`).join('・') || 'なし';
-}
-
-function readOrNull(p) {
-  return existsSync(p) ? readFileSync(p, 'utf8') : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -60,273 +61,177 @@ export function checkRequirements(text, now = new Date()) {
   }
   const items = [];
   const reqs = doc.requirements;
-  items.push(ok('要件の件数', `${reqs.length}件`));
-  const bad = reqs.filter((r) => !r.id || !r.want || !r.strength_needed || !r.priority);
-  items.push(cond('要件の必須欄（id・want・strength_needed・priority）', bad.length === 0, '全件そろっている',
+  items.push(ok('確定要件の件数', `${reqs.length}件`));
+
+  const bad = reqs.filter((r) => !r.id || !r.want || !r.confidence || !r.evidence || r.files.length === 0 || !r.accept);
+  items.push(cond('要件の必須欄（id・want・confidence・evidence・files・accept）', bad.length === 0, '全件そろっている',
     `欠けた要件: ${bad.map((r) => r.id ?? `L${r.line}`).join('・')}`));
-  const badStrength = reqs.filter((r) => !['advisory', 'deterministic', 'enforced'].includes(r.strength_needed));
-  items.push(cond('strength_needed の語彙', badStrength.length === 0, `強度: ${tally(reqs.map((r) => r.strength_needed))}`,
-    `語彙外: ${badStrength.map((r) => `${r.id}=${r.strength_needed}`).join('・')}`));
-  const badPri = reqs.filter((r) => !['must', 'should', 'could'].includes(r.priority));
-  items.push(cond('priority の語彙', badPri.length === 0, `優先度: ${tally(reqs.map((r) => r.priority))}`,
-    `語彙外: ${badPri.map((r) => `${r.id}=${r.priority}`).join('・')}`));
-  const ids = reqs.map((r) => r.id);
+  const ids = [...reqs, ...doc.pending].map((r) => r.id);
   const dup = ids.filter((v, i) => v && ids.indexOf(v) !== i);
   items.push(cond('要件 id の一意', dup.length === 0, '重複なし', `重複: ${[...new Set(dup)].join('・')}`));
 
+  // 根拠の確度。「文言のみ」は確定させない（実物や公式で確かめる前に確定して取り直すのを防ぐ）。
+  const badConf = reqs.filter((r) => r.confidence && !CONFIDENCES.includes(r.confidence));
+  items.push(cond('confidence の語彙', badConf.length === 0, `確度: ${tally(reqs.map((r) => r.confidence))}`,
+    `語彙外（${CONFIDENCES.join('・')}）: ${badConf.map((r) => `${r.id}=${r.confidence}`).join('・')}`));
+  const wording = reqs.filter((r) => r.confidence === '文言のみ');
+  items.push(cond('確定要件に「文言のみ」が無い', wording.length === 0, '無い',
+    `「文言のみ」の要件は確定させない（実物か公式で確かめてから確定する。確かめるまでは「## 未確定」に置く）: ${wording.map((r) => r.id).join('・')}`));
+  const badStrength = reqs.filter((r) => r.strength_needed && !['advisory', 'deterministic', 'enforced'].includes(r.strength_needed));
+  items.push(cond('strength_needed の語彙（任意の欄）', badStrength.length === 0, '', `語彙外: ${badStrength.map((r) => `${r.id}=${r.strength_needed}`).join('・')}`));
+
   items.push(cond('constraints', doc.constraintsFound && doc.constraints.length > 0,
-    doc.constraints.map((c) => `${c.key}=${c.freeform ? '自由文' : c.allowed}`).join('・'),
-    'constraints ブロックが無い、または空'));
+    doc.constraints.map((c) => `${c.key}=${c.freeform ? '自由文' : c.allowed}`).join('・'), 'constraints ブロックが無い、または空'));
   const badC = doc.constraints.filter((c) => !c.freeform && c.allowed === null);
   items.push(cond('constraints の allowed は true / false', badC.length === 0, '', `不正: ${badC.map((c) => c.key).join('・')}`));
   items.push(cond('conflicts', doc.conflicts !== null,
-    doc.conflicts?.length ? `${doc.conflicts.length}件（未解消）` : '空（[]）', 'conflicts ブロックが無い（無ければ `conflicts: []` と書く）'));
-  // 合意の時刻は推測で書かず `date` で取る。未来の時刻は書いた時点で誤り（承認の記録より後になる）
+    doc.conflicts?.length ? `${doc.conflicts.length}件` : '空（[]）', 'conflicts ブロックが無い（無ければ `conflicts: []` と書く）'));
+
   const ca = parseConfirmedAt(text);
-  items.push(cond('confirmed_at', ca?.at && ca.at.getTime() <= now.getTime(), ca?.raw ?? '',
-    !ca ? 'confirmed_at の行が無い' : !ca.at ? `形が YYYY-MM-DD hh:mm でない: ${ca.raw}` : `現在より後の時刻: ${ca.raw}（date で取り直す）`));
-  const withOutside = reqs.filter((r) => r.outside_managed.length > 0);
-  items.push(ok('outside_managed を持つ要件', withOutside.length ? withOutside.map((r) => r.id).join('・') : 'なし'));
-  const refs = parseReferenceSources(text);
-  if (refs.length > 0) {
-    const noPath = refs.filter((r) => !r.path || !path.isAbsolute(r.path));
-    items.push(cond('参照元のパス', noPath.length === 0, `${refs.length}件（絶対パス）`,
-      `絶対パスの path が無い参照元: ${noPath.map((r) => `L${r.line}`).join('・')}`));
-    const gone = refs.filter((r) => r.path && path.isAbsolute(r.path) && !existsSync(r.path));
-    items.push(cond('参照元の実在', gone.length === 0, '全件が実在する', `実在しない: ${gone.map((r) => r.path).join('・')}`));
-  } else {
-    items.push(ok('参照元', 'なし（任意の節）'));
+  if (ca) {
+    items.push(cond('confirmed_at', ca.at && ca.at.getTime() <= now.getTime(), ca.raw,
+      !ca.at ? `形が YYYY-MM-DD hh:mm でない: ${ca.raw}` : `現在より後の時刻: ${ca.raw}（date で取り直す）`));
   }
+
+  // サイズの上限
+  const big = reqs.filter((r) => r.bytes > LIMITS.requirement);
+  items.push(cond('サイズ: 要件1件', big.length === 0, `最大 ${reqs.reduce((m, r) => Math.max(m, r.bytes), 0)} バイト（上限 ${kb(LIMITS.requirement)}）`,
+    `上限 ${kb(LIMITS.requirement)} 超: ${big.map((r) => `${r.id}=${r.bytes}バイト`).join('・')}（前の段の再掲をしていないか）`));
+  items.push(cond('サイズ: constraints', doc.constraintsBytes <= LIMITS.constraints, `${doc.constraintsBytes} バイト（上限 ${kb(LIMITS.constraints)}）`,
+    `${doc.constraintsBytes} バイトで上限 ${kb(LIMITS.constraints)} 超`));
+  items.push(cond('サイズ: requirements 全体', doc.bytes <= LIMITS.requirementsTotal, `${kb(doc.bytes)}（上限 ${kb(LIMITS.requirementsTotal)}）`,
+    `${kb(doc.bytes)} で上限 ${kb(LIMITS.requirementsTotal)} 超`));
   return items;
 }
 
 // ---------------------------------------------------------------------------
-// spec
+// change-plan
 // ---------------------------------------------------------------------------
 
-const EMPTY_SECTION_RE = /^[\s（(]*(なし|無し|ありません|該当なし)[\s。.）)]*$/;
+const isPluginManifest = (p) => path.posix.basename(p) === 'plugin.json' && p.includes('.claude-plugin/');
 
-export function checkSpec(text) {
-  const lines = text.split(/\r?\n/);
-  const mask = computeFenceMask(lines);
+/** 小の経路の条件（design/architecture.md §2.1）。inventory が無ければ NG。 */
+function smallRouteItems(plan, inventory) {
+  if (!inventory) return [ng('小の経路の条件', 'work/<ts>/inventory.json が無い（npm run inventory で作る）')];
   const items = [];
-
-  const h9 = findHeading(lines, '§9', 2, mask);
-  if (h9 === -1) {
-    items.push(ng('§9 未決事項', '節が無い'));
-  } else {
-    const { start, end } = sectionSlice(lines, h9, mask);
-    const body = lines.slice(start + 1, end).map((l) => l.trim()).filter(Boolean);
-    // 「なし。〜」で始まる散文は、なしと言ったうえで補足を書いたものとして空扱いにする。
-    const empty = body.length === 0 || /^(なし|無し)[。.]/.test(body[0]) || body.every((l) => EMPTY_SECTION_RE.test(l));
-    items.push(cond('§9 未決事項が空', empty, '空（なし）', `未決の論点が残っている（${body.length}行。先頭: ${body[0]}）`));
+  const s = inventory.summary;
+  items.push(cond('小の条件1: 対象に既存のカスタマイズがある', s.items >= 1, `${s.items}件`, 'inventory のカスタマイズが0件（新規の構築は大の経路）'));
+  const bad = [];
+  for (const f of plan.files.filter((x) => x.op === 'new')) {
+    const feature = featureOfPath(f.path);
+    if (!feature) continue; // 機能に属さないファイル（README など）は機能種別を足さない
+    const have = (s.by_feature?.[feature] ?? 0) + (s.unclassified_by_hint?.[feature] ?? 0);
+    if (have === 0) bad.push(`${f.path}（${feature}）`);
   }
-
-  const h8 = findHeading(lines, '§8', 2, mask);
-  if (h8 === -1) {
-    items.push(ng('§8 受入基準', '節が無い'));
-  } else {
-    const { start, end } = sectionSlice(lines, h8, mask);
-    const crit = lines.slice(start + 1, end).filter((l) => /^\s*-\s+A\d+-\d+\s*[:：]/.test(l));
-    const mand = crit.filter((l) => /\[mandatory\]/.test(l));
-    items.push(cond('§8 受入基準の件数', crit.length > 0, `${crit.length}件`, '受入基準（`- A1-1:` の行）が0件'));
-    items.push(cond('§8 に [mandatory] がある', mand.length > 0, `${mand.length}件`, '[mandatory] の基準が0件'));
-  }
+  items.push(cond('小の条件2: 新しい機能種別を足さない', bad.length === 0, '足していない（機能別の件数に分類外のヒントの件数を足して判定）',
+    `inventory で0件の機能のファイルを足している: ${bad.join('・')}`));
+  const struct = plan.files.filter((f) => {
+    if (f.op !== 'new' && f.op !== 'delete') return false;
+    return skillPathRole(f.path) === 'definition' || (featureOfPath(f.path) === 'subagents' && f.path.endsWith('.md')) || isPluginManifest(f.path);
+  });
+  items.push(cond('小の条件3: 構成を変えない（Skill・Subagent・Plugin の新設・廃止）', struct.length === 0, '新設・廃止なし（統合・責務の付け替えは G1 で人間が確かめる）',
+    `新設・廃止がある（大の経路）: ${struct.map((f) => `${f.op} ${f.path}`).join('・')}`));
   return items;
 }
 
-/** spec §8 の `[mandatory]` の基準 ID（A1-1 形）。 */
-export function mandatoryIds(specText) {
-  const lines = specText.split(/\r?\n/);
-  const mask = computeFenceMask(lines);
-  const h8 = findHeading(lines, '§8', 2, mask);
-  if (h8 === -1) return [];
-  const { start, end } = sectionSlice(lines, h8, mask);
-  const out = [];
-  for (const l of lines.slice(start + 1, end)) {
-    const m = l.match(/^\s*-\s+(A\d+-\d+)\s*[:：]/);
-    if (m && /\[mandatory\]/.test(l)) out.push(m[1]);
-  }
-  return out;
-}
-
-/** 本文に現れる基準 ID。`A1-1〜A1-4` の範囲表記は展開する。 */
-export function mentionedIds(text) {
-  const ids = new Set();
-  for (const m of text.matchAll(/(A\d+)-(\d+)\s*[〜~～-]\s*(?:(A\d+)-)?(\d+)/g)) {
-    if (m[3] && m[3] !== m[1]) continue;
-    for (let n = Number(m[2]); n <= Number(m[4]); n++) ids.add(`${m[1]}-${n}`);
-  }
-  for (const m of text.matchAll(/A\d+-\d+/g)) ids.add(m[0]);
-  return ids;
-}
-
-// ---------------------------------------------------------------------------
-// design-map
-// ---------------------------------------------------------------------------
-
-/** `## Used Features` の、使う機能を書く行（`builder を起動する機能: rules・skills・hooks`）。 */
-const USED_FEATURES_LINE = /builder を起動する機能\s*[:：]\s*(.+)/;
-
-/** `## Used Features` で builder を起動すると書かれた機能（機能名は `FEATURES`）。行が無ければ null。 */
-function builderFeatures(featuresText) {
-  const m = featuresText.match(USED_FEATURES_LINE);
-  if (!m) return null;
-  // 「plugins は起動しない」のような否定の節は除く。
-  const head = m[1].split(/[。]/)[0];
-  const names = head.match(/(?<![A-Za-z0-9-])[a-z]+(?:-[a-z]+)*(?![A-Za-z0-9-])/g) ?? [];
-  return new Set(names.filter((n) => FEATURES.includes(n)));
-}
-
-export function checkDesignMap(text, { spec = null, existing = null, requirements = null } = {}) {
-  const lines = text.split(/\r?\n/);
-  const mask = computeFenceMask(lines);
+/** `impact` の該当に change-plan の「参照元の扱い」が漏れなく答えているか。 */
+function impactItems(plan, impact) {
+  if (!impact) return [ng('impact', 'work/<ts>/impact.json が無い（npm run impact で作る。無いまま計画を通さない）')];
   const items = [];
+  const planPaths = new Set(plan.files.map((f) => f.path));
+  const inPaths = new Set(impact.input?.files ?? []);
+  const inTerms = new Set(impact.input?.terms ?? []);
+  const planTerms = new Set(plan.terms);
+  const same = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
+  items.push(cond('impact の入力が change-plan と同じ（ファイル）', same(inPaths, planPaths), `${planPaths.size}件`,
+    `impact を実行したときのファイル集合が change-plan と違う（古い impact への回答を通さない。再実行する）: 差 ${[...inPaths].filter((x) => !planPaths.has(x)).concat([...planPaths].filter((x) => !inPaths.has(x))).join('・')}`));
+  items.push(cond('impact の入力が change-plan と同じ（語）', same(inTerms, planTerms), `${planTerms.size}件`,
+    `impact の語と「## 影響の語」が違う: ${[...inTerms].filter((x) => !planTerms.has(x)).concat([...planTerms].filter((x) => !inTerms.has(x))).join('・')}`));
 
-  // Used Features
-  const feat = h2Section(lines, 'Used Features', mask);
-  let used = null;
-  if (!feat) {
-    items.push(ng('## Used Features', '節が無い（Phase C は builder を起動する担当をこの節で決める）'));
-  } else {
-    const body = lines.slice(feat.start + 1, feat.end).join('\n');
-    used = builderFeatures(body);
-    items.push(cond('## Used Features', used && used.size > 0,
-      `builder を起動する機能: ${[...(used ?? [])].join('・')}`, '「builder を起動する機能: rules・skills…」の行が無い（機能名は12機能のどれか）'));
-  }
+  // 削除するファイルの中の該当は、ファイルごと消えるので答えを求めない。
+  const deleted = new Set(plan.files.filter((f) => f.op === 'delete').map((f) => f.path));
+  const hits = (impact.hits ?? []).filter((h) => !(h.scope === 'changed' && deleted.has(h.path)));
+  items.push(cond('参照元の扱いの書式', plan.malformedAnswers.length === 0, `${plan.answers.length}行`,
+    `書式に合わない行（<path>:<line>:<term> か <path> のあとに「: 変える」か「: 変えない（理由）」）: ${plan.malformedAnswers.map((m) => `L${m.line}`).join('・')}`));
+  const long = plan.answers.filter((a) => a.bytes > LIMITS.answerLine);
+  items.push(cond('サイズ: 参照元の扱い 1件', long.length === 0, `上限 ${LIMITS.answerLine} バイト`,
+    `${LIMITS.answerLine} バイト超: ${long.map((a) => `L${a.line}=${a.bytes}`).join('・')}`));
+  const noReason = plan.answers.filter((a) => a.verdict === '変えない' && !a.reason);
+  items.push(cond('「変えない」に理由がある', noReason.length === 0, '', `理由が無い: ${noReason.map((a) => a.key).join('・')}`));
+  const notPlanned = plan.answers.filter((a) => a.verdict === '変える' && !planPaths.has(a.path));
+  items.push(cond('「変える」のファイルが「## ファイル」にある', notPlanned.length === 0, '', `ファイルの一覧に無い: ${notPlanned.map((a) => a.path).join('・')}`));
 
-  // 機能の節と宣言
-  const declared = listDeclaredArtifacts(text);
-  for (const sec of FEATURE_SECTIONS) {
-    const isUsed = used ? used.has(sec.feature) : null;
-    const range = featureSection(lines, sec.heading, mask);
-    const n = declared.filter((d) => d.feature === sec.feature).length;
-    if (isUsed === false && !range) continue;
-    if (isUsed === true || range) {
-      items.push(cond(`## ${sec.heading} の節と宣言`, !!range && n > 0, `${n}件を宣言`,
-        range ? '生成物の宣言（### `パス`）が0件' : '使う機能なのに節が無い'));
-    }
-  }
+  const hitIds = new Set(hits.map((h) => h.id));
+  const hitPaths = new Set(hits.map((h) => h.path));
+  // 変えるファイルの中の該当は、ファイル単位の「変える」では覆わない（builder が直す行を1件ずつ示す）。
+  const covers = (a, h) => a.key === h.id || (a.kind === 'file' && a.path === h.path && (h.scope !== 'changed' || a.verdict === '変えない'));
+  const unanswered = hits.filter((h) => !plan.answers.some((a) => covers(a, h)));
+  const files = [...new Set(unanswered.map((h) => h.path))];
+  items.push(cond(`impact の該当 ${hits.length}件 すべてに回答がある`, unanswered.length === 0,
+    `${hits.length}件（${hitPaths.size}ファイル）`,
+    `未回答 ${unanswered.length}件（${files.length}ファイル）: ${files.slice(0, 5).join('・')}${files.length > 5 ? '…' : ''}（件数が多い語は <path>: 変える|変えない（理由） とファイル単位で答える。変えるファイルの中の「変える」は1件ずつ）`));
+  const stale = plan.answers.filter((a) => (a.kind === 'hit' ? !hitIds.has(a.key) : !hitPaths.has(a.path)));
+  items.push(cond('回答が impact の該当を指している', stale.length === 0, '', `impact に無い回答（古い・綴りの誤り）: ${stale.map((a) => a.key).join('・')}`));
+  return items;
+}
 
-  // 既存判定
-  let records = [];
+export function checkChangePlan(text, { requirements = null, route = null, inventory = null, impact = null } = {}) {
+  let plan;
   try {
-    records = parseExistingDisposition(text);
+    plan = parseChangePlan(text);
   } catch (e) {
-    if (!(e instanceof DesignMapError)) throw e;
-    records = null;
-    // 既存のカスタマイズが0件（new）なら既存判定が無くてよい。existing.md が読めない・既存があるのに節が無いのは NG。
-    const hasExisting = existing === null || parseExisting(existing).size > 0;
-    items.push(hasExisting ? ng('## 既存判定', e.message) : ok('## 既存判定', '節なし（existing.md の既存が0件 = new）'));
+    if (!(e instanceof ChangePlanError)) throw e;
+    return [ng('change-plan.md の構文', e.message)];
   }
-  if (records) {
-    items.push(ok('既存判定の件数', `${records.length}件（${tally(records.map((r) => r.disposition))}）`));
-    if (existing !== null) {
-      const ex = parseExisting(existing);
-      const paths = new Set(records.map((r) => r.path));
-      const missing = [...ex.keys()].filter((p) => !paths.has(p));
-      items.push(cond('existing.md との件数照合', missing.length === 0,
-        `existing ${ex.size}件・既存判定 ${records.length}件（取りこぼしなし）`,
-        `既存判定に無い既存ファイル ${missing.length}件: ${missing.slice(0, 5).join('・')}${missing.length > 5 ? '…' : ''}`));
-    }
-    const badDisp = records.filter((r) => !['keep', 'modify', 'merge', 'retire', 'out_of_scope'].includes(r.disposition));
-    items.push(cond('disposition の語彙', badDisp.length === 0, '', `語彙外: ${badDisp.map((r) => r.path).join('・')}`));
-    const keeps = records.filter((r) => r.disposition === 'keep');
-    const badK = keeps.filter((r) => !r.keep_conditions || ['K1', 'K2', 'K3', 'K4', 'K5'].some((k) => r.keep_conditions[k] !== true));
-    items.push(cond('keep の K1〜K5', badK.length === 0, `keep ${keeps.length}件すべて K1〜K5 が true`,
-      `K1〜K5 が欠ける・false: ${badK.map((r) => r.path).join('・')}`));
-    const needNote = records.filter((r) => r.disposition === 'retire' || r.disposition === 'merge');
-    const noNote = needNote.filter((r) => !r.manifest_note);
-    items.push(cond('retire・merge の manifest_note', noNote.length === 0, `${needNote.length}件に記載あり`,
-      `無い: ${noNote.map((r) => r.path).join('・')}`));
-  }
+  const items = [];
+  items.push(cond('route', ROUTES.includes(route), route ?? '', `handoff.md の frontmatter の route が small か large でない（${route ?? '未記入'}）`));
+  items.push(ok('ファイルの件数', `${plan.files.length}件（${tally(plan.files.map((f) => f.op))}）`));
+  const bad = plan.files.filter((f) => !f.path || !OPS.includes(f.op) || f.reqs.length === 0 || !f.instruct);
+  items.push(cond('ファイルの必須欄（path・op・reqs・instruct）', bad.length === 0, '全件そろっている',
+    `欠ける・op が語彙外（${OPS.join('・')}）: ${bad.map((f) => f.path ?? `L${f.line}`).join('・')}`));
+  const paths = plan.files.map((f) => f.path);
+  const dup = paths.filter((v, i) => v && paths.indexOf(v) !== i);
+  items.push(cond('path の一意', dup.length === 0, '重複なし', `重複: ${[...new Set(dup)].join('・')}`));
 
-  // 参照元からのコピー（任意の節）
-  const copies = parseReferenceCopies(text);
-  if (copies.length > 0) {
-    const declaredSet = new Set(declared.map((d) => d.path));
-    const bad = copies.filter((c) => !c.to || !path.isAbsolute(c.from ?? '') || !isManaged(c.to));
-    items.push(cond('## 参照元からのコピーの書式', bad.length === 0, `${copies.length}件（<絶対パス> → <管理パス内の相対パス>）`,
-      `書式不正・生成先が管理パス外: ${bad.map((c) => `L${c.line}`).join('・')}`));
-    const undeclared = copies.filter((c) => c.to && isManaged(c.to) && !declaredSet.has(c.to));
-    items.push(cond('参照元からのコピーの生成先が機能の節に宣言されている', undeclared.length === 0, '全件が宣言されている',
-      `未宣言（V8 が止める）: ${undeclared.map((c) => c.to).join('・')}`));
-    if (requirements !== null) {
-      const roots = parseReferenceSources(requirements).map((s) => s.path).filter(Boolean).map((p) => path.resolve(p));
-      const outside = copies.filter((c) => c.from && path.isAbsolute(c.from) && !roots.some((r) => {
-        const rel = path.relative(r, path.resolve(c.from));
-        return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
-      }));
-      items.push(cond('コピー元が requirements.md の `## 参照元` の配下', outside.length === 0, '全件が配下にある',
-        `配下でない（copy-keep が止める）: ${outside.map((c) => c.from).join('・')}`));
-    }
-  }
-
-  // Write Scopes
-  const ws = h2Section(lines, 'Write Scopes', mask);
-  const wsBody = ws ? lines.slice(ws.start + 1, ws.end).join('').trim() : '';
-  items.push(cond('## Write Scopes', !!ws && wsBody.length > 0, 'あり', ws ? '節が空' : '節が無い（見出しは完全一致）'));
-
-  // mandatory の対応
-  if (spec !== null) {
-    const ids = mandatoryIds(spec);
-    const mapH = h2Section(lines, '要件→生成物の対応', mask);
-    if (!mapH) {
-      items.push(ng('mandatory の対応', '## 要件→生成物の対応 が無い'));
-    } else {
-      const seen = mentionedIds(lines.slice(mapH.start + 1, mapH.end).join('\n'));
-      const miss = ids.filter((id) => !seen.has(id));
-      items.push(cond('spec §8 の [mandatory] の対応', miss.length === 0, `${ids.length}件すべて対応表に現れる`,
-        `対応表に無い: ${miss.join('・')}`));
-    }
+  // 要件との対応
+  if (requirements === null) {
+    items.push(ng('要件との対応', 'work/<ts>/requirements.md が無い'));
   } else {
-    items.push(ng('spec §8 の [mandatory] の対応', 'output/<ts>/spec.md が無く照合できない'));
-  }
-
-  // requirements との照合
-  if (requirements !== null) {
-    let doc = null;
     try {
-      doc = parseRequirementsDoc(requirements);
+      const doc = parseRequirementsDoc(requirements);
+      const ids = new Set(doc.requirements.map((r) => r.id));
+      const used = new Set(plan.files.flatMap((f) => f.reqs));
+      const unknown = [...used].filter((id) => !ids.has(id));
+      items.push(cond('reqs が確定要件の id を指している', unknown.length === 0, '', `確定要件に無い id: ${unknown.join('・')}`));
+      const uncovered = [...ids].filter((id) => !used.has(id));
+      items.push(cond('確定要件がすべて計画に現れる', uncovered.length === 0, `${ids.size}件`, `どのファイルの reqs にも無い要件: ${uncovered.join('・')}`));
     } catch (e) {
       if (!(e instanceof RequirementsError)) throw e;
-      items.push(ng('requirements.md の構文', e.message));
+      items.push(ng('要件との対応', `requirements.md を読めない: ${e.message}`));
     }
-    if (doc) {
-      const denied = doc.constraints.filter((c) => c.allowed === false).map((c) => c.key);
-      const hits = [];
-      const decl = (re) => declared.filter((d) => re.test(d.path)).map((d) => d.path);
-      if (denied.includes('hooks')) hits.push(...decl(/^\.claude\/hooks\//).map((p) => `hooks 禁止: ${p}`));
-      if (denied.includes('mcp')) hits.push(...decl(/(^|\/)\.mcp\.json$/).map((p) => `mcp 禁止: ${p}`));
-      if (denied.includes('plugins')) hits.push(...declared.filter((d) => d.feature === 'plugins' || d.feature === 'plugin-mods' || /^plugin\//.test(d.path)).map((d) => `plugins 禁止: ${d.path}`));
-      const expSec = h2Section(lines, 'Experimental Dependencies', mask);
-      if (denied.includes('experimental') && expSec) {
-        const b = lines.slice(expSec.start + 1, expSec.end).join('\n').trim();
-        if (b && !/^(なし|無し|N\/A)/.test(b)) hits.push('experimental 禁止: ## Experimental Dependencies に記載がある');
-      }
-      items.push(cond('allowed: false の機能', hits.length === 0,
-        denied.length ? `禁止: ${denied.join('・')}（宣言された生成物に該当なし。内容の使用は V9 が検査）` : '禁止した機能なし',
-        hits.join(' / ')));
-
-      // outside_managed の範囲
-      const changes = parseOutsideChanges(text);
-      const allowedPaths = doc.requirements.flatMap((r) => r.outside_managed.map((p) => ({ id: r.id, p: p.replace(/\/$/, '') })));
-      const out = [];
-      for (const c of changes) {
-        const reqId = (c.body.match(/^\s*-\s+要件\s*[:：]\s*(R\d+)/m) ?? [])[1];
-        const range = allowedPaths.filter((a) => !reqId || a.id === reqId);
-        const inRange = c.path && range.some((a) => c.path === a.p || c.path.startsWith(`${a.p}/`));
-        if (!c.path) out.push(`${c.heading}: 対象パスが無い`);
-        else if (isManaged(c.path)) out.push(`${c.heading}: 対象が管理パス集合の中`);
-        else if (!inRange) out.push(`${c.heading}: ${c.path} が ${reqId ?? '要件'} の outside_managed の範囲外`);
-        if (c.missing.length) out.push(`${c.heading}: 欄が欠けている（${c.missing.join('・')}）`);
-        if (/試行待ち/.test(c.body.match(/^\s*-\s+根拠\s*[:：](.*)$/m)?.[1] ?? '')) out.push(`${c.heading}: 根拠が試行待ちのまま`);
-      }
-      items.push(cond('管理パス外の変更', out.length === 0, `${changes.length}件（範囲・欄・根拠とも問題なし）`, out.join(' / ')));
-    }
-  } else {
-    items.push(ng('requirements.md との照合', 'work/<ts>/requirements.md が無い'));
   }
+
+  items.push(cond('検証コマンド', plan.verifyCommands.length > 0, plan.verifyCommands.join(' ; '),
+    '「## 検証コマンド」にバッククォートで囲んだコマンドが無い（worktree で実行する対象の検証。無ければ「なし」でなく理由を書く節を足す）'));
+
+  // サイズの上限
+  const big = plan.files.filter((f) => f.bytes > LIMITS.changeFile);
+  items.push(cond('サイズ: ファイル1件の変更指示', big.length === 0, `上限 ${kb(LIMITS.changeFile)}`,
+    `上限 ${kb(LIMITS.changeFile)} 超: ${big.map((f) => `${f.path}=${f.bytes}バイト`).join('・')}（新しい本文は builder が書く。計画には何を・なぜだけ）`));
+  if (ROUTES.includes(route)) {
+    const total = LIMITS.planTotal[route];
+    items.push(cond('サイズ: change-plan 全体', plan.bytes <= total, `${kb(plan.bytes)}（上限 ${kb(total)}）`, `${kb(plan.bytes)} で上限 ${kb(total)} 超`));
+  }
+  if (route === 'large') {
+    for (const [name, limit] of [['機能と責務', LIMITS.features], ['モデル割当', LIMITS.models]]) {
+      const n = plan.sections[name];
+      items.push(cond(`## ${name}（大の経路）`, n !== null && n <= limit, `${n} バイト（上限 ${kb(limit)}）`,
+        n === null ? '節が無い' : `${n} バイトで上限 ${kb(limit)} 超`));
+    }
+  }
+
+  if (route === 'small') items.push(...smallRouteItems(plan, inventory));
+  items.push(...impactItems(plan, impact));
   return items;
 }
 
@@ -334,18 +239,22 @@ export function checkDesignMap(text, { spec = null, existing = null, requirement
 // CLI
 // ---------------------------------------------------------------------------
 
+const readJson = (p) => (existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null);
+
 /** 対象ごとの入力ファイルを読んで点検する。入力が無ければ NG 1件を返す。 */
-export function runCheck(root, ts, target) {
+export function runCheck(root, ts, target, { now = new Date() } = {}) {
   const work = path.join(root, 'work', ts);
-  const out = path.join(root, 'output', ts);
   const req = readOrNull(path.join(work, 'requirements.md'));
-  const spec = readOrNull(path.join(out, 'spec.md'));
-  const dm = readOrNull(path.join(out, 'design-map.md'));
-  const existing = readOrNull(path.join(work, 'investigation', 'existing.md'));
-  if (target === 'requirements') return req === null ? [ng('入力', `work/${ts}/requirements.md が無い`)] : checkRequirements(req);
-  if (target === 'spec') return spec === null ? [ng('入力', `output/${ts}/spec.md が無い`)] : checkSpec(spec);
-  if (dm === null) return [ng('入力', `output/${ts}/design-map.md が無い`)];
-  return checkDesignMap(dm, { spec, existing, requirements: req });
+  if (target === 'requirements') return req === null ? [ng('入力', `work/${ts}/requirements.md が無い`)] : checkRequirements(req, now);
+  const plan = readOrNull(path.join(work, 'change-plan.md'));
+  if (plan === null) return [ng('入力', `work/${ts}/change-plan.md が無い`)];
+  const hp = readOrNull(path.join(work, 'handoff.md'));
+  return checkChangePlan(plan, {
+    requirements: req,
+    route: hp ? parseHandoff(hp)?.route ?? null : null,
+    inventory: readJson(path.join(work, 'inventory.json')),
+    impact: readJson(path.join(work, 'impact.json')),
+  });
 }
 
 export function formatItems(items) {

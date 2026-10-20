@@ -1,5 +1,5 @@
 /**
- * lib/non-schema.js（非スキーマ .md 判定の SSoT・artifacts.md §8.1）の回帰テスト。
+ * lib/non-schema.js（非スキーマ .md 判定の SSoT）の回帰テスト。
  *
  * この判定を複数の検査・ツール・テストに独立に複製すると、新しい生成物（README.md）が
  * 初めて実在したとき波及漏れが起きる。
@@ -35,23 +35,23 @@ test('isNonSchemaRel: バックスラッシュ区切り（Windows パス）も�
   assert.equal(isNonSchemaRel('.claude\\agents\\x\\x.md', 'generated'), false);
 });
 
-test('NON_SCHEMA_MD は正準4件のみ（列挙漏れ・過剰の両方を検出）', () => {
+test('NON_SCHEMA_MD は正準5件のみ（列挙漏れ・過剰の両方を検出）', () => {
   assert.deepEqual(
     [...NON_SCHEMA_MD].sort(),
-    ['.claude/README.md', '.claude/settings.json', 'AGENTS.md', 'CLAUDE.md'].sort()
+    ['.claude/README.md', '.claude/settings.json', 'AGENTS.md', 'CLAUDE.md', 'tasks/lessons.md'].sort()
   );
 });
 
 test('呼び出し側が SSoT（lib/non-schema.js）を import していること（リテラル重複への回帰防止）', () => {
   const sites = [
-    path.join(ROOT, '.claude', 'skills', 'canon-c', 'scripts', 'verify.js'),
+    path.join(ROOT, 'lib', 'verify', 'run.js'),
     path.join(ROOT, 'tests', 'self_application.test.js'),
   ];
   for (const f of sites) {
     const src = readFileSync(f, 'utf8');
     assert.match(
       src,
-      /from ['"](\.\.\/)+lib\/non-schema\.js['"]/,
+      /from ['"](\.\.\/)+(lib\/)?non-schema\.js['"]/,
       `${path.relative(ROOT, f)} は isNonSchemaRel を lib/non-schema.js から import すること`
     );
     // 旧リテラル定義（KNOWN_NON_SCHEMA = new Set([...])）が復活していないこと。
@@ -65,7 +65,7 @@ test('呼び出し側が SSoT（lib/non-schema.js）を import しているこ�
 
 /**
  * 固定名3件のほかに、パターンでしか書けない非スキーマ領域。
- * どちらも「正典が示す形なのに検査が弾く」内部矛盾を防ぐためにある（artifacts.md §8.1・§8.2 V1）。
+ * どちらも「正典が示す形なのに検査が弾く」内部矛盾を防ぐためにある（V1）。
  */
 test('skill パッケージの supporting files は非スキーマ（正典 V-skills-18 が前提にする補助ファイル）', () => {
   assert.equal(isNonSchemaRel('.claude/skills/y/template.md', 'generated'), true);

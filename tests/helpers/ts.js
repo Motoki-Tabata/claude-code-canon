@@ -12,20 +12,15 @@ import { fileURLToPath } from 'node:url';
 
 /** テストファイル名（拡張子・`.test` を除く）→ 8桁日付プレフィックス。 */
 export const TS_NAMESPACES = {
-  v6_ref_integrity: '29990110',
-  v8_snapshot: '29990130',
-  v5_fragments: '29990131',
-  v7_keep: '29990202',
-  v9_constraints: '29990303',
+  verify_ref_integrity: '29990110',
+  verify_fragments: '29990131',
+  verify_constraints: '29990303',
   verify_cli: '29990304',
-  review_bundle: '29990305',
-  emit_manifest: '29990306',
-  slice: '29991204',
-  copy_keep: '29991402',
   approvals: '29990401',
   exit_codes: '29990501',
   check_cli: '29990601',
   handoff_cli: '29990602',
+  preflight: '29990701',
 };
 
 function nameFromUrl(importMetaUrl) {

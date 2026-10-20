@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { scratchDir } from './helpers/fixtures.js';
 import path from 'node:path';
-import { parseJsonl, aggregateRecords, countDesignMapReads, totalInput, formatMarkdown, resolveSessionPath } from '../tools/token-usage.js';
+import { parseJsonl, aggregateRecords, totalInput, formatMarkdown, resolveSessionPath } from '../tools/token-usage.js';
 import { projectSlug } from '../lib/claude-session.js';
 import { CANON_ROOT } from '../lib/canon.js';
 
@@ -32,24 +32,12 @@ test('model 別に分けて集計する', () => {
   assert.equal(byModel.sonnet.input, 2);
 });
 
-test('design-map.md への Read だけを数える（他ファイル・他ツール・同一 tool_use の重複は数えない）', () => {
-  const read = (id, p, name = 'Read') => asst(`x${id}`, 'opus', u(0, 0, 0, 0), [{ type: 'tool_use', id, name, input: { file_path: p } }]);
-  const recs = [
-    read('t1', '/x/output/20260101_000000/design-map.md'),
-    read('t1', '/x/output/20260101_000000/design-map.md'),
-    read('t2', '/x/output/20260101_000000/spec.md'),
-    read('t3', '/x/output/20260101_000000/design-map.md', 'Grep'),
-    read('t4', 'C:\\x\\design-map.md'),
-  ];
-  assert.equal(countDesignMapReads(recs), 2);
-});
-
 test('壊れた行を飛ばして JSONL を読む', () => {
   assert.equal(parseJsonl('{"a":1}\n{broken\n\n{"b":2}').length, 2);
 });
 
 test('Markdown 表は main を先頭に、以降を総入力の降順で並べる', () => {
-  const g = (label, cr) => ({ label, agents: 1, designMapReads: 0, agg: { byModel: { m: { calls: 1, input: 0, cacheCreation: 0, cacheRead: cr, output: 0 } }, turns: 1 } });
+  const g = (label, cr) => ({ label, agents: 1, agg: { byModel: { m: { calls: 1, input: 0, cacheCreation: 0, cacheRead: cr, output: 0 } }, turns: 1 } });
   const lines = formatMarkdown([g('main', 1), g('small', 10), g('big', 1000)]).split('\n');
   assert.match(lines[2], /^\| main /);
   assert.match(lines[3], /^\| big /);

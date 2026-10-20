@@ -6,13 +6,13 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SAMPLE_REPOS } from './helpers/sample-repos.js';
+import { CONSTRAINED_CASE } from './helpers/constrained-case.js';
 import { parseRequirementsDoc } from '../lib/requirements.js';
 
 // ---------------------------------------------------------------------------
 
 test('requirements パーサ: インライン形の constraints と conflicts を読む', () => {
-  const doc = parseRequirementsDoc(SAMPLE_REPOS.constrained['expected-work/requirements.md']);
+  const doc = parseRequirementsDoc(CONSTRAINED_CASE['work/requirements.md']);
   assert.equal(doc.requirements.length, 2);
   assert.equal(doc.requirements[0].strength_needed, 'deterministic');
   assert.equal(doc.constraintsFound, true);

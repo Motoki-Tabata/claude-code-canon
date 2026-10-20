@@ -114,7 +114,7 @@ describe('artifactFromText', () => {
 describe('skillPathRole', () => {
   test('パッケージ直下の SKILL.md は definition', () => {
     assert.equal(skillPathRole('.claude/skills/foo/SKILL.md'), 'definition');
-    assert.equal(skillPathRole('output/29990101_000001/generated/.claude/skills/foo/SKILL.md'), 'definition');
+    assert.equal(skillPathRole('work/29990101_000001/generated/.claude/skills/foo/SKILL.md'), 'definition');
   });
 
   test('パッケージ配下のそれ以外は supporting（正典 §2.1 が明示的に許可）', () => {

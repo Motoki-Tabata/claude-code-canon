@@ -1,8 +1,8 @@
 # claude-canon セットアップと運用の手順
 
-claude-canon は、Claude Code のカスタマイズ一式を Phase A〜D・工程1〜9 で半自律に構築するメタジェネレータです。
-本書はセットアップ、run の進め方、配置、片付けの手順を示します。設計の全体像は
-[../design/architecture.md](../design/architecture.md)、成果物と検査の契約は [../design/artifacts.md](../design/artifacts.md) にあります。
+claude-canon は、Claude Code のカスタマイズ一式を、対象の worktree の上で半自律に作る・直すメタジェネレータです。
+本書はセットアップ、run の進め方、マージと片付けの手順を示します。設計の全体像は
+[../design/architecture.md](../design/architecture.md) にあります。
 
 ## 前提
 
@@ -24,11 +24,11 @@ npm test               # 検査・スクリプト・自己適用のテスト
 
 ## 2. 標準 Skill を入れる
 
-Phase C は Anthropic の標準 Skill を使います。
+`/canon-build` は Anthropic の標準 Skill を使います。
 
 | Skill | 使いどころ | 入手 |
 |---|---|---|
-| `/claude-api prompt-audit` | Phase C で生成物のプロンプトを監査する | プラグイン `example-skills`（Claude Code に同梱されている場合はそれを使う） |
+| `/claude-api prompt-audit` | `/canon-build` で変えたファイルのプロンプトを監査する | プラグイン `example-skills`（Claude Code に同梱されている場合はそれを使う） |
 | `skill-creator` | 対象向けの Skill の description を trigger eval で磨きたいとき（任意）。builder 自身は `canon-reference` の skills §4（`generation` Skill から参照）に従う | プラグイン `example-skills` |
 | `mcp-builder` | MCP サーバーの新規実装が要るときに、対象側で使うよう案内する | プラグイン `example-skills` |
 
@@ -43,48 +43,42 @@ Phase C は Anthropic の標準 Skill を使います。
 
 ## 3. run の進め方
 
-### 3.1 Phase A を始める
+### 3.1 計画の段を始める
 
 ```bash
 cd claude-code-canon
-claude --model opus
+claude --model opus --effort medium
 ```
 
 ```text
-/canon-a /path/to/target-project
+/canon-plan /path/to/target-project
 ```
 
-`/canon-a` は最初に `npm run new-run` を実行し、次のものを作ります。
+対象は git で管理されているリポジトリです（git でなければ止まります）。`/canon-plan` は最初に `npm run new-run` を実行し、次のものを作ります。
 
 - `<ts>`（`YYYYMMDD_hhmmss`）
-- canon のルートの `work/<ts>/`・`output/<ts>/` と `work/<ts>/handoff.md`
+- canon のルートの `work/<ts>/` と `work/<ts>/handoff.md`（git では追跡しません）
+- 対象の worktree `~/.claude-canon/wt/<対象名>-<ts>/` とブランチ `canon/<ts>`（canon のルートの外に置くので、対象の `CLAUDE.md` や Skill が canon のセッションに混ざりません）
 
-成果物は git で追跡しません（`.gitignore`）。handoff.md の `canon_commit` に、run を始めたときの canon のコミットが記録されます。
+handoff.md の `canon_commit` に、run を始めたときの canon のコミットが記録されます。
 
-工程2（要件ヒアリング）はオーケストレーターとの対話です。P1（要件）と P2（spec）で承認を求められたら、内容を確かめて承認するか、直す点を伝えます。
+続けて棚卸し（`inventory`）、要件のヒアリング、根拠の確認を行います。ヒアリングはオーケストレーターとの対話です。「文言のみ」の根拠しかない要件は、実物か公式で確かめるまで G1 で確定しません。G1 で承認を求められたら、内容を確かめて承認するか、直す点を伝えます。
 
-### 3.2 Phase B〜D
+### 3.2 設計の段と構築の段
 
-各 Phase は、前の Phase の最後に表示される案内どおり、**canon のルートで新しいセッションを起動**して実行します。
+各段は、前の段の最後に表示される案内どおり、**canon のルートで新しいセッションを起動**して実行します。
 
-```bash
-cd claude-code-canon
-claude --model opus      # Phase B
-```
+| 経路 | 次の段 | モデル | コマンド | 人間のゲート |
+|---|---|---|---|---|
+| 小 | 構築 | `claude --model sonnet --effort medium` | `/canon-build <ts>` | G2 差分 |
+| 大 | 設計 | `claude --model opus --effort medium` | `/canon-design <ts>` | G2 設計 |
+| 大 | 構築 | `claude --model sonnet --effort medium` | `/canon-build <ts>` | G3 差分 |
 
-```text
-/canon-b <ts>
-```
+経路（小か大か）は `/canon-plan` が要件を固めたときに決め、G1 で人間が確かめます。小は、対象に既存のカスタマイズがあり、新しい機能種別を足さず、Skill・Subagent・Plugin の新設・廃止・統合をしない改修です。変えるファイルの件数は条件にしません。
 
-| Phase | モデル | コマンド | 人間ゲート |
-|---|---|---|---|
-| B | `claude --model opus` | `/canon-b <ts>` | P3 design-map |
-| C | `claude --model sonnet` | `/canon-c <ts>` | P4 生成物とレビュー |
-| D | `claude --model sonnet` | `/canon-d <ts>` | P5 配置 |
+各段の開始時に、`npm run preflight` が handoff の `canon_commit` と現在の canon のコミットを比べます。run の途中で canon 本体を直していれば、差分を示して続けてよいかを尋ねます。続けるか run を作り直すかは、この警告を目安に判断してください。
 
-各 Phase の開始時に、handoff の `canon_commit` と現在の canon のコミットを比べます。run の途中で canon 本体（`.claude/`・`lib/`・`tools/`・`design/`・`guide/`）を直していれば、差分を示して続けてよいかを尋ねます。run の途中で canon を改修するときは、この警告を目安に、続けるか run を作り直すかを判断してください。
-
-推奨モデルは強制ではありません。判断の精度が要る Phase（ヒアリング・spec・keep と retire の議論）を opus、委譲と機械的な手順が中心の Phase を sonnet にしています。Subagent のモデルは各定義の frontmatter で決まり、セッションのモデルには左右されません。
+推奨モデルは強制ではありません。判断の精度が要る段（ヒアリング・設計）を opus、編集と検査の手順が中心の段を sonnet にしています。Subagent のモデルは各定義の frontmatter で決まり、セッションのモデルには左右されません。
 
 ### 3.3 handoff.md と承認
 
@@ -92,71 +86,69 @@ claude --model opus      # Phase B
 
 | 節 | 内容 |
 |---|---|
-| frontmatter | ts・target・mode（new／refactor）・phase・status・canon_commit |
-| 進捗 | 工程のチェックリスト |
-| 承認 | ゲート・日時・対象・sha256（先頭12桁）・要旨 |
+| frontmatter | ts・target・route・worktree・branch・base・canon_commit・stage・status |
+| 進捗 | 段ごとのチェックリスト（`計画1〜3`・`設計1`・`構築1〜5`） |
+| 承認 | ゲート・日時・対象・sha・要旨 |
 | 差し戻し | 人間やレビューの指摘の逐語と、直す箇所・直さない箇所 |
-| 申し送り | 次の Phase が最初にすること |
+| 申し送り | 次の段が最初にすること |
+| セッション | 段ごとの session-id（振り返りの集計に使う） |
 
-承認はオーケストレーターが `npm run approvals -- <ts> record <P1〜P5> "<要旨>"` で記録します。次の Phase の開始時には `npm run approvals -- <ts> check --expect …` で、それまでの承認の対象が変わっていないかを照合します。手で確かめるときも同じコマンドを使えます。
+承認はオーケストレーターが `npm run approvals -- <ts> record <G1〜G3> "<要旨>"` で記録します。文書のゲートは文書の sha256 に、差分のゲートは worktree のコミットの sha に束縛されます。次の段の開始時には `npm run approvals -- <ts> check --expect …` で、それまでの承認の対象が変わっていないかを照合します。手で確かめるときも同じコマンドを使えます。
 
 ```bash
-npm run approvals -- <ts> check --expect P1,P2,P3
-npm run approvals -- <ts> hash P4      # 現在の generated/ のハッシュ
+npm run approvals -- <ts> check --expect G1
+npm run approvals -- <ts> hash G1      # 現在の承認対象のハッシュ
 ```
+
+差分のゲートを承認した後でブランチに新しいコミットを積むと、その承認は無効になります。
 
 ### 3.4 差し戻しと中断
 
 - ゲートで直してほしい点を伝えると、オーケストレーターは指摘を handoff の「差し戻し」に書き、担当のワーカーを新しく起動して直させてから、承認を取り直します。
-- 要件や spec に戻る変更は、Phase A のゲートからやり直します。設計の組み直しは `/canon-b <ts>` からやり直します。
-- セッションが途中で切れたら、canon のルートで新しいセッションを起動し、同じ Phase のコマンドを実行し直します。Phase A は `/canon-a <ts>`（対象のパスではなく ts）で再開します。進捗と承認は handoff.md から読み直されます。ヒアリングの途中で切れた場合は、調査サマリの提示からやり直します。
+- 要件に戻る変更は、G1 からやり直します。設計の組み直しは `/canon-design <ts>` からやり直します。
+- セッションが途中で切れたら、canon のルートで新しいセッションを起動し、同じ段のコマンドを実行し直します。計画の段は `/canon-plan <ts>`（対象のパスではなく ts）で再開します。進捗と承認は handoff.md から読み直されます。ヒアリングの途中で切れた場合は、調査サマリの提示からやり直します。
 
-## 4. 配置（Phase D）
+## 4. マージと片付け
 
-`/canon-d <ts>` が配置手順書 `output/<ts>/deploy/RUN.md` と配置前照合 `pre-deploy-report.txt` を作り、P5 で承認を求めます。
+差分のゲートを承認すると、`/canon-build` は止まります。オーケストレーターはマージも push もしません。
 
-- 照合で **uncaptured**（調査が取りこぼした、または調査の後に対象側で増えた管理ファイル）が1件でもあれば配置しません。Phase A の調査か Phase B の設計に戻します。
-- 承認したら、RUN.md の「3. 配置」のコマンドを **sandbox の外の通常のシェルで**実行します。オーケストレーターは実行しません（`.claude/settings.json` も `--confirm` を拒否しています）。
-
-  ```bash
-  npm run deploy -- <output/<ts> の絶対パス> <対象の絶対パス> --confirm
-  ```
-
-  対象の管理パス集合を `.claude-canon.bak.<ts>/` へ退避してから配置し、sha256 で事後確認します。失敗したら退避から戻します。
-- 実行したらセッションに戻って報告します。オーケストレーターが `deploy-result.json` を確かめ、RUN.md の配置後の手順を示します。
-- 対象リポジトリへのコミットと push は、対象リポジトリで起動した Claude Code のセッションで行ってください。
-- ロールバックは、対象側の git で revert するか、`.claude-canon.bak.<ts>/` から手で戻します。
-
-run 中に見つけた claude-canon 本体の問題は、その場で `tasks/lessons.md` に書かれます。Phase D の最後に件数と見出しが報告されます。コミットは自分で判断してください。
-
-## 5. run の片付け
-
-run の成果物と対象側の `.bak` は自動では消えません。不要になったら人間が消します。
+1. 対象のリポジトリで、ブランチ `canon/<ts>` を人間がレビューしてマージします。PR にするときは push も人間が行います。
+2. hooks か `permissions` を含む差分は、対象のリポジトリでワークスペースの trust を承認しないと効きません（差分のゲートの提示に警告として載ります）。配置後の手作業（実行権限・環境変数）も、提示の内容に従います。
+3. マージしたら、canon のルートで worktree とブランチを片付けます。
 
 ```bash
-rm -rf work/<ts> output/<ts>
+npm run worktree -- cleanup --worktree <worktree> --delete-branch
 ```
 
-成果物は git で追跡していないので、消すと戻せません。残したいときは消さずに置いておきます。対象側の `.claude-canon.bak.<ts>/` は、配置の結果を確かめてから消します。
+`--delete-branch` はマージ済みのときだけブランチも消します。マージしないで捨てるなら `--discard` です（未コミットの変更ごと消えるので、実行前に確認を求められます）。`--delete-branch` も `--discard` も付けなければ、worktree と空の置き場所だけを消し、ブランチは残します。
+
+run 中に見つけた claude-canon 本体の問題は、その場で `tasks/lessons.md` に書かれます。`/canon-build` の最後に、振り返りの結果が報告されます。コミットは自分で判断してください。
+
+## 5. run の中間物の片付け
+
+`work/<ts>` は自動では消えません。不要になったら人間が消します。
+
+```bash
+rm -rf work/<ts>
+```
+
+`work/<ts>` は git で追跡していないので、消すと戻せません。残したいときは消さずに置いておきます。
 
 ## 6. npm scripts
 
-| script | 用途 | 使う Phase |
+| script | 用途 | 使う段 |
 |---|---|---|
-| `npm run new-run -- <target> [<ts>]` | ts の採番・骨格・handoff.md の作成 | A |
-| `npm run approvals -- <ts> hash\|record\|check …` | 承認行の記録と照合 | A〜D |
-| `npm run check -- <ts> requirements\|spec\|design-map` | requirements・spec・design-map の項目ごとの機械点検（OK / NG） | A・B |
-| `npm run handoff -- <ts> mark\|set\|note\|session …` | handoff.md の進捗の印（`mark <工程N\|PN> --off` で外す）・frontmatter・節への追記・セッションの記録 | A〜D |
-| `npm run slice -- <ts> [--unit <担当>]` | design-map をワーカー別のスライスに切り出す（`--unit` は標準出力をその担当の分に絞る。書き出しは常に全部） | C |
-| `npm run copy-keep -- <ts>` | keep の原本を generated/ にバイト単位でコピーする | C |
-| `npm run manifest -- <ts>` | MANIFEST・README・配置リストを決定論で生成する | C |
-| `npm run verify -- <ts>` | V1〜V9 の検証。`verify-report.md` を書き、違反があれば exit 1 | C |
-| `npm run review-bundle -- <ts>` | reviewer（対象を20件ずつの `INDEX-<k>.md` に分ける）と keep-reviewer の判定入力を作る | C |
-| `npm run run-manifest -- <output-dir> <target-dir>` | 配置手順書 RUN.md を書く | D |
-| `npm run pre-deploy -- <output-dir> <target-dir>` | 配置前照合。uncaptured があれば exit 1 | D |
-| `npm run deploy -- <output-dir> <target-dir> [--confirm]` | 配置。`--confirm` が無ければ予定の表示だけ | D（人間） |
+| `npm run new-run -- <target> [<ts>]` | ts の採番・`work/<ts>/` と handoff.md の作成・worktree の作成 | 計画 |
+| `npm run preflight -- <ts> --stage <plan\|design\|build>` | 段の開始時の照合（canon の版・承認・入力の実在・worktree） | 全段 |
+| `npm run inventory -- --root <worktree> --out <dir>` | 対象のカスタマイズの一覧・frontmatter・参照のグラフ | 計画 |
+| `npm run impact -- --root <worktree> --out <dir> --files <…> [--terms <…>]` | 変えるファイルと語に触れている、触らないファイルの列挙 | 計画・設計 |
+| `npm run check -- <ts> requirements\|change-plan` | requirements・change-plan の機械点検（OK / NG） | 計画・設計 |
+| `npm run approvals -- <ts> hash\|record\|check …` | 承認行の記録と照合 | 全段 |
+| `npm run handoff -- <ts> mark\|set\|note\|session …` | handoff.md の進捗の印（`mark <名前> --off` で外す）・frontmatter・節への追記・セッションの記録 | 全段 |
+| `npm run worktree -- create\|rm\|commit\|cleanup …` | worktree の作成・ファイルの削除・コミット・片付け | 構築・マージ後 |
+| `npm run verify -- <ts>` | V1〜V9 の検証（変えたファイルだけ）。`work/<ts>/verify-report.md` を書き、違反があれば exit 1 | 構築 |
 | `npm run reference-check [-- --online] [--root <dir>]` | 正典リファレンスの検査（build.md §8 の 1〜9・11。`--online` で 2・4・5 も。`--root` で検査するディレクトリを替える）。違反があれば exit 1 | 保守 |
-| `npm run tokens -- <session-id \| jsonl のパス> [--json]` | セッションのトークン消費を集計する（Phase D の終わりの振り返りでも使う。`--json` で JSON を出す） | 保守 |
+| `npm run tokens -- <session-id \| jsonl のパス> [--json]` | セッションのトークン消費を集計する（`/canon-build` の振り返りでも使う。`--json` で JSON を出す） | 構築・保守 |
 | `npm test` | テスト | 保守 |
 
 ## 7. 正典 `canon-reference` の更新
@@ -175,9 +167,8 @@ npm run reference-check -- --online
 
 | 症状 | 原因 | 対処 |
 |---|---|---|
-| Phase の開始時に「承認行が無い」「不一致」で止まる | 前の Phase の承認が記録されていない、または承認の後で対象が変わった | 表示されたゲートの Phase で承認を取り直す。意図した変更でなければ、何が変わったかを確かめる（成果物は git で追跡していない） |
-| Phase の開始時に「canon 本体が変わった」と警告される | run を始めた後に canon を改修した（コミット済み、または未コミット） | 表示された差分が run に影響しないなら続ける。影響するなら `/canon-a <対象>` で run を作り直す |
-| `npm run verify` が検査対象ゼロで違反になる | generated/・design-map・requirements.md のどれかが無い、または空 | 該当する工程をやり直す。検査対象が無いことを合格にしない設計です |
-| `npm run pre-deploy` が exit 1 で uncaptured を出す | uncaptured がある | 一覧のファイルを調査に含めるか、design-map で扱いを決め直す |
-| `deploy --confirm` が「移動できないファイル」で拒否する | sandbox の中で実行した（バインドマウントされたファイルは rename できない） | sandbox の外の通常のシェルで実行する。対象は変更されていない |
+| 段の開始時に「承認行が無い」「不一致」で止まる | 前の段の承認が記録されていない、または承認の後で対象が変わった（差分のゲートは、承認の後にブランチへコミットが積まれた） | 表示されたゲートの段で承認を取り直す。意図した変更でなければ、何が変わったかを確かめる |
+| 段の開始時に「canon 本体が変わった」と警告される | run を始めた後に canon を改修した（コミット済み、または未コミット） | 表示された差分が run に影響しないなら続ける。影響するなら `/canon-plan <対象>` で run を作り直す |
+| `npm run verify` が違反になる（差分が空・change-plan が無い・worktree に未コミットの変更がある） | 検査の対象が無い、または worktree が clean でない | 編集とコミットを済ませる。検査対象が無いことを合格にしない設計です |
+| `npm run worktree -- create` が exit 1 で止まる | 対象が git で管理されていない | 対象を git のリポジトリにしてから `/canon-plan` をやり直す |
 | 新しいテストが `TS_NAMESPACES に '<name>' が未登録` で赤 | `tests/helpers/ts.js` への登録漏れ | 他と重複しない8桁の日付を `TS_NAMESPACES` に登録する |

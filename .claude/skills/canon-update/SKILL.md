@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # canon-update（正典 `canon-reference` の更新）
 
-`canon-reference` を公式ドキュメントから**全ファイル作り直し**、検査を通して PR に載せる保守用の Skill。run（Phase A〜D）の外で、保守者が起動する。
+`canon-reference` を公式ドキュメントから**全ファイル作り直し**、検査を通して PR に載せる保守用の Skill。run（`/canon-plan`・`/canon-design`・`/canon-build`）の外で、保守者が起動する。
 
 ## 方針
 

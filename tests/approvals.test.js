@@ -1,201 +1,189 @@
 /**
- * tools/approvals.js（承認行の記録と照合・architecture.md §6.3）の回帰テスト。
+ * tools/approvals.js（承認行の記録と照合・design/architecture.md §2・§7）の回帰テスト。
  *
  * 照合が「一致」と言うだけの恒真にならないことを、対象を故意に改変して確かめる。純粋な関数は
- * 一時ディレクトリを run のルートに見立てて呼び、CLI は実際の起動経路（exit code）で確かめる。
+ * 一時ディレクトリを canon のルートに見立てて呼び、CLI は実際の起動経路（exit code）で確かめる。
+ * 差分のゲートは、使い捨ての対象リポジトリの worktree（ブランチ `canon/<ts>`）のコミット sha に束縛される。
  */
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { scratchDir, cleanupTs } from './helpers/fixtures.js';
+import { scratchDir } from './helpers/fixtures.js';
 import { runNodeScript } from './helpers/run-cli.js';
-import { ROOT, workDir } from './helpers/paths.js';
-import { tsFor } from './helpers/ts.js';
-import { renderHandoff, parseApprovals, effectiveApprovals, appendApproval } from '../lib/handoff.js';
-import { hashGate, hashTree } from '../lib/tree-hash.js';
-import { gateHash, recordApproval, checkApprovals, ApprovalError } from '../tools/approvals.js';
+import { ROOT } from './helpers/paths.js';
+import { tsSeq } from './helpers/ts.js';
+import { changePlan, setupRun } from './helpers/v3-run.js';
+import { appendApproval, diffGate, effectiveApprovals, gateNames, gateSpec, parseApprovals } from '../lib/handoff.js';
+import { ApprovalError, checkApprovals, gateHash, recordApproval } from '../tools/approvals.js';
+import { verifyRun } from '../tools/verify.js';
 
-const TS = '21000101_000101';
+const nextTs = tsSeq(import.meta.url);
+const A_MD = '---\npaths: ["**"]\n---\n# a\n新しい一文\n';
 
-/** run のルートに見立てた一時ディレクトリに handoff.md と P1・P4 の対象を置く。 */
-function setup(t) {
+/** 計画どおりの変更をコミットし、verify を回した run。 */
+function builtRun(t, route = 'small') {
   const root = scratchDir(t, 'canon-approvals-');
-  mkdirSync(path.join(root, 'work', TS), { recursive: true });
-  mkdirSync(path.join(root, 'output', TS, 'generated', '.claude', 'rules'), { recursive: true });
-  writeFileSync(path.join(root, 'work', TS, 'handoff.md'), renderHandoff({ ts: TS, target: '/t', mode: 'new' }));
-  writeFileSync(path.join(root, 'work', TS, 'requirements.md'), '## 確定要件\n');
-  writeFileSync(path.join(root, 'output', TS, 'generated', 'CLAUDE.md'), '# x\n');
-  writeFileSync(path.join(root, 'output', TS, 'generated', '.claude', 'rules', 'a.md'), '# a\n');
-  return root;
+  const r = setupRun(t, nextTs(), { route, root, plan: changePlan({ answers: '- .claude/rules/b.md: 変えない（参照だけ）' }) });
+  r.write('.claude/rules/a.md', A_MD);
+  r.commit();
+  return { ...r, root };
 }
+const verify = (r) => verifyRun(r.root, r.ts);
+const handoffText = (r) => readFileSync(path.join(r.work, 'handoff.md'), 'utf8');
 
-/** verify を回した状態を作る（verify-report.md に現在の generated/ のハッシュを書く）。 */
-function writeVerifyReport(root) {
-  const { hash, files } = hashTree(path.join(root, 'output', TS, 'generated'));
-  writeFileSync(path.join(root, 'output', TS, 'verify-report.md'), `- generated/ のハッシュ: \`${hash}\`（${files} ファイル）\n`);
-}
+test('ゲートの表: 小は G1・G2、大は G1〜G3。最後のゲートが差分のゲート', () => {
+  assert.deepEqual(gateNames('small'), ['G1', 'G2']);
+  assert.deepEqual(gateNames('large'), ['G1', 'G2', 'G3']);
+  assert.equal(diffGate('small'), 'G2');
+  assert.equal(diffGate('large'), 'G3');
+  assert.equal(gateSpec('small', 'G3'), undefined);
+  assert.equal(gateSpec('huge', 'G1'), undefined);
+});
 
 test('parseApprovals: 見出し行と区切り行を除き、要旨のエスケープした縦棒を戻す。同じゲートは最後の行が有効', () => {
-  let text = renderHandoff({ ts: TS, target: '/t', mode: 'new' });
-  text = appendApproval(text, { gate: 'P1', at: '2100-01-01 00:00', target: 'a', hash: '111111111111', summary: '初回 | 補足' });
-  text = appendApproval(text, { gate: 'P1', at: '2100-01-01 00:05', target: 'a', hash: '222222222222', summary: '取り直し' });
+  const base = '## 承認\n\n| ゲート | 日時 | 対象ファイル | sha256(先頭12) | 要旨 |\n|---|---|---|---|---|\n';
+  let text = appendApproval(base, { gate: 'G1', at: 't1', target: 'a', hash: '111111111111', summary: 'x | y' });
+  text = appendApproval(text, { gate: 'G1', at: 't2', target: 'a', hash: '222222222222', summary: '取り直し' });
   const rows = parseApprovals(text);
   assert.equal(rows.length, 2);
-  assert.equal(rows[0].summary, '初回 | 補足');
-  assert.equal(effectiveApprovals(rows).get('P1').hash, '222222222222');
-  // 行は「## 承認」節の表に入り、後続の節に紛れない
-  const sec = text.split('## 差し戻し')[0];
-  assert.ok(sec.includes('222222222222'));
+  assert.equal(rows[0].summary, 'x | y');
+  assert.equal(effectiveApprovals(rows).get('G1').hash, '222222222222');
 });
 
-test('gateHash: ファイルは sha256 の先頭12桁、P4 はディレクトリのハッシュ（verify-report と同じ計算）', (t) => {
-  const root = setup(t);
-  assert.match(gateHash(root, TS, 'P1').hash, /^[0-9a-f]{12}$/);
-  const p4 = gateHash(root, TS, 'P4');
-  assert.equal(p4.hash, hashTree(path.join(root, 'output', TS, 'generated')).hash.slice(0, 12));
-  assert.equal(p4.target, `output/${TS}/generated`);
-  assert.throws(() => gateHash(root, TS, 'P2'), /承認対象が無い/);
-  assert.throws(() => gateHash(root, TS, 'P9'), ApprovalError);
+test('gateHash（小）: G1 は requirements.md と change-plan.md の両方に束縛し、どちらを変えても変わる。G2 は HEAD の sha', (t) => {
+  const r = builtRun(t);
+  const g1 = gateHash(r.root, r.ts, 'G1');
+  assert.match(g1.hash, /^[0-9a-f]{12}$/);
+  assert.equal(g1.target, `work/${r.ts}/requirements.md+work/${r.ts}/change-plan.md`);
+  writeFileSync(path.join(r.work, 'requirements.md'), `${readFileSync(path.join(r.work, 'requirements.md'), 'utf8')}\n追記\n`);
+  const afterReq = gateHash(r.root, r.ts, 'G1').hash;
+  assert.notEqual(afterReq, g1.hash, 'requirements.md の変更で変わる');
+  writeFileSync(path.join(r.work, 'change-plan.md'), `${readFileSync(path.join(r.work, 'change-plan.md'), 'utf8')}\n追記\n`);
+  assert.notEqual(gateHash(r.root, r.ts, 'G1').hash, afterReq, 'change-plan.md の変更で変わる');
+
+  const g2 = gateHash(r.root, r.ts, 'G2');
+  assert.equal(g2.hash, r.head().slice(0, 12));
+  assert.equal(g2.target, r.branch);
+  assert.throws(() => gateHash(r.root, r.ts, 'G3'), /ゲート G3 は small の経路に無い/);
+  assert.throws(() => gateHash(r.root, r.ts, 'G9'), ApprovalError);
 });
 
-test('record → check: 一致なら有効。承認後に対象を変えると不一致になる（故意の改変で検出を確かめる）', (t) => {
-  const root = setup(t);
-  recordApproval(root, TS, 'P1', '要件を承認');
-  writeVerifyReport(root);
-  recordApproval(root, TS, 'P4', '生成物を承認');
-  assert.equal(checkApprovals(root, TS, ['P1', 'P4']).ok, true);
+test('record → check（小）: 一致なら有効。承認後に文書を変える・コミットを積むと不一致（故意の改変で検出を確かめる）', (t) => {
+  const r = builtRun(t);
+  recordApproval(r.root, r.ts, 'G1', '計画を承認');
+  assert.equal(verify(r).ok, true);
+  const rec = recordApproval(r.root, r.ts, 'G2', '差分を承認');
+  assert.equal(rec.hash, r.head().slice(0, 12));
+  assert.equal(checkApprovals(r.root, r.ts, ['G1', 'G2']).ok, true);
 
-  writeFileSync(path.join(root, 'output', TS, 'generated', '.claude', 'rules', 'a.md'), '# a 改\n');
-  const c = checkApprovals(root, TS, ['P1', 'P4']);
+  r.write('.claude/rules/a.md', `${A_MD}あとから積んだ\n`);
+  r.commit('承認の後のコミット');
+  const c = checkApprovals(r.root, r.ts, ['G1', 'G2']);
   assert.equal(c.ok, false);
-  assert.deepEqual(c.results.map((r) => [r.gate, r.status]), [['P1', 'ok'], ['P4', 'mismatch']]);
+  assert.deepEqual(c.results.map((x) => [x.gate, x.status]), [['G1', 'ok'], ['G2', 'mismatch']], '新しいコミットで差分のゲートだけ無効');
 
-  // 取り直すと最後の行が有効になり、照合が通る（verify を回し直してから）
-  writeVerifyReport(root);
-  recordApproval(root, TS, 'P4', '修正後に取り直し');
-  assert.equal(checkApprovals(root, TS, ['P1', 'P4']).ok, true);
+  writeFileSync(path.join(r.work, 'change-plan.md'), `${readFileSync(path.join(r.work, 'change-plan.md'), 'utf8')}\n追記\n`);
+  assert.equal(checkApprovals(r.root, r.ts, ['G1']).results.find((x) => x.gate === 'G1').status, 'mismatch', '文書の改変で G1 が無効');
 });
 
-test('record P4: verify-report が無い・ハッシュが現在の generated/ と違う（直接編集）なら拒否する', (t) => {
-  const root = setup(t);
-  assert.throws(() => recordApproval(root, TS, 'P4', 'x'), /verify-report\.md が無い/);
-  writeVerifyReport(root);
-  // verify の後に generated/ を直接直した
-  writeFileSync(path.join(root, 'output', TS, 'generated', 'CLAUDE.md'), '# 直接編集\n');
-  assert.throws(() => recordApproval(root, TS, 'P4', 'x'), /現在.*と違う/);
-  assert.equal(checkApprovals(root, TS, []).results.length, 0, '拒否したら承認行を書かない');
-  writeVerifyReport(root);
-  assert.equal(recordApproval(root, TS, 'P4', 'verify 後').gate, 'P4');
+test('record G2（差分のゲート）: verify が無い・古い・不合格・未コミットの変更があるなら拒否する', (t) => {
+  const r = builtRun(t);
+  recordApproval(r.root, r.ts, 'G1', 'x');
+  assert.throws(() => recordApproval(r.root, r.ts, 'G2', 'x'), /verify-report\.md が無い/);
+
+  assert.equal(verify(r).ok, true);
+  r.write('.claude/rules/a.md', `${A_MD}未コミット\n`);
+  assert.throws(() => recordApproval(r.root, r.ts, 'G2', 'x'), /未コミットの変更がある/);
+  r.commit('積んだ');
+  assert.throws(() => recordApproval(r.root, r.ts, 'G2', 'x'), /検査した HEAD.*と違う/, 'verify の後にコミットが進んだ');
+
+  // 計画に無いファイルを変えて verify を不合格にする
+  r.write('CLAUDE.md', '# 計画外\n');
+  r.commit('計画外');
+  assert.equal(verify(r).ok, false);
+  assert.throws(() => recordApproval(r.root, r.ts, 'G2', 'x'), /verify-report が不合格/);
+  assert.equal(parseApprovals(handoffText(r)).filter((x) => x.gate === 'G2').length, 0, '拒否したら承認行を書かない');
 });
 
-test('record P5: P1〜P4 のどれかが無効（承認後に変わった）なら拒否する', (t) => {
-  const root = setup(t);
-  mkdirSync(path.join(root, 'output', TS, 'deploy'), { recursive: true });
-  writeFileSync(path.join(root, 'output', TS, 'deploy', 'pre-deploy-report.txt'), 'r\n');
-  for (const f of ['spec.md', 'design-map.md']) writeFileSync(path.join(root, 'output', TS, f), 'x\n');
-  assert.throws(() => recordApproval(root, TS, 'P5', 'x'), /P5 の前提: P1・P2・P3・P4/);
-  recordApproval(root, TS, 'P1', 'a');
-  recordApproval(root, TS, 'P2', 'a');
-  recordApproval(root, TS, 'P3', 'a');
-  writeVerifyReport(root);
-  recordApproval(root, TS, 'P4', 'a');
-  assert.equal(recordApproval(root, TS, 'P5', 'a').gate, 'P5');
-  // generated/ を直接直すと P4 が無効になり、P5 を取り直せない
-  writeFileSync(path.join(root, 'output', TS, 'generated', 'CLAUDE.md'), '# 直接編集\n');
-  assert.throws(() => recordApproval(root, TS, 'P5', 'again'), /P5 の前提: P4/);
+test('record: 前のゲートが無い・無効なら拒否する（G2 は G1、大の G3 は G1・G2 が前提）', (t) => {
+  const r = builtRun(t);
+  assert.equal(verify(r).ok, true);
+  assert.throws(() => recordApproval(r.root, r.ts, 'G2', 'x'), /G2 の前提: G1 の承認が無効か無い/);
+
+  const big = builtRun(t, 'large');
+  assert.equal(verify(big).ok, true);
+  recordApproval(big.root, big.ts, 'G1', '要件');
+  assert.throws(() => recordApproval(big.root, big.ts, 'G3', 'x'), /G3 の前提: G2/);
+  recordApproval(big.root, big.ts, 'G2', '設計');
+  assert.equal(recordApproval(big.root, big.ts, 'G3', '差分').gate, 'G3');
 });
 
-test('canon 自身が対象の run: P5 はレポートが無くても generated/ を束縛して記録でき、generated/ が変わると不一致', (t) => {
-  const root = setup(t);
-  // handoff の target を run のルート（＝canon 自身）にする
-  const hp = path.join(root, 'work', TS, 'handoff.md');
-  writeFileSync(hp, renderHandoff({ ts: TS, target: root, mode: 'refactor' }));
-  for (const f of ['spec.md', 'design-map.md']) writeFileSync(path.join(root, 'output', TS, f), 'x\n');
-  for (const g of ['P1', 'P2', 'P3']) recordApproval(root, TS, g, 'a');
-  writeVerifyReport(root);
-  recordApproval(root, TS, 'P4', 'a');
-  const p5 = recordApproval(root, TS, 'P5', '自己対象');
-  assert.equal(p5.target, `output/${TS}/generated`);
-  assert.equal(p5.hash, gateHash(root, TS, 'P4').hash, 'P4 と同じ計算');
-  assert.equal(checkApprovals(root, TS, ['P1', 'P2', 'P3', 'P4', 'P5']).ok, true);
-  writeFileSync(path.join(root, 'output', TS, 'generated', 'CLAUDE.md'), '# 直接編集\n');
-  const c = checkApprovals(root, TS, ['P5']);
-  assert.equal(c.results.find((r) => r.gate === 'P5').status, 'mismatch');
+test('大の経路: G1 は requirements.md、G2 は change-plan.md に束縛する。change-plan.md の変更は G2 だけを無効にする', (t) => {
+  const r = builtRun(t, 'large');
+  assert.equal(gateHash(r.root, r.ts, 'G1').target, `work/${r.ts}/requirements.md`);
+  assert.equal(gateHash(r.root, r.ts, 'G2').target, `work/${r.ts}/change-plan.md`);
+  recordApproval(r.root, r.ts, 'G1', '要件');
+  recordApproval(r.root, r.ts, 'G2', '設計');
+  writeFileSync(path.join(r.work, 'change-plan.md'), `${readFileSync(path.join(r.work, 'change-plan.md'), 'utf8')}\n追記\n`);
+  const c = checkApprovals(r.root, r.ts, ['G1', 'G2']);
+  assert.deepEqual(c.results.map((x) => [x.gate, x.status]), [['G1', 'ok'], ['G2', 'mismatch']]);
 });
 
-test('P4 は outside-managed/ も束縛する: 追加・承認後の改変で不一致になり、無ければ generated/ だけのハッシュ', (t) => {
-  const root = setup(t);
-  const gen = path.join(root, 'output', TS, 'generated');
-  assert.equal(gateHash(root, TS, 'P4').hash, hashTree(gen).hash.slice(0, 12), 'outside-managed/ が無ければ従来のハッシュ');
-  writeVerifyReport(root);
-  recordApproval(root, TS, 'P4', 'a');
-  assert.equal(checkApprovals(root, TS, ['P4']).ok, true);
-
-  // 承認の後で管理パス外の変更の変更後のファイルが現れる（承認の外で作られた）→ 無効
-  mkdirSync(path.join(root, 'output', TS, 'outside-managed'), { recursive: true });
-  const f = path.join(root, 'output', TS, 'outside-managed', 'README.md');
-  writeFileSync(f, '# 変更後\n');
-  assert.equal(checkApprovals(root, TS, ['P4']).results[0].status, 'mismatch');
-  assert.throws(() => recordApproval(root, TS, 'P4', 'a'), /現在.*と違う/, 'verify を回すまで取り直せない');
-
-  // verify-report のハッシュを合成値に更新すれば取り直せ、その後の改変は検出される
-  writeFileSync(path.join(root, 'output', TS, 'verify-report.md'), `- generated/ のハッシュ: \`${hashGate(path.join(root, 'output', TS)).hash}\`\n`);
-  recordApproval(root, TS, 'P4', 'outside 込み');
-  assert.equal(checkApprovals(root, TS, ['P4']).ok, true);
-  writeFileSync(f, '# 承認後に改変\n');
-  assert.equal(checkApprovals(root, TS, ['P4']).results[0].status, 'mismatch');
+test('route と合わないゲートは拒否する（小で G3 を期待・記録、承認表に route に無いゲート）', (t) => {
+  const r = builtRun(t);
+  assert.throws(() => checkApprovals(r.root, r.ts, ['G3']), /ゲート G3 は small の経路に無い/);
+  assert.throws(() => recordApproval(r.root, r.ts, 'G3', 'x'), /small の経路に無い/);
+  const hp = path.join(r.work, 'handoff.md');
+  writeFileSync(hp, appendApproval(handoffText(r), { gate: 'G3', at: 't', target: r.branch, hash: '0'.repeat(12), summary: 'x' }));
+  assert.throws(() => checkApprovals(r.root, r.ts, []), /承認表のゲート G3 は small の経路に無い/);
 });
 
 test('check: 期待したゲートの承認行が無ければ無効（承認0件の照合を素通りさせない）。対象が消えても無効', (t) => {
-  const root = setup(t);
-  const empty = checkApprovals(root, TS, ['P1', 'P2']);
+  const r = builtRun(t);
+  const empty = checkApprovals(r.root, r.ts, ['G1', 'G2']);
   assert.equal(empty.ok, false);
-  assert.deepEqual(empty.missing, ['P1', 'P2']);
-
-  recordApproval(root, TS, 'P1', '要件を承認');
-  rmSync(path.join(root, 'work', TS, 'requirements.md'));
-  assert.equal(checkApprovals(root, TS, ['P1']).results[0].status, 'missing-target');
+  assert.deepEqual(empty.missing, ['G1', 'G2']);
+  recordApproval(r.root, r.ts, 'G1', 'x');
+  rmSync(path.join(r.work, 'change-plan.md'));
+  assert.equal(checkApprovals(r.root, r.ts, ['G1']).results[0].status, 'missing-target');
 });
 
-test('record P1: requirements.md の confirmed_at が記録の時刻より後なら拒否し、同じか前なら記録する', (t) => {
-  const root = setup(t);
-  const req = path.join(root, 'work', TS, 'requirements.md');
-  const now = new Date(2026, 9, 12, 3, 56);
-  writeFileSync(req, '## メタ\nconfirmed_at: 2026-10-12 04:20\n\n## 確定要件\n');
-  assert.throws(() => recordApproval(root, TS, 'P1', 'x', now), /confirmed_at（2026-10-12 04:20）が記録の時刻（2026-10-12 03:56）より後/);
-  assert.equal(checkApprovals(root, TS, []).results.length, 0, '拒否したら承認行を書かない');
-  writeFileSync(req, '## メタ\nconfirmed_at: 2026-10-12 03:56\n\n## 確定要件\n');
-  assert.equal(recordApproval(root, TS, 'P1', 'x', now).gate, 'P1');
-});
-
-test('record: 要旨が空・handoff.md が無いなら拒否する', (t) => {
-  const root = setup(t);
-  assert.throws(() => recordApproval(root, TS, 'P1', '  '), /要旨が空/);
-  rmSync(path.join(root, 'work', TS, 'handoff.md'));
-  assert.throws(() => recordApproval(root, TS, 'P1', 'x'), /handoff.md が無い/);
+test('record / hash: 要旨が空・handoff.md が無い・route が無い・worktree のブランチが違うなら拒否する', (t) => {
+  const r = builtRun(t);
+  assert.throws(() => recordApproval(r.root, r.ts, 'G1', '  '), /要旨が空/);
+  const hp = path.join(r.work, 'handoff.md');
+  const original = handoffText(r);
+  writeFileSync(hp, original.replace('route: small\n', ''));
+  assert.throws(() => gateHash(r.root, r.ts, 'G1'), /route が small か large でない/);
+  writeFileSync(hp, original.replace(`branch: ${r.branch}`, 'branch: canon/other'));
+  assert.throws(() => gateHash(r.root, r.ts, 'G2'), /branch.*と違う/);
+  rmSync(hp);
+  assert.throws(() => recordApproval(r.root, r.ts, 'G1', 'x'), /handoff\.md が無い/);
 });
 
 test('approvals CLI: 実際の起動経路で record・check の exit code を確かめる', (t) => {
-  const ts = tsFor(import.meta.url, 1);
+  const r = setupRun(t, nextTs(), { plan: changePlan() });
+  r.write('.claude/rules/a.md', A_MD);
+  r.commit();
   const script = path.join(ROOT, 'tools', 'approvals.js');
-  cleanupTs(t, ts);
-  mkdirSync(workDir(ts), { recursive: true });
-  writeFileSync(path.join(workDir(ts), 'handoff.md'), renderHandoff({ ts, target: '/t', mode: 'new' }));
-  writeFileSync(path.join(workDir(ts), 'requirements.md'), '## 確定要件\n');
+  const run = (...args) => runNodeScript(script, args);
 
-  assert.equal(runNodeScript(script, []).code, 2);
-  assert.equal(runNodeScript(script, [ts, 'check', '--expect', 'P7']).code, 2);
-  assert.equal(runNodeScript(script, [ts, 'check', '--expect', 'P1']).code, 1);
-  assert.equal(runNodeScript(script, [ts, 'record', 'P2', 'x']).code, 1);
-  const rec = runNodeScript(script, [ts, 'record', 'P1', '要件を承認']);
+  assert.equal(run().code, 2);
+  assert.equal(run(r.ts, 'check', '--expect', 'G7').code, 2, 'どの経路にも無い名前は引数不正（exit 2）');
+  assert.equal(run(r.ts, 'record', 'G9', 'x').code, 2);
+  assert.equal(run(r.ts, 'check', '--expect', 'G3').code, 1, '小の経路に無いゲートは拒否（exit 1）');
+  assert.equal(run(r.ts, 'check', '--expect', 'G1').code, 1, '承認行が無い');
+  assert.equal(run(r.ts, 'record', 'G2', 'x').code, 1, '前提（G1）を満たさない');
+  const rec = run(r.ts, 'record', 'G1', '計画を承認');
   assert.equal(rec.code, 0, rec.stderr);
-  assert.match(readFileSync(path.join(workDir(ts), 'handoff.md'), 'utf8'), /\| P1 \| .* \| work\/.*\/requirements\.md \| [0-9a-f]{12} \| 要件を承認 \|/);
-  assert.equal(runNodeScript(script, [ts, 'check', '--expect', 'P1']).code, 0);
-  writeFileSync(path.join(workDir(ts), 'requirements.md'), '## 確定要件\n- 追記\n');
-  const bad = runNodeScript(script, [ts, 'check', '--expect', 'P1']);
+  assert.match(handoffText(r), /\| G1 \| .* \| work\/.*\/requirements\.md\+work\/.*\/change-plan\.md \| [0-9a-f]{12} \| 計画を承認 \|/);
+  assert.equal(run(r.ts, 'check', '--expect', 'G1').code, 0);
+  writeFileSync(path.join(r.work, 'requirements.md'), `${readFileSync(path.join(r.work, 'requirements.md'), 'utf8')}\n追記\n`);
+  const bad = run(r.ts, 'check', '--expect', 'G1');
   assert.equal(bad.code, 1);
   assert.match(bad.stdout, /不一致/);
-  assert.match(runNodeScript(script, [ts, 'hash', 'P1']).stdout, /^P1 {2}[0-9a-f]{12} {2}work\//);
+  assert.match(run(r.ts, 'hash', 'G1').stdout, /^G1 {2}[0-9a-f]{12} {2}work\//);
+  assert.match(run(r.ts, 'hash', 'G2').stdout, /^G2 {2}[0-9a-f]{12} {2}canon\//);
 });
