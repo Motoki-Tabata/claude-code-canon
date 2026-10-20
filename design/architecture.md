@@ -90,7 +90,7 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 
 ### 4.1 サイズの上限
 
-`check` は節ごとの UTF-8 バイト数を数え、上限を超えたら NG にする。値は R2 の実測（要件1件は 357〜1190 バイト、v2 の設計マップの変更指示はファイル1件で最大約 2.1KB）に余裕を持たせて決めた。段階6の実測で見直す。
+`check` は節ごとの UTF-8 バイト数を数え、上限を超えたら NG にする。値は R2 の実測（要件1件は 357〜1190 バイト、v2 の設計マップの変更指示はファイル1件で最大約 2.1KB）に余裕を持たせて決めた。
 
 | 文書・節 | 上限 |
 |---|---|
@@ -149,13 +149,14 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 | 役（R2 の実績） | 実績 | 案 | 同じトークン量での概算 |
 |---|---|---|---|
 | designer＋設計の段のメイン | opus $5.74（生成の段の designer の再起動を含む） | 設計をメインの inline で行う | designer 1体分（約 $4.0）以下。メインが入力を読み直す分と、再起動の分が無くなる |
-| reviewer | sonnet $2.53 | sonnet・high（opus・high は段階6で比べる） | opus なら $4.40 |
+| reviewer | sonnet $2.53 | sonnet・high（段階6で同じ差分に opus・high を当てて比べ、sonnet のままにした） | opus なら $4.40 |
 | session-analyst | sonnet $2.08 | haiku・high | $0.10（100K トークンを超えるプロンプトは単価が5倍になるので、最大で約 $0.5） |
 | investigator | sonnet $2.39 | sonnet・medium（profile の部分は profiler の haiku に移す） | haiku なら $0.12 |
 | builder・prompt-auditor | sonnet $2.30・$1.33 | sonnet・medium | 変えない |
 
 - Opus と Sonnet の差は、cache read の単価が同じなので、cache の多い役では約1.4〜1.7倍にとどまる。費用を決めるのは、モデルの格よりトークンの量である。そこで v3 は、モデルを下げるより、読む量と書き写す量を減らすほうを優先した。
-- 段階6の受け入れ条件（総入力が R2 の全段の 46.3M の40%、約18.5M 以下）に余裕を持って収める配分の目安（推測、計16M）は、plan のメイン 4.5M・investigator 1.5M・build のメイン 3M・builder 2M・reviewer 2.5M・prompt-auditor 1M・振り返り 1.5M である。段階6で `npm run tokens` の実測と比べる。
+- 段階6の受け入れ条件（総入力が R2 の全段の 46.3M の40%、約18.5M 以下）に余裕を持って収める配分の目安（推測、計16M）は、plan のメイン 4.5M・investigator 1.5M・build のメイン 3M・builder 2M・reviewer 2.5M・prompt-auditor 1M・振り返り 1.5M である。段階6の2回目の run（20261020_192336）の `npm run tokens` の実測は、plan のメイン 7.55M・investigator 3.14M・claude-code-guide 0.53M・build のメイン 4.42M・builder 1.34M・reviewer 5.63M・prompt-auditor 1.37M・振り返り 2.59M の計 26.56M（R2 の57%、この単価で約 $11.3）で、条件を満たさなかった。目安を超えた役の内訳と直し方は `tasks/lessons.md` に置き、条件を見直したうえで v3 を受け入れた。
+- reviewer の opus・high は、段階6の1回目の差分で sonnet・high と同じプロンプトで比べた。総入力は3.1倍（9.90M と 3.19M）で、1回目で直した5件のうち opus は4件、sonnet は5件を挙げ、対象の `.claude/README.md` の存在しない節への参照は両方とも見逃した。そこで sonnet・high のままにした。この見逃し（参照元の中の参照先の実在）は2回目の run でも直らず、段階6の受け入れ条件の1つを満たさないまま受け入れた。改修要求は `tasks/lessons.md` にある。
 - `/canon-build` の advisor は、同じエラーが2回出たときと、差分のゲートの前だけに呼ぶ。
 
 ### 6.3 Skill
