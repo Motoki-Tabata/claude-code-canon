@@ -32,7 +32,7 @@ canon のルートの絶対パスを `<root>` と書く。handoff の `worktree`
 
 ## 構築1 編集と削除
 
-1. `work/<ts>/change-plan.md` の `## ファイル` を読む。`op: delete` のファイルは、あなたが `npm run worktree -- rm --worktree <worktree> <ファイル…>` で消す。
+1. `work/<ts>/change-plan.md` の `## ファイル` の節だけを読む（Grep で `^## ` の行番号を引き、その範囲を offset・limit つきで Read する。全文は読まない。`## 参照元の扱い` は、担当の path の行だけを Grep で拾う）。`op: delete` のファイルは、あなたが `npm run worktree -- rm --worktree <worktree> <ファイル…>` で消す。
 2. `modify`・`new` のファイルを、機能ごとの担当（unit）に分ける。対応は `.claude/skills/generation/SKILL.md` の表（CLAUDE.md＝claude-md、`.claude/rules`＝rules、`.claude/skills`・commands＝skills、`.claude/agents`＝subagents、settings・hooks・permissions・statusline＝settings、`.mcp.json`＝mcp、plugin＝plugins、出力スタイル＝output-styles）。担当のファイルの集合は互いに重ならない。
 3. `builder` を unit ごとに、1つのメッセージで並列に起動する。渡すもの: `unit`・worktree の絶対パス・`work/<ts>/change-plan.md`・`requirements.md`・`impact.json` の絶対パス・担当のファイルのパスの一覧・（あれば）参照元の `path`。
 4. 各 builder の応答（書いたファイルの一覧）を、change-plan の担当の件数と突き合わせる。欠けや、担当外のファイルが書かれていれば、差し戻しの手順で直す。実行権限が要ると報告されたスクリプトには、あなたが権限を付ける。
@@ -40,7 +40,7 @@ canon のルートの絶対パスを `<root>` と書く。handoff の `worktree`
 
 ## 構築2 検証とコミット
 
-1. change-plan の `## 検証コマンド` を、worktree で実行する（`cd <worktree>` してから。対象のテスト・ビルド・lint）。worktree には追跡中のファイルしか無い（`node_modules`・`.venv`・ビルド出力・`.env` は入っていない）ので、依存の導入が `## 検証コマンド` の先頭に無ければ、先に導入する（profile の `package_manager` に従う）。導入できない対象は、change-plan に書いた代わりの確認方法で確かめる。失敗は原因を直す。同じエラーが2回出たら advisor を呼ぶ。
+1. change-plan の `## 検証コマンド` を、worktree で実行する（`cd <worktree>` してから。対象のテスト・ビルド・lint）。worktree には追跡中のファイルしか無い（`node_modules`・`.venv`・ビルド出力・`.env` は入っていない）ので、依存の導入が `## 検証コマンド` の先頭に無ければ、先に導入する（profile の `package_manager` に従う）。導入できない対象は、change-plan に書いた代わりの確認方法で確かめる。失敗は原因を直す。同じエラーが2回出たら advisor を呼ぶ（メインが Sonnet のとき）。
 2. `npm run worktree -- commit --worktree <worktree> --message "<変更の要約>"` でコミットする。
 3. `npm run verify -- <ts>` を実行する（変えたファイルだけを検査し、`work/<ts>/verify-report.md` を書く）。違反があれば、report の指摘を読んで直し（コマンドで直せるものはあなたが、ファイルの内容は差し戻しの手順で builder に）、再びコミットして verify を回し直す。verify が不合格のまま次に進まない。
 4. warning（特に V9 の trust の前提）は、差分のゲートの提示に載せる。
@@ -48,19 +48,19 @@ canon のルートの絶対パスを `<root>` と書く。handoff の `worktree`
 
 ## 構築3 レビュー
 
-1. `git -C <worktree> diff <base>..HEAD > <root>/work/<ts>/review/diff.patch`（`work/<ts>/review/` が無ければ作る）。
+1. `npm run worktree -- diff --worktree <worktree> --base <base> --out <root>/work/<ts>/review/diff.patch`（`work/<ts>/review/` が無ければ作られる）。
 2. `reviewer` と `prompt-auditor` を1つのメッセージで並列に起動する。
-   - reviewer: worktree・変えたファイルの一覧（`git -C <worktree> diff --name-only <base>..HEAD`）・`diff.patch`・`requirements.md`・`change-plan.md`・`impact.json` の絶対パスと、書込先 `<root>/work/<ts>/review/review-1.md`。変えたファイルが多いときは、機能のまとまりで分けて複数起動してよい（`review-<k>.md`）。分けるときは、change-plan の `## 参照元の扱い` の「変えない」の全件を、どれか1体に割り当てて、担当の参照元の一覧としてプロンプトに書く（該当の語やファイルが担当のファイルに当たるものはその reviewer へ、どれにも当たらないものは1体に寄せる）。割り当てた一覧の和が全件と一致することを、起動の前に数えて確かめる。
+   - reviewer: worktree・変えたファイルの一覧（`npm run worktree -- diff --worktree <worktree> --base <base> --name-only`）・`diff.patch`・`requirements.md`・`change-plan.md`・`impact.json` の絶対パスと、書込先 `<root>/work/<ts>/review/review-1.md`。変えたファイルが多いときは、機能のまとまりで分けて複数起動してよい（`review-<k>.md`）。分けるときは、change-plan の `## 参照元の扱い` の「変えない」の全件を、どれか1体に割り当てて、担当の参照元の一覧としてプロンプトに書く（該当の語やファイルが担当のファイルに当たるものはその reviewer へ、どれにも当たらないものは1体に寄せる）。割り当てた一覧の和が全件と一致することを、起動の前に数えて確かめる。
    - prompt-auditor: プロンプトとして読まれるファイル（Skill・Subagent・CLAUDE.md・rules・出力スタイル）が差分にあるときだけ。変えたそのファイルの絶対パスと、書込先 `<root>/work/<ts>/review/prompt-audit.md`。小さな修正では起動しない。
-3. 指摘を読む。`## 未判定の対象` が「なし」でなければ、その分の reviewer を追加で起動する。`high`・`medium` の指摘は、直す（差し戻しの手順で builder を新しく起動 → 再コミット → verify → 変更のあった対象だけ再レビュー）。再レビューの前に `git -C <worktree> diff <前回レビューした HEAD>..HEAD > <root>/work/<ts>/review/diff-<n>.patch`（n は2から）を書き、`diff.patch` の代わりに渡す。直さない指摘は、理由を差分のゲートの提示に載せる。
+3. 指摘を読む。`## 未判定の対象` が「なし」でなければ、その分の reviewer を追加で起動する。`high`・`medium` の指摘は、直す（差し戻しの手順で builder を新しく起動 → 再コミット → verify → 変更のあった対象だけ再レビュー）。再レビューの前に `npm run worktree -- diff --worktree <worktree> --base <前回レビューした HEAD> --out <root>/work/<ts>/review/diff-<n>.patch`（n は2から）で差分を書き、`diff.patch` の代わりに渡す。直さない指摘は、理由を差分のゲートの提示に載せる。
 4. `npm run handoff -- <ts> mark 構築3`。
 
 ## 構築4 差分のゲート
 
-1. 前提を確かめる: worktree に未コミットの変更が無い（`git -C <worktree> status --porcelain` が空）・最後のコミットの後に verify が合格している。承認の後で新しいコミットを積むと、承認は無効になる。
+1. 前提を確かめる: worktree に未コミットの変更が無い（`npm run worktree -- status --worktree <worktree>` の出力が空）・最後のコミットの後に verify が合格している。承認の後で新しいコミットを積むと、承認は無効になる。
 2. advisor を呼ぶ（メインが Sonnet のとき）。
 3. ゲートは、ほかの問いと混ぜずに**単独の問い**として取る。提示するもの:
-   - 差分 `git -C <worktree> diff --stat <base>..HEAD` と、承認の対象（ブランチ `canon/<ts>` の HEAD のコミット）。
+   - 差分 `npm run worktree -- diff --worktree <worktree> --base <base> --stat` と、承認の対象（ブランチ `canon/<ts>` の HEAD のコミット）。
    - verify の結果（合格・warning の内容。hooks か `permissions` を含むときは、対象のリポジトリでワークスペースの trust を承認しないと効かないこと）。
    - reviewer・prompt-auditor の指摘の件数と、直した指摘・直さなかった指摘とその理由。
    - 配置後の手作業（change-plan の「配置後の手作業」・実行権限・環境変数）。

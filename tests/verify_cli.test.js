@@ -161,3 +161,17 @@ test('verify report: 未判定だけなら合格のまま、未判定を件数�
   assert.match(body, /\| V1 配置パス \| pass（未判定あり） \| 0 \| 0 \| 1 \|/);
   assert.match(body, /- 未判定: V1 x\/y\.md/);
 });
+
+test('verify CLI（違反注入）: 「変える」と答えた行を直し忘れると V6 の違反。直せば通る（実際の git の差分で照合）', (t) => {
+  const answers = '- .claude/rules/b.md: 変えない（a.md の存在への参照で内容は無関係）\n- .claude/rules/a.md:4:a: 変える';
+  const r = setupRun(t, nextTs(), { plan: changePlan({ answers }) });
+  r.write('.claude/rules/a.md', A_MD); // 4 行目（# a）は変えず、末尾に足しただけ
+  r.commit();
+  const bad = verifyCli(r.ts);
+  assert.equal(bad.code, 1, bad.stdout);
+  assert.match(reportOf(r), /- 違反: V6 \.claude\/rules\/a\.md: change-plan が「変える」と答えた 4 行目/);
+  r.write('.claude/rules/a.md', A_MD.replace('# a\n', '# a（改）\n'));
+  r.commit();
+  const ok = verifyCli(r.ts);
+  assert.equal(ok.code, 0, ok.stdout + reportOf(r));
+});

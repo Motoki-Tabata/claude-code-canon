@@ -49,7 +49,7 @@
 ## タスク
 
 ### A 机上の改修
-- [ ] T1 整合性の洗い出し（1回目）
+- [x] T1 整合性の洗い出し（1回目）
   - 範囲を4つに分け、Explore（very thorough）を1つのメッセージで並列に起動する。
     - (a) README・`.claude/README.md`・guide・CHANGELOG・package.json
     - (b) `design/architecture.md` と段の Skill 3件
@@ -58,29 +58,29 @@
   - 見る種類: 存在しないパス・節・見出し・コマンドへの参照、件数と名前、文書間の矛盾、frontmatter と本文の食い違い。
   - 結果は scratchpad のファイルに書かせ、件数を数え直して handoff のメモに要約する。
   - 一括の Explore は、範囲が広すぎてコンテキストがあふれて止まった。範囲は必ず分ける。
-- [ ] T2 T1 の食い違いと、既知の4件を直す。
+- [x] T2 T1 の食い違いと、既知の4件を直す。
   - `CHANGELOG.md` の `[Unreleased]` が v2 の内容のまま。v3 の項を立て、`package.json` を `3.0.0` にする。
   - `tests/self_application.test.js:2` が、存在しない §9.2 を指している。
   - `tools/check.js:24` に古い一文が残っている（T8 で消す）。
   - `output/` は追跡外。消さずに報告だけにする。
   - 直さないものは、理由を handoff に書く。
-- [ ] T3 正典を先に引く（investigator・investigation・canon-plan 計画2・requirements の該当）。
+- [x] T3 正典を先に引く（investigator・investigation・canon-plan 計画2・requirements の該当）。
   - 直す前に `official-check` と `claude-code-guide` で横断 grep して、漏れを拾う。
   - `check.js` の `CONFIDENCES` は変えない。正典の `[仕様]` で確かめたものは `公式で確認` にする。`[知見]` と canon の規律は、公式の根拠にしない。
   - 正典に記述が無いもの、`complete: false` のコレクションに名前が無いもの、`sources.json` の `unverified` に載っているものは、`unverified` に残す。
-- [ ] T4 paths.json と inventory の入れ子の配置。`.claude/rules/canon-reference.md` に従い、`git diff` の範囲を確かめ、`npm test`・`npm run reference-check` を通す。台帳の 10-17「paths.json」を消す。
-- [ ] T5 `worktree` の `status`・`diff` を足し、canon-build を置き換える。台帳の 10-17「git -C」は、C で許可の画面が出ないことを確かめるまで「残り」に書き直す。
-- [ ] T6 `impact` の `--from-plan` と `impact-ids.txt`、canon-plan 計画3 の1・3。台帳の 10-19「計画3」を消す。10-20「増分」の (a) は、C で測るまで残す。
-- [ ] T7 要件ごとの影響の語（template・canon-plan 計画3 の2・`check`）。台帳の 10-20「影響の語」を消す。
-- [ ] T8 `check` の上限の見直し。
+- [x] T4 paths.json と inventory の入れ子の配置。`.claude/rules/canon-reference.md` に従い、`git diff` の範囲を確かめ、`npm test`・`npm run reference-check` を通す。台帳の 10-17「paths.json」を消す。
+- [x] T5 `worktree` の `status`・`diff` を足し、canon-build を置き換える。台帳の 10-17「git -C」は、C で許可の画面が出ないことを確かめるまで「残り」に書き直す。
+- [x] T6 `impact` の `--from-plan` と `impact-ids.txt`、canon-plan 計画3 の1・3。台帳の 10-19「計画3」を消す。10-20「増分」の (a) は、C で測るまで残す。
+- [x] T7 要件ごとの影響の語（template・canon-plan 計画3 の2・`check`）。台帳の 10-20「影響の語」を消す。
+- [x] T8 `check` の上限の見直し。
   - `work/20261019_190415`・`work/20261020_192336` の requirements.md・change-plan.md を節ごとに数え、§4.1 と比べる。数えるときは `lib/requirements.js`・`lib/change-plan.js` の `bytes` を使う。
   - 結果を handoff の判断ログに書く。
   - 最終の値は C の後に決める（T16）。
-- [ ] T9 reviewer の読み方（impact.json と change-plan を Grep で読む）と perspectives の参照先の実在。canon-build の構築1 の1 も直す。台帳の 10-20「impact.json を全文 Read」「参照元の扱いが膨らむ」「参照先の実在」を消す。
-- [ ] T10 V6 の「変える」の行の照合。台帳の 10-20「「変える」行が直っていなくても検出しない」を消す。
-- [ ] T11 `tokens --turns` と session-analyst の手順1。investigator の Grep の制約も入れる。台帳の 10-20「session-analyst」を消し、10-20「増分」を、残りの (a) と C の実測だけに書き直す。
-- [ ] T12 `.claude/rules/workflow.md` に評価の写しの規則を足す。台帳の 10-15 を消す。
-- [ ] T13 整合性の洗い出し（2回目）。T3〜T12 で変えたファイルと語を起点に、参照を横断 grep する。README・`.claude/README.md`・architecture の記述を、変更に合わせる。`npm test` を通してコミットする。
+- [x] T9 reviewer の読み方（impact.json と change-plan を Grep で読む）と perspectives の参照先の実在。canon-build の構築1 の1 も直す。台帳の 10-20「impact.json を全文 Read」「参照元の扱いが膨らむ」「参照先の実在」を消す。
+- [x] T10 V6 の「変える」の行の照合。台帳の 10-20「「変える」行が直っていなくても検出しない」を消す。
+- [x] T11 `tokens --turns` と session-analyst の手順1。investigator の Grep の制約も入れる。台帳の 10-20「session-analyst」を消し、10-20「増分」を、残りの (a) と C の実測だけに書き直す。
+- [x] T12 `.claude/rules/workflow.md` に評価の写しの規則を足す。台帳の 10-15 を消す。
+- [x] T13 整合性の洗い出し（2回目）。T3〜T12 で変えたファイルと語を起点に、参照を横断 grep する。README・`.claude/README.md`・architecture の記述を、変更に合わせる。`npm test` を通してコミットする。
 
 ### B 単独の実験（canon のルートで `claude -p`。本番の `work/<ts>` は動かさない）
 - [ ] T14 investigator の Write 拒否の切り分け。

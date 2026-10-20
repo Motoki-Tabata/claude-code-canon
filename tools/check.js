@@ -21,7 +21,7 @@ import { isMainModule, isValidTs } from '../lib/run.js';
 
 export const TARGETS = ['requirements', 'change-plan'];
 
-/** サイズの上限（UTF-8 バイト）。design/architecture.md §4.1。段階6の実測で見直す。 */
+/** サイズの上限（UTF-8 バイト）。design/architecture.md §4.1。 */
 export const LIMITS = {
   requirement: 1.5 * 1024,
   constraints: 2 * 1024,
@@ -205,6 +205,18 @@ export function checkChangePlan(text, { requirements = null, route = null, inven
       items.push(cond('reqs が確定要件の id を指している', unknown.length === 0, '', `確定要件に無い id: ${unknown.join('・')}`));
       const uncovered = [...ids].filter((id) => !used.has(id));
       items.push(cond('確定要件がすべて計画に現れる', uncovered.length === 0, `${ids.size}件`, `どのファイルの reqs にも無い要件: ${uncovered.join('・')}`));
+      // 影響の語は要件ごとに1つ以上置く（置けない要件は理由を書く）。語を持たない要件の参照元は、impact に出ない。
+      const withTerm = new Set(plan.termReqs.flatMap((t) => t.reqs));
+      const withReason = new Set(plan.noTermReqs.filter((n) => n.reason).map((n) => n.id));
+      const noTerm = [...ids].filter((id) => !withTerm.has(id) && !withReason.has(id));
+      const noReason = plan.noTermReqs.filter((n) => !n.reason).map((n) => n.id);
+      const unknownTermReq = [...new Set([...plan.termReqs.flatMap((t) => t.reqs), ...plan.noTermReqs.map((n) => n.id)])].filter((id) => !ids.has(id));
+      const termDetail = [
+        noTerm.length ? `影響の語も「影響の語なし（理由）」も無い要件: ${noTerm.join('・')}（語の後ろに（R1,R3）と添えるか、- R5: 影響の語なし（理由） と書く）` : '',
+        noReason.length ? `「影響の語なし」に理由が無い: ${noReason.join('・')}` : '',
+        unknownTermReq.length ? `確定要件に無い id: ${unknownTermReq.join('・')}` : '',
+      ].filter(Boolean).join(' ／ ');
+      items.push(cond('要件ごとに影響の語がある', termDetail === '', `${ids.size}件（語あり ${[...ids].filter((id) => withTerm.has(id)).length}・語なし ${[...ids].filter((id) => !withTerm.has(id)).length}）`, termDetail));
     } catch (e) {
       if (!(e instanceof RequirementsError)) throw e;
       items.push(ng('要件との対応', `requirements.md を読めない: ${e.message}`));

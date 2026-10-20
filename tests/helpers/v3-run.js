@@ -38,7 +38,7 @@ conflicts: []
 `;
 
 /** 変えるファイルが .claude/rules/a.md の1件だけの change-plan（参照元の扱いは impact の結果に合わせて渡す）。 */
-export function changePlan({ answers = '', terms = '', files } = {}) {
+export function changePlan({ answers = '', terms = '- R1: 影響の語なし（語を変えない基準の計画）', files } = {}) {
   const records =
     files ??
     `- path: .claude/rules/a.md

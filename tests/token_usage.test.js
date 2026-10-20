@@ -74,3 +74,54 @@ test('resolveSessionPath: session-id を canon 以外のプロジェクトディ
   // .jsonl のパスはそのまま
   assert.equal(resolveSessionPath('rel/x.jsonl', root), path.resolve('rel/x.jsonl'));
 });
+
+import { turnRows, formatTurns, turnsReport } from '../tools/token-usage.js';
+import { runNodeScript } from './helpers/run-cli.js';
+import { ROOT } from './helpers/paths.js';
+
+const tu = (id, name, input) => ({ type: 'tool_use', id, name, input });
+const toolResult = (id, content) => ({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: id, content }] } });
+const asstBlocks = (id, usage, content) => ({ type: 'assistant', message: { id, model: 'm', usage, content } });
+
+test('turnRows: 同じ message.id をまとめて1ターンにし、増分・ツール・結果の字数・持ち越し（字数×残りターン）を出す', () => {
+  const recs = [
+    asstBlocks('m1', u(10, 0, 0, 5), [tu('t1', 'Read', { file_path: '/a/b/c.md' })]),
+    asstBlocks('m1', u(10, 0, 0, 9), [tu('t2', 'Grep', { pattern: 'a|b' })]), // 同じ id の別ブロック。最後の usage を採る
+    toolResult('t1', 'x'.repeat(100)),
+    toolResult('t2', [{ type: 'text', text: 'y'.repeat(20) }]),
+    asstBlocks('m2', u(1, 0, 50, 3), []),
+    asstBlocks('m3', u(1, 100, 50, 2), [tu('t3', 'Bash', { command: 'ls' })]),
+    toolResult('t3', 'z'),
+  ];
+  const rows = turnRows(recs);
+  assert.equal(rows.length, 3);
+  assert.deepEqual(rows[0], { n: 1, total: 10, delta: 10, output: 9, tools: ['Read c.md', 'Grep a/b'], resultChars: 120, carry: 240 });
+  assert.equal(rows[1].delta, 41);
+  assert.equal(rows[2].carry, 0, '最後のターンは持ち越さない');
+  const table = formatTurns('main', rows);
+  assert.match(table, /^## main（3 ターン）/);
+  assert.equal(table.split('\n').filter((l) => l.startsWith('| ')).length, 1 + 3, '見出しの行のほか、1ターン1行');
+  assert.match(table, /持ち越しの合計: 240/);
+});
+
+test('tokens --turns: 実際の起動経路で、メインのターン表とサブエージェントの要約を出す。--agent で1体、未知の id は exit 1、--agent だけは exit 2', (t) => {
+  const root = scratchDir(t, 'tokens-turns-');
+  const jsonl = path.join(root, 'sess.jsonl');
+  const sub = path.join(root, 'sess', 'subagents');
+  mkdirSync(sub, { recursive: true });
+  const lines = (recs) => recs.map((r) => JSON.stringify(r)).join('\n') + '\n';
+  writeFileSync(jsonl, lines([asstBlocks('m1', u(5, 0, 0, 1), [tu('t1', 'Read', { file_path: '/x/y.md' })]), toolResult('t1', 'abc'), asstBlocks('m2', u(6, 0, 0, 1), [])]));
+  writeFileSync(path.join(sub, 'agent-abc123.jsonl'), lines([asstBlocks('s1', u(7, 0, 0, 1), [])]));
+  writeFileSync(path.join(sub, 'agent-abc123.meta.json'), JSON.stringify({ agentType: 'investigator' }));
+  const cli = (...a) => runNodeScript(path.join(ROOT, 'tools', 'token-usage.js'), [jsonl, ...a]);
+  const all = cli('--turns');
+  assert.equal(all.code, 0, all.stderr);
+  assert.match(all.stdout, /## main（2 ターン）/);
+  assert.match(all.stdout, /\| abc123 \| investigator \| 1 \| 7 \|/);
+  const one = cli('--turns', '--agent', 'abc');
+  assert.equal(one.code, 0, one.stderr);
+  assert.match(one.stdout, /## investigator abc123（1 ターン）/);
+  assert.equal(cli('--turns', '--agent', 'zzz').code, 1);
+  assert.equal(cli('--agent', 'abc').code, 2);
+  assert.equal(turnsReport(jsonl).includes('abc123'), true);
+});

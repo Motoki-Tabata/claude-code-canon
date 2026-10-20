@@ -115,6 +115,43 @@ test('commit: 変更が無ければ exit 1、あれば sha を返し、作者は
   assert.equal(s.wt('commit', '--worktree', c.worktree).code, 2);
 });
 
+test('status: 未コミットの変更を porcelain で返し、無ければ何も出さない。canon の worktree でなければ exit 1', (t) => {
+  const s = setup(t);
+  const c = s.create();
+  const clean = s.wt('status', '--worktree', c.worktree);
+  assert.equal(clean.code, 0, clean.stderr);
+  assert.equal(clean.stdout, '');
+  writeFileSync(path.join(c.worktree, 'CLAUDE.md'), '# changed\n');
+  writeFile(c.worktree, 'new.md', 'n\n');
+  const dirty = s.wt('status', '--worktree', c.worktree);
+  assert.equal(dirty.code, 0, dirty.stderr);
+  assert.deepEqual(dirty.stdout.trimEnd().split('\n').sort(), [' M CLAUDE.md', '?? new.md']);
+  assert.equal(s.wt('status').code, 2);
+  assert.equal(s.wt('status', '--worktree', s.repo).code, 1);
+});
+
+test('diff: --base で <base>..HEAD を、--out でファイルへ書く。--name-only・--stat・不正な組み合わせ・不正な rev', (t) => {
+  const s = setup(t);
+  const c = s.create();
+  writeFileSync(path.join(c.worktree, 'CLAUDE.md'), '# changed\n');
+  const uncommitted = s.wt('diff', '--worktree', c.worktree, '--name-only');
+  assert.equal(uncommitted.code, 0, uncommitted.stderr);
+  assert.equal(uncommitted.stdout, 'CLAUDE.md\n');
+  assert.equal(s.wt('commit', '--worktree', c.worktree, '--message', 'm').code, 0);
+  assert.equal(s.wt('diff', '--worktree', c.worktree).stdout, '', '未コミットの変更は無い');
+  const out = path.join(s.tmp, 'review', 'diff.patch');
+  const r = s.wt('diff', '--worktree', c.worktree, '--base', c.base, '--out', out);
+  assert.equal(r.code, 0, r.stderr);
+  const expected = git(c.worktree, 'diff', `${c.base}..HEAD`);
+  assert.equal(readFileSync(out, 'utf8'), expected);
+  assert.match(r.stdout, new RegExp(`^out: ${out}\\nbytes: ${Buffer.byteLength(expected)}\\n$`));
+  assert.equal(s.wt('diff', '--worktree', c.worktree, '--base', c.base, '--name-only').stdout, 'CLAUDE.md\n');
+  assert.match(s.wt('diff', '--worktree', c.worktree, '--base', c.base, '--stat').stdout, /CLAUDE\.md \| 2 \+-/);
+  assert.equal(s.wt('diff', '--worktree', c.worktree, '--name-only', '--stat').code, 1);
+  assert.equal(s.wt('diff', '--worktree', c.worktree, '--base', 'nonexistent').code, 1);
+  assert.equal(s.wt('diff').code, 2);
+});
+
 test('cleanup: 未コミットの変更があれば exit 1 で何も消さない', (t) => {
   const s = setup(t);
   const c = s.create();

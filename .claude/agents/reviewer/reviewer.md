@@ -23,6 +23,10 @@ skills: [review]
 
 preload された review Skill の指示に従い、`.claude/skills/review/references/perspectives.md` と `output-contract.md`（このリポジトリのルートからの相対パス）を読む。4観点（correctness・security・canon・context）と、`impact` の参照元の整合（reference）で判定し、渡された番号 `<k>` の書込先に書く（別の番号のファイルは書かない）。
 
+入力のファイルは、全文を Read せず必要な箇所だけを読む。
+- `impact.json`: 判定する対象（変えたファイルと担当の参照元）の path ごとに、`"id": "<path>:` で Grep して該当を読む（`builder.md` と同じ書き方）。全体は Read しない。
+- `change-plan.md`: Grep で `^## ` の行番号を引き、`## ファイル` の節と、判定する対象の行だけを offset・limit つきで Read する。`## 参照元の扱い` は、判定する path の行だけを Grep で拾う。
+
 ## 制約
 
 - 書き込むのは、渡された書込先（`review-<k>.md`。追加起動なら `review-<k>-<n>.md`）だけ。対象のファイルや change-plan は書き換えない。

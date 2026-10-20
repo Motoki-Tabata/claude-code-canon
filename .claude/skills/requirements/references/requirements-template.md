@@ -12,7 +12,7 @@ confirmed_at: <YYYY-MM-DD hh:mm>
 - id: R1
   want: <ユーザーの言葉で、達成したいこと>
   confidence: 実物で確認|公式で確認|文言のみ
-  evidence: <根拠の所在。対象のパス:行、investigation/findings.md の節、investigation/official-check.md の節>
+  evidence: <根拠の所在。対象のパス:行、investigation/findings.md の節（正典で確かめたものは、その節と `[仕様]`）、investigation/official-check.md の節>
   files: [<触る見込みのファイル（対象ルート相対）>]
   accept: <受入基準。diff か実行で確かめられる形で>
   strength_needed: advisory|deterministic|enforced
@@ -38,8 +38,8 @@ conflicts: []
 
 ## 書き方
 
-- **`confidence`（根拠の確度）は3つだけ**: 「実物で確認」は対象のファイル・コマンド・出力で確かめた、「公式で確認」は Claude Code の公式ドキュメントの原文で確かめた、「文言のみ」は lessons・README・他人の記述を読んだだけ。**「文言のみ」は `## 確定要件` に置かない**（`check` が NG にする）。2回の run の手戻りは、どちらも確かめる前に確定したことが原因だった。
-- `evidence` は、その確度の根拠が読める場所を指す。「実物で確認」なら対象のパス（行番号可）か調査の節、「公式で確認」なら `investigation/official-check.md` の節。
+- **`confidence`（根拠の確度）は3つだけ**: 「実物で確認」は対象のファイル・コマンド・出力で確かめた、「公式で確認」は正典 `canon-reference` の `[仕様]`（または公式ドキュメントの原文）で確かめた、「文言のみ」は lessons・README・他人の記述を読んだだけ。**「文言のみ」は `## 確定要件` に置かない**（`check` が NG にする）。2回の run の手戻りは、どちらも確かめる前に確定したことが原因だった。
+- `evidence` は、その確度の根拠が読める場所を指す。「実物で確認」なら対象のパス（行番号可）か調査の節、「公式で確認」なら正典の節（`findings.md` に書かれたもの）か `investigation/official-check.md` の節。`[知見]` と canon の規律は公式の根拠にしない。
 - `files` は触る見込みのファイル。`impact` と change-plan の入力になる。`accept` は diff を見るか実行すれば真偽が分かる形で書く（「適切に」「十分に」では書かない）。
 - `strength_needed` は任意。`canon-reference/references/selection.md` §4 の強度（advisory＝CLAUDE.md、deterministic＝Hooks、enforced＝permissions）に対応する。`deterministic` を求めるのに hooks を禁止している、のような衝突を見つける材料になる。
 - `constraints` は要件とは独立した環境条件で、機能選定を先に絞る。`experimental` は Agent Teams・Channels・Monitors・Themes・`context: fork` と、プレビュー段階の組込み Skill への依存をまとめて許可するかを表す。

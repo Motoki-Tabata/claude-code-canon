@@ -1,5 +1,5 @@
 /**
- * 自己適用の回帰スイート（architecture.md §9.2）。
+ * 自己適用の回帰スイート（architecture.md §6〜§8）。
  *
  * verify の検査は「生成物」の検証だが、claude-canon 自身の `.claude/`（agents・skills）も
  * 同じ正典に従う成果物である。canon はフックを使わないので、ワーカーの権限の制限もここで担保する。

@@ -11,7 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { checkV6 } from '../lib/verify/ref-integrity.js';
 import { buildContext } from './helpers/verify-ctx.js';
-import { makeContext } from '../lib/verify/context.js';
+import { makeContext, parseOldLineRanges } from '../lib/verify/context.js';
 import { workDir as work, genDir } from './helpers/paths.js';
 import { cleanupTs, writeAgent as writeAgentFile } from './helpers/fixtures.js';
 import { tsFor } from './helpers/ts.js';
@@ -381,4 +381,35 @@ test('V6 V-skills-18: コードフェンスの中のリンク・URL・anchor だ
   );
   const r = v6(ts);
   assert.deepEqual(r.violations.filter((v) => v.includes('fenced/SKILL.md')), []);
+});
+
+test('V6 10: 「変える」と答えた行が差分の変更前の変更行に無ければ error。直してあれば通る（故意の違反注入）', () => {
+  const root = scratchRoot();
+  const rel = '.claude/rules/a.md';
+  mkdirSync(path.join(root, '.claude', 'rules'), { recursive: true });
+  writeFileSync(path.join(root, rel), 'l1\nl2\nl3\nl4\nl5\n');
+  const plan = (answers) =>
+    `## ファイル\n- path: ${rel}\n  op: modify\n  reqs: [R1]\n  instruct: x\n\n## 影響の語\n- \`old\`（R1）\n\n## 参照元の扱い\n${answers}\n\n## 検証コマンド\n- \`npm test\`\n`;
+  const ctxFor = (answers, changedLines) =>
+    makeContext({ root, changed: [{ rel, status: 'M' }], tracked: [rel], changePlanText: plan(answers), changedLines });
+  const answer = `- ${rel}:4:old: 変える`;
+  const unfixed = checkV6(ctxFor(answer, new Map([[rel, [[2, 2]]]])));
+  assert.ok(unfixed.violations.some((v) => v.includes(`${rel}:4:old`)), '4 行目が変わっていない');
+  const noRanges = checkV6(ctxFor(answer, new Map()));
+  assert.ok(noRanges.violations.some((v) => v.includes(`${rel}:4:old`)), 'ファイルに変更行が無い');
+  assert.deepEqual(checkV6(ctxFor(answer, new Map([[rel, [[3, 5]]]]))).violations, [], '範囲に含まれていれば通る');
+  assert.deepEqual(checkV6(ctxFor(`- ${rel}:4:old: 変えない（意味が変わらない）`, new Map())).violations, [], '「変えない」は照合しない');
+  assert.deepEqual(checkV6(ctxFor(`- ${rel}: 変える`, new Map())).violations, [], 'ファイル単位の回答は照合しない');
+  assert.deepEqual(checkV6(ctxFor(answer, null)).violations, [], 'changedLines が無ければ照合しない（git を使わない経路）');
+});
+
+test('parseOldLineRanges: -U0 の差分から、変更前の変更行の範囲を取る。追加だけのハンクは数えない', () => {
+  const patch = [
+    'diff --git a/x.md b/x.md', '--- a/x.md', '+++ b/x.md', '@@ -3 +3 @@', '-a', '+b', '@@ -10,2 +10,3 @@', '-c', '-d', '+e', '+f', '+g',
+    '@@ -20,0 +21 @@', '+z',
+    'diff --git a/new.md b/new.md', 'new file mode 100644', '--- /dev/null', '+++ b/new.md', '@@ -0,0 +1 @@', '+n',
+  ].join('\n');
+  const r = parseOldLineRanges(patch);
+  assert.deepEqual(r.get('x.md'), [[3, 3], [10, 11]]);
+  assert.equal(r.has('new.md'), false);
 });

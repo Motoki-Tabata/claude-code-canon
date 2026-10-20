@@ -106,16 +106,18 @@ test('inventory: カスタマイズを機能別に並べ、配置パスに当た
   assert.equal(inv.summary.items, inv.items.length);
 });
 
-test('inventory: 入れ子の Agent（.claude/agents/<name>/<name>.md）は分類外に残り、subagents のヒントが付く', (t) => {
+test('inventory: 入れ子の Agent（.claude/agents/<name>/<name>.md）は subagents に数える', (t) => {
   const tmp = scratchDir(t, 'canon-inventory-nested-');
   const repo = path.join(tmp, 'repo');
   mkdirSync(repo);
   writeFile(repo, '.claude/agents/b/b.md', '---\nname: b\ndescription: x\n---\n');
   gitInit(repo);
-  const { inv, stdout } = run(repo, path.join(tmp, 'out'));
-  assert.equal(inv.summary.items, 0);
-  assert.deepEqual(inv.unclassified, [{ path: '.claude/agents/b/b.md', feature_hint: 'subagents' }]);
-  assert.match(stdout, /ヒント別: subagents 1/);
+  const { inv } = run(repo, path.join(tmp, 'out'));
+  assert.equal(inv.summary.items, 1);
+  assert.deepEqual(inv.summary.by_feature, { subagents: 1 });
+  assert.equal(inv.items[0].path, '.claude/agents/b/b.md');
+  assert.equal(inv.items[0].pattern, 'project:.claude/agents/<subdir>/*.md');
+  assert.deepEqual(inv.unclassified, []);
 });
 
 test('inventory: --origin で、worktree に現れない未追跡・gitignore・未コミットのカスタマイズを警告する', (t) => {

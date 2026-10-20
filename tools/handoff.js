@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * handoff.js（npm run handoff -- <ts> <コマンド>）— `work/<ts>/handoff.md` の更新（architecture.md §6）。
+ * handoff.js（npm run handoff -- <ts> <コマンド>）— `work/<ts>/handoff.md` の更新（architecture.md §4）。
  *
  *   mark <キー> [--off]                    進捗の行に印を付ける（計画1〜3・設計1・構築1〜5）
  *   set route=<small|large> stage=<plan|design|build> status=<in_progress|waiting_approval|done>   frontmatter を書き換える

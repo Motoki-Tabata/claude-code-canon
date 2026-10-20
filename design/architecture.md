@@ -85,7 +85,7 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 
 - 仕様の文書は廃止して requirements.md に統合する。要件を「確かめた事実」と「受入基準」の形で書けば、方向づけの文書を別に挟む必要が無い。
 - **根拠の確度**は「実物で確認」「公式で確認」「文言のみ」の3つにする。「文言のみ」の要件は G1 で確定させない（`check` が NG にする）。2回の run の手戻りは、どちらもここが原因だった。
-- `impact` の該当には、change-plan の参照元の扱いで漏れなく答える（`check` が照合する）。R2 のレビューが見つけた、触らないファイルが変えた語を参照していた食い違いを、計画の段階で表に出すためである。変えるファイルの中で語に触れている行にも答える。段階6の1回目では、`instruct` の外の行に古い記述が残り、差し戻しになった（5件のうち2件は影響の語を含む行で、この走査で計画の段に出る）。
+- `impact` の該当には、change-plan の参照元の扱いで漏れなく答える（`check` が照合する）。R2 のレビューが見つけた、触らないファイルが変えた語を参照していた食い違いを、計画の段階で表に出すためである。変えるファイルの中で語に触れている行にも答える。「変える」と答えた行が差分で変わっていなければ、verify の V6 が違反にする。影響の語は確定要件ごとに1つ以上置き（`（R1,R3）` と添える）、置けない要件は理由を書く（`check` が数える）。段階6の1回目では、`instruct` の外の行に古い記述が残り、差し戻しになった（5件のうち2件は影響の語を含む行で、この走査で計画の段に出る）。
 - handoff.md は run の状態だけを持ち、要件と計画の本文を写さない。frontmatter（`ts`・`target`・`route`・`worktree`・`branch`・`base`〔分岐元の sha〕・`canon_commit`・`stage`・`status`）と、進捗・承認・差し戻し・申し送り・セッションの5節にする。
 
 ### 4.1 サイズの上限
@@ -112,13 +112,13 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 | コマンド | 役割 |
 |---|---|
 | `new-run` | `<ts>` を採番し、`work/<ts>/` と handoff の雛形を作り、`worktree` を作る |
-| `preflight` | 開始時の照合を1回で行う（canon の HEAD と `canon_commit` の差分、`--expect` に挙げたゲートの承認、入力の実在、worktree のブランチと記録した sha） |
+| `preflight` | 開始時の照合を1回で行う（canon の HEAD と `canon_commit` の差分、段階に応じて期待するゲートの承認、入力の実在、worktree のブランチと記録した sha） |
 | `inventory` | worktree のカスタマイズ（`canon-reference/data/paths.json` の配置パス）の一覧・frontmatter・参照のグラフを JSON と要約に書く。プレースホルダ（`<...>`・`NNN`）は、実在の参照と区別する |
-| `impact` | 変えるファイルと語・コマンドの一覧を受け取り、触らないファイルのうちそれらに触れているものと、変えるファイルの中で語に触れている行を、行番号付きで挙げる |
-| `worktree` | 作成・削除（`rm`。change-plan の `op: delete`）・コミット・片付け。差分のゲートは、ここで作ったコミットの sha に束縛する |
+| `impact` | 変えるファイルと語・コマンドの一覧（`--from-plan` なら change-plan.md の `## ファイル`・`## 影響の語`）を受け取り、触らないファイルのうちそれらに触れているものと、変えるファイルの中で語に触れている行を、行番号付きで `impact.json` に挙げる。ID と行の抜粋は1行1件の `impact-ids.txt` にも書く |
+| `worktree` | 作成・ファイルの削除（`rm`。change-plan の `op: delete`）・コミット・状態（`status`）と差分（`diff`）の確認・片付け（`cleanup`）。差分のゲートは、ここで作ったコミットの sha に束縛する |
 | `verify` | 変えたファイルの検査（§7） |
 | `check` | requirements.md と change-plan.md の検査（§4） |
-| `approvals`・`handoff`・`tokens`・`reference-check` | 承認の記録と照合、handoff の更新、トークンの集計、正典の検査 |
+| `approvals`・`handoff`・`tokens`・`reference-check` | 承認の記録と照合、handoff の更新、トークンの集計（`--turns` でターンごと）、正典の検査 |
 
 `inventory` は v2 の existing 調査（R2 で 85KB）を置き換える。v2 の existing 調査は、ファイルの一覧・frontmatter・参照という機械で取れる事実を、ワーカーが読んで書き写していた。
 
@@ -130,7 +130,7 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 
 | Agent | 1文の責任 | model・effort | 使う段 |
 |---|---|---|---|
-| `investigator` | 要件に関係する箇所を、対象と公式・正典の実物で確かめ、確度付きの事実を書く | sonnet・medium | plan |
+| `investigator` | 要件に関係する箇所を、対象の実物と正典 `canon-reference` の `[仕様]` で確かめ、確度付きの事実を書く。正典で確かめられなかった論点は `unverified` に残し、メインが `claude-code-guide` で公式のドキュメントを確かめる | sonnet・medium | plan |
 | `profiler` | 対象の言語・テスト・CI・規約を読み、事実だけを書く（`inventory` で数えられない部分） | haiku・high | plan（大の経路と、要件が未知の領域に触れるとき） |
 | `builder` | change-plan の担当のファイルを、指示どおりに worktree で編集する | sonnet・medium | build |
 | `reviewer` | 変えたファイルと `impact` の参照元を、correctness・security・正典の意図・context の4観点で判定する | sonnet・high | build |
@@ -170,7 +170,7 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 | 検査 | 入力 | 内容 |
 |---|---|---|
 | `check` | requirements.md・change-plan.md | 確度、確定要件に「文言のみ」が無いこと、受入基準、サイズの上限、要件と計画の対応、`impact` の該当への回答 |
-| `verify` | worktree の `git diff --name-only <base>..HEAD` | 1 配置パス・2 frontmatter・3 ツール名・4 secret・5 書式片・6 参照整合（変えたファイルからの参照と、削除したファイルを指す、触らないファイルの参照）・7 計画との一致（差分のファイル集合が change-plan のファイル集合と同じ）・8 constraints・9 trust の前提（警告） |
+| `verify` | worktree の `git diff --name-only <base>..HEAD` | 1 配置パス・2 frontmatter・3 ツール名・4 secret・5 書式片・6 参照整合（変えたファイルからの参照と、削除したファイルを指す、触らないファイルの参照と、「変える」と答えた行が直っているか）・7 計画との一致（差分のファイル集合が change-plan のファイル集合と同じ）・8 constraints・9 trust の前提（警告） |
 | 対象のテスト | worktree | change-plan の検証コマンドを、メインが worktree で実行する |
 | `approvals` | ゲートの対象 | G1・G2（大は G3 まで）。文書のゲートは sha256 に、差分のゲートはコミットの sha に束縛する |
 
@@ -195,4 +195,4 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 
 ## 10. 廃止したもの
 
-全量スナップショット方式と、それを支えた仕組みを廃止する。具体的には、ファイルごとの処遇の判定とその条件、成果物の一覧と使い方の説明の決定論の生成、管理パス集合、成果物のコピー・一覧の生成・レビュー入力の作成・配置前の照合・配置・自己指定の拒否のスクリプト、verify の旧 V7・V8、仕様の文書とそれを書く Agent、残すファイルを見る Agent、designer、`output/`、Phase 分けと人間ゲート P 系である。v2 の書式と検査の詳細（旧 `design/artifacts.md`）は git の履歴に残る。
+全量スナップショット方式と、それを支えた仕組みを廃止する。具体的には、ファイルごとの処遇の判定とその条件、成果物の一覧と使い方の説明の決定論の生成、管理パス集合、成果物のコピー・一覧の生成・レビュー入力の作成・配置前の照合・配置・自己指定の拒否のスクリプト、v2 の verify の V7・V8（v3 の V7・V8 は別の検査）、仕様の文書とそれを書く Agent、残すファイルを見る Agent、designer、`output/`、Phase 分けと人間ゲート P 系である。v2 の書式と検査の詳細（旧 `design/artifacts.md`）は git の履歴に残る。

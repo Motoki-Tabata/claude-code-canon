@@ -58,7 +58,7 @@ claude --model opus --effort medium
 
 - `<ts>`（`YYYYMMDD_hhmmss`）
 - canon のルートの `work/<ts>/` と `work/<ts>/handoff.md`（git では追跡しません）
-- 対象の worktree `~/.claude-canon/wt/<対象名>-<ts>/` とブランチ `canon/<ts>`（canon のルートの外に置くので、対象の `CLAUDE.md` や Skill が canon のセッションに混ざりません）
+- 対象の worktree `~/.claude-canon/wt/<対象名>-<ts>/`（環境変数 `CANON_WT_ROOT` で根を変えられます）とブランチ `canon/<ts>`（canon のルートの外に置くので、対象の `CLAUDE.md` や Skill が canon のセッションに混ざりません）
 
 handoff.md の `canon_commit` に、run を始めたときの canon のコミットが記録されます。
 
@@ -74,7 +74,7 @@ handoff.md の `canon_commit` に、run を始めたときの canon のコミッ
 | 大 | 設計 | `claude --model opus --effort medium` | `/canon-design <ts>` | G2 設計 |
 | 大 | 構築 | `claude --model sonnet --effort medium` | `/canon-build <ts>` | G3 差分 |
 
-経路（小か大か）は `/canon-plan` が要件を固めたときに決め、G1 で人間が確かめます。小は、対象に既存のカスタマイズがあり、新しい機能種別を足さず、Skill・Subagent・Plugin の新設・廃止・統合をしない改修です。変えるファイルの件数は条件にしません。
+経路（小か大か）は `/canon-plan` が要件を固めたときに決め、G1 で人間が確かめます。小は、対象に既存のカスタマイズがあり、新しい機能種別を足さず、Skill・Subagent・Plugin の新設・廃止をしない改修です（統合や責務の付け替えは G1 で人間が確かめます）。変えるファイルの件数は条件にしません。
 
 各段の開始時に、`npm run preflight` が handoff の `canon_commit` と現在の canon のコミットを比べます。run の途中で canon 本体を直していれば、差分を示して続けてよいかを尋ねます。続けるか run を作り直すかは、この警告を目安に判断してください。
 
@@ -141,14 +141,14 @@ rm -rf work/<ts>
 | `npm run new-run -- <target> [<ts>]` | ts の採番・`work/<ts>/` と handoff.md の作成・worktree の作成 | 計画 |
 | `npm run preflight -- <ts> --stage <plan\|design\|build>` | 段の開始時の照合（canon の版・承認・入力の実在・worktree） | 全段 |
 | `npm run inventory -- --root <worktree> --out <dir>` | 対象のカスタマイズの一覧・frontmatter・参照のグラフ | 計画 |
-| `npm run impact -- --root <worktree> --out <dir> --files <…> [--terms <…>]` | 変えるファイルと語に触れている、触らないファイルの列挙 | 計画・設計 |
+| `npm run impact -- --root <worktree> --out <dir> (--files <…> [--terms <…>] \| --from-plan <change-plan.md>)` | 変えるファイルと語に触れている、触らないファイルの列挙（`impact.json` と、ID と抜粋の一覧 `impact-ids.txt`） | 計画・設計 |
 | `npm run check -- <ts> requirements\|change-plan` | requirements・change-plan の機械点検（OK / NG） | 計画・設計 |
 | `npm run approvals -- <ts> hash\|record\|check …` | 承認行の記録と照合 | 全段 |
 | `npm run handoff -- <ts> mark\|set\|note\|session …` | handoff.md の進捗の印（`mark <名前> --off` で外す）・frontmatter・節への追記・セッションの記録 | 全段 |
-| `npm run worktree -- create\|rm\|commit\|cleanup …` | worktree の作成・ファイルの削除・コミット・片付け | 構築・マージ後 |
+| `npm run worktree -- create\|rm\|commit\|status\|diff\|cleanup …` | worktree の作成・ファイルの削除・コミット・状態と差分の確認・片付け | 構築・マージ後 |
 | `npm run verify -- <ts>` | V1〜V9 の検証（変えたファイルだけ）。`work/<ts>/verify-report.md` を書き、違反があれば exit 1 | 構築 |
 | `npm run reference-check [-- --online] [--root <dir>]` | 正典リファレンスの検査（build.md §8 の 1〜9・11。`--online` で 2・4・5 も。`--root` で検査するディレクトリを替える）。違反があれば exit 1 | 保守 |
-| `npm run tokens -- <session-id \| jsonl のパス> [--json]` | セッションのトークン消費を集計する（`/canon-build` の振り返りでも使う。`--json` で JSON を出す） | 構築・保守 |
+| `npm run tokens -- <session-id \| jsonl のパス> [--json \| --turns [--agent <id>]]` | セッションのトークン消費を集計する（`/canon-build` の振り返りでも使う。`--json` で JSON、`--turns` でターンごとの表） | 構築・保守 |
 | `npm test` | テスト | 保守 |
 
 ## 7. 正典 `canon-reference` の更新
