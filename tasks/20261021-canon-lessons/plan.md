@@ -83,10 +83,10 @@
 - [x] T13 整合性の洗い出し（2回目）。T3〜T12 で変えたファイルと語を起点に、参照を横断 grep する。README・`.claude/README.md`・architecture の記述を、変更に合わせる。`npm test` を通してコミットする。
 
 ### B 単独の実験（canon のルートで `claude -p`。本番の `work/<ts>` は動かさない）
-- [ ] T14 investigator の Write 拒否の切り分け。
+- [x] T14 investigator の Write 拒否の切り分け。
   - `work/20261020_192336` を `work/eval-…` に写し、その中で investigator を起動する。書込先を `findings.md` と別名にして、2回試す。
   - 条件が分かったら、定義か書込先を直す。分からなければ、canon-plan の起動規則に「Write が拒否されたら応答の本文を書込先に保存して続ける」を足し、台帳の項目を残りの部分に書き直す。
-- [ ] T15 builder の Write での新規作成。
+- [x] T15 builder の Write での新規作成。
   - `npm run worktree` で作った使い捨ての worktree に、builder で新しいファイルを Write させる。`Edit(~/.claude-canon/wt/**)` が Write に効くかを確かめる。
   - 効かなければ `.claude/settings.json` の allow を直す。
   - 結果を台帳の 10-20「未通過の経路」の (3) に反映する。

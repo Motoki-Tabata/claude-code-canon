@@ -1,6 +1,6 @@
 # official-check.md（公式のドキュメントでの確認）
 
-要件の成否が Claude Code 自体の仕様（frontmatter のキー・設定の値・ツールやコマンドの挙動・permissions の効き方など）に依存するとき、investigator がまず正典 `canon-reference` の `[仕様]` で確かめる。ここに書くのは、正典で確かめられなかった論点（`findings.md` の `unverified` に残った仕様の論点）だけである。メインが `claude-code-guide` に問いを渡して公式のドキュメントで確かめ、結果をここに書く。論点の数は、`unverified` の仕様の論点の数と一致させる。正典で確かめられなかった論点が無ければ、このファイルは作らない。
+要件の成否が Claude Code 自体の仕様（frontmatter のキー・設定の値・ツールやコマンドの挙動・permissions の効き方など）に依存するとき、investigator がまず正典 `canon-reference` の `[仕様]` で確かめる。ここに書くのは、正典で確かめられなかった論点（`facts.md` の `unverified` に残った仕様の論点）だけである。メインが `claude-code-guide` に問いを渡して公式のドキュメントで確かめ、結果をここに書く。論点の数は、`unverified` の仕様の論点の数と一致させる。正典で確かめられなかった論点が無ければ、このファイルは作らない。
 
 ## テンプレート
 

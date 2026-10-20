@@ -41,12 +41,6 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 提案: 対話で `/canon-build` を通し、画面が出たかを人間が確かめる。出たコマンドがあれば、allow を直す。
 - 予定: tasks/20261021-canon-lessons/ の C（大の経路の実 run）
 
-## 2026-10-19 investigator の findings.md の Write がハーネスに拒否され、成果物をメインが書き写した（run 20261019_190415・plan）
-- 種別: 欠陥修正
-- 何が起きたか: `/canon-plan` の計画2 の3で起動した investigator が書込先 `work/20261019_190415/investigation/findings.md` へ Write したところ、ツールが「Subagents should return findings as text, not write report files」と拒否した。findings は応答の本文で返り、メインが手順の外で書込先に保存した（約 3 万字の転記でメインの出力トークンを使った）。
-- 確度: 拒否は実物で確認（plan の transcript 7f4f7a65 の `subagents/agent-ab5b01a3d20307…` の Write の結果が `tool_use_error`）。同じ日の build（01b70c47）では、reviewer 4体・prompt-auditor・session-analyst の `work/<ts>/review/`・`retro/` への Write はすべて成功した。拒否の条件は分かっていない。run 20261020_192336・plan（session 4c0e6f27）でも同じ文言で拒否され再発した（書込先 `work/20261020_192336/investigation/findings.md`、プロンプトに書込先の絶対パスを明記）。同じ回の claude-code-guide 2体は書込を伴わない。同じ回の build（1b1a6954）でも reviewer 2体・prompt-auditor・session-analyst 2体の Write は成功し、2回の run で拒否されたのは investigator の `findings.md` だけだった。拒否文（本文を最終応答に含めよ）は、`.claude/agents/investigator/investigator.md` の制約「本文を会話に再掲しない」と逆のことを求める。転記の費用は、plan のメインの Write の入力 26,609 字（4c0e6f27 のターン17/48）が残り30ターンの文脈に残る分
-- 提案: 拒否が investigator だけに起きる条件（書込先の名前・プロンプトの言い方・定義の文面）を、`claude -p` で investigator を findings.md と別名の書込先で起動して切り分ける。条件が分かるまでは、canon-plan の「ワーカーの起動規則」に「Write が拒否されたら、応答の本文を書込先に保存してから続ける」を足す。
-
 ## 2026-10-20 reviewer の割当を直して減った分を、plan のメインの増分が打ち消した（run 20261020_192336・plan と build）
 - 種別: 効率化
 - 何が起きたか: 2回目の run の plan のメイン（opus）は 1回目より +0.69M（6.87M → 7.55M・48ターン）。内訳は、(a) impact.json をファイル別に整形して scratchpad から Read した 54,462 字（ターン34・35/48、持ち越し 688,995 字ターン）と、(b) 1ターン目の総入力の増加（7f4f7a65 の 46,972 → 4c0e6f27 の 53,936、×48 で約 +0.33M）でほぼ説明できる。(b) の増えた理由は確かめていない。investigator と振り返りの分は直した（investigator の Grep の制約・`impact-ids.txt`・`tokens --turns` と session-analyst の手順1）。
@@ -61,8 +55,9 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 提案: 大の経路の最初の run で、`機能と責務`・`モデル割当`・change-plan 全体を数え、`tools/check.js` の `LIMITS` と `design/architecture.md` §4.1 の表を直す（直さなければ、直さない理由を残して本項目を消す）。
 - 予定: tasks/20261021-canon-lessons/ の T16
 
-## 2026-10-20 v3 で一度も通していない経路が4つある（v3 段階6）
+## 2026-10-20 v3 で一度も通していない経路が3つある（v3 段階6）
 - 種別: 規律昇華
-- 何が起きたか: 段階6の2回の run（どちらも小の経路・op は modify だけ・検証コマンドは node の組込みだけで動き、依存の導入が要らなかった）で、次の経路を通していない。(1) 依存の導入を要する検証コマンド（`/canon-build` 構築2 の1 の導入の手順）。(2) 対話のセッションで `~/.claude-canon/wt/**` の allow 規則と `git -C` に許可の画面が出たか（transcript に残らない。2026-10-17 の `git -C` の項目）。(3) builder の Write での新規作成（change-plan の `op: new`。`Edit(~/.claude-canon/wt/**)` の規則が Write に効くかは未確認）。(4) 大の経路（`/canon-design`。2026-10-12 の designer の項目）。
-- 確度: 実物で確認（2回の run の change-plan.md の `op` と `## 検証コマンド`）
-- 提案: 次の run で、通していない経路を含む対象を選ぶか、`claude -p` で (1)・(3) を単独で確かめる。確かめた経路は、この項目から消す。
+- 何が起きたか: 段階6の2回の run（どちらも小の経路・op は modify だけ・検証コマンドは node の組込みだけで動き、依存の導入が要らなかった）で、次の経路を通していない。(1) 依存の導入を要する検証コマンド（`/canon-build` 構築2 の1 の導入の手順）。(2) 対話のセッションで `~/.claude-canon/wt/**` の allow 規則と `npm run worktree` に許可の画面が出たか（transcript に残らない。2026-10-17 の項目）。(3) 大の経路（`/canon-design`。2026-10-12 の項目）。builder の Write での新規作成（`op: new`）は、保守作業の実験で成功した（使い捨ての worktree に `.claude/rules/` の新規ファイルを Agent ツールで builder に Write させた）。ただし、その会話の権限モードで通ったもので、`Edit(~/.claude-canon/wt/**)` の allow 規則が Write に効いたかは区別できていない。
+- 確度: 実物で確認（2回の run の change-plan.md の `op` と `## 検証コマンド`。builder の実験は Agent ツールの結果）
+- 提案: 大の経路の実 run（`skillweave-mhwilds`）で (1)(2)(3) を通し、通した経路を本項目から消す。run の中で builder が `op: new` を Write するとき、許可の画面が出たかも見る。
+- 予定: tasks/20261021-canon-lessons/ の T16

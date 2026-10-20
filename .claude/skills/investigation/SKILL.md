@@ -1,6 +1,6 @@
 ---
 name: investigation
-description: 対象プロジェクトの調査結果（findings.md・profile.md）を書くときのテンプレートと値の語彙。investigator が要件の主張を対象の実物で確かめて確度付きの事実を書くとき、profiler が言語・テスト・CI・規約を書くとき、メインが正典で確かめられなかった論点の公式の確認（official-check.md）を書くときに参照する。調査は事実の抽出に徹し、要件にするか・どのファイルを変えるかといった判断はしない。
+description: 対象プロジェクトの調査結果（facts.md・profile.md）を書くときのテンプレートと値の語彙。investigator が要件の主張を対象の実物で確かめて確度付きの事実を書くとき、profiler が言語・テスト・CI・規約を書くとき、メインが正典で確かめられなかった論点の公式の確認（official-check.md）を書くときに参照する。調査は事実の抽出に徹し、要件にするか・どのファイルを変えるかといった判断はしない。
 user-invocable: false
 ---
 
@@ -20,7 +20,7 @@ user-invocable: false
 
 | 誰が | 書く | 読む |
 |---|---|---|
-| investigator | `findings.md`（要件の主張を実物で確かめた事実と、その確度） | [references/findings.md](references/findings.md) |
+| investigator | `facts.md`（要件の主張を実物で確かめた事実と、その確度） | [references/findings.md](references/findings.md) |
 | profiler | `profile.md`（言語・ビルド・テスト・CI・規約の骨格） | [references/profile.md](references/profile.md) |
 | メイン | `official-check.md`（正典で確かめられなかった論点を、公式のドキュメントで確かめた結果） | [references/official-check.md](references/official-check.md) |
 

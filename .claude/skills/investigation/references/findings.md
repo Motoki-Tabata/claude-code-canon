@@ -1,4 +1,6 @@
-# findings.md（要件の主張の確認）
+# findings（要件の主張の確認。書込先は `investigation/facts.md`）
+
+> 書込先の名前を `findings.md` にしない。ハーネスが、subagent の `findings.md` という名前のファイルへの Write を拒否する（「Subagents should return findings as text, not write report files」。`findings.md` は書込先のディレクトリによらず拒否され、`facts.md`・`probe-a.md`・`probe-findings-r1.md` は書けた）。
 
 ヒアリングで出た要件の主張を、対象の実物で確かめた結果を書く。**渡された主張に関係する箇所だけ**を読み、無関係な事項を書き足さない（調査が広がると、下流の文書が際限なく大きくなる）。主張は、ユーザーの言葉や対象の lessons・README の文言から来ているので、実物と食い違うことがある。食い違いを見つけるのがこの調査の目的である。
 
