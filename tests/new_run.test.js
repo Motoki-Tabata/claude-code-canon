@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { scratchDir } from './helpers/fixtures.js';
 import { runNodeScript } from './helpers/run-cli.js';
-import { git } from './helpers/git.js';
+import { git, gitInit } from './helpers/git.js';
 import { ROOT } from './helpers/paths.js';
 import { createRun } from '../tools/new-run.js';
 import { parseHandoff } from '../lib/handoff.js';
@@ -24,16 +24,12 @@ function setup(t) {
   const tmp = scratchDir(t, 'canon-new-run-');
   const canonRoot = path.join(tmp, 'canon');
   mkdirSync(canonRoot);
-  git(canonRoot, 'init', '-q', '-b', 'main');
   writeFileSync(path.join(canonRoot, 'README.md'), '# canon\n');
-  git(canonRoot, 'add', '.');
-  git(canonRoot, 'commit', '-q', '-m', 'init');
+  gitInit(canonRoot);
   const target = path.join(tmp, 'target');
   mkdirSync(path.join(target, '.claude', 'rules'), { recursive: true });
   writeFileSync(path.join(target, '.claude', 'rules', 'x.md'), '# x\n');
-  git(target, 'init', '-q', '-b', 'main');
-  git(target, 'add', '.');
-  git(target, 'commit', '-q', '-m', 'init');
+  gitInit(target);
   const prev = process.env.CANON_WT_ROOT;
   process.env.CANON_WT_ROOT = path.join(tmp, 'wt');
   t.after(() => {

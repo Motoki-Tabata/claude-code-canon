@@ -3,7 +3,7 @@
  * （データは tests/helpers/constrained-case.js）。
  */
 
-import { mkdirSync, writeFileSync, mkdtempSync, rmSync, existsSync, readdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync, mkdtempSync, rmSync, existsSync, readdirSync, realpathSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { workDir } from './paths.js';
@@ -65,7 +65,8 @@ export function cleanupTs(t, ...tsList) {
 
 /** `os.tmpdir()` 配下に使い捨てディレクトリを作り、t.after() で削除する。 */
 export function scratchDir(t, prefix) {
-  const dir = mkdtempSync(path.join(os.tmpdir(), prefix));
+  // Windows の os.tmpdir() は短い名前（RUNNER~1）を返すことがあり、git の --show-toplevel の長い名前と食い違うので、実体のパスにする。
+  const dir = realpathSync.native(mkdtempSync(path.join(os.tmpdir(), prefix)));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   return dir;
 }

@@ -10,7 +10,7 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { createWorktree, commitWorktree } from '../../lib/worktree.js';
-import { git, gitInit } from './git.js';
+import { git, gitInit, IDENTITY } from './git.js';
 import { scratchDir, writeFile } from './fixtures.js';
 import { workDir as realWorkDir } from './paths.js';
 
@@ -64,6 +64,20 @@ const TARGET_FILES = {
   '.claude/rules/a.md': '---\npaths: ["**"]\n---\n# a\n',
   '.claude/rules/b.md': '---\npaths: ["**"]\n---\n# b\n詳細は `.claude/rules/a.md` を参照。\n',
 };
+
+/** fn の間だけ process.env に vars を足す。 */
+function withEnv(vars, fn) {
+  const prev = Object.fromEntries(Object.keys(vars).map((k) => [k, process.env[k]]));
+  Object.assign(process.env, vars);
+  try {
+    return fn();
+  } finally {
+    for (const [k, v] of Object.entries(prev)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+}
 
 /**
  * run を組み立てる。
@@ -124,7 +138,7 @@ export function setupRun(t, ts, { route = 'small', root = null, files = TARGET_F
     /** worktree にファイルを書く（コミットはしない）。 */
     write: (rel, text) => writeFile(wt.worktree, rel, text),
     remove: (rel) => rmSync(path.join(wt.worktree, rel), { force: true }),
-    commit: (message = 'canon: テスト') => commitWorktree({ worktree: wt.worktree, message }),
+    commit: (message = 'canon: テスト') => withEnv(IDENTITY, () => commitWorktree({ worktree: wt.worktree, message })),
     head: () => git(wt.worktree, 'rev-parse', 'HEAD').trim(),
     writeWork: (name, text) => writeFileSync(path.join(work, name), text),
   };
