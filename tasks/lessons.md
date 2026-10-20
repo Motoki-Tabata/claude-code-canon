@@ -58,7 +58,7 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 ## 2026-10-19 investigator の findings.md の Write がハーネスに拒否され、成果物をメインが書き写した（run 20261019_190415・plan）
 - 種別: 欠陥修正
 - 何が起きたか: `/canon-plan` の計画2 の3で起動した investigator が書込先 `work/20261019_190415/investigation/findings.md` へ Write したところ、ツールが「Subagents should return findings as text, not write report files」と拒否した。findings は応答の本文で返り、メインが手順の外で書込先に保存した（約 3 万字の転記でメインの出力トークンを使った）。
-- 確度: 拒否は実物で確認（plan の transcript 7f4f7a65 の `subagents/agent-ab5b01a3d20307…` の Write の結果が `tool_use_error`）。同じ日の build（01b70c47）では、reviewer 4体・prompt-auditor・session-analyst の `work/<ts>/review/`・`retro/` への Write はすべて成功した。拒否の条件は分かっていない。run 20261020_192336・plan（session 4c0e6f27）でも同じ文言で拒否され再発した（書込先 `work/20261020_192336/investigation/findings.md`、プロンプトに書込先の絶対パスを明記）。同じ回の claude-code-guide 2体は書込を伴わない
+- 確度: 拒否は実物で確認（plan の transcript 7f4f7a65 の `subagents/agent-ab5b01a3d20307…` の Write の結果が `tool_use_error`）。同じ日の build（01b70c47）では、reviewer 4体・prompt-auditor・session-analyst の `work/<ts>/review/`・`retro/` への Write はすべて成功した。拒否の条件は分かっていない。run 20261020_192336・plan（session 4c0e6f27）でも同じ文言で拒否され再発した（書込先 `work/20261020_192336/investigation/findings.md`、プロンプトに書込先の絶対パスを明記）。同じ回の claude-code-guide 2体は書込を伴わない。同じ回の build（1b1a6954）でも reviewer 2体・prompt-auditor・session-analyst 2体の Write は成功し、2回の run で拒否されたのは investigator の `findings.md` だけだった。拒否文（本文を最終応答に含めよ）は、`.claude/agents/investigator/investigator.md` の制約「本文を会話に再掲しない」と逆のことを求める。転記の費用は、plan のメインの Write の入力 26,609 字（4c0e6f27 のターン17/48）が残り30ターンの文脈に残る分
 - 提案: 拒否が investigator だけに起きる条件（書込先の名前・プロンプトの言い方・定義の文面）を、`claude -p` で investigator を findings.md と別名の書込先で起動して切り分ける。条件が分かるまでは、canon-plan の「ワーカーの起動規則」に「Write が拒否されたら、応答の本文を書込先に保存してから続ける」を足す。
 
 ## 2026-10-19 計画3 で、変更前の検証コマンドの結果と impact の長い入力を、手順の外の操作で扱った（run 20261019_190415・plan）
@@ -82,5 +82,44 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 ## 2026-10-20 reviewer の割当を直して減った分を、plan のメイン・investigator・session-analyst の増分が打ち消した（run 20261020_192336・plan と build）
 - 種別: 効率化
 - 何が起きたか: `npm run tokens` の総入力は 26.56M で、1回目の 26.38M とほぼ同じだった。reviewer は 8.87M（4体）から 5.63M（2体）に、builder は 1.70M から 1.34M に減った。plan のメイン（opus）は 6.87M から 7.55M（48ターン、cache read 7.32M で1ターンあたり約 15万）、investigator は 1.65M から 3.14M（37ターン）、session-analyst は 0.96M（1体）から 2.59M（2体）に増えた。段階1の目安（design/architecture.md §6.2）は、plan のメイン 4.5M・investigator 1.5M・振り返り 1.5M。plan のメインと investigator が増えた理由は、session-analysis-plan-4c0e6f27.md に書かれていない（investigator は R1〜R13 を実物と公式で確かめ直し、7件の文言を直した）。
-- 確度: 数値は実物で確認（plan 4c0e6f27・build 1b1a6954 の `npm run tokens`）。増えた理由は確かめていない
-- 提案: plan のメインの1ターンあたりの入力を減らす（investigator の findings をメインが Write で書き写す分〔2026-10-19 の項目〕と、impact.json の全文を読む分が候補）。session-analyst は1体あたり約 1.3M で、目安を見直すか、分析の読む範囲（tool_result の大半を読まない）を定義に書く。どれも次の run の前に transcript で内訳を確かめる。
+- 内訳（保守作業で transcript をターンごとに分解。持ち越し＝tool_result の字数×残りターン数）: plan のメインの +0.69M は、(a) impact.json をファイル別に整形して scratchpad から Read した 54,462 字（4c0e6f27 のターン34・35/48、持ち越し 688,995 字ターン。1回目には無い）と、(b) 1ターン目の総入力の増加（7f4f7a65 の 46,972 → 4c0e6f27 の 53,936、×48 で約 +0.33M）でほぼ説明できる。(b) の増えた理由は確かめていない。investigator は 20ターンから 37ターンになり、Grep 53回の結果が計 87,217 字（ターン3 の1回だけで 13,182 字、持ち越し 435,006 字ターン）、Read 42回が 58,112 字だった。どのメインも1ターン目で約 47k〜54k あり、plan（48ターン）では総入力の約3分の1がこの固定分で、ターン数がそのまま効く
+- 確度: 数値は実物で確認（plan 4c0e6f27・build 1b1a6954 の `npm run tokens` と、各 jsonl のターンごとの usage・tool_result）。(b) の理由は確かめていない
+- 提案: `.claude/agents/investigator/investigator.md` の制約に「Grep は `files_with_matches` か `head_limit` から始め、当たったファイルだけを content で読む」を足す。findings の書き写しは 2026-10-19 の項目で、session-analyst の分は 2026-10-20 の「session-analyst が jsonl の生の行を読む」の項目で直す。
+- 未決: (a) の読み方。計画3 の3 は該当のすべてに答えさせるので一覧は要る。答える行（ID）だけを1行ずつ並べたファイルを `impact` が書けば整形の手間は消えるが、読む字数が減るかは測っていない
+
+## 2026-10-20 reviewer が impact.json を1回の Read で読み、約44k字で切れた先の該当を読んでいない（run 20261019_190415・20261020_192336・build）
+- 種別: 欠陥修正
+- 何が起きたか: reviewer は impact.json を `limit` 無しで1回だけ Read し、結果は約44k字で切れていた。1回目の reviewer 2体（01b70c47 の `subagents/agent-ab2bb5839387858db`・`agent-aaff5c1f238f0eda4`）は 2118行のうち 908行まで、2回目（1b1a6954 の `agent-a362c44a40110152d`）は 3636行のうち 992行までしか見ていない。残りを offset で読み直しても、Grep してもいない。canon-boundary.md の該当は 1回目 1206行〜・2回目 2079行〜で、読めた範囲の外にある。`.claude/agents/reviewer/reviewer.md:17` は impact.json を入力に挙げるだけで、`.claude/agents/builder/builder.md:26` の「`"id": "<path>:` で Grep する。impact.json の全体は読まない」に当たる指示が無い。
+- 確度: 実物で確認（3体の jsonl の Read の tool_result の末尾の行番号と、`wc -l`・`grep -n` の行番号）。管理境界の見逃し（2026-10-20 の「参照先の実在」の項目）への寄与は推測（2回目の reviewer は change-plan の `## 参照元の扱い` から canon-boundary.md を判定している）
+- 提案: `.claude/agents/reviewer/reviewer.md` の手順に、判定する対象（変えたファイルと担当の参照元）の path ごとに impact.json を `"id": "<path>:` で Grep して該当を読み、全体は Read しない、と書く。
+
+## 2026-10-20 change-plan で「変える」と答えた該当行を builder が直さなくても、機械が検出しない（run 20261020_192336・build）
+- 種別: 欠陥修正
+- 何が起きたか: `.claude/rules/ui-design.md:14:ui-design-standard` は `work/20261020_192336/change-plan.md:145` で「変える」と答えてあり、impact.json にも ID がある。builder 6体の報告は「計画と一致」だったが、この行は直っておらず、メインが手で見つけて差し戻した（`work/20261020_192336/retro/session-analysis-build-1b1a6954.md` の観点1 の A）。verify は合格していた。
+- 確度: 実物で確認（change-plan・impact.json・振り返りの分析）
+- 提案: `lib/verify/` の V6 に、change-plan で「変える」と答えた `scope: changed` の該当（`<path>:<line>:<term>`）の行が、`diff.patch` のそのファイルの変更行に含まれるかの照合を足す。含まれなければ違反にする。
+
+## 2026-10-20 session-analyst が transcript の jsonl の生の行を読み、1体あたり 1.0M〜1.6M を使う（run 20261020_192336・build）
+- 種別: 効率化
+- 何が起きたか: 2回目の振り返りの session-analyst 2体の総入力は計 2.59M（1b1a6954 の `agent-a5ad80b6647a1abfd` 1,032,080・`agent-a9b0a20c2f116e554` 1,557,273）。a9b0 は jsonl を Read 28回で 174,662 字、Grep 28回で 67,831 字読み、1回で 3万字前後の Read が2回あった。jsonl の1行は tool_result の全文を含むので、Grep で行を絞っても長い。
+- 確度: 実物で確認（jsonl のターンごとの usage・tool_result）
+- 提案: `tools/token-usage.js` に、ターンごとの総入力・そのターンのツール呼び出しの要約・tool_result の字数・持ち越し（字数×残りターン数）を出す `--turns` を足し、`.claude/agents/session-analyst/session-analyst.md` の手順1 で先にそれを読んでから jsonl の該当行だけを読むようにする。保守作業で書いた試作は1セッションが約50行に収まった。
+
+## 2026-10-20 change-plan の `## 参照元の扱い` が膨らみ、build のメインと reviewer が全文を読む（run 20261020_192336・build）
+- 種別: 効率化
+- 何が起きたか: 変えるファイルの中の該当（`scope: changed`）を足したので、change-plan の `## 参照元の扱い` は 6,785 バイト（run 20261019_190415）から 15,196 バイトに、change-plan 全体は 26,728 字になった。build のメイン（1b1a6954 のターン1/38）と reviewer（a362 のターン0）が全文を Read した。reviewer a362 は最初の3ターンで change-plan・impact.json・requirements.md・diff.patch を読み、ターン1・2 だけで cache_creation が 50,867・28,741 増え、これが残り約33ターン持ち越されて、総入力 5,392,288 の約半分になる。
+- 確度: 実物で確認（`wc -c`・節ごとの集計・jsonl のターンごとの usage）。「約半分」は (50,867＋28,741)×33 の概算
+- 提案: `.claude/skills/canon-build/SKILL.md` の構築1 の1 と `.claude/agents/reviewer/reviewer.md` で、change-plan は `## ファイル` と担当の行だけを Grep で読む、と書く。
+- 未決: `## 参照元の扱い` を change-plan から別ファイルに分けるか（`check`・`approvals`・V6 が読む位置が変わる）
+
+## 2026-10-20 `check` の節ごとのサイズの上限を、段階6の実測で見直していない（保守作業）
+- 種別: 規律昇華
+- 何が起きたか: `design/architecture.md` §4.1 は、`check` の節ごとの上限を R2 の実測から決め、「段階6の実測で見直す」としていたが、段階6では見直さなかった。段階6の2回の run の requirements.md・change-plan.md の節の大きさと上限との比較は、まだ行っていない。v3 の後片付けで §4.1 からその一文を消し、本台帳に移した。
+- 確度: 文言のみ（handoff の後片付けの指示と §4.1 の文面）
+- 提案: run 20261019_190415・20261020_192336 の requirements.md と change-plan.md を、節ごとの UTF-8 バイト数で数えて §4.1 の表と比べる。上限に近い節か余りすぎる節があれば、`tools/check.js` の上限と §4.1 の表を直す。
+
+## 2026-10-20 v3 で一度も通していない経路が4つある（v3 段階6）
+- 種別: 規律昇華
+- 何が起きたか: 段階6の2回の run（どちらも小の経路・op は modify だけ・検証コマンドは node の組込みだけで動き、依存の導入が要らなかった）で、次の経路を通していない。(1) 依存の導入を要する検証コマンド（`/canon-build` 構築2 の1 の導入の手順）。(2) 対話のセッションで `~/.claude-canon/wt/**` の allow 規則と `git -C` に許可の画面が出たか（transcript に残らない。2026-10-17 の `git -C` の項目）。(3) builder の Write での新規作成（change-plan の `op: new`。`Edit(~/.claude-canon/wt/**)` の規則が Write に効くかは未確認）。(4) 大の経路（`/canon-design`。2026-10-12 の designer の項目）。
+- 確度: 実物で確認（2回の run の change-plan.md の `op` と `## 検証コマンド`）
+- 提案: 次の run で、通していない経路を含む対象を選ぶか、`claude -p` で (1)・(3) を単独で確かめる。確かめた経路は、この項目から消す。
