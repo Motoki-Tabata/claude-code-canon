@@ -61,7 +61,7 @@
 - [x] T6-1 skillweave-mhwilds の R2 の前のコミットを特定する（main の `bc0c63f` か、R2 の配置ブランチ `chore/canon-deploy-20261014_232320` の分岐点を確かめる）。
 - [x] T6-2 R2 の13要件（`work/20261014_232320/requirements.md`）を入力にして、v3 の小の経路を別セッションで通す（`/canon-plan` → `/canon-build`）。
 - [x] T6-3 `npm run tokens` で役ごとの model・effort・トークンを集め、R2 と比べる。振り返りを台帳に起票する。
-- [ ] T6-4 受け入れ条件の結果を draft PR の本文に書き、マージの判断をユーザーに求める。
+- [x] T6-4 受け入れ条件の結果を draft PR の本文に書き、マージの判断をユーザーに求める。
 
 ## 受け入れ条件
 1. 段階6の総入力が、R2 の 46.3M（Phase A〜D。v3 は振り返りを `/canon-build` に含むので D も数える）の40%以下（約18.5M 以下）。
