@@ -35,10 +35,15 @@ test('isNonSchemaRel: バックスラッシュ区切り（Windows パス）も�
   assert.equal(isNonSchemaRel('.claude\\agents\\x\\x.md', 'generated'), false);
 });
 
-test('NON_SCHEMA_MD は正準5件のみ（列挙漏れ・過剰の両方を検出）', () => {
+test('isNonSchemaRel: 対象のルートの README.md は generated root 基準でも非スキーマ', () => {
+  assert.equal(isNonSchemaRel('README.md', 'generated'), true);
+  assert.equal(isNonSchemaRel('docs/README.md', 'generated'), false);
+});
+
+test('NON_SCHEMA_MD は正準6件のみ（列挙漏れ・過剰の両方を検出）', () => {
   assert.deepEqual(
     [...NON_SCHEMA_MD].sort(),
-    ['.claude/README.md', '.claude/settings.json', 'AGENTS.md', 'CLAUDE.md', 'tasks/lessons.md'].sort()
+    ['.claude/README.md', '.claude/settings.json', 'AGENTS.md', 'CLAUDE.md', 'README.md', 'tasks/lessons.md'].sort()
   );
 });
 
