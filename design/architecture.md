@@ -103,6 +103,8 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 | change-plan のモデル割当（大のみ） | 3KB |
 | change-plan 全体 | 小 48KB・大 64KB |
 
+大の経路の最初の run（20261021_185834、52ファイル）の実測は、change-plan 全体 56.2KB（上限 64KB）・機能と責務 5.6KB（8KB）・モデル割当 1.3KB（3KB）・ファイル1件の最大 1.4KB（2.5KB）で、どの上限も超えず、値は変えていない。
+
 上限を超えるのは、たいてい前の段の再掲か、変更指示に新しい本文を丸ごと書いたときである。新しい本文は builder が書くもので、計画には「何を・なぜ」だけを書く。
 
 ## 5. 決定論のスクリプト
@@ -157,6 +159,7 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 - Opus と Sonnet の差は、cache read の単価が同じなので、cache の多い役では約1.4〜1.7倍にとどまる。費用を決めるのは、モデルの格よりトークンの量である。そこで v3 は、モデルを下げるより、読む量と書き写す量を減らすほうを優先した。
 - 段階6の受け入れ条件（総入力が R2 の全段の 46.3M の40%、約18.5M 以下）に余裕を持って収める配分の目安（推測、計16M）は、plan のメイン 4.5M・investigator 1.5M・build のメイン 3M・builder 2M・reviewer 2.5M・prompt-auditor 1M・振り返り 1.5M である。段階6の2回目の run（20261020_192336）の `npm run tokens` の実測は、plan のメイン 7.55M・investigator 3.14M・claude-code-guide 0.53M・build のメイン 4.42M・builder 1.34M・reviewer 5.63M・prompt-auditor 1.37M・振り返り 2.59M の計 26.56M（R2 の57%、この単価で約 $11.3）で、条件を満たさなかった。目安を超えた役の内訳と直し方は `tasks/lessons.md` に置き、条件を見直したうえで v3 を受け入れた。
 - reviewer の opus・high は、段階6の1回目の差分で sonnet・high と同じプロンプトで比べた。総入力は3.1倍（9.90M と 3.19M）で、1回目で直した5件のうち opus は4件、sonnet は5件を挙げ、対象の `.claude/README.md` の存在しない節への参照は両方とも見逃した。そこで sonnet・high のままにした。この見逃し（参照元の中の参照先の実在）は2回目の run でも直らず、段階6の受け入れ条件の1つを満たさないまま受け入れた。改修要求は `tasks/lessons.md` にある。
+- 大の経路の最初の run（20261021_185834、対象 `skillweave-mhwilds`・変更52ファイル）の `npm run tokens` の実測は、plan 段 24.54M（メイン 6.43M・49ターン、session-analyst 12.24M、investigator 3.61M、profiler 2.25M）、設計の段 7.04M（メイン opus・47ターン。1ターン目 56k から 212k へ増えた。生成の段の designer の 12k から 313k より小さく、change-plan を節ごとに書く直しは入れていない）、build 段 30.97M（メイン 12.91M、reviewer 10.86M・6起動、builder 5.22M・14起動、prompt-auditor 1.97M）で、計 62.55M だった。小の経路の2回目の run（26.56M）の約2.4倍である（対象が違うので、単純な比較はできない）。plan 段の session-analyst が約半分を使った点は `tasks/lessons.md` にある。
 - `/canon-build` の advisor は、同じエラーが2回出たときと、差分のゲートの前だけに呼ぶ。
 
 ### 6.3 Skill

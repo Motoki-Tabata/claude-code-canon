@@ -26,38 +26,44 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 
 ---
 
-## 2026-10-12 designer のコンテキストが約12kから約313kまで増え、入力の94%がキャッシュ読みになる（run 20261012_030955・Phase B）
+## 2026-10-20 plan のメインの1ターン目の総入力が run のたびに増える（run 20261020_192336・plan、20261021_185834 で再測）
 - 種別: 効率化
-- 何が起きたか: Phase B の designer の総入力は 9,485,334 で、そのうち 8,911,375（94%）が cache_read だった。コンテキストは約12kから約313kまで単調に増え、後半の約18ターンは 206k 以上だった。増加の主因は、入力外の読み込み（agent 8体・Phase Skill 4件・generation の references）と、`lib/`・`tests/`・canon-reference の grep の出力だった（`retro/session-analysis-B.md`）。
-- 確度: 実物で確認（`work/20261012_030955/retro/session-analysis-B.md` の56〜67行。キャッシュの作り直しと advisor の上乗せは推測）
-- 提案: v3 は designer を廃止し、`/canon-design` を inline にした（段階4）。同じ増え方が inline のメインで起きないかを、大の経路を通したときに `npm run tokens` で実測する。増えるなら、change-plan を節ごとに書いて1回の Write を小さくし、読む正典の節を `design` Skill の references に置く。
-- 未決: 大の経路の実測が無い（段階6のベンチマークは小の経路）
-- 予定: 大の経路の最初の run
-
-## 2026-10-17 /canon-build の許可の画面を対話で確かめていない（v3 段階4）
-- 種別: 効率化
-- 何が起きたか: worktree の diff・status は `npm run worktree -- diff|status` に寄せ、`git -C <worktree> …` は /canon-build の手順から外した。`Bash(npm run *)` に当たる前提だが、`npm run worktree` と worktree の Read・Edit が、対話のセッションで許可の画面を出さずに通るかは確かめていない（transcript に画面は残らない）。
-- 確度: 推測（allow 規則の文字列と Skill の手順の照合。画面は未確認）
-- 提案: 対話で `/canon-build` を通し、画面が出たかを人間が確かめる。出たコマンドがあれば、allow を直す。
-- 予定: tasks/20261021-canon-lessons/ の C（大の経路の実 run）
-
-## 2026-10-20 reviewer の割当を直して減った分を、plan のメインの増分が打ち消した（run 20261020_192336・plan と build）
-- 種別: 効率化
-- 何が起きたか: 2回目の run の plan のメイン（opus）は 1回目より +0.69M（6.87M → 7.55M・48ターン）。内訳は、(a) impact.json をファイル別に整形して scratchpad から Read した 54,462 字（ターン34・35/48、持ち越し 688,995 字ターン）と、(b) 1ターン目の総入力の増加（7f4f7a65 の 46,972 → 4c0e6f27 の 53,936、×48 で約 +0.33M）でほぼ説明できる。(b) の増えた理由は確かめていない。investigator と振り返りの分は直した（investigator の Grep の制約・`impact-ids.txt`・`tokens --turns` と session-analyst の手順1）。
-- 確度: 数値は実物で確認（`npm run tokens -- <id> --turns`）。(b) の理由は確かめていない
-- 提案: (a) は `impact-ids.txt`（ID と行の抜粋の一覧）で整形の手間をなくした。その効果（読む字数が減ったか）と、次の run の plan のメインの総入力を、`tokens --turns` で測る。(b) は次の plan の run の1ターン目で見る。
-- 予定: tasks/20261021-canon-lessons/ の T16（大の経路の実 run の plan で測る）
-
-## 2026-10-20 `check` の節ごとのサイズの上限を、大の経路の実測で確かめていない（保守作業）
+- 何が起きたか: plan のメイン（opus）の1ターン目の総入力は、7f4f7a65 の 46,972 → 4c0e6f27 の 53,936 → 7489e50d（run 20261021_185834）の 59,062 と増えている。×49ターンで約 +0.25M に当たる。増えた理由は確かめていない。plan 段のメイン全体は 6.43M（49ターン）で、前回の 7.55M より減った。
+- 確度: 数値は実物で確認（`npm run tokens -- <id> --turns`）。増えた理由は確かめていない
+- 提案: 次の plan の run で、1ターン目の内訳（システムプロンプト・CLAUDE.md・Skill 一覧・最初の Skill 本文）を、transcript の先頭の入力で切り分ける。canon 側で減らせる部分（Skill 本文の長さ）が主因なら、そこを直す。
+## 2026-10-20 依存の導入を要する検証コマンドの経路を v3 で一度も通していない（v3 段階6）
 - 種別: 規律昇華
-- 何が起きたか: 小の経路の2回の run（20261019_190415・20261020_192336）を数えた結果は、要件1件の最大 1302 バイト（上限 1.5KB）・constraints 652（2KB）・requirements 全体 16.0KB（20KB）・ファイル1件の変更指示の最大 1532（2.5KB）・参照元の扱い1件の最大 241（300）・change-plan 全体 38.1KB（小 48KB）で、どの上限も超えていない。大の経路の `## 機能と責務`（8KB）・`## モデル割当`（3KB）・change-plan 全体（大 64KB）は、大の経路の run がまだ無く、実測が無い。
-- 確度: 実物で確認（`lib/requirements.js`・`lib/change-plan.js` の `bytes` で数えた）
-- 提案: 大の経路の最初の run で、`機能と責務`・`モデル割当`・change-plan 全体を数え、`tools/check.js` の `LIMITS` と `design/architecture.md` §4.1 の表を直す（直さなければ、直さない理由を残して本項目を消す）。
-- 予定: tasks/20261021-canon-lessons/ の T16
-
-## 2026-10-20 v3 で一度も通していない経路が3つある（v3 段階6）
+- 何が起きたか: 大の経路の実 run（20261021_185834）で、worktree の許可の画面・builder の `op: new` の Write・大の経路は通った。通していないのは、依存の導入を要する検証コマンド（`/canon-build` 構築2 の1 の導入の手順）だけである。この run の検証コマンドは `node --test` と `git grep` で、導入は要らなかった。
+- 確度: 実物で確認（`work/20261021_185834/change-plan.md` の `## 検証コマンド`）
+- 提案: 依存の導入を要する対象（`package.json` の依存を `pnpm install` などで入れてから検証する対象）の run で通し、導入の手順の許可の画面とエラーの扱いを確かめて、本項目を消す。
+## 2026-10-21 「直近の transcript」を日付で選ぶと、対象のワークフローを回していないセッションを選ぶ（run 20261021_185834・plan）
 - 種別: 規律昇華
-- 何が起きたか: 段階6の2回の run（どちらも小の経路・op は modify だけ・検証コマンドは node の組込みだけで動き、依存の導入が要らなかった）で、次の経路を通していない。(1) 依存の導入を要する検証コマンド（`/canon-build` 構築2 の1 の導入の手順）。(2) 対話のセッションで `~/.claude-canon/wt/**` の allow 規則と `npm run worktree` に許可の画面が出たか（transcript に残らない。2026-10-17 の項目）。(3) 大の経路（`/canon-design`。2026-10-12 の項目）。builder の Write での新規作成（`op: new`）は、保守作業の実験で成功した（使い捨ての worktree に `.claude/rules/` の新規ファイルを Agent ツールで builder に Write させた）。ただし、その会話の権限モードで通ったもので、`Edit(~/.claude-canon/wt/**)` の allow 規則が Write に効いたかは区別できていない。
-- 確度: 実物で確認（2回の run の change-plan.md の `op` と `## 検証コマンド`。builder の実験は Agent ツールの結果）
-- 提案: 大の経路の実 run（`skillweave-mhwilds`）で (1)(2)(3) を通し、通した経路を本項目から消す。run の中で builder が `op: new` を Write するとき、許可の画面が出たかも見る。
-- 予定: tasks/20261021-canon-lessons/ の T16
+- 何が起きたか: 要件の材料に「対象の直近数件」を選んだとき、メインは日付の新しい順に 10/19・10/18・10/09 を挙げた。tokens と冒頭の依頼を見ると、canon-plan の中断・git 操作・デザインシステムの刷新で、TSOD の段を回したものは無かった。全33件の冒頭の依頼をメインが node のワンライナーで一覧にして、10/06 の1周に選び直した。
+- 確度: 実物で確認（`work/20261021_185834/tokens-*.txt`）
+- 提案: `.claude/skills/requirements/references/interview.md` の「transcript の分析を要件の材料に指定したとき」に、候補は日付でなく冒頭の `<command-name>`（対象側の段のコマンド）で選び、ワークフローの1周を単位にする、と足す。候補の一覧（日付・サイズ・冒頭の依頼）を出すスクリプトを `npm run tokens` に足すかは未決。
+- 未決: 一覧を tokens のオプションにするか、別のスクリプトにするか
+
+## 2026-10-21 「canon の構成から提案して」という依頼の手順が無く、メインが対象を直接読んだ（run 20261021_185834・plan）
+- 種別: 規律昇華
+- 何が起きたか: ユーザーは要件を述べず、「canon の刷新で得た構成やセッション履歴から、適用できる内容を提案してほしい」と頼んだ。interview.md の質問は、ユーザーが want を持っている前提である。提案を作るため、メインが対象の CLAUDE.md・settings.json・Skill と Agent の分量・frontmatter の hooks・canon-boundary.md・`.claude/README.md` を Bash で直接読んだ（調査はワーカーに任せる、という SKILL の方針の外）。
+- 確度: 実物で確認（このセッションの transcript）
+- 提案: `interview.md` に「提案を求められたとき」の節を足す。材料は inventory の要約・profile・session-analysis・`design/architecture.md` とし、提案は仮説として示し、採ったものを investigator で確かめてから確定する。メインが対象を直接読むのは、inventory.json の抜き出しと分量の計測に限る。
+
+## 2026-10-21 canon-design の入力の列挙に session-analysis が無く、plan の申し送りが指す分析ファイルを読むと手順の外になる（run 20261021_185834・design）
+- 種別: 欠陥修正
+- 何が起きたか: canon-design/SKILL.md の設計1 の1と design/SKILL.md の「読む範囲」は、入力を requirements.md・inventory.json・investigation/ だけとする。一方で plan の段の申し送りは「判断の材料は … session-analysis-build.md の拒否の内訳の表」と分析ファイルを指し、R11 の判断にはその表（hook の拒否11件の内訳）が要った。design の段は、手順の外で work/<ts>/session-analysis-build.md を読んだ。
+- 確度: 実物で確認（handoff.md の申し送り・両 SKILL.md の該当行）
+- 提案: canon-design/SKILL.md の設計1 の1の入力に「handoff の申し送りが指す work/<ts>/session-analysis-*.md（指された節だけ）」を足し、design/SKILL.md の「読む範囲」をそれに合わせる。
+
+## 2026-10-21 plan 段の session-analyst 5起動が総入力の約半分を使う（run 20261021_185834・build）
+- 種別: 効率化
+- 何が起きたか: plan 段（session 7489e50d）の区分別の消費は、session-analyst（haiku）が5起動・303ターン・総入力 12,242,395 で全体の 49.9%、main（opus）は 26.2%。1起動あたり平均 約60ターン・総入力 約244万。`npm run tokens` の集計表（`work/20261021_185834/retro/tokens-7489e50d-4ce8-4a9a-b66c-e3ca84035f1c.txt`）と `retro/session-analysis-plan-7489e50d.md` の観点3。
+- 確度: 実物で確認（tokens の集計表）。ターンが多い原因は未確認。
+- 提案: `.claude/agents/session-analyst/session-analyst.md` の「読む範囲」に、渡された観点に関係する行だけを Grep で絞ってから Read する旨と、1起動のターン数の目安を足す。
+- 未決: 原因が transcript の大きさか読み方かを、plan 段の session-analyst の transcript で切り分けてから決める。
+
+## 2026-10-21 verify の不合格の原因が canon の検査の誤検出だったときの経路が build の手順に無い（run 20261021_185834・build）
+- 種別: 規律昇華
+- 何が起きたか: 構築2で V1 が対象のルート `README.md` を「配置の誤り」と判定して不合格になった（原因は `lib/non-schema.js` の除外漏れ）。`canon-build/SKILL.md` 構築2の3は対象のファイルを直す手順だけで、canon の検査側の誤検出の扱いが無いため、メインが手順の外で台帳に起票し、ユーザーに直し方を尋ね、canon に別コミット（`bc94455`）を積んだ。canon の HEAD が run の開始時から変わり、以後の preflight は `WARN canon` を出す。
+- 確度: 実物で確認（`canon-build/SKILL.md` に該当の記述が無いことを grep で確かめた）
+- 提案: `canon-build/SKILL.md` 構築2の3に、「違反の原因が canon の検査の誤検出なら、台帳に起票してユーザーに『canon を直す』か『対象の変更を外す』かを尋ねる。canon を直すときは別コミットにし、差分のゲートの提示に載せる」を足す。

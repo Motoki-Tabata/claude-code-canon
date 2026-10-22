@@ -1,16 +1,11 @@
 # handoff: canon-lessons
 
 ## 現在地
-段階3 途中（C 待ち）（2026-10-21）
-T1〜T15 が完了した（A は c4d7d7d、B は 81c17d4、後始末は 527fd79）。残りは C（ユーザーが対話で実行する大の経路の実 run）と、その後の T16・T17。
+段階3 完了（2026-10-22）
+T1〜T17 が完了した。C の run は 20261021_185834（G3 承認・振り返りまで）。T16・T17 の変更（`tasks/lessons.md`・`design/architecture.md`・plan のチェック）は未コミット。
 
 ## 次のセッション
-- ユーザーが次の順で C を進める（plan.md の「C」）。
-  1. `claude --model opus --effort medium` で `/canon-plan ~/work/skillweave-mhwilds`
-  2. `/canon-design <ts>`
-  3. `claude --model sonnet --effort medium` で `/canon-build <ts>`（G1〜G3 と振り返りまで）
-- ユーザーは、下の「メモ」に ts と、対話で許可の画面が出たか（出たならそのコマンド）を書く。
-- そのあと再開する: Sonnet（effort medium）・`/flow-build tasks/20261021-canon-lessons`（T16・T17 から）
+- Opus（effort high）・`/flow-review tasks/20261021-canon-lessons`
 
 ## 判断ログ
 - 2026-10-21 段階2: 正典 canon-reference を最初に引く役は investigator にする。claude-code-guide は正典で確かめられない論点だけに使う（理由: 過去2回の run の公式確認の3論点が正典に書いてあり、メインの文脈を増やさずに済む）。
@@ -25,6 +20,10 @@ T1〜T15 が完了した（A は c4d7d7d、B は 81c17d4、後始末は 527fd79�
 - 2026-10-21 段階3 T14・T15 の手段: 入れ子の `claude -p` は OAuth の期限切れで認証できなかった（`Failed to authenticate`）ため、実験は Agent ツール（この会話の権限モード）で行った。T15（builder が使い捨ての worktree に `.claude/rules/probe-new.md` を新規に Write）は成功したが、`Edit(~/.claude-canon/wt/**)` の allow 規則が効いたのか、会話の権限モードで通ったのかは区別できていない。`.claude/settings.json` は変えていない。台帳の「未通過の経路」に書き、C の run で builder の `op: new` に許可の画面が出るかを見る。
 - 2026-10-21 段階3 検証の逸脱: plan の `npm run tokens -- 1b1a6954 --turns` は短い id では exit 1 になる（`resolveSessionPath` は完全な session-id を取る）。完全な id で通し、1セッションは「約50行」でなく 64行（1b1a6954）・60行（4c0e6f27）だった（メインのターン表1ターン1行に、サブエージェントの要約が加わるため）。数値は 4c0e6f27 の1ターン目 53,936・48ターンが台帳と一致した。`npm run worktree -- diff` は実際の worktree（skillweave-mhwilds-r2base-20261020_192336、`--base` は run の handoff の base）で通した: 29ファイルで `git diff` と一致し、status は空。
 - 2026-10-21 段階3: V6 の判定の追加（「変える」と答えた行の照合）に合わせて、builder.md・review/SKILL.md の表・perspectives.md の記述を揃えた（`.claude/rules/worker-definitions.md`）。
+
+- 2026-10-22 段階3 T16: C の実測で台帳を閉じた。消した項目: 10-12（設計の段のメインは 56k→212k・47ターンで、designer の 12k→313k より小さい。change-plan を節ごとに書く直しは入れない）／10-17「git -C」（ユーザーが許可の画面は出なかったと確認）／10-20「check の上限」（大の run の change-plan 56.2KB・機能と責務 5.6KB・モデル割当 1.3KB・ファイル1件の最大 1.4KB はどの上限も超えず、値は変えない）。書き直したもの: 10-20「増分」は1ターン目の総入力の増加（46,972→53,936→59,062）だけに、10-20「未通過の経路」は依存の導入だけに（許可の画面・builder の op: new・大の経路は通った）。impact-ids.txt の効果は、読む字数を直接は測っていないが、plan のメイン全体が 7.55M→6.43M に減ったので項目から外した。architecture の §4.1・§6.2 に実測を追記した。C の振り返りで起票された5件は範囲外として台帳に残した。
+- 2026-10-22 段階3 T16 受け入れ条件2: この run の investigation に official-check.md は無い（facts.md の unverified 6件はすべて transcript 由来の挙動の主張で、仕様の主張ではないため、claude-code-guide を使わなかった）。
+- 2026-10-22 段階3: 台帳の15件のうち、今回の run で新しく起票された5件（transcript の選び方・提案依頼の手順・canon-design の入力・session-analyst の消費・verify 誤検出の経路）は範囲外で残る。
 
 ## メモ
 - 一括の Explore での整合性の洗い出しは、コンテキストがあふれて止まった。T1 は必ず4範囲に分ける。

@@ -100,7 +100,7 @@
 - ユーザーが handoff のメモに書くこと: ts と、対話で許可の画面が出たか（出たならそのコマンド）。
 
 ### C の後（flow-build を再開）
-- [ ] T16 実測で台帳の残りを閉じる。
+- [x] T16 実測で台帳の残りを閉じる。
   - 10-12: 設計の段のメインの文脈の増え方を `npm run tokens -- <id> --turns` で見る。増えていれば、change-plan を節ごとに書く・正典の節を design の references に置く、の直しを入れる。
   - 10-17「git -C」: 許可の画面。
   - 10-20「増分」の (a): `impact-ids.txt` の効果。
@@ -108,7 +108,7 @@
   - §4.1 の上限の最終の値を決める。
   - architecture §6.2 の実測を更新する。
   - C の振り返りで新しく起票された項目は、範囲外として台帳に残す。
-- [ ] T17 全体を確かめ直す: `npm test`・`npm run reference-check`・`self_application` の旧語の検査。コミットして、handoff を「段階3 完了」にする。
+- [x] T17 全体を確かめ直す: `npm test`・`npm run reference-check`・`self_application` の旧語の検査。コミットして、handoff を「段階3 完了」にする。
 
 ## 受け入れ条件
 1. `tasks/lessons.md` について:
