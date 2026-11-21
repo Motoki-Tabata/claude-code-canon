@@ -5,10 +5,14 @@
  *   npm run worktree -- create --target <対象> --ts <YYYYMMDD_hhmmss>
  *   npm run worktree -- rm --worktree <path> <file>...
  *   npm run worktree -- commit --worktree <path> --message <文>
+ *   npm run worktree -- status --worktree <path>
+ *   npm run worktree -- diff --worktree <path> [--base <rev>] [--name-only | --stat] [--out <file>]
  *   npm run worktree -- cleanup --worktree <path> [--delete-branch] [--discard]
  *
  * 置き場所は ~/.claude-canon/wt/<対象名>-<ts>/（環境変数 CANON_WT_ROOT で根を上書き）。
  * 標準出力は `key: value` の行。create は worktree・branch・base、commit は sha を返す。
+ * status は `git status --porcelain` をそのまま返す（空なら未コミットの変更なし）。
+ * diff は `--base` があれば `<base>..HEAD`、無ければ HEAD との差を返す。`--out` があれば、ファイルへ書いて `out`・`bytes` の行を返す。
  * cleanup は worktree を外し、空になった置き場所を消す。ブランチは --delete-branch でマージ済みのときだけ、
  * --discard で未コミットの変更ごと（未マージでも）消す。
  *
@@ -17,7 +21,7 @@
 
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { cleanupWorktree, commitWorktree, createWorktree, removeFromWorktree, WorktreeError } from '../lib/worktree.js';
+import { cleanupWorktree, commitWorktree, createWorktree, diffWorktree, removeFromWorktree, statusWorktree, WorktreeError } from '../lib/worktree.js';
 import { isMainModule } from '../lib/run.js';
 
 const USAGE = [
@@ -25,6 +29,8 @@ const USAGE = [
   '  npm run worktree -- create --target <対象> --ts <YYYYMMDD_hhmmss>',
   '  npm run worktree -- rm --worktree <path> <file>...',
   '  npm run worktree -- commit --worktree <path> --message <文>',
+  '  npm run worktree -- status --worktree <path>',
+  '  npm run worktree -- diff --worktree <path> [--base <rev>] [--name-only | --stat] [--out <file>]',
   '  npm run worktree -- cleanup --worktree <path> [--delete-branch] [--discard]',
 ].join('\n');
 
@@ -33,6 +39,10 @@ const OPTIONS = {
   ts: { type: 'string' },
   worktree: { type: 'string' },
   message: { type: 'string' },
+  base: { type: 'string' },
+  out: { type: 'string' },
+  'name-only': { type: 'boolean' },
+  stat: { type: 'boolean' },
   'delete-branch': { type: 'boolean' },
   discard: { type: 'boolean' },
 };
@@ -64,6 +74,14 @@ function main(argv) {
     } else if (cmd === 'commit') {
       if (!v.worktree || !v.message) return bad();
       process.stdout.write(`sha: ${commitWorktree({ worktree: path.resolve(v.worktree), message: v.message })}\n`);
+    } else if (cmd === 'status') {
+      if (!v.worktree) return bad();
+      const text = statusWorktree({ worktree: path.resolve(v.worktree) });
+      if (text) process.stdout.write(`${text}\n`);
+    } else if (cmd === 'diff') {
+      if (!v.worktree || (v['name-only'] && v.stat)) return bad();
+      const r = diffWorktree({ worktree: path.resolve(v.worktree), base: v.base, nameOnly: v['name-only'], stat: v.stat, out: v.out && path.resolve(v.out) });
+      process.stdout.write(r.out ? `out: ${r.out}\nbytes: ${r.bytes}\n` : r.text);
     } else if (cmd === 'cleanup') {
       if (!v.worktree) return bad();
       const r = cleanupWorktree({ worktree: path.resolve(v.worktree), deleteBranch: v['delete-branch'], discard: v.discard });

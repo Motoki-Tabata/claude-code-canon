@@ -82,6 +82,18 @@ test('check change-plan: 基準の計画（小の経路）は全項目 OK', () =
   assert.deepEqual(failed(checkChangePlan(plan(), ctx())), []);
 });
 
+test('check change-plan（違反注入）: 影響の語は確定要件ごとに1つ以上か、理由つきの「影響の語なし」が要る', () => {
+  const run = (text) => failed(checkChangePlan(text, ctx()));
+  const NAME = '要件ごとに影響の語がある';
+  assert.deepEqual(run(plan({ terms: '- `old`（R1）' })).includes(NAME), false, '語に要件を添えれば通る');
+  assert.ok(run(plan({ terms: '- `old`' })).includes(NAME), '要件を添えない語は R1 を覆わない');
+  assert.ok(run(plan({ terms: '' })).includes(NAME), '節が空');
+  assert.ok(run(plan({ terms: '- R1: 影響の語なし' })).includes(NAME), '理由が無い');
+  assert.ok(run(plan({ terms: '- `old`（R9）' })).includes(NAME), '確定要件に無い id を指す');
+  const items = checkChangePlan(plan({ terms: '- `old`（R1）\n- R9: 影響の語なし（x）' }), ctx());
+  assert.match(items.find((i) => i.name === NAME).detail, /確定要件に無い id: R9/);
+});
+
 test('check change-plan（違反注入）: 書式・要件との対応・検証コマンド', () => {
   const run = (text, c) => failed(checkChangePlan(text, ctx(c)));
   assert.deepEqual(run('# 空\n'), ['change-plan.md の構文']);
@@ -156,12 +168,12 @@ test('check change-plan: 小の経路の条件（1 既存がある・2 新しい
 test('check change-plan: 変えるファイルの中の該当（scope: changed）にも回答を求める。削除するファイルの中の該当は求めない', () => {
   const inA = { id: '.claude/rules/a.md:3:old', path: '.claude/rules/a.md', line: 3, term: 'old', via: 'text', scope: 'changed', text: 'old' };
   const c = ctx({ impact: { ...IMPACT, input: { files: ['.claude/rules/a.md'], terms: ['old'] }, hits: [HIT, inA] } });
-  const withTerm = (answers) => plan({ answers, terms: '- `old`' });
+  const withTerm = (answers) => plan({ answers, terms: "- `old`（R1）" });
   assert.ok(failed(checkChangePlan(withTerm(ANSWER), c)).some((n) => n.startsWith('impact の該当 2件')), 'a.md の中の行が未回答');
   assert.deepEqual(failed(checkChangePlan(withTerm(`${ANSWER}\n- .claude/rules/a.md:3:old: 変える`), c)), []);
   assert.ok(failed(checkChangePlan(withTerm(`${ANSWER}\n- .claude/rules/a.md: 変える`), c)).some((n) => n.startsWith('impact の該当 2件')), 'ファイル単位の「変える」は変えるファイルの中の該当を覆わない');
   assert.deepEqual(failed(checkChangePlan(withTerm(`${ANSWER}\n- .claude/rules/a.md: 変えない（語は残す）`), c)), [], 'ファイル単位の「変えない」は覆う');
-  const del = changePlan({ answers: ANSWER, terms: '- `old`', files: '- path: .claude/rules/a.md\n  op: delete\n  reqs: [R1]\n  instruct: 消す（R1）' });
+  const del = changePlan({ answers: ANSWER, terms: "- `old`（R1）", files: '- path: .claude/rules/a.md\n  op: delete\n  reqs: [R1]\n  instruct: 消す（R1）' });
   assert.deepEqual(failed(checkChangePlan(del, c)), [], '削除するファイルの中の該当は答えなくてよい');
 });
 

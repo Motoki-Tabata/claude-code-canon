@@ -38,6 +38,7 @@ export function verifyRun(root, ts, { now = new Date() } = {}) {
   const ctx = makeContext({
     root: h.worktree,
     changed: state.changed,
+    changedLines: state.changedLines,
     tracked: state.tracked,
     requirementsText: readOrNull(path.join(work, 'requirements.md')),
     changePlanText: readOrNull(path.join(work, 'change-plan.md')),

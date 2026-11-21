@@ -8,12 +8,13 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { scratchDir, writeFile } from './helpers/fixtures.js';
 import { runNodeScript } from './helpers/run-cli.js';
 import { gitInit } from './helpers/git.js';
 import { ROOT } from './helpers/paths.js';
+import { parseChangePlan } from '../lib/change-plan.js';
 
 const IMPACT = path.join(ROOT, 'tools', 'impact.js');
 
@@ -103,4 +104,45 @@ test('impact: git でない root は exit 1、引数不正（files・terms が�
   assert.equal(runNodeScript(IMPACT, ['--root', tmp, '--out', o, '--files', ',']).code, 2);
   assert.equal(runNodeScript(IMPACT, ['--terms', 'x']).code, 2);
   assert.equal(runNodeScript(IMPACT, ['--nope']).code, 2);
+});
+
+const PLAN = '# change-plan\n\n## ファイル\n\n- path: docs/old.md\n  op: modify\n  reqs: [R1]\n  instruct: 直す\n\n## 影響の語\n\n- `verifyX`（R1）\n- `/canon-x`（R1）\n';
+
+test('impact: --from-plan は --files・--terms と同じ入力・同じ該当になり、impact-ids.txt に1行1件の ID と抜粋を書く', (t) => {
+  const { tmp, repo } = buildRepo(t);
+  const plan = path.join(tmp, 'change-plan.md');
+  writeFileSync(plan, PLAN);
+  const direct = run(repo, path.join(tmp, 'o1'), ['--files', 'docs/old.md', '--terms', 'verifyX,/canon-x']);
+  const fromPlan = run(repo, path.join(tmp, 'o2'), ['--from-plan', plan]);
+  assert.equal(fromPlan.code, 0, fromPlan.stdout);
+  assert.deepEqual(fromPlan.res.input, direct.res.input);
+  assert.deepEqual(fromPlan.res.hits, direct.res.hits);
+  const lines = readFileSync(path.join(tmp, 'o2', 'impact-ids.txt'), 'utf8').trimEnd().split('\n');
+  assert.equal(lines.length, fromPlan.res.hits.length);
+  assert.deepEqual(lines.map((l) => l.split('\t')[0]), fromPlan.res.hits.map((h) => h.id));
+  assert.equal(lines.find((l) => l.startsWith('README.md:3:/canon-x')).split('\t')[1], '起動は /canon-x。');
+  assert.match(fromPlan.stdout, /impact-ids\.txt/);
+});
+
+test('impact: --from-plan の語は、「影響の語なし（理由）」の行の理由に書かれたバッククォートの語を含めない', (t) => {
+  const { tmp, repo } = buildRepo(t);
+  const plan = path.join(tmp, 'change-plan.md');
+  writeFileSync(plan, `${PLAN}- R2: 影響の語なし（\`reasonWord\` は語でなく説明）\n`);
+  assert.deepEqual(parseChangePlan(readFileSync(plan, 'utf8')).terms, ['verifyX', '/canon-x']);
+  const r = run(repo, path.join(tmp, 'o'), ['--from-plan', plan]);
+  assert.equal(r.code, 0, r.stdout);
+  assert.deepEqual(r.res.input.terms, ['verifyX', '/canon-x']);
+});
+
+test('impact: --from-plan は、併用・読めない・構造が不正なとき exit 2', (t) => {
+  const { tmp, repo } = buildRepo(t);
+  const plan = path.join(tmp, 'change-plan.md');
+  writeFileSync(plan, PLAN);
+  const bad = path.join(tmp, 'bad.md');
+  writeFileSync(bad, '# 節が無い\n');
+  const o = path.join(tmp, 'o');
+  assert.equal(runNodeScript(IMPACT, ['--root', repo, '--out', o, '--from-plan', plan, '--files', 'docs/old.md']).code, 2);
+  assert.equal(runNodeScript(IMPACT, ['--root', repo, '--out', o, '--from-plan', plan, '--terms', 'x']).code, 2);
+  assert.equal(runNodeScript(IMPACT, ['--root', repo, '--out', o, '--from-plan', path.join(tmp, 'none.md')]).code, 2);
+  assert.equal(runNodeScript(IMPACT, ['--root', repo, '--out', o, '--from-plan', bad]).code, 2);
 });

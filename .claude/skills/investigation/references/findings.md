@@ -1,4 +1,6 @@
-# findings.md（要件の主張の確認）
+# findings（要件の主張の確認。書込先は `investigation/facts.md`）
+
+> 書込先の名前を `findings.md` にしない。ハーネスが、subagent の `findings.md` という名前のファイルへの Write を拒否する（「Subagents should return findings as text, not write report files」。`findings.md` は書込先のディレクトリによらず拒否され、`facts.md`・`probe-a.md`・`probe-findings-r1.md` は書けた）。
 
 ヒアリングで出た要件の主張を、対象の実物で確かめた結果を書く。**渡された主張に関係する箇所だけ**を読み、無関係な事項を書き足さない（調査が広がると、下流の文書が際限なく大きくなる）。主張は、ユーザーの言葉や対象の lessons・README の文言から来ているので、実物と食い違うことがある。食い違いを見つけるのがこの調査の目的である。
 
@@ -10,7 +12,7 @@
 ## findings
 - topic: <論点>
   req: <要件の仮の ID（R1…）>
-  confidence: 実物で確認|文言のみ
+  confidence: 実物で確認|公式で確認|文言のみ
   evidence_paths: [src/a.ts:12-40, src/b.ts]
   summary: <実物が示すこと。主張と食い違うときは、どう食い違うか>
 unverified:
@@ -27,7 +29,9 @@ extractable_templates:
 
 - **実物で確認**: 対象のファイルを読んで、主張が成り立つ（または成り立たない）ことを確かめた。
 - **文言のみ**: 実物で確かめられず、文言（lessons・README・コメント）の記述しか根拠が無い。`unverified` にも載せる。
-- 「公式で確認」は investigator には付けない。WebFetch を持たないので、Claude Code の仕様に依存する主張は `unverified` に載せ、メインが公式のドキュメントで確かめる。
+- **公式で確認**: Claude Code の仕様に依存する主張が、正典 `canon-reference` の `[仕様]` に書いてある。`evidence_paths` には正典のパスを、このリポジトリのルートからの相対パスで書く（例: `.claude/skills/canon-reference/references/features/hooks.md:78`）。`[知見]` と canon の規律は根拠にしない。
+- 正典に記述が無い仕様の主張、正典の `complete: false` のコレクションに名前が無いもの、`sources.json` の `unverified` に載っているものは `unverified` に載せる。メインが `claude-code-guide` で公式のドキュメントを確かめる（`official-check.md`）。
+- 正典に書くべき事実が書かれていなかったとき（欠け）は、応答で知らせる。メインが `tasks/lessons.md` に起票する。
 
 ## 調べ方
 
@@ -42,7 +46,7 @@ extractable_templates:
 
 ## 値の語彙
 
-1. `evidence_paths` は対象ルート相対のパスを裸で書く。バッククォートで囲まない。絶対パスも書かない（worktree の外を指してしまう）。
+1. `evidence_paths` は対象ルート相対のパス（正典のときは、このリポジトリのルートからの相対パス）を裸で書く。バッククォートで囲まない。絶対パスも書かない（worktree の外を指してしまう）。
 2. 複数のパスは `[a, b, c]` の角括弧が必須。
 3. 末尾に行番号 `:N` や行範囲 `:N-M` を付けてよい。1項目の中にカンマ区切りの複数行番号（`path:12,40`）は書かない。複数行を示すなら行範囲にするか、論点を分ける。
 4. `evidence_paths` は同じ行に書く。次行以降に箇条書きで並べない。

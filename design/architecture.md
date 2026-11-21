@@ -85,7 +85,7 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 
 - 仕様の文書は廃止して requirements.md に統合する。要件を「確かめた事実」と「受入基準」の形で書けば、方向づけの文書を別に挟む必要が無い。
 - **根拠の確度**は「実物で確認」「公式で確認」「文言のみ」の3つにする。「文言のみ」の要件は G1 で確定させない（`check` が NG にする）。2回の run の手戻りは、どちらもここが原因だった。
-- `impact` の該当には、change-plan の参照元の扱いで漏れなく答える（`check` が照合する）。R2 のレビューが見つけた、触らないファイルが変えた語を参照していた食い違いを、計画の段階で表に出すためである。変えるファイルの中で語に触れている行にも答える。段階6の1回目では、`instruct` の外の行に古い記述が残り、差し戻しになった（5件のうち2件は影響の語を含む行で、この走査で計画の段に出る）。
+- `impact` の該当には、change-plan の参照元の扱いで漏れなく答える（`check` が照合する）。R2 のレビューが見つけた、触らないファイルが変えた語を参照していた食い違いを、計画の段階で表に出すためである。変えるファイルの中で語に触れている行にも答える。「変える」と答えた行が差分で変わっていなければ、verify の V6 が違反にする。影響の語は確定要件ごとに1つ以上置き（`（R1,R3）` と添える）、置けない要件は理由を書く（`check` が数える）。段階6の1回目では、`instruct` の外の行に古い記述が残り、差し戻しになった（5件のうち2件は影響の語を含む行で、この走査で計画の段に出る）。
 - handoff.md は run の状態だけを持ち、要件と計画の本文を写さない。frontmatter（`ts`・`target`・`route`・`worktree`・`branch`・`base`〔分岐元の sha〕・`canon_commit`・`stage`・`status`）と、進捗・承認・差し戻し・申し送り・セッションの5節にする。
 
 ### 4.1 サイズの上限
@@ -103,6 +103,8 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 | change-plan のモデル割当（大のみ） | 3KB |
 | change-plan 全体 | 小 48KB・大 64KB |
 
+大の経路の最初の run（20261021_185834、52ファイル）の実測は、change-plan 全体 56.2KB（上限 64KB）・機能と責務 5.6KB（8KB）・モデル割当 1.3KB（3KB）・ファイル1件の最大 1.4KB（2.5KB）で、どの上限も超えず、値は変えていない。
+
 上限を超えるのは、たいてい前の段の再掲か、変更指示に新しい本文を丸ごと書いたときである。新しい本文は builder が書くもので、計画には「何を・なぜ」だけを書く。
 
 ## 5. 決定論のスクリプト
@@ -112,13 +114,13 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 | コマンド | 役割 |
 |---|---|
 | `new-run` | `<ts>` を採番し、`work/<ts>/` と handoff の雛形を作り、`worktree` を作る |
-| `preflight` | 開始時の照合を1回で行う（canon の HEAD と `canon_commit` の差分、`--expect` に挙げたゲートの承認、入力の実在、worktree のブランチと記録した sha） |
+| `preflight` | 開始時の照合を1回で行う（canon の HEAD と `canon_commit` の差分、段階に応じて期待するゲートの承認、入力の実在、worktree のブランチと記録した sha） |
 | `inventory` | worktree のカスタマイズ（`canon-reference/data/paths.json` の配置パス）の一覧・frontmatter・参照のグラフを JSON と要約に書く。プレースホルダ（`<...>`・`NNN`）は、実在の参照と区別する |
-| `impact` | 変えるファイルと語・コマンドの一覧を受け取り、触らないファイルのうちそれらに触れているものと、変えるファイルの中で語に触れている行を、行番号付きで挙げる |
-| `worktree` | 作成・削除（`rm`。change-plan の `op: delete`）・コミット・片付け。差分のゲートは、ここで作ったコミットの sha に束縛する |
+| `impact` | 変えるファイルと語・コマンドの一覧（`--from-plan` なら change-plan.md の `## ファイル`・`## 影響の語`）を受け取り、触らないファイルのうちそれらに触れているものと、変えるファイルの中で語に触れている行を、行番号付きで `impact.json` に挙げる。ID と行の抜粋は1行1件の `impact-ids.txt` にも書く |
+| `worktree` | 作成・ファイルの削除（`rm`。change-plan の `op: delete`）・コミット・状態（`status`）と差分（`diff`）の確認・片付け（`cleanup`）。差分のゲートは、ここで作ったコミットの sha に束縛する |
 | `verify` | 変えたファイルの検査（§7） |
 | `check` | requirements.md と change-plan.md の検査（§4） |
-| `approvals`・`handoff`・`tokens`・`reference-check` | 承認の記録と照合、handoff の更新、トークンの集計、正典の検査 |
+| `approvals`・`handoff`・`tokens`・`reference-check` | 承認の記録と照合、handoff の更新、トークンの集計（`--turns` でターンごと）、正典の検査 |
 
 `inventory` は v2 の existing 調査（R2 で 85KB）を置き換える。v2 の existing 調査は、ファイルの一覧・frontmatter・参照という機械で取れる事実を、ワーカーが読んで書き写していた。
 
@@ -130,7 +132,7 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 
 | Agent | 1文の責任 | model・effort | 使う段 |
 |---|---|---|---|
-| `investigator` | 要件に関係する箇所を、対象と公式・正典の実物で確かめ、確度付きの事実を書く | sonnet・medium | plan |
+| `investigator` | 要件に関係する箇所を、対象の実物と正典 `canon-reference` の `[仕様]` で確かめ、確度付きの事実を書く。正典で確かめられなかった論点は `unverified` に残し、メインが `claude-code-guide` で公式のドキュメントを確かめる | sonnet・medium | plan |
 | `profiler` | 対象の言語・テスト・CI・規約を読み、事実だけを書く（`inventory` で数えられない部分） | haiku・high | plan（大の経路と、要件が未知の領域に触れるとき） |
 | `builder` | change-plan の担当のファイルを、指示どおりに worktree で編集する | sonnet・medium | build |
 | `reviewer` | 変えたファイルと `impact` の参照元を、correctness・security・正典の意図・context の4観点で判定する | sonnet・high | build |
@@ -139,6 +141,7 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 
 - **仕様を書く Agent と、残すファイルを見る Agent は作らない**。仕様の文書は廃止し、残すかどうかの判定ももう無い。後者が見ていた触らないファイルとの食い違いは、`impact` の該当を reviewer が見ることで引き継ぐ。
 - **designer は作らない**。`/canon-design` の設計はメインが inline で行う。R1 の designer は総入力 9.5M（cache_read 8.9M）で、文脈は約12k から約313k まで増えた。そのうえ設計の段のメインも 1.7M を使い、R2 では生成の段で designer をもう1回起動した。設計の段のメインは設計以外のことをしないので、ワーカーに分けても文脈は節約できない。inline なら入力を読むのは1回で済み、差し戻しも同じ文脈で直せる。
+- **investigator の書込先は `investigation/facts.md` にする（`findings.md` にしない）**。2026-10-21 に Agent ツールで investigator を5通りの書込先で起動したところ、ベース名が `findings.md` のときだけ、ディレクトリによらず Write が「Subagents should return findings as text, not write report files」で拒否された（`investigation/findings.md`・`probe-c/findings.md` は拒否、`investigation/probe-a.md`・`probe-b/facts.md`・`investigation/probe-findings-r1.md` は成功）。拒否の条件がベース名と分かったので、拒否されたときに本文を保存する回避の手順は足していない。ほかのワーカーの出力ファイルにも、ベース名 `findings.md` は使わない。
 - 小の経路の change-plan はメインが書く。要件の事実確認をした文脈がメインにあるからである。
 - `profiler` と `session-analyst` を haiku・high にしたのは、`.claude/skills/design/references/model-selection.md` の3条件（事実の抽出に徹する・正典を参照した判断を要さない・出力が後段で検証される）を満たすからである。profile については `work/20261014_232320/eval/haiku/profile.md` で、haiku の出力が本番とほぼ同じ質だった（版の情報は多く、数えられなかった repo_scale は `inventory` が数える）。haiku に分ける基準は「3条件を満たし、本番の出力と同じ事実の項目が揃うこと」とする。session-analyst の分析を台帳に起票するかは、メインが確度を確かめて決める。
 
@@ -157,6 +160,7 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 - Opus と Sonnet の差は、cache read の単価が同じなので、cache の多い役では約1.4〜1.7倍にとどまる。費用を決めるのは、モデルの格よりトークンの量である。そこで v3 は、モデルを下げるより、読む量と書き写す量を減らすほうを優先した。
 - 段階6の受け入れ条件（総入力が R2 の全段の 46.3M の40%、約18.5M 以下）に余裕を持って収める配分の目安（推測、計16M）は、plan のメイン 4.5M・investigator 1.5M・build のメイン 3M・builder 2M・reviewer 2.5M・prompt-auditor 1M・振り返り 1.5M である。段階6の2回目の run（20261020_192336）の `npm run tokens` の実測は、plan のメイン 7.55M・investigator 3.14M・claude-code-guide 0.53M・build のメイン 4.42M・builder 1.34M・reviewer 5.63M・prompt-auditor 1.37M・振り返り 2.59M の計 26.56M（R2 の57%、この単価で約 $11.3）で、条件を満たさなかった。目安を超えた役の内訳と直し方は `tasks/lessons.md` に置き、条件を見直したうえで v3 を受け入れた。
 - reviewer の opus・high は、段階6の1回目の差分で sonnet・high と同じプロンプトで比べた。総入力は3.1倍（9.90M と 3.19M）で、1回目で直した5件のうち opus は4件、sonnet は5件を挙げ、対象の `.claude/README.md` の存在しない節への参照は両方とも見逃した。そこで sonnet・high のままにした。この見逃し（参照元の中の参照先の実在）は2回目の run でも直らず、段階6の受け入れ条件の1つを満たさないまま受け入れた。改修要求は `tasks/lessons.md` にある。
+- 大の経路の最初の run（20261021_185834、対象 `skillweave-mhwilds`・変更52ファイル）の `npm run tokens` の実測は、plan 段 24.54M（メイン 6.43M・49ターン、session-analyst 12.24M、investigator 3.61M、profiler 2.25M）、設計の段 7.04M（メイン opus・47ターン。1ターン目 56k から 212k へ増えた。生成の段の designer の 12k から 313k より小さく、change-plan を節ごとに書く直しは入れていない）、build 段 30.97M（メイン 12.91M、reviewer 10.86M・6起動、builder 5.22M・14起動、prompt-auditor 1.97M）で、計 62.55M だった。小の経路の2回目の run（26.56M）の約2.4倍である（対象が違うので、単純な比較はできない）。plan 段の session-analyst が約半分を使った点は `tasks/lessons.md` にある。
 - `/canon-build` の advisor は、同じエラーが2回出たときと、差分のゲートの前だけに呼ぶ。
 
 ### 6.3 Skill
@@ -170,7 +174,7 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 | 検査 | 入力 | 内容 |
 |---|---|---|
 | `check` | requirements.md・change-plan.md | 確度、確定要件に「文言のみ」が無いこと、受入基準、サイズの上限、要件と計画の対応、`impact` の該当への回答 |
-| `verify` | worktree の `git diff --name-only <base>..HEAD` | 1 配置パス・2 frontmatter・3 ツール名・4 secret・5 書式片・6 参照整合（変えたファイルからの参照と、削除したファイルを指す、触らないファイルの参照）・7 計画との一致（差分のファイル集合が change-plan のファイル集合と同じ）・8 constraints・9 trust の前提（警告） |
+| `verify` | worktree の `git diff --name-only <base>..HEAD` | 1 配置パス・2 frontmatter・3 ツール名・4 secret・5 書式片・6 参照整合（変えたファイルからの参照と、削除したファイルを指す、触らないファイルの参照と、「変える」と答えた行が直っているか）・7 計画との一致（差分のファイル集合が change-plan のファイル集合と同じ）・8 constraints・9 trust の前提（警告） |
 | 対象のテスト | worktree | change-plan の検証コマンドを、メインが worktree で実行する |
 | `approvals` | ゲートの対象 | G1・G2（大は G3 まで）。文書のゲートは sha256 に、差分のゲートはコミットの sha に束縛する |
 
@@ -195,4 +199,4 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 
 ## 10. 廃止したもの
 
-全量スナップショット方式と、それを支えた仕組みを廃止する。具体的には、ファイルごとの処遇の判定とその条件、成果物の一覧と使い方の説明の決定論の生成、管理パス集合、成果物のコピー・一覧の生成・レビュー入力の作成・配置前の照合・配置・自己指定の拒否のスクリプト、verify の旧 V7・V8、仕様の文書とそれを書く Agent、残すファイルを見る Agent、designer、`output/`、Phase 分けと人間ゲート P 系である。v2 の書式と検査の詳細（旧 `design/artifacts.md`）は git の履歴に残る。
+全量スナップショット方式と、それを支えた仕組みを廃止する。具体的には、ファイルごとの処遇の判定とその条件、成果物の一覧と使い方の説明の決定論の生成、管理パス集合、成果物のコピー・一覧の生成・レビュー入力の作成・配置前の照合・配置・自己指定の拒否のスクリプト、v2 の verify の V7・V8（v3 の V7・V8 は別の検査）、仕様の文書とそれを書く Agent、残すファイルを見る Agent、designer、`output/`、Phase 分けと人間ゲート P 系である。v2 の書式と検査の詳細（旧 `design/artifacts.md`）は git の履歴に残る。

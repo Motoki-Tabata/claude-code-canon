@@ -33,7 +33,7 @@ argument-hint: "<target_project_path> | <ts>"
 
 ## ワーカーの起動規則
 
-- ワーカーは登録済みの `subagent_type`（`investigator`・`profiler`・`session-analyst`）で起動する。公式仕様の確認には組込みの `claude-code-guide` を使う。`model` 引数は渡さない（定義の frontmatter が正）。`general-purpose` に定義を読ませて代行させない。
+- ワーカーは登録済みの `subagent_type`（`investigator`・`profiler`・`session-analyst`）で起動する。正典（`canon-reference`）で確かめられなかった仕様の論点の確認にだけ、組込みの `claude-code-guide` を使う。`model` 引数は渡さない（定義の frontmatter が正）。`general-purpose` に定義を読ませて代行させない。
 - 独立したワーカーは1つのメッセージで並列に起動し、`run_in_background: false` にして全員の結果がそろうまで待つ。
 - プロンプトには ts と、入力・書込先の絶対パスを書く。定義に書いてあることを繰り返さない。
 - ワーカーの応答は「書いた旨」の短い報告である。完了とみなさず、成果物の実在と中身を自分で確かめる。
@@ -50,8 +50,8 @@ argument-hint: "<target_project_path> | <ts>"
 1. `.claude/skills/requirements/references/interview.md` と `terminology.md` を読み、その順序と掘り方に従う。冒頭で `inventory` の要約と profile の要点を示す。AskUserQuestion で往復し、質問文か直前の本文に判断材料を書く。ユーザーの用語は `terminology.md` で正しい機能に写し、写し方を確かめる。
 2. **constraints**（hooks・mcp・plugins・experimental・組織ポリシー）は「禁止」か「今は使っていないだけ」かを必ず確かめる。`allowed: false` は「差分のどこにも現れてはならない」を意味し、既存のファイルがその機能を使っているだけで verify の V8 が止める。
 3. **確かめてから確定する**。lessons・README・ユーザーの記憶に由来する主張（ファイルの形・設定値・挙動）は、要件1件ごとに確かめる。
-   - 実物: `investigator` を起動する。渡すもの: 主張の一覧（仮の ID・主張・確かめたいこと）・worktree の絶対パス・ts・書込先 `<root>/work/<ts>/investigation/findings.md`（参照元があればその `path`）。
-   - 公式: Claude Code の仕様に依存する主張と、findings の `unverified` に残った仕様の論点は、`claude-code-guide` に要件ごとの問いを渡して公式のドキュメントで確かめる（独立した問いは1つのメッセージで並列に）。結果をあなたが `<root>/work/<ts>/investigation/official-check.md` に書く（書式は `.claude/skills/investigation/references/official-check.md`）。
+   - 実物と正典: `investigator` を起動する。渡すもの: 主張の一覧（仮の ID・主張・確かめたいこと）・worktree の絶対パス・ts・書込先 `<root>/work/<ts>/investigation/facts.md`（参照元があればその `path`）。Claude Code の仕様に依存する主張は、investigator が先に正典 `canon-reference` の `[仕様]` で確かめ、確度「公式で確認」と根拠の節を findings に書く。
+   - 公式: 正典に記述が無い・正典の `complete: false` のコレクションに名前が無い・`sources.json` の `unverified` に載っている論点（findings の `unverified` に残ったもの）だけを、`claude-code-guide` に要件ごとの問いを渡して公式のドキュメントで確かめる（独立した問いは1つのメッセージで並列に）。結果をあなたが `<root>/work/<ts>/investigation/official-check.md` に書く（書式は `.claude/skills/investigation/references/official-check.md`）。論点の数は、findings の `unverified` の仕様の論点の数と一致する。investigator が応答で知らせた正典の欠け（正典に書くべきなのに無かった事実）は、`tasks/lessons.md` に起票する。
    - 確かめられない主張（確度が「文言のみ」）は、`## 未確定` に置く。**G1 で確定させない**。実物や公式と食い違った主張は、ユーザーに伝えて要件を直す。
 4. 合意したら、`.claude/skills/requirements/references/requirements-template.md` の書式どおりに、**自分で** `<root>/work/<ts>/requirements.md` を書く。`confirmed_at` には、合意した時点で `date '+%Y-%m-%d %H:%M'` を実行した出力を写す（推測で書かない）。キー名・見出し・字下げを崩さない。書いた直後に `npm run check -- <ts> requirements` を実行し、NG が無いことを確かめる。
 5. **経路を決める**。対象に既存のカスタマイズがあり、新しい機能種別を足さず、Skill・Subagent・Plugin の新設・廃止もしないなら小、1つでも欠ければ大。見込みを `npm run handoff -- <ts> set route=<small|large>` で記録する（変えるファイルの件数は条件にしない）。`npm run handoff -- <ts> mark 計画2`。
@@ -60,9 +60,9 @@ argument-hint: "<target_project_path> | <ts>"
 
 大の経路は、この節を飛ばして「G1」へ進む。
 
-1. `.claude/skills/requirements/references/change-plan-template.md` を読む。`<root>/work/<ts>/change-plan.md` に、まず `## ファイル` と `## 影響の語` と `## 検証コマンド` を書く。変えるファイルは requirements.md の `files` と `accept` から決める。`instruct` は「何を・なぜ」だけで、新しい本文は書かない。
-2. 影響の語（want が変えるコマンド名・既定の挙動・設定キー・語）と変えるファイルを、そのまま `npm run impact -- --root <worktree> --out <root>/work/<ts> --files <ファイル,…> --terms <語,…>` に渡す。要約の件数だけを読み、該当の一覧は `<root>/work/<ts>/impact.json` を必要な範囲で読む。
-3. `## 参照元の扱い` に、**該当のすべて**へ「変える」か「変えない（理由）」で答える。「変えない」の理由は、そのファイルのその行を実際に読んで書く。「変える」は `## ファイル` にも載せる。件数が多い語はファイル単位で答えてよい。変えるファイルの中の該当（要約の「変えるファイルの中の語の該当」）にも答える（「変える」は1件ずつ ID で答え、その行は builder が直す）。答えを書いたら `## ファイル` と語が変わっていないことを確かめる（変わったら `impact` を取り直す）。
+1. `.claude/skills/requirements/references/change-plan-template.md` を読む。`<root>/work/<ts>/change-plan.md` に、まず `## ファイル` と `## 影響の語` と `## 検証コマンド` を書く。変えるファイルは requirements.md の `files` と `accept` から決める。`instruct` は「何を・なぜ」だけで、新しい本文は書かない。検証コマンドは、変更前の worktree で1回実行し、結果（pass・fail の件数と、変更前から落ちているもの）をそのコマンドの行に書く。build が「変更前から落ちていた fail」と「変更で落ちた fail」を区別するための基準である。
+2. 影響の語（want が変えるコマンド名・既定の挙動・設定キー・語）は、requirements.md の確定要件ごとに1つ以上置き、各語に対応する要件を ``- `語`（R1,R3）`` の形で添える。語を置けない要件は `- R5: 影響の語なし（理由）` と書く。そのうえで `npm run impact -- --root <worktree> --out <root>/work/<ts> --from-plan <root>/work/<ts>/change-plan.md` を実行する（`--files`・`--terms` に渡し直さない）。要約の件数だけを読み、該当の一覧は `<root>/work/<ts>/impact-ids.txt`（1行1件の ID と行の抜粋）を読む。行の抜粋で判断できないときだけ、`impact.json` を `"id": "<path>:` で Grep する（全体は Read しない）。
+3. `## 参照元の扱い` に、`impact-ids.txt` の**該当のすべて**へ「変える」か「変えない（理由）」で答える。「変えない」の理由は、そのファイルのその行を実際に読んで書く。「変える」は `## ファイル` にも載せる。件数が多い語はファイル単位で答えてよい。変えるファイルの中の該当（要約の「変えるファイルの中の語の該当」）にも答える（「変える」は1件ずつ ID で答え、その行は builder が直す）。答えを書いたら `## ファイル` と語が変わっていないことを確かめる（変わったら `impact` を取り直す）。
 4. `npm run check -- <ts> change-plan` を実行する。NG があれば直す。**小の条件（対象に既存がある・新しい機能種別を足さない・構成を変えない）が NG になったら大の経路**に切り替える: `set route=large` にして、この段で書いた `work/<ts>/change-plan.md` と `impact.json` は消し（設計の段で書き直す）、G1 は requirements.md だけで取る。
 5. `npm run handoff -- <ts> mark 計画3`。
 

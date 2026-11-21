@@ -9,7 +9,37 @@
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-10-21
+
+全量スナップショット方式をやめ、対象リポジトリの worktree の上で変えるファイルだけを編集する変更集合方式に、互換を取らずに作り直しました。2.x の run は引き継げません（新しい run を始めてください）。設計は `design/architecture.md` にあります。
+
+### Changed
+
+- **経路とゲート**: 小の経路（`/canon-plan` → `/canon-build`）と大の経路（`/canon-plan` → `/canon-design` → `/canon-build`）に分け、小は G1 計画・G2 差分、大は G1 要件・G2 設計・G3 差分の承認を取ります。反映は人間のマージです。
+- **中間文書**: 要件（`requirements.md`）と変更計画（`change-plan.md`）の2つにし、節ごとのサイズの上限を `npm run check` が数えます。
+- **決定論のスクリプト**: `tools/` に `new-run`・`preflight`・`inventory`・`impact`・`worktree`・`verify`（V1〜V9）・`check`・`approvals`・`handoff`・`tokens` を置きました。
+- **investigator**: Claude Code の仕様に依存する主張を、先に正典 `canon-reference` の `[仕様]` で確かめ、確度「公式で確認」と根拠の節を findings に書きます。`claude-code-guide` は、正典で確かめられなかった論点（findings の `unverified`）だけに使います。
+- **change-plan の `## 影響の語`**: 語の後ろに対応する要件を `（R1,R3）` で添え、語を置けない要件は `- R5: 影響の語なし（理由）` と書きます。`check` が確定要件ごとの有無を検査します。
+- **reviewer と canon-build**: `impact.json` を path ごとに Grep し、`change-plan.md` は `## ファイル` と担当の行だけを読みます。「参照先の実在」は担当の参照元のファイルの中にも広げました。
+- **`git -C` をやめました**: `/canon-build` の差分・状態の確認は `npm run worktree -- diff|status` に置き換えました。
+
 ### Added
+
+- **`npm run worktree -- status|diff`**: `status` は未コミットの変更、`diff` は `--base` の範囲か HEAD との差を返し、`--out` でファイルへ書きます。
+- **`npm run impact -- --from-plan <change-plan.md>`**: `## ファイル` と `## 影響の語` をそのまま読みます。結果の ID と行の抜粋を、1行1件の `impact-ids.txt` にも書きます。
+- **verify V6 の追加の照合**: change-plan が ID で「変える」と答えた行が、差分の変更前の変更行に含まれなければ違反にします。
+- **`npm run tokens -- <id> --turns`**: ターンごとの総入力・増分・ツールの要約・tool_result の字数・持ち越しを出します（`--agent <id>` でサブエージェント1体）。
+- **`paths.json` の入れ子の Agent**: `.claude/agents/<subdir>/*.md`（project・user）を subagents として数えます。
+
+### Removed
+
+- **全量スナップショット方式と、それを支えた仕組み**: 処遇の判定、成果物のコピー・配置のスクリプト、v2 の verify の V7・V8、仕様を書く Agent、残すファイルを見る Agent、designer、`output/`、Phase 分けと人間ゲート P 系を廃止しました（`design/architecture.md` §10）。
+
+### v2.1.0 以降 v3 までの間の変更（未リリース）
+
+次は 2.1.0 の後に書かれ、リリースされないまま v3 に含まれました。v2 の語彙（Phase A〜D・canon-a〜d・spec-writer・designer・keep-reviewer・review-bundle）で書いてあり、v3 で置き換えたものを含みます。履歴として残します。
+
+#### Added
 
 - **更新 Skill `canon-update`**: 正典 `canon-reference` を公式ドキュメントから全ファイル作り直す保守用の Skill（`/canon-update`）。手順書 `design/canon-reference-build.md` を `.claude/skills/canon-update/references/build.md` に移し、検査（1〜9・11）を `npm run reference-check` にしました（`--online` で 2・4・5 も実行。`npm test` はオフラインの検査を実リファレンスに当てます）。
 
@@ -65,7 +95,7 @@
   メインの会話で実行すると報告が約80k トークンとして以後の全ターンに載り続けました。時点に依存する語の grep パターンは
   定義に固定し、報告の末尾に追加の節として足します。Agent は8体になります。
 
-### Changed
+#### Changed
 
 - **正典を `canon-reference` に切り替え**: 正典（SSoT）を旧 `docs/` から Skill `canon-reference`（`references/`・`data/`・`sources.json`）に移しました。verify は `data/*.json` を `lib/reference-data.js` 経由で直接読み、`data` が未提供の検査は違反にせず「未判定」と報告します（exit code には影響しません）。`canon_version` の出典は `sources.json` の `claude_code_version`（`v` なし）です。
 - **層の語彙を機能単位に**: L1〜L5・`2層|3層`・パターン A〜F をやめました。design-map の節は `## <機能>`（12機能）、`## メタ` の `layers` は `patterns`（委譲・並列・強制・配布）、`## レイヤー構成` は `## 構成と責務` になりました。builder は8担当（`claude-md`・`rules`・`skills`・`subagents`・`settings`・`mcp`・`plugins`・`output-styles`）で、スライスは `<担当>.md`・`targets-<担当>.txt` です。管理パス集合に `AGENTS.md`・`.claude/commands/**`・`.claude/output-styles/**` を加えました。
@@ -107,12 +137,12 @@
   `deploy_managed_paths.test.js` は `managed_paths.test.js` に改名し、requirements.md のパーサ単体は `requirements.test.js` に分けました。
 - **ルール `gates-and-tests` を `checks-and-tests` に改名**: 廃止した `gates/` の名前を引き継いでいたためです。
 
-### Removed
+#### Removed
 
 - **旧 `docs/`（正典9ファイルと `SOURCES.md`）と判定表の仕組み**: `gates/`・`npm run build:tables`・CI の判定表の鮮度検査を削除しました。旧 `docs/` は git 履歴に残っています。
 - **層単位の知識 Skill の references**: `design/references/layer-design.md` と、`generation/references/` の `l1.md`・`l4.md`・`l5.md`・`agents.md`・`skill-writing.md` を削除しました（機能単位の `structure.md` と担当単位の8ファイルに置き換え、Skill の執筆指針は `canon-reference` の skills §4 を参照します）。
 
-### Fixed
+#### Fixed
 
 - **verify が出力スタイルと `AGENTS.md` を止めていた**: `.claude/output-styles/*.md` と `AGENTS.md` を「種別を判定できない」として V1 の違反にしていました。出力スタイルには V1（`paths:files`）と V2（`frontmatter:output-style`）を当て、`AGENTS.md` は `CLAUDE.md` と同じ非スキーマのファイル（V7 の署名は見出しの構造）として扱います。
 - **V6 が SKILL.md の Markdown リンクの実在を見ていなかった**: 生成規約が推奨する `[表示名](./references/x.md)` の参照先が無くても通っていました。コードフェンスの外の相対リンクを skill ディレクトリ相対で解決し、無ければ違反にします（V-skills-18）。

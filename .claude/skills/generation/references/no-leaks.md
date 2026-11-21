@@ -19,7 +19,7 @@
 
 - ルール（`.claude/rules/`）と CLAUDE.md の本文には、なぜそうするのか（落とし穴・判断の理由）を添える。理由が読み手の現場で通じる言葉で書かれていれば、場面が変わっても判断を誤らない。
 - Skill（`SKILL.md`）の本文は、どうするかを書き、経緯や理由の語りは入れない（正典 `canon-reference/references/features/skills.md` の §4「本文」）。
-- 対象プロジェクトに実在するパス・コマンド。実在を確かめたものだけ。findings.md の `extractable_templates` と `evidence_paths` が、接地の材料になる。
+- 対象プロジェクトに実在するパス・コマンド。実在を確かめたものだけ。facts.md の `extractable_templates` と `evidence_paths` が、接地の材料になる。
 
 ## 書き終えたときの自己点検
 

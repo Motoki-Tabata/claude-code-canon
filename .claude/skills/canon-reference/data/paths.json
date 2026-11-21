@@ -263,6 +263,19 @@
           }
         },
         {
+          "id": "project:.claude/agents/<subdir>/*.md",
+          "path": ".claude/agents/<subdir>/*.md",
+          "kind": "file",
+          "scope": "project",
+          "commit": true,
+          "feature": "subagents",
+          "description_ja": "サブディレクトリに置いた subagent の定義。.claude/agents/ は再帰的に走査される",
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#choose-the-subagent-scope"
+          }
+        },
+        {
           "id": "project:.claude/workflows/*.js",
           "path": ".claude/workflows/*.js",
           "kind": "file",
@@ -501,6 +514,19 @@
           "source": {
             "url": "https://code.claude.com/docs/en/claude-directory.md",
             "anchor": "#file-reference"
+          }
+        },
+        {
+          "id": "user:~/.claude/agents/<subdir>/*.md",
+          "path": "~/.claude/agents/<subdir>/*.md",
+          "kind": "file",
+          "scope": "user",
+          "commit": false,
+          "feature": "subagents",
+          "description_ja": "サブディレクトリに置いた個人の subagent の定義。~/.claude/agents/ は再帰的に走査される",
+          "source": {
+            "url": "https://code.claude.com/docs/en/sub-agents.md",
+            "anchor": "#choose-the-subagent-scope"
           }
         },
         {

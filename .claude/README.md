@@ -28,7 +28,7 @@
 
 | Subagent | 使われる場面 | 書くもの |
 |---|---|---|
-| `investigator` | `/canon-plan`。要件の主張を対象の実物で確かめる | `work/<ts>/investigation/findings.md` |
+| `investigator` | `/canon-plan`。要件の主張を対象の実物で確かめる | `work/<ts>/investigation/facts.md` |
 | `profiler` | `/canon-plan`。既存が無い対象や、未知の領域に触れる要件のとき | `work/<ts>/investigation/profile.md` |
 | `builder` | `/canon-build`。担当（unit）ごとに並列 | worktree の担当のファイル |
 | `reviewer` | `/canon-build`。変えたファイルと `impact` の参照元を判定する | `work/<ts>/review/review-<k>.md` |

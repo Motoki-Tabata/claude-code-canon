@@ -24,14 +24,14 @@ canon のルートの絶対パスを `<root>`、`work/<ts>/` を `<root>/work/<t
 ## 設計1 機能選定・構成・モデル割当
 
 1. 入力は `work/<ts>/` の `requirements.md`・`inventory.json`（要約の件数と、既存の一覧）・`investigation/` のファイルだけ。承認済みの G1 の要件を、勝手に増減しない。要件を直す必要が出たら、ユーザーに伝えて `/canon-plan <ts>` で G1 を取り直す。
-2. `.claude/skills/design/SKILL.md` の手順に従い、段階ごとに該当の references を1つずつ読んで判断する（機能選定 → 構成と責務 → 組み合わせ → モデルと effort）。正典は `canon-reference/references/` の該当の節を読む。constraints で禁止された機能は、選ぶ前に候補から外す。
+2. `.claude/skills/design/SKILL.md` の手順に従い、段階ごとに該当の references を1つずつ読んで判断する（機能選定 → 構成と責務 → 組み合わせ → モデルと effort）。正典は `.claude/skills/canon-reference/references/` の該当の節を読む。constraints で禁止された機能は、選ぶ前に候補から外す。
 3. 既存のカスタマイズがある作り直しでは、`inventory.json` の一覧を見て、残すもの（何も書かない）・直すもの（`modify`）・消すもの（`delete`）・足すもの（`new`）を決める。
 4. 判断が割れる設計判断（機能の置き場・強度・生成物の Subagent の分け方など）は、AskUserQuestion で選択肢を示して決める。質問文か直前の本文に判断材料を書く。
 
 ## 設計2 change-plan.md を書く
 
 1. `.claude/skills/requirements/references/change-plan-template.md` と `.claude/skills/design/references/change-plan-large.md` を読み、`<root>/work/<ts>/change-plan.md` の `## ファイル`・`## 影響の語`・`## 検証コマンド`・`## 機能と責務`・`## モデル割当` を書く。`instruct` は「何を・なぜ」だけで、新しい本文は書かない。
-2. 変えるファイルと影響の語を、そのまま `npm run impact -- --root <worktree> --out <root>/work/<ts> --files <ファイル,…> --terms <語,…>`（`<worktree>` は handoff の `worktree`）に渡す。要約の件数だけを読み、該当は `impact.json` を必要な範囲で読む。
+2. 影響の語（要件が変えるコマンド名・既定の挙動・設定キー・語）は、requirements.md の確定要件ごとに1つ以上置き、各語に対応する要件を ``- `語`（R1,R3）`` の形で添える。語を置けない要件は `- R5: 影響の語なし（理由）` と書く。そのうえで `npm run impact -- --root <worktree> --out <root>/work/<ts> --from-plan <root>/work/<ts>/change-plan.md`（`<worktree>` は handoff の `worktree`。`--files`・`--terms` に渡し直さない）を実行する。要約の件数だけを読み、該当の一覧は `<root>/work/<ts>/impact-ids.txt`（1行1件の ID と行の抜粋）を読む。行の抜粋で判断できないときだけ、`impact.json` を `"id": "<path>:` で Grep する（全体は Read しない）。
 3. `## 参照元の扱い` に、**該当のすべて**へ「変える」か「変えない（理由）」で答える。理由は、そのファイルのその行を実際に読んで書く。「変える」は `## ファイル` にも載せる。変えるファイルの中の該当にも答える（「変える」は1件ずつ ID で答え、その行は builder が直す）。
 4. `npm run check -- <ts> change-plan` を実行し、NG を直す。サイズの上限を超えたら、前の段の再掲か新しい本文の丸写しを削る。
 5. `npm run handoff -- <ts> mark 設計1`。
