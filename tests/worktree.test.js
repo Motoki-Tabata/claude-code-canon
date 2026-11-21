@@ -144,7 +144,7 @@ test('diff: --base で <base>..HEAD を、--out でファイルへ書く。--nam
   assert.equal(r.code, 0, r.stderr);
   const expected = git(c.worktree, 'diff', `${c.base}..HEAD`);
   assert.equal(readFileSync(out, 'utf8'), expected);
-  assert.match(r.stdout, new RegExp(`^out: ${out}\\nbytes: ${Buffer.byteLength(expected)}\\n$`));
+  assert.equal(r.stdout, `out: ${out}\nbytes: ${Buffer.byteLength(expected)}\n`);
   assert.equal(s.wt('diff', '--worktree', c.worktree, '--base', c.base, '--name-only').stdout, 'CLAUDE.md\n');
   assert.match(s.wt('diff', '--worktree', c.worktree, '--base', c.base, '--stat').stdout, /CLAUDE\.md \| 2 \+-/);
   assert.equal(s.wt('diff', '--worktree', c.worktree, '--name-only', '--stat').code, 2, '--name-only と --stat の併用は引数不正（exit 2）');
