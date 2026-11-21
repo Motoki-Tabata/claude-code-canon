@@ -67,3 +67,31 @@ claude-canon 本体（`.claude/**`・`lib/`・`tools/`・`design/`・`guide/`）
 - 何が起きたか: 構築2で V1 が対象のルート `README.md` を「配置の誤り」と判定して不合格になった（原因は `lib/non-schema.js` の除外漏れ）。`canon-build/SKILL.md` 構築2の3は対象のファイルを直す手順だけで、canon の検査側の誤検出の扱いが無いため、メインが手順の外で台帳に起票し、ユーザーに直し方を尋ね、canon に別コミット（`bc94455`）を積んだ。canon の HEAD が run の開始時から変わり、以後の preflight は `WARN canon` を出す。
 - 確度: 実物で確認（`canon-build/SKILL.md` に該当の記述が無いことを grep で確かめた）
 - 提案: `canon-build/SKILL.md` 構築2の3に、「違反の原因が canon の検査の誤検出なら、台帳に起票してユーザーに『canon を直す』か『対象の変更を外す』かを尋ねる。canon を直すときは別コミットにし、差分のゲートの提示に載せる」を足す。
+## 2026-10-27 正典に組込みの /design の起動の条件と展開の挙動が無い（run 20261027_111036・plan）
+- 種別: 欠陥修正
+- 何が起きたか: 対象の台帳の論点（/design の起動のしかた）を investigator が正典で確かめようとしたが、`data/builtin-commands.json` は /design を Skill として列挙するだけで、起動の条件と展開の挙動が無かった。公式（artifacts.md「Draft a design canvas」・skills.md「Run a skill」）には「brief からキャンバスを作り Claude Design の artifact として公開する」「メッセージの先頭に置けば実行し、平文の後では実行しない」がある（`work/20261027_111036/investigation/official-check.md` の R1）。
+- 確度: 実物で確認（正典のデータと公式の原文）
+- 提案: `canon-reference` の組込み Skill の説明（`/design` の項）に、展開の結果と「先頭に置くと実行・文中では許可のみ」を出典付きで足す。モデルが起動できるかは公式に記述が無いので、無いことを書く。
+## 2026-10-27 セッション履歴の分析の対象が20件を超えると、1メッセージでの並列起動が上限で失敗する（run 20261027_111036・plan）
+- 種別: 規律昇華
+- 何が起きたか: 対象の25セッションを `session-analyst` で1件1体として1メッセージで起動したところ、21件目から「Concurrent subagent limit reached（20）」で失敗した。残りの5件は、先に起動した分析が終わるたびに1件ずつ起動した。`interview.md`「過去のセッション履歴の分析」と canon-plan の起動規則は「1つのメッセージで並列に起動」とだけ書き、上限を超えたときの扱いが無い。
+- 確度: 実物で確認（このセッション a228330a の Agent の結果）
+- 提案: `.claude/skills/requirements/references/interview.md` の該当節に、同時起動の上限（既定20）を超えるときは20件ずつ起動し、終わった分だけ補充する、を足す。
+## 2026-10-27 参照元の扱いの答えを、手順に無い python で change-plan.md に差し込んだ（run 20261027_111036・plan）
+- 種別: 効率化
+- 何が起きたか: impact の該当は504件（144ファイル）だった。メインは答えの方針（変える行の一覧と、場所ごとの「変えない」の理由）を決め、python で impact.json から ID を引いて `## 参照元の扱い` の186行を作り、change-plan.md に差し込んだ。canon-plan の計画3は書き方を定めるだけで、多数の該当を答える道具が無い。主張の一覧（claims-*.md）と分析の観点のファイルも、手順に無い Write で work/<ts>/ に置いた。
+- 確度: 実物で確認（work/20261027_111036/change-plan.md、check は OK）
+- 提案: `tools/impact.js` に、変える行の ID 一覧と「変えない」の理由の規則（パスの接頭辞ごと）を受けて `## 参照元の扱い` の下書きを出すオプションを足し、canon-plan の計画3からそれを使う。
+
+## 2026-10-27 build 中に計画外のファイルを足すと、計画の再承認が要り、.claude の外の .md は verify V1 で違反になる（run 20261027_111036・build）
+- 種別: 規律昇華
+- 何が起きたか: 構築3のレビューの指摘で、change-plan に無い6ファイル（うち .github/pull_request_template.md と design-system/skillweave/MASTER.md は .claude の外）を直した。verify は V7（計画に無い差分）と、この2ファイルの V1（種別を判定できない）で不合格になった（verify-report.md の V1・V7）。change-plan を足すと G1 のハッシュも変わる。
+- 確度: 実物で確認（verify-report.md、lib/verify/run.js:59・lib/non-schema.js:19）
+- 提案: canon-build の構築3に「指摘が計画外のファイルを指すときの経路」を足す。.claude の外の .md は build の対象にせず対象の台帳への申し送りにする。計画内に収めるなら change-plan を足して G1 を取り直す。行き先は .claude/skills/canon-build/SKILL.md 構築3の3。
+
+## 2026-10-27 構築3の軽微な修正をメインが worktree で直接編集し、生の git commit --amend も使った（run 20261027_111036・build）
+- 種別: 規律昇華
+- 何が起きたか: V6 の違反と reviewer の low の修正（tsod-ship/SKILL.md・spec-check.mjs・handoff.mjs）を、builder を起動せずメインが python・sed・Edit で worktree に直接書いた。sha を変えないコミットの文言直しに `git commit --amend` を直接使い、`npm run worktree -- commit` を通さなかった。いずれも SKILL.md の手順（直しは差し戻し→builder、コミットは worktree サブコマンド）の外。
+- 確度: 実物で確認（この build セッションの操作）
+- 提案: canon-build の構築3に「1〜2行の機械的な修正はメインが直接直してよい。ただし差し戻しの欄に直した箇所を書く」か「必ず builder」かを決めて書く。行き先は .claude/skills/canon-build/SKILL.md 構築3の3。コミットの文言を直す amend は worktree サブコマンドに足すか、禁じるかを決める。
+- 未決: 直接編集を許す線をどこに引くか（行数か、スクリプトか文書か）
