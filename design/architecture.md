@@ -141,6 +141,7 @@ v2 は canon の run ごとの worktree を、`cd` と絶対パスの使い分�
 
 - **仕様を書く Agent と、残すファイルを見る Agent は作らない**。仕様の文書は廃止し、残すかどうかの判定ももう無い。後者が見ていた触らないファイルとの食い違いは、`impact` の該当を reviewer が見ることで引き継ぐ。
 - **designer は作らない**。`/canon-design` の設計はメインが inline で行う。R1 の designer は総入力 9.5M（cache_read 8.9M）で、文脈は約12k から約313k まで増えた。そのうえ設計の段のメインも 1.7M を使い、R2 では生成の段で designer をもう1回起動した。設計の段のメインは設計以外のことをしないので、ワーカーに分けても文脈は節約できない。inline なら入力を読むのは1回で済み、差し戻しも同じ文脈で直せる。
+- **investigator の書込先は `investigation/facts.md` にする（`findings.md` にしない）**。2026-10-21 に Agent ツールで investigator を5通りの書込先で起動したところ、ベース名が `findings.md` のときだけ、ディレクトリによらず Write が「Subagents should return findings as text, not write report files」で拒否された（`investigation/findings.md`・`probe-c/findings.md` は拒否、`investigation/probe-a.md`・`probe-b/facts.md`・`investigation/probe-findings-r1.md` は成功）。拒否の条件がベース名と分かったので、拒否されたときに本文を保存する回避の手順は足していない。ほかのワーカーの出力ファイルにも、ベース名 `findings.md` は使わない。
 - 小の経路の change-plan はメインが書く。要件の事実確認をした文脈がメインにあるからである。
 - `profiler` と `session-analyst` を haiku・high にしたのは、`.claude/skills/design/references/model-selection.md` の3条件（事実の抽出に徹する・正典を参照した判断を要さない・出力が後段で検証される）を満たすからである。profile については `work/20261014_232320/eval/haiku/profile.md` で、haiku の出力が本番とほぼ同じ質だった（版の情報は多く、数えられなかった repo_scale は `inventory` が数える）。haiku に分ける基準は「3条件を満たし、本番の出力と同じ事実の項目が揃うこと」とする。session-analyst の分析を台帳に起票するかは、メインが確度を確かめて決める。
 
