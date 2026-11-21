@@ -79,7 +79,7 @@ function main(argv) {
       const text = statusWorktree({ worktree: path.resolve(v.worktree) });
       if (text) process.stdout.write(`${text}\n`);
     } else if (cmd === 'diff') {
-      if (!v.worktree) return bad();
+      if (!v.worktree || (v['name-only'] && v.stat)) return bad();
       const r = diffWorktree({ worktree: path.resolve(v.worktree), base: v.base, nameOnly: v['name-only'], stat: v.stat, out: v.out && path.resolve(v.out) });
       process.stdout.write(r.out ? `out: ${r.out}\nbytes: ${r.bytes}\n` : r.text);
     } else if (cmd === 'cleanup') {

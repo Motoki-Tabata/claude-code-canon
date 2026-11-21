@@ -13,6 +13,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { runNodeScript } from './helpers/run-cli.js';
+import { git } from './helpers/git.js';
 import { ROOT } from './helpers/paths.js';
 import { tsSeq } from './helpers/ts.js';
 import { changePlan, REQUIREMENTS, setupRun } from './helpers/v3-run.js';
@@ -170,6 +171,22 @@ test('verify CLI（違反注入）: 「変える」と答えた行を直し忘�
   const bad = verifyCli(r.ts);
   assert.equal(bad.code, 1, bad.stdout);
   assert.match(reportOf(r), /- 違反: V6 \.claude\/rules\/a\.md: change-plan が「変える」と答えた 4 行目/);
+  r.write('.claude/rules/a.md', A_MD.replace('# a\n', '# a（改）\n'));
+  r.commit();
+  const ok = verifyCli(r.ts);
+  assert.equal(ok.code, 0, ok.stdout + reportOf(r));
+});
+
+test('verify CLI（違反注入）: diff.noprefix・diff.external が設定された環境でも、「変える」と答えた行の範囲が取れ、直し忘れを V6 で検出する', (t) => {
+  const answers = '- .claude/rules/b.md: 変えない（a.md の存在への参照で内容は無関係）\n- .claude/rules/a.md:4:a: 変える';
+  const r = setupRun(t, nextTs(), { plan: changePlan({ answers }) });
+  git(r.worktree, 'config', 'diff.noprefix', 'true');
+  git(r.worktree, 'config', 'diff.external', 'true'); // 外部 diff が diff を差し替える環境（出力は空）
+  r.write('.claude/rules/a.md', A_MD); // 4 行目（# a）は変えず、末尾に足しただけ
+  r.commit();
+  const bad = verifyCli(r.ts);
+  assert.equal(bad.code, 1, bad.stdout);
+  assert.match(reportOf(r), /- 違反: V6 \.claude\/rules\/a\.md: change-plan が「変える」と答えた 4 行目/, '範囲が1件も取れないと、行の照合の対象が空になる');
   r.write('.claude/rules/a.md', A_MD.replace('# a\n', '# a（改）\n'));
   r.commit();
   const ok = verifyCli(r.ts);

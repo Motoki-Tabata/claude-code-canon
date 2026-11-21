@@ -31,7 +31,7 @@ canon のルートの絶対パスを `<root>`、`work/<ts>/` を `<root>/work/<t
 ## 設計2 change-plan.md を書く
 
 1. `.claude/skills/requirements/references/change-plan-template.md` と `.claude/skills/design/references/change-plan-large.md` を読み、`<root>/work/<ts>/change-plan.md` の `## ファイル`・`## 影響の語`・`## 検証コマンド`・`## 機能と責務`・`## モデル割当` を書く。`instruct` は「何を・なぜ」だけで、新しい本文は書かない。
-2. 変えるファイルと影響の語を、そのまま `npm run impact -- --root <worktree> --out <root>/work/<ts> --files <ファイル,…> --terms <語,…>`（`<worktree>` は handoff の `worktree`）に渡す。要約の件数だけを読み、該当は `impact.json` を必要な範囲で読む。
+2. 影響の語（要件が変えるコマンド名・既定の挙動・設定キー・語）は、requirements.md の確定要件ごとに1つ以上置き、各語に対応する要件を ``- `語`（R1,R3）`` の形で添える。語を置けない要件は `- R5: 影響の語なし（理由）` と書く。そのうえで `npm run impact -- --root <worktree> --out <root>/work/<ts> --from-plan <root>/work/<ts>/change-plan.md`（`<worktree>` は handoff の `worktree`。`--files`・`--terms` に渡し直さない）を実行する。要約の件数だけを読み、該当の一覧は `<root>/work/<ts>/impact-ids.txt`（1行1件の ID と行の抜粋）を読む。行の抜粋で判断できないときだけ、`impact.json` を `"id": "<path>:` で Grep する（全体は Read しない）。
 3. `## 参照元の扱い` に、**該当のすべて**へ「変える」か「変えない（理由）」で答える。理由は、そのファイルのその行を実際に読んで書く。「変える」は `## ファイル` にも載せる。変えるファイルの中の該当にも答える（「変える」は1件ずつ ID で答え、その行は builder が直す）。
 4. `npm run check -- <ts> change-plan` を実行し、NG を直す。サイズの上限を超えたら、前の段の再掲か新しい本文の丸写しを削る。
 5. `npm run handoff -- <ts> mark 設計1`。

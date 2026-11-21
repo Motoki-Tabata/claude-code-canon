@@ -14,6 +14,7 @@ import { scratchDir, writeFile } from './helpers/fixtures.js';
 import { runNodeScript } from './helpers/run-cli.js';
 import { gitInit } from './helpers/git.js';
 import { ROOT } from './helpers/paths.js';
+import { parseChangePlan } from '../lib/change-plan.js';
 
 const IMPACT = path.join(ROOT, 'tools', 'impact.js');
 
@@ -121,6 +122,16 @@ test('impact: --from-plan は --files・--terms と同じ入力・同じ該当�
   assert.deepEqual(lines.map((l) => l.split('\t')[0]), fromPlan.res.hits.map((h) => h.id));
   assert.equal(lines.find((l) => l.startsWith('README.md:3:/canon-x')).split('\t')[1], '起動は /canon-x。');
   assert.match(fromPlan.stdout, /impact-ids\.txt/);
+});
+
+test('impact: --from-plan の語は、「影響の語なし（理由）」の行の理由に書かれたバッククォートの語を含めない', (t) => {
+  const { tmp, repo } = buildRepo(t);
+  const plan = path.join(tmp, 'change-plan.md');
+  writeFileSync(plan, `${PLAN}- R2: 影響の語なし（\`reasonWord\` は語でなく説明）\n`);
+  assert.deepEqual(parseChangePlan(readFileSync(plan, 'utf8')).terms, ['verifyX', '/canon-x']);
+  const r = run(repo, path.join(tmp, 'o'), ['--from-plan', plan]);
+  assert.equal(r.code, 0, r.stdout);
+  assert.deepEqual(r.res.input.terms, ['verifyX', '/canon-x']);
 });
 
 test('impact: --from-plan は、併用・読めない・構造が不正なとき exit 2', (t) => {
