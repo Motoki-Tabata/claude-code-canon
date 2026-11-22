@@ -37,7 +37,26 @@ test('isNonSchemaRel: バックスラッシュ区切り（Windows パス）も�
 
 test('isNonSchemaRel: 対象のルートの README.md は generated root 基準でも非スキーマ', () => {
   assert.equal(isNonSchemaRel('README.md', 'generated'), true);
-  assert.equal(isNonSchemaRel('docs/README.md', 'generated'), false);
+  assert.equal(isNonSchemaRel('docs/README.md', 'generated'), true, '文書の .md は非スキーマ（下の「対象プロジェクトの文書」）');
+});
+
+/**
+ * 第4の経路: `.claude/` の外で、種別の慣用句ディレクトリを持たない .md は文書。
+ * 文書を除外しても、配置の誤りの検出（`.claude/` の中の未知の .md・慣用句の置き違え）は残ること。
+ */
+test('対象プロジェクトの文書（specs・docs・tasks・入れ子の README）は非スキーマ', () => {
+  for (const rel of ['specs/README.md', 'specs/feature-map.md', 'specs/001-x/spec.md', 'tasks/README.md', 'docs/decisions/0002-x.md']) {
+    assert.equal(isNonSchemaRel(rel, 'generated'), true, rel);
+  }
+});
+
+test('文書の除外は広げすぎない: .claude の中の未知の .md と、慣用句ディレクトリの .md は非スキーマでない（故意の違反）', () => {
+  assert.equal(isNonSchemaRel('.claude/stray.md', 'generated'), false, '.claude 直下の未知の .md は V1 が弾く');
+  assert.equal(isNonSchemaRel('.claude/docs/x.md', 'generated'), false);
+  assert.equal(isNonSchemaRel('agents/x.md', 'generated'), false, '.claude の外の agents/ は置き違えとして V1 が弾く');
+  assert.equal(isNonSchemaRel('rules/x.md', 'generated'), false);
+  assert.equal(isNonSchemaRel('docs/skills/x.md', 'generated'), false, 'skills 慣用句は文書でない');
+  assert.equal(isNonSchemaRel('docs/notes.txt', 'generated'), false, '.md 以外は対象外');
 });
 
 test('NON_SCHEMA_MD は正準6件のみ（列挙漏れ・過剰の両方を検出）', () => {
