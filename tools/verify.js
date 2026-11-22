@@ -39,6 +39,7 @@ export function verifyRun(root, ts, { now = new Date() } = {}) {
     root: h.worktree,
     changed: state.changed,
     changedLines: state.changedLines,
+    baseTexts: state.baseTexts,
     tracked: state.tracked,
     requirementsText: readOrNull(path.join(work, 'requirements.md')),
     changePlanText: readOrNull(path.join(work, 'change-plan.md')),

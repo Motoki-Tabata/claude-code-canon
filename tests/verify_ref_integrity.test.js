@@ -403,6 +403,27 @@ test('V6 10: 「変える」と答えた行が差分の変更前の変更行に�
   assert.deepEqual(checkV6(ctxFor(answer, null)).violations, [], 'changedLines が無ければ照合しない（git を使わない経路）');
 });
 
+test('V6 10b: 行の文面が残っても、同じまとまり（空行で区切る）が直っていれば通る。別のまとまりだけの変更は error（故意の違反注入）', () => {
+  const root = scratchRoot();
+  const rel = 'tasks/README.md';
+  mkdirSync(path.join(root, 'tasks'), { recursive: true });
+  const base = 'a1\na2\n\nb1\nb2\nb3\n\nc1\n';
+  writeFileSync(path.join(root, rel), base);
+  const plan = (answers) =>
+    `## ファイル\n- path: ${rel}\n  op: modify\n  reqs: [R1]\n  instruct: x\n\n## 影響の語\n- \`old\`（R1）\n\n## 参照元の扱い\n${answers}\n\n## 検証コマンド\n- \`npm test\`\n`;
+  const ctxFor = (changedLines, baseTexts) =>
+    makeContext({ root, changed: [{ rel, status: 'M' }], tracked: [rel], changePlanText: plan(`- ${rel}:6:old: 変える`), changedLines, baseTexts });
+  const baseTexts = new Map([[rel, base]]);
+  // 6 行目（b3）は変わらず、同じまとまり（4-6 行目）の 4 行目が変わった。
+  assert.deepEqual(checkV6(ctxFor(new Map([[rel, [[4, 4]]]]), baseTexts)).violations, [], '同じまとまりの変更なら通る');
+  // 別のまとまり（1-2 行目・8 行目）だけが変わった。
+  const other = checkV6(ctxFor(new Map([[rel, [[1, 2], [8, 8]]]]), baseTexts));
+  assert.ok(other.violations.some((v) => v.includes(`${rel}:6:old`)), '別のまとまりだけの変更は通さない');
+  // 変更前の本文が無ければ、行の範囲だけで照合する（従来の挙動）。
+  const noBase = checkV6(ctxFor(new Map([[rel, [[4, 4]]]]), null));
+  assert.ok(noBase.violations.some((v) => v.includes(`${rel}:6:old`)), 'baseTexts が無ければ範囲だけで照合する');
+});
+
 test('parseOldLineRanges: -U0 の差分から、変更前の変更行の範囲を取る。追加だけのハンクは数えない', () => {
   const patch = [
     'diff --git a/x.md b/x.md', '--- a/x.md', '+++ b/x.md', '@@ -3 +3 @@', '-a', '+b', '@@ -10,2 +10,3 @@', '-c', '-d', '+e', '+f', '+g',
